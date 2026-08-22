@@ -210,7 +210,7 @@ export default function AssignedMealsScreen(props: any) {
       ) : (
         <>
           {!isDietMode && (
-            <Card variant="ghost" className="mx-4" style={{ marginBottom: 12 }}>
+            <Card variant="ghost" className="mx-4" style={{ marginTop: 16, marginBottom: 12 }}>
               <HStack space="sm" className="items-center justify-center">
                 <Icon name="flame-outline" size={22} color={C.orange} />
                 <Text weight="extrabold" size="xl">{goal?.kcal ?? 0}</Text>
