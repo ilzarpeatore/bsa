@@ -1258,6 +1258,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               </HStack>
             </Pressable>
 
+            {/* Reemplaza el botón "+" flotante de debug que se quitó del
+                hero (se solapaba con el "+" real de accesos rápidos) --
+                sin esto ScreenExplorer se quedaba sin ningún punto de
+                entrada real en la app. */}
+            <Pressable onPress={() => navigateFromMenu('ScreenExplorer')}>
+              <HStack className="items-center px-5 py-3.5">
+                <AppIcon name="construct-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                <Text style={styles.menuItemText}>Screen Explorer</Text>
+                <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+              </HStack>
+            </Pressable>
+
             <Divider className="mx-5" />
 
             <Pressable onPress={handleLogout}>
