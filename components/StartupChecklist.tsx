@@ -74,7 +74,15 @@ export default function StartupChecklist({ title = 'Reto para empezar', steps }:
               return (
                 <Pressable
                   key={step.id}
-                  onPress={step.onPress}
+                  onPress={() => {
+                    // Cierra esta hoja ANTES de lanzar el reto: dos <Modal>
+                    // de React Native presentados a la vez (esta hoja +
+                    // TutorialOverlay) hace que iOS descarte en silencio la
+                    // segunda presentación -- el tutorial "no arrancaba" al
+                    // tocar un paso porque su Modal nunca llegaba a mostrarse.
+                    setExpanded(false);
+                    step.onPress?.();
+                  }}
                   disabled={!step.onPress}
                   style={[styles.stepRow, isActive && styles.stepRowActive]}
                 >

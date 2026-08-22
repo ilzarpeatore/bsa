@@ -210,7 +210,7 @@ export default function AssignedMealsScreen(props: any) {
       ) : (
         <>
           {!isDietMode && (
-            <Card variant="ghost" className="mx-4" style={{ marginBottom: 12 }}>
+            <Card variant="ghost" className="mx-4" style={{ marginTop: 16, marginBottom: 12 }}>
               <HStack space="sm" className="items-center justify-center">
                 <Icon name="flame-outline" size={22} color={C.orange} />
                 <Text weight="extrabold" size="xl">{goal?.kcal ?? 0}</Text>
@@ -265,7 +265,11 @@ export default function AssignedMealsScreen(props: any) {
             </Card>
           )}
 
-          <HStack space="sm" className="px-4" style={{ marginBottom: 12 }}>
+          {/* En modo dieta (isDietMode) no se pinta la tarjeta de kcal de
+              arriba, así que esta fila de pestañas pasa a ser el primer
+              bloque tras ScreenHeader -- necesita su propio marginTop
+              (en el otro modo ya lo da el marginBottom de esa tarjeta). */}
+          <HStack space="sm" className="px-4" style={{ marginTop: isDietMode ? 16 : 0, marginBottom: 12 }}>
             {MEAL_TYPES.map(({ key, label }) => (
               <Pressable
                 key={key}

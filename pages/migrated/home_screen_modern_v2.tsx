@@ -210,7 +210,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // paddingBottom subido de 24 a 48 (pedido explícito: "haz la imagen un
     // poco más vertical") -- más foto real antes de que empiece el
     // degradado de cierre, no solo un recorrido de gradiente más largo.
-    heroHeader: { paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
+    // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
+    // ocupe todo el tamaño de la screen según entras") -- antes la altura del
+    // Box salía solo del contenido (padding + hijos), así que la foto
+    // terminaba mucho antes del final de la pantalla. Con esto el hero llena
+    // el viewport completo al entrar (antes de hacer scroll); el contenido
+    // (anillos/frase/banner) sigue anclado arriba dentro de esa misma altura.
+    heroHeader: { height: winH, paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
     heroDarkenLayer: { backgroundColor: '#1A100A' },
     heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
@@ -322,7 +328,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     themeOptionBtnActive: { backgroundColor: C.orange },
     themeOptionText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary },
     themeOptionTextActive: { color: '#FFFFFF' },
-  }), [sc, r, C]);
+  }), [sc, r, C, winH]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -1248,6 +1254,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <HStack className="items-center px-5 py-3.5">
                 <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
                 <Text style={styles.menuItemText}>Comunidad</Text>
+                <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+              </HStack>
+            </Pressable>
+
+            {/* Reemplaza el botón "+" flotante de debug que se quitó del
+                hero (se solapaba con el "+" real de accesos rápidos) --
+                sin esto ScreenExplorer se quedaba sin ningún punto de
+                entrada real en la app. */}
+            <Pressable onPress={() => navigateFromMenu('ScreenExplorer')}>
+              <HStack className="items-center px-5 py-3.5">
+                <AppIcon name="construct-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                <Text style={styles.menuItemText}>Screen Explorer</Text>
                 <Icon name="chevron-forward" size={18} color={C.textSecondary} />
               </HStack>
             </Pressable>

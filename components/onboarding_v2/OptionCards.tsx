@@ -13,7 +13,9 @@ interface Props {
 // Tarjetas de selección única, apiladas a ancho completo -- mismo patrón
 // tanto para preguntas PAR-Q (2 opciones Sí/No) como para preguntas con
 // icono+subtítulo (tipo de dieta, estilo de vida), según las capturas de
-// referencia del usuario.
+// referencia del usuario (fondo naranja claro + círculo de check sólido en
+// la seleccionada, círculo hueco en el resto -- adaptado de su amarillo
+// original al naranja de marca de la app).
 export default function OptionCards({ options, value, onChange }: Props) {
   return (
     <View style={styles.list}>
@@ -29,16 +31,16 @@ export default function OptionCards({ options, value, onChange }: Props) {
               option.emoji ? (
                 <Text style={styles.emoji}>{option.icon}</Text>
               ) : (
-                <Ionicons name={option.icon as any} size={22} color={selected ? '#FFFFFF' : C.textPrimary} style={styles.icon} />
+                <Ionicons name={option.icon as any} size={22} color={C.textPrimary} style={styles.icon} />
               )
             ) : null}
             <View style={{ flex: 1 }}>
-              <Text style={[styles.label, selected && styles.labelSelected]}>{option.label}</Text>
-              {option.subtitle ? (
-                <Text style={[styles.subtitle, selected && styles.subtitleSelected]}>{option.subtitle}</Text>
-              ) : null}
+              <Text style={styles.label}>{option.label}</Text>
+              {option.subtitle ? <Text style={styles.subtitle}>{option.subtitle}</Text> : null}
             </View>
-            {selected && <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />}
+            <View style={[styles.radio, selected && styles.radioSelected]}>
+              {selected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+            </View>
           </Pressable>
         );
       })}
@@ -55,14 +57,20 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
+  },
+  cardSelected: { backgroundColor: `${C.orange}26` },
+  icon: { marginRight: 2 },
+  emoji: { fontSize: 24, marginRight: 2 },
+  label: { fontSize: 15.5, fontFamily: FONT.bold, color: C.textPrimary },
+  subtitle: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary, marginTop: 2 },
+  radio: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 1.5,
     borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardSelected: { backgroundColor: C.accentBlack, borderColor: C.accentBlack },
-  icon: { marginRight: 2 },
-  emoji: { fontSize: 22, marginRight: 2 },
-  label: { fontSize: 15.5, fontFamily: FONT.bold, color: C.textPrimary },
-  labelSelected: { color: '#FFFFFF' },
-  subtitle: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary, marginTop: 2 },
-  subtitleSelected: { color: 'rgba(255,255,255,0.75)' },
+  radioSelected: { backgroundColor: C.orange, borderColor: C.orange },
 });
