@@ -210,7 +210,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // paddingBottom subido de 24 a 48 (pedido explícito: "haz la imagen un
     // poco más vertical") -- más foto real antes de que empiece el
     // degradado de cierre, no solo un recorrido de gradiente más largo.
-    heroHeader: { paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
+    // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
+    // ocupe todo el tamaño de la screen según entras") -- antes la altura del
+    // Box salía solo del contenido (padding + hijos), así que la foto
+    // terminaba mucho antes del final de la pantalla. Con esto el hero llena
+    // el viewport completo al entrar (antes de hacer scroll); el contenido
+    // (anillos/frase/banner) sigue anclado arriba dentro de esa misma altura.
+    heroHeader: { height: winH, paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
     heroDarkenLayer: { backgroundColor: '#1A100A' },
     heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
@@ -322,7 +328,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     themeOptionBtnActive: { backgroundColor: C.orange },
     themeOptionText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary },
     themeOptionTextActive: { color: '#FFFFFF' },
-  }), [sc, r, C]);
+  }), [sc, r, C, winH]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
