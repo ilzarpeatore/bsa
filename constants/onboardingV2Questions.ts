@@ -33,7 +33,7 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     options: [
       { value: 'male', label: 'Hombre', icon: '♂️', emoji: true },
       { value: 'female', label: 'Mujer', icon: '♀️', emoji: true },
-      { value: 'other', label: 'Otro / Prefiero no decirlo' },
+      { value: 'other', label: 'Otro / Prefiero no decirlo', icon: '⚧️', emoji: true },
     ],
   },
   {
@@ -87,8 +87,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Le ha dicho su médico alguna vez que padece una enfermedad cardiaca y que solo debe hacer aquella actividad física que le aconseje un médico?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -97,8 +97,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Tiene dolor en el pecho cuando hace actividad física?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -107,8 +107,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: 'En el último mes, ¿ha tenido dolor en el pecho cuando no hacía actividad física?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -117,8 +117,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Pierde el equilibrio debido a mareos o se ha desmayado alguna vez?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -127,8 +127,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Tiene problemas en huesos o articulaciones (por ejemplo, espalda, rodilla o cadera) que puedan empeorar si aumenta la actividad física?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -137,8 +137,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Le receta su médico algún medicamento para la tensión arterial o un problema cardíaco?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -147,8 +147,8 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Conoce alguna razón por la cual no debería realizar actividad física?',
     options: [
-      { value: 'yes', label: 'Sí' },
-      { value: 'no', label: 'No' },
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
   {
@@ -183,11 +183,11 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: '¿Cuál es tu nivel de actividad?',
     subtitle: 'Tu movimiento diario general, fuera de tus entrenamientos',
     options: [
-      { value: 'sedentary', label: 'Sedentario', subtitle: 'Poco o ningún ejercicio' },
-      { value: 'light', label: 'Ligero', subtitle: 'Ejercicio ligero 1-3 días/semana' },
-      { value: 'moderate', label: 'Moderado', subtitle: 'Ejercicio moderado 3-5 días/semana' },
-      { value: 'active', label: 'Activo', subtitle: 'Ejercicio intenso 6-7 días/semana' },
-      { value: 'very_active', label: 'Muy activo', subtitle: 'Ejercicio muy intenso o trabajo físico' },
+      { value: 'sedentary', label: 'Sedentario', subtitle: 'Poco o ningún ejercicio', icon: '🛋️', emoji: true },
+      { value: 'light', label: 'Ligero', subtitle: 'Ejercicio ligero 1-3 días/semana', icon: '🚶', emoji: true },
+      { value: 'moderate', label: 'Moderado', subtitle: 'Ejercicio moderado 3-5 días/semana', icon: '🏃', emoji: true },
+      { value: 'active', label: 'Activo', subtitle: 'Ejercicio intenso 6-7 días/semana', icon: '💪', emoji: true },
+      { value: 'very_active', label: 'Muy activo', subtitle: 'Ejercicio muy intenso o trabajo físico', icon: '🔥', emoji: true },
     ],
   },
   {
@@ -231,11 +231,11 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Cuánto tiempo quieres que duren tus entrenamientos?',
     options: [
-      { value: '30', label: '30 minutos' },
-      { value: '45', label: '45 minutos' },
-      { value: '60', label: '60 minutos' },
-      { value: '90', label: '90 minutos' },
-      { value: '90_plus', label: 'Más de 90 minutos' },
+      { value: '30', label: '30 minutos', icon: '⚡', emoji: true },
+      { value: '45', label: '45 minutos', icon: '⏱️', emoji: true },
+      { value: '60', label: '60 minutos', icon: '🕐', emoji: true },
+      { value: '90', label: '90 minutos', icon: '🕜', emoji: true },
+      { value: '90_plus', label: 'Más de 90 minutos', icon: '⏳', emoji: true },
     ],
   },
   {
@@ -244,10 +244,10 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Cómo sueles entrenar?',
     options: [
-      { value: 'rushed', label: 'Con prisa' },
-      { value: 'calm', label: 'Con calma' },
-      { value: 'motivated', label: 'Con motivación' },
-      { value: 'unmotivated', label: 'Sin ganas' },
+      { value: 'rushed', label: 'Con prisa', icon: '🏃', emoji: true },
+      { value: 'calm', label: 'Con calma', icon: '😌', emoji: true },
+      { value: 'motivated', label: 'Con motivación', icon: '🔥', emoji: true },
+      { value: 'unmotivated', label: 'Sin ganas', icon: '😴', emoji: true },
     ],
   },
   {
@@ -256,9 +256,9 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Has tenido previamente un entrenador/a personal ya sea online o presencial? ¿O te has encargado tú de tus entrenamientos?',
     options: [
-      { value: 'online_coach', label: 'Sí, entrenador/a online' },
-      { value: 'in_person_coach', label: 'Sí, entrenador/a presencial' },
-      { value: 'self_trained', label: 'No, yo mismo/a' },
+      { value: 'online_coach', label: 'Sí, entrenador/a online', icon: '💻', emoji: true },
+      { value: 'in_person_coach', label: 'Sí, entrenador/a presencial', icon: '🧑‍🏫', emoji: true },
+      { value: 'self_trained', label: 'No, yo mismo/a', icon: '🙋', emoji: true },
     ],
   },
   {
@@ -267,11 +267,11 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Actualmente cómo son tus rutinas?',
     options: [
-      { value: 'improvised', label: 'Improvisadas' },
-      { value: 'copied', label: 'Copiadas' },
-      { value: 'structured', label: 'Con estructuración lógica' },
-      { value: 'always_same', label: 'Siempre lo mismo' },
-      { value: 'very_varied', label: 'Muy variadas' },
+      { value: 'improvised', label: 'Improvisadas', icon: '🎲', emoji: true },
+      { value: 'copied', label: 'Copiadas', icon: '📋', emoji: true },
+      { value: 'structured', label: 'Con estructuración lógica', icon: '📐', emoji: true },
+      { value: 'always_same', label: 'Siempre lo mismo', icon: '🔁', emoji: true },
+      { value: 'very_varied', label: 'Muy variadas', icon: '🌀', emoji: true },
     ],
   },
   {
@@ -280,10 +280,10 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'single_choice',
     title: '¿Qué preferencia tienes de cara a estructurar tu plan semanal?',
     options: [
-      { value: 'upper_lower', label: 'Torso - Pierna' },
-      { value: 'push_pull', label: 'Empuje - Tirón' },
-      { value: 'full_body', label: 'Full body' },
-      { value: 'no_preference', label: 'Lo que mejor me convenga' },
+      { value: 'upper_lower', label: 'Torso - Pierna', icon: '🏋️', emoji: true },
+      { value: 'push_pull', label: 'Empuje - Tirón', icon: '🔄', emoji: true },
+      { value: 'full_body', label: 'Full body', icon: '🧍', emoji: true },
+      { value: 'no_preference', label: 'Lo que mejor me convenga', icon: '🤷', emoji: true },
     ],
   },
   {
