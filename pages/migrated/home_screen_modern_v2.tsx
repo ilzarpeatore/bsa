@@ -10,6 +10,7 @@ import { Platform ,
   Switch,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -189,7 +190,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const sc = useMemo(() => Math.min(winW / FIGMA_W, winH / FIGMA_H), [winW, winH]);
   const r = useCallback((n: number) => Math.round(n * sc), [sc]);
   const insets = useSafeAreaInsets();
-
   const [showMenu, setShowMenu] = useState(false);
   const [appleHealthOn, setAppleHealthOn] = useState(true);
   const [smartWatchOn, setSmartWatchOn] = useState(false);
@@ -1295,7 +1295,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Card>
         </Pressable>
 
-        <Box style={{ height: r(16) }} />
+        <Box style={{ height: TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
 
       {/* Botón flotante de acceso a Screen Explorer (herramienta de desarrollo).

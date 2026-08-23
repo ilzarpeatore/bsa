@@ -22,6 +22,23 @@ import { C, FONT } from "../pages/migrated/theme";
 // aqui evita reconstruirlo (y su wrapper interno) en cada render.
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
+// Espacio que las pantallas RAÍZ de una pestaña (las únicas que muestran
+// esta barra flotante -- ver tabBarVisible en App.tsx) deben reservar al
+// final de su contenido desplazable para que el último bloque no quede
+// tapado detrás de la barra (reportado con captura: una tarjeta quedaba
+// justo debajo/tapada por la barra al hacer scroll hasta el fondo).
+// navigationOuter mide '64@ratio' de alto y el "+" sobresale '22@ratio' por
+// encima de ese contenedor (ver plusBtn.top más abajo) -- a escala ~1 (ancho
+// de referencia) son ~86px de la barra en sí, más un margen extra de aire.
+// Deliberadamente NO incluye insets.bottom: la barra se posiciona sobre el
+// screen completo (fuera del SafeAreaView de cada pantalla) y ya añade su
+// propio `marginBottom: safearea.bottom` (ver navigationOuter más abajo) --
+// sumarlo aquí también lo contaría dos veces en cualquier pantalla cuyo
+// SafeAreaView ya reserve el edge 'bottom'. Cada pantalla ya es responsable
+// de su propio inset físico (SafeAreaView con edge 'bottom', o insets.bottom
+// a mano); esta constante es solo el hueco adicional para la barra flotante.
+export const TAB_BAR_CLEARANCE = 86 + 20;
+
 interface QuickAction {
   id: string;
   label: string;

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AppIcon from '@components/AppIcon';
 import { C } from './theme';
 import { useAuth } from '../../store/AuthContext';
+import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -90,8 +91,8 @@ export default function ProfileScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Box className="rounded-b-lg px-5 items-center" style={{ backgroundColor: C.gray80, paddingTop: 24, paddingBottom: 24 }}>
           <HStack className="items-center w-full" style={{ marginBottom: 24 }}>
             <Heading size="md">Profile</Heading>

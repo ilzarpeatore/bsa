@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, SharedValue } from 'react-native-reanimated';
 import { runOnJS } from 'react-native-worklets';
@@ -960,7 +961,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           <Text style={styles.emptyText}>{errorMessage}</Text>
         </Box>
       ) : viewMode === 'calendar' ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
           <GestureDetector gesture={calendarSwipeGesture}>
             <View>
               {periodMode === 'month' && (
@@ -1006,7 +1007,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         </Box>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingVertical: 16 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: TAB_BAR_CLEARANCE }}
           scrollEnabled={!(reorderMode && movingWorkout)}
         >
           {(periodMode === 'week' ? visibleDays : daysWithWorkouts).map((day) => {
