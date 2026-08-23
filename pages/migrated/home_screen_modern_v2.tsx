@@ -1091,7 +1091,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={[styles.nutritionMsg, { marginTop: r(8) }]}>Sin plan de alimentación hoy</Text>
             </Box>
           )}
-          <TutorialTarget id="home-nutrition-link">
+          <TutorialTarget id="home-nutrition-link" scrollRef={scrollRef}>
             <Pressable style={styles.nutritionLink} onPress={() => navigation?.navigate('MigratedPlan')}>
               <Text style={styles.nutritionLinkText}>Añadir comidas</Text>
               <Icon name="arrow-forward" size={14} color={C.orange} style={{ marginLeft: r(8) }} />
