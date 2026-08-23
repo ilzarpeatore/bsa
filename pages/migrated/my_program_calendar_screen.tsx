@@ -1007,7 +1007,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         </Box>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: TAB_BAR_CLEARANCE }}
+          contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: TAB_BAR_CLEARANCE }}
           scrollEnabled={!(reorderMode && movingWorkout)}
         >
           {(periodMode === 'week' ? visibleDays : daysWithWorkouts).map((day) => {
@@ -1274,7 +1274,7 @@ const styles = StyleSheet.create({
     borderColor: C.success,
   },
   dropTargetText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.orange, marginRight: 8 },
-  dayDate: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary, paddingHorizontal: 16 },
+  dayDate: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary },
   workoutImage: { width: 72, height: 72, borderRadius: 16 },
   checkinIconWrap: {
     width: 72,
