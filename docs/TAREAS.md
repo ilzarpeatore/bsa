@@ -4,6 +4,18 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Eliminada la pantalla "¡Todo listo!" tras el onboarding (2026-08-23)
+
+Pedido explícito: `onboarding_complete_screen.tsx` (`MigratedOnboardingComplete`, la pantalla con trofeo/confeti y checklist "Perfil completado/Plan seleccionado/Objetivos definidos" que salía justo después de `MigratedAssessmentResult`) era un paso intermedio innecesario. Borrada:
+
+- `pages/migrated/onboarding/onboarding_complete_screen.tsx` — archivo eliminado.
+- `App.tsx` — quitado el `React.lazy` y sus 2 registros (`MStack.Screen` dentro de `MigratedNavigator` + `Stack.Screen` en la rama real de onboarding de `RootNavigator`, `!state.onboardingCompleted`).
+- `pages/ScreenExplorer.tsx` — quitada su entrada.
+- Su única lógica real (`completeOnboarding()` del `AuthContext` + `navigation.replace('Home')`) se movió directamente al botón final de `assessment_result_screen.tsx` ("Confirmar mi plan", y también al "Continuar" de su estado vacío) — un único `finishOnboarding()` compartido por ambos.
+- `articles_screen.tsx` (cadena vieja del carrusel de onboarding ya retirado, confirmada inalcanzable en `docs/DEAD_SCREENS.md`) todavía tiene un `navigate("MigratedOnboardingComplete")` colgante — inofensivo, nunca se alcanza. No se tocó (fuera de alcance, ya documentado como pantalla muerta).
+
+---
+
 ## ✅ Bug real: kcalTarget de AssessmentResult ignoraba goal_type (2026-08-23)
 
 `assessment_result_screen.tsx` guardaba y mostraba el objetivo real (`goal_type`: perder grasa/ganar músculo/recomposición/mantener), pero `kcalTarget` solo calculaba mantenimiento puro (`BMR × multiplicador de actividad`) sin aplicar ningún ajuste según ese objetivo — un cliente que marcaba "Ganar masa muscular" veía exactamente las mismas kcal que uno que marcaba "Mantener mi forma física". Encontrado al confirmar con el usuario si de verdad se sumaban/restaban kcal según el objetivo.

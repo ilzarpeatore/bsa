@@ -19,8 +19,8 @@ posterior.
 solo:
 
 - `MigratedOnboardingV2` (nuevo, `pages/migrated/onboarding_v2/onboarding_v2_screen.tsx`) — las 4 etapas.
-- `MigratedAssessmentResult` (reutilizada tal cual — ya muestra IMC/BMR reales calculados en el backend a partir de `user_profile.height/weight/age` una vez la etapa 1 se guarda).
-- `MigratedOnboardingComplete` (reutilizada tal cual — ya llama a `completeOnboarding()` y navega a Home).
+- `MigratedAssessmentResult` (reutilizada tal cual — ya muestra IMC/BMR reales calculados en el backend a partir de `user_profile.height/weight/age` una vez la etapa 1 se guarda). Su botón final ("Confirmar mi plan") llama directamente a `completeOnboarding()` + `navigation.replace('Home')`.
+- ~~`MigratedOnboardingComplete`~~ — **eliminada 2026-08-23** (pedido explícito: paso intermedio "¡Todo listo!" innecesario). Su única lógica real (`completeOnboarding()` + navegar a Home) se movió al botón final de `MigratedAssessmentResult`; el archivo `onboarding_complete_screen.tsx` se borró junto con su registro en `App.tsx` (`MStack.Screen`/`Stack.Screen`) y su entrada en `ScreenExplorer.tsx`. `articles_screen.tsx` (cadena vieja del carrusel ya retirado, inalcanzable) sigue teniendo un `navigate("MigratedOnboardingComplete")` colgante — inofensivo porque ese archivo nunca se alcanza, mismo criterio que el resto de referencias muertas documentadas en `docs/DEAD_SCREENS.md`.
 
 Las pantallas quitadas de esta rama (`AvatarSetup`, `PrivacyPolicyOnboard`,
 `NotificationsOnboard`, `Recommendations`, `Health`, `Articles`, el carrusel

@@ -115,7 +115,7 @@ function foodImageSource(seed: number, keyword: string) {
 }
 
 export default function AssessmentResultScreen({ navigation, route }: any) {
-  const { state } = useAuth();
+  const { state, completeOnboarding } = useAuth();
   const profile = state.user?.user_profile;
   const answers: RouteAnswers = route?.params?.answers ?? {};
 
@@ -129,6 +129,15 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
   const sessionDuration = answers.session_duration_preference;
   const hasCoreData = !!(age && height && weight);
 
+  // Pantalla "¡Todo listo!" (onboarding_complete_screen.tsx) eliminada por
+  // ser un paso intermedio innecesario (pedido explícito) -- su única
+  // lógica real (marcar el onboarding como completado y entrar a Home) pasa
+  // a hacerse directamente aquí, en el botón final de esta pantalla.
+  const finishOnboarding = async () => {
+    await completeOnboarding();
+    navigation.replace('Home');
+  };
+
   if (!hasCoreData) {
     return (
       <SafeAreaView style={localStyles.container}>
@@ -137,7 +146,7 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
           <Text style={localStyles.emptyText}>
             Todavía no tenemos suficientes datos para preparar tu resumen. Completa tu perfil para verlo aquí.
           </Text>
-          <Pressable style={localStyles.continueBtn} onPress={() => navigation.navigate('MigratedOnboardingComplete')}>
+          <Pressable style={localStyles.continueBtn} onPress={finishOnboarding}>
             <Text style={localStyles.continueBtnText}>Continuar</Text>
           </Pressable>
         </View>
@@ -355,7 +364,7 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
       <View style={localStyles.bottomBar}>
         <Pressable
           style={({ pressed }) => [localStyles.continueBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => navigation.navigate('MigratedOnboardingComplete')}
+          onPress={finishOnboarding}
         >
           <Text style={localStyles.continueBtnText}>Confirmar mi plan</Text>
         </Pressable>

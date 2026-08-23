@@ -158,7 +158,6 @@ const AssessmentResultScreen = React.lazy(() => import('@pages/migrated/onboardi
 const AvatarSetupScreen = React.lazy(() => import('@pages/migrated/onboarding/avatar_setup_screen'));
 const HealthScreen = React.lazy(() => import('@pages/migrated/onboarding/health_screen'));
 const NotificationsScreen = React.lazy(() => import('@pages/migrated/onboarding/notifications_screen'));
-const OnboardingCompleteScreen = React.lazy(() => import('@pages/migrated/onboarding/onboarding_complete_screen'));
 const PrivacyPolicyScreenOnboard = React.lazy(() => import('@pages/migrated/onboarding/privacy_policy_screen'));
 const ProfileSetupFormScreen = React.lazy(() => import('@pages/migrated/onboarding/profile_setup_form_screen'));
 const ProfileSetupIntroScreen = React.lazy(() => import('@pages/migrated/onboarding/profile_setup_intro_screen'));
@@ -358,7 +357,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedAvatarSetup" component={AvatarSetupScreen} />
       <MStack.Screen name="MigratedHealth" component={HealthScreen} />
       <MStack.Screen name="MigratedNotificationsOnboard" component={NotificationsScreen} />
-      <MStack.Screen name="MigratedOnboardingComplete" component={OnboardingCompleteScreen} />
       <MStack.Screen name="MigratedPrivacyPolicyOnboard" component={PrivacyPolicyScreenOnboard} />
       <MStack.Screen name="MigratedProfileSetupForm" component={ProfileSetupFormScreen} />
       <MStack.Screen name="MigratedProfileSetupIntro" component={ProfileSetupIntroScreen} />
@@ -392,7 +390,6 @@ function RootNavigator() {
         <>
           <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
           <Stack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
-          <Stack.Screen name="MigratedOnboardingComplete" component={OnboardingCompleteScreen} />
         </>
       ) : (
         <>
