@@ -378,13 +378,27 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     errorText: { flex: 1, fontSize: r(12), color: C.destructive, marginLeft: r(8) },
     loader: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center' as const, justifyContent: 'center' as const },
     menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' as const },
-    menuSheet: { backgroundColor: C.surface, borderTopLeftRadius: r(24), borderTopRightRadius: r(24), paddingBottom: r(24), maxHeight: '85%' as const },
+    menuSheet: { backgroundColor: C.bg, borderTopLeftRadius: r(24), borderTopRightRadius: r(24), paddingBottom: r(24), maxHeight: '85%' as const },
     menuHandle: { width: r(40), height: r(4), borderRadius: r(2), backgroundColor: C.border, alignSelf: 'center' as const, marginTop: r(10), marginBottom: r(4) },
-    menuGreeting: { fontSize: r(12), color: C.textSecondary },
-    menuUserName: { fontSize: r(17), fontFamily: FONT.bold, color: C.white, marginTop: r(2) },
-    menuCloseBtn: { width: r(32), height: r(32), borderRadius: r(16), backgroundColor: C.surfaceLight, alignItems: 'center' as const, justifyContent: 'center' as const },
-    menuItemText: { flex: 1, fontSize: r(15), fontFamily: FONT.semiBold, color: C.white },
-    menuItemTextDanger: { color: C.destructive },
+    menuHeaderBar: { alignItems: 'center' as const, justifyContent: 'center' as const, paddingVertical: r(14), paddingHorizontal: r(20) },
+    menuTitle: { fontSize: r(17), fontFamily: FONT.bold, color: C.textPrimary },
+    menuCloseBtn: {
+      position: 'absolute' as const,
+      left: r(20),
+      width: r(32),
+      height: r(32),
+      borderRadius: r(16),
+      backgroundColor: C.surface,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    menuScroll: { paddingHorizontal: r(20) },
+    menuSectionLabel: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary, marginTop: r(20), marginBottom: r(8), marginLeft: r(4) },
+    menuCard: { backgroundColor: C.surface, borderRadius: r(16), overflow: 'hidden' as const },
+    menuItemText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.textPrimary },
+    menuItemSubtext: { fontSize: r(12), color: C.textSecondary, marginTop: r(1) },
+    menuLogoutBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(20) },
+    menuLogoutText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.destructive },
     themeOptionBtn: {
       flex: 1,
       paddingVertical: r(9),
@@ -1302,113 +1316,123 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         <Box style={{ height: TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
 
-      {/* Menú de usuario (perfil, favoritos, ajustes, salud, comunidad, logout) */}
+      {/* Menú de usuario (perfil, favoritos, ajustes, salud, comunidad, logout).
+          Rediseño 2026-08-23 (pedido explícito, capturas de referencia de la
+          propia Bevel real): en vez de una lista plana con divisores finos,
+          tarjetas blancas agrupadas por sección sobre fondo gris, con una
+          barra superior fija (cerrar + título "Ajustes"), igual que el
+          "Ajustes" real de Bevel. */}
       <Modal visible={showMenu} transparent animationType="slide" onRequestClose={() => setShowMenu(false)}>
         <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
           <Pressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
             <Box style={styles.menuHandle} />
-            <HStack space="md" className="items-center px-5 py-4">
-              <AvatarMem uri={user?.profile_image} name={user?.display_name || displayName} size={48} />
-              <VStack className="flex-1">
-                <Text style={styles.menuGreeting}>Hola</Text>
-                <Text style={styles.menuUserName}>{user?.display_name || displayName}</Text>
-              </VStack>
+            <Box style={styles.menuHeaderBar}>
               <Pressable style={styles.menuCloseBtn} onPress={() => setShowMenu(false)}>
-                <Icon name="close" size={18} color={C.white} />
+                <Icon name="close" size={18} color={C.textPrimary} />
               </Pressable>
-            </HStack>
-            <Divider className="mx-5" />
+              <Text style={styles.menuTitle}>Ajustes</Text>
+            </Box>
 
-            <Pressable onPress={() => navigateFromMenu('MigratedProfile')}>
-              <HStack className="items-center px-5 py-3.5">
-                <AppIcon name="person-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                <Text style={styles.menuItemText}>Mi Perfil</Text>
-                <Icon name="chevron-forward" size={18} color={C.textSecondary} />
-              </HStack>
-            </Pressable>
+            <ScrollView style={styles.menuScroll} contentContainerStyle={{ paddingBottom: r(24) }} showsVerticalScrollIndicator={false}>
+              <Text style={styles.menuSectionLabel}>Cuenta</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedProfile')}>
+                  <HStack space="md" className="items-center px-4 py-3">
+                    <AvatarMem uri={user?.profile_image} name={user?.display_name || displayName} size={40} />
+                    <VStack className="flex-1">
+                      <Text style={styles.menuItemText}>{user?.display_name || displayName}</Text>
+                      <Text style={styles.menuItemSubtext}>Ver tu perfil</Text>
+                    </VStack>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={() => navigateFromMenu('MigratedFavourite')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="heart-outline" size={18} color={C.destructive} bg={C.destructive10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Mis Favoritos</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+              </Box>
 
-            <Pressable onPress={() => navigateFromMenu('MigratedFavourite')}>
-              <HStack className="items-center px-5 py-3.5">
-                <AppIcon name="heart-outline" size={18} color={C.destructive} bg={C.destructive10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                <Text style={styles.menuItemText}>Mis Favoritos</Text>
-                <Icon name="chevron-forward" size={18} color={C.textSecondary} />
-              </HStack>
-            </Pressable>
+              <Text style={styles.menuSectionLabel}>Salud y dispositivos</Text>
+              <Box style={styles.menuCard}>
+                <HStack className="items-center px-4 py-3">
+                  <AppIcon name="fitness-outline" size={18} color={C.success} bg={C.success10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                  <Text style={[styles.menuItemText, { flex: 1 }]}>Apple Health</Text>
+                  <Switch
+                    value={appleHealthOn}
+                    onValueChange={setAppleHealthOn}
+                    trackColor={{ false: C.gray70, true: C.primary }}
+                    thumbColor={C.white}
+                  />
+                </HStack>
+                <Divider className="ml-4" />
+                <HStack className="items-center px-4 py-3">
+                  <AppIcon name="watch-outline" size={18} color={C.blue} bg={C.blue10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                  <Text style={[styles.menuItemText, { flex: 1 }]}>Smart Watch</Text>
+                  <Switch
+                    value={smartWatchOn}
+                    onValueChange={setSmartWatchOn}
+                    trackColor={{ false: C.gray70, true: C.primary }}
+                    thumbColor={C.white}
+                  />
+                </HStack>
+              </Box>
 
-            <HStack className="items-center px-5 py-3.5">
-              <AppIcon name="fitness-outline" size={18} color={C.success} bg={C.success10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-              <Text style={styles.menuItemText}>Apple Health</Text>
-              <Switch
-                value={appleHealthOn}
-                onValueChange={setAppleHealthOn}
-                trackColor={{ false: C.gray70, true: C.primary }}
-                thumbColor={C.white}
-              />
-            </HStack>
+              {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue
+                  la hora del dispositivo (isNightHour en theme.ts), el usuario
+                  puede fijarlo a Claro/Oscuro y eso manda hasta que vuelva a
+                  elegir Auto. Ver helper/useAppColorMode.ts. */}
+              <Text style={styles.menuSectionLabel}>Apariencia</Text>
+              <Box style={[styles.menuCard, { padding: r(14) }]}>
+                <HStack className="items-center" style={{ marginBottom: r(12) }}>
+                  <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                  <Text style={styles.menuItemText}>Tema</Text>
+                </HStack>
+                <HStack space="xs">
+                  {(['auto', 'light', 'dark'] as const).map((option) => (
+                    <Pressable
+                      key={option}
+                      style={[styles.themeOptionBtn, themePreference === option && styles.themeOptionBtnActive]}
+                      onPress={() => setThemePreference(option)}
+                    >
+                      <Text style={[styles.themeOptionText, themePreference === option && styles.themeOptionTextActive]}>
+                        {option === 'auto' ? 'Automático' : option === 'light' ? 'Claro' : 'Oscuro'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </HStack>
+              </Box>
 
-            <HStack className="items-center px-5 py-3.5">
-              <AppIcon name="watch-outline" size={18} color={C.blue} bg={C.blue10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-              <Text style={styles.menuItemText}>Smart Watch</Text>
-              <Switch
-                value={smartWatchOn}
-                onValueChange={setSmartWatchOn}
-                trackColor={{ false: C.gray70, true: C.primary }}
-                thumbColor={C.white}
-              />
-            </HStack>
+              <Text style={styles.menuSectionLabel}>Más</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Comunidad</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                {/* Reemplaza el botón "+" flotante de debug que se quitó del
+                    hero (se solapaba con el "+" real de accesos rápidos) --
+                    sin esto ScreenExplorer se quedaba sin ningún punto de
+                    entrada real en la app. */}
+                <Pressable onPress={() => navigateFromMenu('ScreenExplorer')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="construct-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Screen Explorer</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+              </Box>
 
-            {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue
-                la hora del dispositivo (isNightHour en theme.ts), el usuario
-                puede fijarlo a Claro/Oscuro y eso manda hasta que vuelva a
-                elegir Auto. Ver helper/useAppColorMode.ts. */}
-            <VStack className="px-5 py-3.5" style={{ gap: r(10) }}>
-              <HStack className="items-center">
-                <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                <Text style={styles.menuItemText}>Apariencia</Text>
-              </HStack>
-              <HStack space="xs">
-                {(['auto', 'light', 'dark'] as const).map((option) => (
-                  <Pressable
-                    key={option}
-                    style={[styles.themeOptionBtn, themePreference === option && styles.themeOptionBtnActive]}
-                    onPress={() => setThemePreference(option)}
-                  >
-                    <Text style={[styles.themeOptionText, themePreference === option && styles.themeOptionTextActive]}>
-                      {option === 'auto' ? 'Automático' : option === 'light' ? 'Claro' : 'Oscuro'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </HStack>
-            </VStack>
-
-            <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
-              <HStack className="items-center px-5 py-3.5">
-                <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                <Text style={styles.menuItemText}>Comunidad</Text>
-                <Icon name="chevron-forward" size={18} color={C.textSecondary} />
-              </HStack>
-            </Pressable>
-
-            {/* Reemplaza el botón "+" flotante de debug que se quitó del
-                hero (se solapaba con el "+" real de accesos rápidos) --
-                sin esto ScreenExplorer se quedaba sin ningún punto de
-                entrada real en la app. */}
-            <Pressable onPress={() => navigateFromMenu('ScreenExplorer')}>
-              <HStack className="items-center px-5 py-3.5">
-                <AppIcon name="construct-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                <Text style={styles.menuItemText}>Screen Explorer</Text>
-                <Icon name="chevron-forward" size={18} color={C.textSecondary} />
-              </HStack>
-            </Pressable>
-
-            <Divider className="mx-5" />
-
-            <Pressable onPress={handleLogout}>
-              <HStack className="items-center px-5 py-3.5">
-                <AppIcon name="log-out-outline" size={18} color={C.destructive} bg={C.destructive10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Cerrar sesión</Text>
-              </HStack>
-            </Pressable>
+              <Pressable style={styles.menuLogoutBtn} onPress={handleLogout}>
+                <Text style={styles.menuLogoutText}>Cerrar sesión</Text>
+              </Pressable>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
