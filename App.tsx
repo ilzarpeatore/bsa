@@ -22,7 +22,7 @@ import {
 import { AuthProvider, useAuth } from "@store/AuthContext";
 import "@helper/reminderNotifications";
 import NavigationTab from "@components/NavigationTab";
-import { NavigationTabOptionsInterface } from "@components/_types/NavigationTab.i";
+import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -180,18 +180,26 @@ const Tab = createBottomTabNavigator();
 // nombre de pantalla actualmente enfocado DENTRO del stack anidado
 // (getFocusedRouteNameFromRoute) y solo muestra la barra cuando esa
 // pantalla enfocada es la raíz de la propia pestaña.
+// Rediseño de la barra (2026-08-23, pedido explícito): las 4 pestañas dejan
+// de ser Inicio/Buscar/Comunidad/Perfil -- pasan a ser los 4 accesos
+// principales del día a día (Plan diario, Nutrición, Hábitos, Perfil).
+// Buscar/Comunidad/Blog/Métricas/Check-ins se mueven al menú "+" de accesos
+// rápidos (ver QUICK_ACTIONS en NavigationTab.tsx), junto con Home v2 (ya
+// no es raíz de ninguna pestaña, pero sigue siendo una pantalla más dentro
+// del stack compartido MigratedNavigator).
 const TAB_ROOT_SCREEN: Record<string, string> = {
-  HomePage: "MigratedHomeModernV2",
-  SearchTab: "MigratedSearch",
-  CommunityTab: "MigratedCommunity",
+  PlanDiarioTab: "MigratedMyProgramCalendar",
+  NutritionTab: "MigratedPlan",
+  HabitsTab: "MigratedHabits",
   ProfileTab: "MigratedProfile",
 };
 
-function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: number) {
+function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: IoniconName, label: string) {
   return ({ route }: { route: any }) => {
     const focusedRouteName = getFocusedRouteNameFromRoute(route) ?? TAB_ROOT_SCREEN[tabName];
     return {
       icon,
+      label,
       tabBarVisible: focusedRouteName === TAB_ROOT_SCREEN[tabName],
     } as NavigationTabOptionsInterface;
   };
@@ -200,40 +208,37 @@ function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: number) {
 function Homenavigator() {
   return (
     <Tab.Navigator
-      initialRouteName="HomePage"
+      initialRouteName="PlanDiarioTab"
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <NavigationTab {...props} />}
       backBehavior="order"
     >
+      {/* Las 4 pestañas comparten el mismo stack completo (MigratedNavigator,
+          con las ~100 pantallas migradas) para no duplicar rutas -- solo
+          cambia la pantalla inicial de cada una via initialParams.initialScreen. */}
       <Tab.Screen
-        name="HomePage"
+        name="PlanDiarioTab"
         component={MigratedNavigator}
-        options={tabScreenOptions("HomePage", require("@assets/icons/nav1.png"))}
-      />
-      {/* Los otros 3 iconos de la barra (nav2/3/4) ya existían como assets
-          pero nunca se registraron como tabs reales -- la barra solo tenía
-          "HomePage", así que se veía con un único icono ("menú disfuncional,
-          no hay iconos"). Las 4 pestañas comparten el mismo stack completo
-          (MigratedNavigator, con las ~100 pantallas migradas) para no
-          duplicar rutas -- solo cambia la pantalla inicial de cada una via
-          initialParams.initialScreen. */}
-      <Tab.Screen
-        name="SearchTab"
-        component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedSearch" }}
-        options={tabScreenOptions("SearchTab", require("@assets/icons/nav2.png"))}
+        initialParams={{ initialScreen: "MigratedMyProgramCalendar" }}
+        options={tabScreenOptions("PlanDiarioTab", "calendar-outline", "Plan diario")}
       />
       <Tab.Screen
-        name="CommunityTab"
+        name="NutritionTab"
         component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedCommunity" }}
-        options={tabScreenOptions("CommunityTab", require("@assets/icons/nav3.png"))}
+        initialParams={{ initialScreen: "MigratedPlan" }}
+        options={tabScreenOptions("NutritionTab", "nutrition-outline", "Nutrición")}
+      />
+      <Tab.Screen
+        name="HabitsTab"
+        component={MigratedNavigator}
+        initialParams={{ initialScreen: "MigratedHabits" }}
+        options={tabScreenOptions("HabitsTab", "flame-outline", "Hábitos")}
       />
       <Tab.Screen
         name="ProfileTab"
         component={MigratedNavigator}
         initialParams={{ initialScreen: "MigratedProfile" }}
-        options={tabScreenOptions("ProfileTab", require("@assets/icons/nav4.png"))}
+        options={tabScreenOptions("ProfileTab", "person-outline", "Perfil")}
       />
     </Tab.Navigator>
   );
