@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, Dimensions } from 'react-native';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Alert, ScrollView, LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -17,19 +17,36 @@ const MUSCLE_OPTIONS = Object.entries(BODY_PART_ID_TO_NAME)
 
 // Este es el selector de grupo muscular (pantalla dedicada, no un mapa
 // decorativo dentro de otra pantalla con más contenido alrededor) — pedido
-// del usuario: "hazlo más grande para que sea más fácil seleccionar". Se
-// calcula a partir del alto de pantalla (en vez de un fijo mayor) para no
-// desbordar en dispositivos pequeños; en el resto de pantallas que usan
-// MuscleBodyMap se deja el tamaño por defecto del componente tal cual.
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-// Bumped 0.56->0.66 (tope 560->660) -- pedido explicito: "Haz el body mas
-// grande para que sea mas facil seleccionar grupos musculares" (zonas
-// pequenas como antebrazos/gemelos eran dificiles de tocar con precision).
-const BODY_MAP_HEIGHT = Math.min(660, Math.round(SCREEN_HEIGHT * 0.66));
+// del usuario: "hazlo más grande para que sea más fácil seleccionar". En el
+// resto de pantallas que usan MuscleBodyMap se deja el tamaño por defecto
+// del componente tal cual.
+//
+// Bug real corregido (reportado con captura: el toggle "Frontal/Trasera" se
+// veía encima del texto "Toca una zona..."): el alto se calculaba a partir
+// del alto TOTAL de pantalla (SCREEN_HEIGHT * 0.66), sin descontar lo que ya
+// ocupan encima el header, el buscador, "Ver lista de grupos musculares" y
+// este mismo texto -- en dispositivos donde ese bloque superior es más alto
+// (fuentes más grandes, safe area distinta), el mapa + su toggle interno
+// desbordaban ese espacio disponible y quedaban solapados. Ahora se mide el
+// alto real disponible (onLayout del contenedor) y el mapa se ajusta a eso.
+const MAX_BODY_MAP_HEIGHT = 660;
+// Alto aproximado del toggle interno "Frontal/Trasera" de MuscleBodyMap
+// (padding 4 + texto ~18 + marginBottom 12) -- hay que descontarlo del alto
+// disponible, porque el toggle se apila ENCIMA del SVG dentro del mismo
+// contenedor centrado, no al lado.
+const BODY_MAP_TOGGLE_HEIGHT = 56;
 
 export default function ViewBodyPartScreen(props: any) {
   const [searchText, setSearchText] = useState('');
   const [listExpanded, setListExpanded] = useState(false);
+  const [mapAreaHeight, setMapAreaHeight] = useState(0);
+  const onMapAreaLayout = useCallback((e: LayoutChangeEvent) => {
+    setMapAreaHeight(e.nativeEvent.layout.height);
+  }, []);
+  const bodyMapHeight =
+    mapAreaHeight > 0
+      ? Math.min(MAX_BODY_MAP_HEIGHT, Math.max(200, mapAreaHeight - BODY_MAP_TOGGLE_HEIGHT))
+      : MAX_BODY_MAP_HEIGHT;
 
   const goToExercises = (bodyPartId: number) => {
     props.navigation.navigate('MigratedSearch', {
@@ -106,8 +123,8 @@ export default function ViewBodyPartScreen(props: any) {
           <Text size="xs" muted className="text-center px-4" style={{ marginBottom: 12 }}>
             Toca una zona del cuerpo para ver sus ejercicios
           </Text>
-          <Box className="flex-1 items-center justify-center" style={{ paddingBottom: 40 }}>
-            <MuscleBodyMap onMusclePress={handleMusclePress} height={BODY_MAP_HEIGHT} />
+          <Box className="flex-1 items-center justify-center" style={{ paddingBottom: 40 }} onLayout={onMapAreaLayout}>
+            {mapAreaHeight > 0 && <MuscleBodyMap onMusclePress={handleMusclePress} height={bodyMapHeight} />}
           </Box>
         </>
       )}
