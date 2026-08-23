@@ -41,6 +41,7 @@ export interface ParQPayload {
 }
 
 export interface TrainingQuestionnairePayload {
+  goal_type: 'lose_fat' | 'gain_muscle' | 'recomposition' | 'maintain';
   activity_level: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
   lifestyle_type: 'mostly_sitting' | 'sometimes_standing' | 'mostly_standing' | 'always_moving' | 'heavy_labor';
   training_experience_months: number;
