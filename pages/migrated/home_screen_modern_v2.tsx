@@ -328,6 +328,21 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     themeOptionBtnActive: { backgroundColor: C.orange },
     themeOptionText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary },
     themeOptionTextActive: { color: '#FFFFFF' },
+    // Bottom-right a propósito: el "+" real de accesos rápidos (NavigationTab
+    // `plusBtn`) vive centrado sobre la barra inferior -- esta esquina queda
+    // siempre libre, evitando el solape que hizo quitar el botón anterior.
+    screenExplorerFab: {
+      position: 'absolute' as const,
+      right: r(16),
+      bottom: r(100),
+      width: r(44),
+      height: r(44),
+      borderRadius: r(22),
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      zIndex: 15,
+    },
   }), [sc, r, C, winH]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
@@ -1170,6 +1185,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
         <Box style={{ height: r(16) }} />
       </Animated.ScrollView>
+
+      {/* Botón flotante de acceso a Screen Explorer (herramienta de desarrollo).
+          Se había quitado por solaparse con el "+" real de accesos rápidos
+          (ese vive centrado sobre la barra inferior, ver NavigationTab.tsx
+          `plusBtn`) -- este va en la esquina inferior derecha, claramente
+          separado, para no repetir ese bug. */}
+      <Pressable
+        style={styles.screenExplorerFab}
+        onPress={() => navigation?.navigate('ScreenExplorer')}
+      >
+        <Icon name="construct-outline" size={20} color="#FFFFFF" />
+      </Pressable>
 
       {/* Menú de usuario (perfil, favoritos, ajustes, salud, comunidad, logout) */}
       <Modal visible={showMenu} transparent animationType="slide" onRequestClose={() => setShowMenu(false)}>
