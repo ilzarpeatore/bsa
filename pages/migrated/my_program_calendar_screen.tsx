@@ -833,7 +833,6 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           style={[
             styles.dayCellText,
             !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
-            isSelected && !big && !selectionMode && styles.dayCellTextSelected,
           ]}
         >
           {dateObj.getDate()}
@@ -847,7 +846,6 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                 styles.dayDot,
                 hasCompletedWorkout && styles.dayDotCompleted,
                 !hasWorkout && hasCheckinTasks && styles.dayDotCheckin,
-                isSelected && !big && styles.dayDotSelected,
               ]}
             />
           )
@@ -1211,7 +1209,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   dayCellSelected: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: C.orange,
   },
   dayCellToday: {
     borderWidth: 1.5,
@@ -1240,9 +1240,6 @@ const styles = StyleSheet.create({
   dayCellTextMuted: {
     color: C.textTertiary,
   },
-  dayCellTextSelected: {
-    color: '#FFFFFF',
-  },
   dayDot: {
     width: 5,
     height: 5,
@@ -1254,9 +1251,6 @@ const styles = StyleSheet.create({
   },
   dayDotCheckin: {
     backgroundColor: C.warning60,
-  },
-  dayDotSelected: {
-    backgroundColor: '#FFFFFF',
   },
   selectedDaySection: {
     marginTop: 16,
