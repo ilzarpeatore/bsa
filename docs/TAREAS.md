@@ -4,6 +4,31 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## 🔲 62 errores de `tsc --noEmit` en `theme.ts` — arreglar la próxima vez que se toquen los colores (detectado 2026-08-23)
+
+`npx tsc --noEmit -p .` da 62 errores `TS2322`, todos en `pages/migrated/theme.ts`, todos con el mismo patrón:
+
+```
+theme.ts(101,3): Type '"#0B0B0D"' is not assignable to type '"#EBEBF0"'.
+theme.ts(102,3): Type '"#1C1C1E"' is not assignable to type '"#FFFFFF"'.
+theme.ts(108,3): Type '"#48484A"' is not assignable to type '"#D1D1D6"'.
+... (62 en total, una por cada color que difiere entre C y C_DARK)
+```
+
+**Causa raíz**: `export const C = { bg: "#EBEBF0", ... } as const;` — el `as const` infiere el tipo de cada propiedad como su valor **literal** exacto (`bg` es de tipo `"#EBEBF0"`, no `string`). Más abajo, `export const C_DARK: typeof C = { bg: "#0B0B0D", ... }` anota `C_DARK` como `typeof C`, así que TypeScript exige que cada propiedad de `C_DARK` tenga el **mismo valor literal exacto** que `C`, no solo el mismo tipo `string`. Como el tema oscuro tiene (correctamente) colores distintos, cada color que difiere dispara el error.
+
+Es un fallo puramente de anotación de tipos, no de lógica — en tiempo de ejecución `C_DARK` funciona bien (JS no comprueba tipos), así que nunca ha roto ningún build. Viene desde el commit `bf23806` (cuando se añadió el modo oscuro) y no se ha corregido desde entonces.
+
+**Fix** (una línea, cuando se retomen los colores claro/oscuro): cambiar la anotación de `C_DARK` de `typeof C` a algo que solo exija "mismas claves, valores `string`", por ejemplo:
+
+```ts
+const C_DARK: Record<keyof typeof C, string> = { ... };
+```
+
+o quitar el `as const` de `C` si en algún punto se necesita que sus valores también sean `string` genérico en vez de literales (revisar antes si algún sitio depende de los literales exactos de `C` para inferencia de tipos).
+
+---
+
 ## ✅ Pantalla de resultado del onboarding — 2 iteraciones (2026-08-23)
 
 `assessment_result_screen.tsx` (`MigratedAssessmentResult`, a donde navega `onboarding_v2_screen.tsx` justo al terminar las 36 preguntas) era un resumen muy básico de IMC/BMR.
