@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -32,10 +33,29 @@ function initialsFor(fName: string, lName: string): string {
   return letters || 'U';
 }
 
-async function pickImage() {
-  // ImagePicker logic
-  // const result = await ImagePicker.launchImageLibraryAsync({...});
-  // if (!result.canceled) setImageUri(result.assets[0].uri);
+// `profile_image` no es una columna plana de `users` (se calcula vía
+// getSingleMedia(), mismo patrón que el bug real documentado para
+// community_screen.tsx en docs/TAREAS.md) -- mandar la uri local del
+// picker como string JSON no sube ningún fichero real, hace falta
+// multipart con el fichero, igual que ya hace api/posts.ts para los
+// medios de una publicación. Los demás campos (incluido el objeto
+// anidado user_profile) van como texto plano en bracket notation
+// (user_profile[age], etc.), que es como Laravel espera arrays anidados
+// dentro de un multipart/form-data.
+function buildProfileFormData(payload: Record<string, any>, imageUri: string) {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        formData.append(`${key}[${subKey}]`, String(subValue ?? ''));
+      });
+    } else {
+      formData.append(key, String(value ?? ''));
+    }
+  });
+  const ext = imageUri.split('.').pop()?.split('?')[0]?.toLowerCase() || 'jpg';
+  formData.append('profile_image', { uri: imageUri, name: `profile-${Date.now()}.${ext}`, type: `image/${ext}` } as any);
+  return formData;
 }
 
 export default function EditProfileScreen(props: EditProfileScreenProps) {
@@ -70,6 +90,48 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
       setProfileImage(state.user.profile_image ?? '');
       setSelectGender(state.user.gender === 'male' ? 0 : 1);
     }
+  };
+
+  const pickFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para cambiar la foto de perfil.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const pickFromCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu cámara para hacer una foto.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const pickImage = () => {
+    Alert.alert('Cambiar foto de perfil', undefined, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Elegir de la galería', onPress: pickFromLibrary },
+      { text: 'Hacer una foto', onPress: pickFromCamera },
+    ]);
   };
 
   const convertFeetToCm = () => {
@@ -121,14 +183,13 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
           height: heightVal.trim(),
         },
       };
-      if (imageUri) {
-        payload.profile_image = imageUri;
-      }
-      const response = await authApi.updateProfile(payload);
+      const body = imageUri ? buildProfileFormData(payload, imageUri) : payload;
+      const response = await authApi.updateProfile(body, !!imageUri);
       if (state.user) {
         updateUser({
           ...state.user,
           ...payload,
+          profile_image: response.data?.data?.profile_image ?? state.user.profile_image,
           user_profile: { ...state.user.user_profile, ...payload.user_profile },
         });
       }

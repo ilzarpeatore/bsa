@@ -4,6 +4,16 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Foto de perfil real en EditProfile — subida por verificar en backend (2026-08-23)
+
+`edit_profile_screen.tsx`: "Cambiar foto"/el botón de cámara no hacían nada — `pickImage()` era un stub sin implementar (`ImagePicker` comentado, nunca importado). Arreglado con el mismo patrón que ya usa `add_post_screen.tsx` (único sitio de la app con `expo-image-picker` real): `Alert.alert` con "Elegir de la galería"/"Hacer una foto", permisos (`requestMediaLibraryPermissionsAsync`/`requestCameraPermissionsAsync`) y `allowsEditing`+`aspect:[1,1]` para recortar cuadrado antes de subir.
+
+De paso, un segundo bug que habría dejado la función a medias: `save()` metía la `uri` local del picker (`file://...`) como string plano dentro del JSON de `update-profile` — eso no sube ningún fichero real. `profile_image` no es una columna de `users`, se calcula vía `getSingleMedia()` (mismo hallazgo que el bug real ya documentado de `community_screen.tsx` más abajo en este mismo MD), así que hace falta multipart con el fichero real, igual que `api/posts.ts` ya hace para medios de posts. Añadido `buildProfileFormData()` (bracket notation `user_profile[age]` etc. para el objeto anidado + `profile_image` como fichero) y `authApi.updateProfile()` ahora acepta un segundo parámetro `isMultipart` para mandar el header `multipart/form-data` solo cuando hay foto nueva.
+
+**Sin verificar contra el backend real**: no hay forma de confirmar desde aquí que `UserController::updateProfile` acepta de verdad un fichero en el campo `profile_image` dentro de un multipart (no hay precedente de subida real de avatar en esta app — `avatar_setup_screen.tsx` usa solo presets locales, ver más abajo). Si al probar en dispositivo la foto no se actualiza tras guardar, revisar primero el nombre de campo esperado por el backend.
+
+---
+
 ## 🔲 Cambiar los iconos de toda la app a nativos de plataforma (SF Symbols / Material Symbols) — pedido explícito, no iniciado (2026-08-23)
 
 Hoy toda la app usa **Ionicons** (`@expo/vector-icons`) de forma consistente en las ~200 pantallas migradas — mismo dibujo en iOS y Android, no son iconos custom dibujados a mano. El usuario ha pedido explorar sustituirlos por los iconos **nativos de cada plataforma de verdad**: SF Symbols en iOS, Material Symbols en Android.

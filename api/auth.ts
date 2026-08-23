@@ -86,8 +86,14 @@ export const authApi = {
   socialOtpLogin: (payload: SocialOtpLoginPayload) =>
     apiClient.post<SocialOtpLoginResponse>('social-otp-login', payload),
 
-  updateProfile: (payload: Record<string, any>) =>
-    apiClient.post<{ data: UserData }>('update-profile', payload),
+  // isMultipart: true cuando el payload incluye una foto de perfil recién
+  // elegida (FormData con el fichero real) -- ver edit_profile_screen.tsx.
+  updateProfile: (payload: Record<string, any> | FormData, isMultipart = false) =>
+    apiClient.post<{ data: UserData }>(
+      'update-profile',
+      payload,
+      isMultipart ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
+    ),
 
   getUserDetail: (id: number) =>
     apiClient.get<{ data: UserData }>(`user-detail?id=${id}`),
