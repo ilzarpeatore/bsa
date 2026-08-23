@@ -4,6 +4,17 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Segundo rediseño de la barra de pestañas — Home v2 vuelve como "Inicio" (2026-08-23)
+
+El primer rediseño de la barra (mismo día, entrada anterior en el historial de commits) dejó Home v2 sin ser raíz de ninguna pestaña — solo llegable navegando a mano, en la práctica inalcanzable para un usuario normal. Petición explícita: la barra debe ser **Inicio (Home v2) / Plan del día / Nutrición / Hábitos**.
+
+- **`App.tsx`**: `TAB_ROOT_SCREEN` y `Homenavigator()` — `ProfileTab` (`MigratedProfile`) sustituido por `InicioTab` (`MigratedHomeModernV2`), primero en el orden e `initialRouteName` de `Tab.Navigator`. Pestaña "Plan diario" renombrada a "Plan del día" (mismo route `PlanDiarioTab`/`MigratedMyProgramCalendar`, solo cambia la etiqueta visible).
+- **`components/NavigationTab.tsx`**: Perfil se muda al menú "+" de accesos rápidos (`QUICK_ACTIONS`, ahora 5 items: Perfil/Blog/Comunidad/Métricas/Check-ins) — mismo criterio que ya se aplicó ahí con Blog/Comunidad/Métricas/Check-ins en el rediseño anterior.
+- **Botón flotante de Screen Explorer, ahora global**: vivía solo en `home_screen_modern_v2.tsx`, lo que lo volvía a dejar inalcanzable en cuanto Home v2 no era la pantalla activa. Extraído a `components/ScreenExplorerFab.tsx` y montado en `App.tsx` como hermano de `NavigationContainer` (mismo patrón que `ScreenReviewFab`/`WorkoutMinimizedBar`, usando el `navigationRef` compartido en vez del prop `navigation` de una pantalla concreta) — visible en cualquier pantalla de la app, no solo Home v2.
+- `pages/migrated/home/device_connected_screen.tsx`: el botón "Volver al inicio" apuntaba a `PlanDiarioTab` (parche del rediseño anterior, cuando esa era la única pestaña "de entrada"); corregido a `InicioTab`, semánticamente correcto ahora que existe una pestaña Inicio real.
+
+---
+
 ## 🔲 Recursos — imagen por recurso (`image_url`), pendiente de backend (2026-08-23)
 
 La sección "Recursos" de Home v2 (`pages/migrated/home_screen_modern_v2.tsx`) mostraba cada recurso (artículo/vídeo/link/doc) como un icono sobre fondo de color plano — no hay ningún campo de imagen en `resources` hoy. Petición del usuario: previsualizar cómo quedarían las tarjetas con imagen real.
