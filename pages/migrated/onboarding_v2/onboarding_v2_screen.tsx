@@ -138,7 +138,10 @@ export default function OnboardingV2Screen({ navigation }: any) {
             goal_type: answers.goal_type as any,
             activity_level: answers.activity_level as any,
             lifestyle_type: answers.lifestyle_type as any,
-            training_experience_months: Number(answers.training_experience_months) || 0,
+            // El usuario responde en años (training_experience_years, ver
+            // constants/onboardingV2Questions.ts) -- el backend sigue
+            // esperando meses, se convierte aquí antes de enviar.
+            training_experience_months: (Number(answers.training_experience_years) || 0) * 12,
             training_days_per_week: Number(answers.training_days_per_week) || 0,
             session_duration_preference: answers.session_duration_preference as any,
             training_mindset: answers.training_mindset as any,

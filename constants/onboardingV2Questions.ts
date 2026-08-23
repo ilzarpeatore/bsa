@@ -229,15 +229,20 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     ],
   },
   {
-    id: 'training_experience_months',
+    // El campo real del backend (training_experience_months, ver
+    // api/onboardingV2.ts) sigue en meses -- solo cambia lo que se le
+    // pregunta al usuario (pedido explícito: años en vez de meses, más
+    // natural de estimar). La conversión ×12 se hace al enviar la etapa,
+    // ver submitStage() en onboarding_v2_screen.tsx.
+    id: 'training_experience_years',
     stage: 'training_questionnaire',
     type: 'number_wheel',
-    title: '¿Cuántos meses llevas entrenando?',
+    title: '¿Cuántos años llevas entrenando?',
     subtitle: 'Si nunca has entrenado, deja el valor en 0',
     min: 0,
-    max: 360,
+    max: 30,
     defaultValue: 0,
-    suffix: 'meses',
+    suffix: 'años',
   },
   {
     id: 'training_days_per_week',
