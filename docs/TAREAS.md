@@ -22,6 +22,17 @@ Pedido explícito, sobre el mismo tutorial ya arreglado antes en esta sesión (v
 
 ---
 
+## ✅ Encadenado del check-in y de "marca una comida" en el tutorial guiado (2026-08-23)
+
+Pedido explícito: unir "Marca una comida como realizada" a "Accede a tu plan de nutrición" (mismo patrón ya usado en entrenamiento), y unir "Rellena tu check-in de preparación" al resto de retos de entrenamiento para que ocurra ANTES de entrar al entrenamiento (el check-in de preparación es un paso real, automático, una vez al día, previo a cada sesión). Ambos resueltos con el mismo mecanismo ya existente (`TutorialChallenge.nextChallengeId`, ver arriba "Tutorial guiado encadenado..."), sin código nuevo:
+
+- `access-nutrition-plan.nextChallengeId = 'mark-meal-done'`.
+- `complete-checkin.nextChallengeId = 'access-workout'` (que a su vez ya encadena con `log-first-set`) -- reproduce el orden real: check-in → entrenamiento → primera serie.
+
+**Sobre "casi ningún botón del tutorial responde al tocarlo, salvo entrenamiento y nutrición (y tampoco esos)"**: revisado targetId por targetId (`habit-toggle-first` en `habits_list_screen.tsx`, `plan-meal-toggle-first` en `plan_screen.tsx`, `home-checkin-card`/`home-today-workout-card` en `home_screen_modern_v2.tsx`) -- todos llaman a `reportAction(...)` en el sitio correcto y `TutorialOverlay` ya no usa `<Modal>` (ver el arreglo de esta misma sesión, más abajo "Arregla el tutorial guiado"). No hay ningún bug nuevo encontrado en el código actual. Lo que describe el usuario ("en el anterior build ninguno funciona") coincide exactamente con el comportamiento ANTES de ese arreglo del `<Modal>` -- que ya está en este branch pero no se ha vuelto a compilar un IPA desde entonces. Falta un build nuevo para confirmarlo en dispositivo.
+
+---
+
 ## ✅ Eliminada la pantalla "¡Todo listo!" tras el onboarding (2026-08-23)
 
 Pedido explícito: `onboarding_complete_screen.tsx` (`MigratedOnboardingComplete`, la pantalla con trofeo/confeti y checklist "Perfil completado/Plan seleccionado/Objetivos definidos" que salía justo después de `MigratedAssessmentResult`) era un paso intermedio innecesario. Borrada:

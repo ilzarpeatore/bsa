@@ -150,6 +150,11 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
         completion: { type: 'navigate', screen: 'MigratedPlan' },
       },
     ],
+    // Encadena con "Marca una comida como realizada" -- mismo patrón que
+    // "access-workout" -> "log-first-set": el usuario ya está dentro de
+    // MigratedPlan, tiene sentido seguir guiándolo hasta marcar una comida de
+    // verdad en vez de devolverlo a la lista de retos.
+    nextChallengeId: 'mark-meal-done',
   },
   {
     id: 'mark-meal-done',
@@ -174,5 +179,12 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
         completion: { type: 'action', actionId: 'checkin_submitted' },
       },
     ],
+    // Pedido explícito: el check-in de preparación es un paso real que ocurre
+    // (una vez al día, automático) ANTES de cada entrenamiento -- así que su
+    // tutorial se encadena con el resto de retos de entrenamiento
+    // ("access-workout", que a su vez ya encadena con "log-first-set"),
+    // reproduciendo el mismo orden que sigue el usuario de verdad en vez de
+    // dejarlo como un reto suelto e independiente.
+    nextChallengeId: 'access-workout',
   },
 ];
