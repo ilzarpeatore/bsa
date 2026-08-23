@@ -4,6 +4,16 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ El botón flotante de Screen Explorer ya no se solapa con el contenido (2026-08-23)
+
+Reportado con captura en `MigratedProgress` (Informe): el círculo gris del botón de Screen Explorer (`components/ScreenExplorerFab.tsx`, herramienta temporal de desarrollo, ver ese archivo) se veía incrustado en la esquina de la tarjeta "Entrenamiento" en vez de flotar limpiamente por encima.
+
+Causa real: el FAB vive fuera del tab navigator (montado como hermano en `App.tsx`, igual que `WorkoutMinimizedBar`) para ser alcanzable desde cualquier pantalla, con un `bottom` fijo pensado para las 4 pantallas raíz de pestaña (Home/Plan diario/Nutrición/Hábitos, las únicas con la barra flotante real debajo, que sí reservan `TAB_BAR_CLEARANCE` al final del scroll). Pero en cualquier otra pantalla apilada (la inmensa mayoría, incluida Informe/Progreso) no hay barra ni ese hueco reservado -- el contenido real llega mucho más abajo, y ese mismo valor fijo caía encima de la última tarjeta.
+
+Corregido seguiendo la ruta activa (mismo patrón que el listener de navegación de `TutorialContext.tsx`): si la ruta actual es una de las 4 raíces de pestaña, el FAB se posiciona por encima de la barra; en cualquier otra, se posiciona cerca del borde inferior real (dentro del hueco que cada pantalla ya reserva con su propio `SafeAreaView edges=['bottom']`). También se le añadió sombra propia (antes era un círculo plano sin elevación, lo que reforzaba la sensación de estar "pegado" a la tarjeta de debajo en vez de flotar de verdad por encima).
+
+---
+
 ## ✅ Tutorial guiado encadenado + explicación por métrica en "Registra tu primera serie" — falta un workout demo para usuarios nuevos (2026-08-23)
 
 Pedido explícito, sobre el mismo tutorial ya arreglado antes en esta sesión (ver más abajo "Arregla el tutorial guiado"): el reto "Registra tu primera serie" no respondía al tocarlo desde la lista. Causa real: `startChallenge('log-first-set')` activaba el reto sin comprobar que su target (`workout-session-first-set-toggle`) existiera en algún sitio alcanzable -- si el usuario no estaba ya dentro de una sesión de entrenamiento en curso, `TutorialOverlay` no mostraba nada y no había ninguna navegación que lo llevara hasta ahí. Corregido con 3 piezas, todas en frontend:
