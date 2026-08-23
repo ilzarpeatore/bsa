@@ -33,7 +33,12 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     options: [
       { value: 'male', label: 'Hombre', icon: '♂️', emoji: true },
       { value: 'female', label: 'Mujer', icon: '♀️', emoji: true },
-      { value: 'other', label: 'Otro / Prefiero no decirlo', icon: '⚧️', emoji: true },
+      // Antes usaba el emoji ⚧️, que en iOS sale a todo color (icono azul
+      // relleno) muy distinto al trazo fino de los símbolos ♂️/♀️ de las otras
+      // dos opciones -- se sustituye por un icono Ionicons real (mismo path
+      // de render que el resto de la app, sin `emoji: true`) para que las 3
+      // opciones tengan el mismo estilo de icono de sistema, monocromo.
+      { value: 'other', label: 'Otro / Prefiero no decirlo', icon: 'male-female-outline' },
     ],
   },
   {
