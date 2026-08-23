@@ -4,6 +4,16 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## 🔲 Recursos — imagen por recurso (`image_url`), pendiente de backend (2026-08-23)
+
+La sección "Recursos" de Home v2 (`pages/migrated/home_screen_modern_v2.tsx`) mostraba cada recurso (artículo/vídeo/link/doc) como un icono sobre fondo de color plano — no hay ningún campo de imagen en `resources` hoy. Petición del usuario: previsualizar cómo quedarían las tarjetas con imagen real.
+
+- **Frontend ya preparado**: `ResourceListItem.image_url?: string | null` añadido en `api/resources.ts` (optimista, sin romper nada mientras no exista). En Home v2, `resourceImageSource()` usa `r.image_url` en cuanto exista; **mientras tanto** se rellena con una foto real de internet (LoremFlickr, sin API key) elegida por `category` (mapa `RESOURCE_CATEGORY_KEYWORDS`) con `?lock={id}` para que cada recurso muestre siempre la misma foto (si no, cambiaría en cada refresh). Es un stand-in visual, no pensado para quedarse en producción a largo plazo (servicio de terceros sin SLA).
+- **Pendiente real, backend (VPS, fuera de este repo)**: añadir columna `image_url` (string nullable) a la tabla `resources`; devolverla en `resource-list` y `resource-detail` (`API\ResourceController`); UI de admin para subir/asignar la imagen al crear/editar un recurso. En cuanto el backend la mande, `resourceImageSource()` la usa automáticamente y dejan de pedirse las fotos de LoremFlickr — no hace falta tocar más el cliente.
+- De paso, en el mismo Home v2 se encontró y corregido un thumbnail de workout sin fallback (`Entrenamientos`, `w.thumbnail`) que se quedaba con una caja vacía — ahora usa el mismo `pickWorkoutFallbackImage()` de `workoutViewShared.ts` que ya cubría `workout_preview_screen.tsx`/`workout_template_list_screen.tsx`/`workout_history_screen.tsx`/`workout_detail_screen.tsx`.
+
+---
+
 ## ✅ Onboarding v2 — 4 etapas (datos personales, PAR-Q, entrenamiento, nutrición) (2026-08-22)
 
 Sustituye por completo el onboarding anterior (carrusel `MigratedOnboarding` de 11 slides → `ProfileSetupIntro/Form` → `AvatarSetup` → `PrivacyPolicyOnboard` → `NotificationsOnboard` → `AssessmentResult` → `Recommendations` → `Health` → `Articles` → `OnboardingComplete`), que además tenía un bug real: el carrusel llamaba a `completeOnboarding()` directamente al pulsar "Saltar"/"Empezar" sin pasar nunca por el formulario de datos — en la práctica nadie llegaba a `ProfileSetupForm` ni a nada posterior. Contrato completo (preguntas, payloads, endpoints, esquema de BD sugerido) en **`docs/ONBOARDING_V2.md`**.

@@ -24,6 +24,7 @@ import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view'
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { C, FONT } from './theme';
 import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
 import { recipesApi, RecipeListItem } from '../../api/recipes';
@@ -620,7 +621,7 @@ export default function PlanScreen(props: any) {
       )}
       <Animated.ScrollView
         ref={scrollRef}
-        contentContainerStyle={s.scrollContent}
+        contentContainerStyle={[s.scrollContent, { paddingBottom: TAB_BAR_CLEARANCE }]}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       >

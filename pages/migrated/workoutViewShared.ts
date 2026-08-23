@@ -6,6 +6,20 @@ import { workoutHistoryApi } from '../../api/workoutHistory';
 // del sistema v2 (WorkoutTemplate/ProgramDayAssignment) en una única
 // forma de datos. Ver docs/PANTALLAS WORKOUT.md.
 
+// Imágenes de reserva mientras el backend no manda thumbnail real (coach no
+// ha subido foto todavía) — antes esas pantallas se quedaban con un
+// degradado/icono vacío, aquí se alterna entre dos fotos de stock ya
+// empaquetadas en assets/workout/ para previsualizar cómo quedan cabecera + imagen.
+const WORKOUT_FALLBACK_IMAGES = [
+  require('../../assets/workout/Workoutimg.png'),
+  require('../../assets/workout/Workoutimg2.png'),
+];
+
+export function pickWorkoutFallbackImage(seed?: number | null) {
+  const n = Math.abs(seed ?? 0);
+  return WORKOUT_FALLBACK_IMAGES[n % WORKOUT_FALLBACK_IMAGES.length];
+}
+
 export interface UnifiedExercise {
   id: number; // workout_template_exercise_id — clave para log-sets
   exerciseId: number;

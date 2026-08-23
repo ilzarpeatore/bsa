@@ -12,6 +12,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
+import { pickWorkoutFallbackImage } from './workoutViewShared';
 import logger from '@helper/logger';
 
 function formatDuration(totalSeconds: number | null): string {
@@ -61,11 +62,11 @@ export default function WorkoutHistoryScreen(props: any) {
     <Pressable key={item.id} className="bg-card rounded-lg p-3.5" onPress={() => openDetail(item)}>
       <HStack space="md" className="items-center">
         <Box className="w-12 h-12 rounded-md bg-muted items-center justify-center overflow-hidden">
-          {item.thumbnail ? (
-            <ExpoImage source={{ uri: item.thumbnail }} style={{ width: 48, height: 48 }} contentFit="cover" />
-          ) : (
-            <Icon name="barbell-outline" size={22} className="text-muted-foreground" />
-          )}
+          <ExpoImage
+            source={item.thumbnail ? { uri: item.thumbnail } : pickWorkoutFallbackImage(item.id)}
+            style={{ width: 48, height: 48 }}
+            contentFit="cover"
+          />
         </Box>
         <VStack space="xs" className="flex-1">
           <Text weight="bold" size="sm" numberOfLines={1}>{item.title}</Text>

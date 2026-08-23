@@ -1,6 +1,4 @@
 import React, { useRef, useState } from "react";
-import type { ComponentProps } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import {
   View,
   Pressable,
@@ -13,7 +11,7 @@ import { Image } from "expo-image";
 import { GlassView, isGlassEffectAPIAvailable } from "@components/ui/glass-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { NavigationTabOptionsInterface } from "./_types/NavigationTab.i";
+import { NavigationTabOptionsInterface, IoniconName } from "./_types/NavigationTab.i";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@components/ui/icon";
@@ -24,7 +22,22 @@ import { C, FONT } from "../pages/migrated/theme";
 // aqui evita reconstruirlo (y su wrapper interno) en cada render.
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
-type IoniconName = ComponentProps<typeof Ionicons>['name'];
+// Espacio que las pantallas RAÍZ de una pestaña (las únicas que muestran
+// esta barra flotante -- ver tabBarVisible en App.tsx) deben reservar al
+// final de su contenido desplazable para que el último bloque no quede
+// tapado detrás de la barra (reportado con captura: una tarjeta quedaba
+// justo debajo/tapada por la barra al hacer scroll hasta el fondo).
+// navigationOuter mide '64@ratio' de alto y el "+" sobresale '22@ratio' por
+// encima de ese contenedor (ver plusBtn.top más abajo) -- a escala ~1 (ancho
+// de referencia) son ~86px de la barra en sí, más un margen extra de aire.
+// Deliberadamente NO incluye insets.bottom: la barra se posiciona sobre el
+// screen completo (fuera del SafeAreaView de cada pantalla) y ya añade su
+// propio `marginBottom: safearea.bottom` (ver navigationOuter más abajo) --
+// sumarlo aquí también lo contaría dos veces en cualquier pantalla cuyo
+// SafeAreaView ya reserve el edge 'bottom'. Cada pantalla ya es responsable
+// de su propio inset físico (SafeAreaView con edge 'bottom', o insets.bottom
+// a mano); esta constante es solo el hueco adicional para la barra flotante.
+export const TAB_BAR_CLEARANCE = 86 + 20;
 
 interface QuickAction {
   id: string;
@@ -34,14 +47,14 @@ interface QuickAction {
   params?: Record<string, any>;
 }
 
-// Placeholder: mismo criterio que StartupChecklist -- construye la mecánica
-// del submenu "+" con accesos ya existentes en la app; el set final de
-// acciones se puede ajustar más adelante sin tocar la mecánica.
+// Rediseño 2026-08-23 (pedido explícito): la barra pasa a tener solo 4
+// pestañas fijas (Plan diario/Nutrición/Hábitos/Perfil, ver App.tsx
+// Homenavigator) -- Blog/Comunidad/Métricas/Check-ins viven aquí, en el "+".
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: "habit", label: "Añadir hábito", icon: "flame-outline", route: "MigratedHabitAdd" },
-  { id: "calendar", label: "Ver calendario", icon: "calendar-outline", route: "MigratedMyProgramCalendar" },
-  { id: "shopping", label: "Lista de la compra", icon: "cart-outline", route: "MigratedAddShoppingList" },
-  { id: "coach", label: "Hablar con tu entrenador", icon: "chatbubble-ellipses-outline", route: "MigratedChatting" },
+  { id: "blog", label: "Blog", icon: "newspaper-outline", route: "MigratedBlog" },
+  { id: "community", label: "Comunidad", icon: "people-outline", route: "MigratedCommunity" },
+  { id: "metrics", label: "Métricas", icon: "body-outline", route: "MigratedBodyMetrics" },
+  { id: "checkins", label: "Check-ins", icon: "clipboard-outline", route: "MigratedCheckIns" },
 ];
 
 /**
@@ -49,7 +62,7 @@ const QUICK_ACTIONS: QuickAction[] = [
  * reactnative navigation tabBar function -- barra flotante con efecto
  * glass (GlassView, Liquid Glass real en iOS 26+, mismo componente que ya
  * usan Fab/Modal/Popover/Tooltip -- ver components/ui/glass-view) y botón
- * central "+" que abre un submenu de accesos rápidos, también glass.
+ * central "+" que abre un submenu de accesos rápidos.
  */
 export default function NavigationTab({ state, descriptors, navigation }: BottomTabBarProps) {
   const styles = useStyle();
@@ -164,14 +177,10 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                 onLongPress={onLongPress}
                 style={({ pressed }) => [styles.navigationbtn, pressed && { opacity: 0.2 }]}
               >
-                <Image
-                  source={typedOptions.icon}
-                  contentFit="contain"
-                  style={[
-                    styles.navigationicon,
-                    { tintColor: isFocused ? "#000000" : "#AEAEB2" },
-                  ]}
-                />
+                <Icon name={typedOptions.icon} size={22} color={isFocused ? "#1C1C1E" : "#AEAEB2"} />
+                <Text style={[styles.navigationLabel, isFocused && styles.navigationLabelActive]} numberOfLines={1}>
+                  {typedOptions.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -195,7 +204,12 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
         </Pressable>
       </View>
 
-      {/* Submenu glass -- accesos rápidos */}
+      {/* Submenu de accesos rápidos -- rediseñado (pedido explícito, antes
+          era ilegible: fondo GlassView translúcido con el contenido de la
+          pantalla de debajo transparentándose sobre el texto). Ahora fondo
+          sólido opaco (sin GlassView) y rejilla 2x2 -- mismos círculos
+          naranjas del botón "+" para que ambos estados (cerrado/abierto)
+          compartan un único color, tal como se pidió. */}
       <Modal visible={menuOpen} transparent animationType="none" onRequestClose={closeMenu}>
         <View style={{ flex: 1 }}>
           <Pressable style={[StyleSheet.absoluteFill, styles.modalBackdrop]} onPress={closeMenu} />
@@ -215,28 +229,25 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                 },
               ]}
             >
-              <View style={[styles.quickMenuBlur, !isGlassEffectAPIAvailable() && styles.navigationFallbackBg]}>
-                <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
-                {QUICK_ACTIONS.map((action, i) => (
+              <View style={styles.quickMenuGrid}>
+                {QUICK_ACTIONS.map((action) => (
                   <Pressable
                     key={action.id}
-                    style={[styles.quickMenuItem, i > 0 && styles.quickMenuItemDivider]}
+                    style={({ pressed }) => [styles.quickMenuItem, pressed && { opacity: 0.7 }]}
                     onPress={() => {
                       closeMenu();
                       // `navigation` aqui es el navigator de PESTAÑAS (Tab.Navigator),
-                      // no el stack interno -- navigate(action.route) buscaba
-                      // "MigratedHabitAdd" etc. como si fuera una pestaña propia y
-                      // nunca encontraba nada (bug real: "al pulsar en + ninguno
-                      // funciona"). Hay que anidar explícitamente: entrar en la
-                      // pestaña "HomePage" y pedirle a SU stack que navegue a la
-                      // pantalla real.
-                      navigation.navigate("HomePage", { screen: action.route, params: action.params });
+                      // no el stack interno -- hay que anidar explícitamente: entrar
+                      // en cualquiera de las 4 pestañas (todas comparten el mismo
+                      // stack MigratedNavigator) y pedirle a SU stack que navegue a
+                      // la pantalla real.
+                      navigation.navigate("PlanDiarioTab", { screen: action.route, params: action.params });
                     }}
                   >
                     <View style={styles.quickMenuIconWrap}>
-                      <Icon name={action.icon} size={18} color="#1C1C1E" />
+                      <Icon name={action.icon} size={22} color={C.orange} />
                     </View>
-                    <Text style={styles.quickMenuLabel}>{action.label}</Text>
+                    <Text style={styles.quickMenuLabel} numberOfLines={1}>{action.label}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -289,14 +300,19 @@ function useStyle() {
       backgroundColor: "rgba(255,255,255,0.5)",
     },
     navigationbtn: {
-      width: '50@ratio',
-      height: '50@ratio',
+      width: '58@ratio',
+      height: '56@ratio',
       justifyContent: "center",
       alignItems: "center",
+      gap: '3@ratio',
     },
-    navigationicon: {
-      width: '26@ratio',
-      height: '26@ratio',
+    navigationLabel: {
+      fontSize: '9.5@ratio',
+      fontFamily: FONT.semiBold,
+      color: "#AEAEB2",
+    },
+    navigationLabelActive: {
+      color: "#1C1C1E",
     },
     navigationbtnactive: {
       position: "absolute",
@@ -323,35 +339,39 @@ function useStyle() {
       elevation: 6,
     },
     quickMenu: {
-      width: "78%",
-      borderRadius: '20@ratio',
+      width: "82%",
+      borderRadius: '24@ratio',
       overflow: "hidden",
+      backgroundColor: C.surface,
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 10,
     },
-    quickMenuBlur: {
-      paddingVertical: '8@ratio',
+    quickMenuGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      paddingVertical: '20@ratio',
+      paddingHorizontal: '12@ratio',
     },
     quickMenuItem: {
-      flexDirection: "row",
+      width: "50%",
       alignItems: "center",
+      gap: '8@ratio',
       paddingVertical: '12@ratio',
-      paddingHorizontal: '16@ratio',
-      gap: '12@ratio',
-    },
-    quickMenuItemDivider: {
-      borderTopWidth: 1,
-      borderTopColor: "rgba(0,0,0,0.06)",
     },
     quickMenuIconWrap: {
-      width: '32@ratio',
-      height: '32@ratio',
-      borderRadius: '16@ratio',
-      backgroundColor: "rgba(0,0,0,0.06)",
+      width: '52@ratio',
+      height: '52@ratio',
+      borderRadius: '26@ratio',
+      backgroundColor: `${C.orange}1F`,
       alignItems: "center",
       justifyContent: "center",
     },
     quickMenuLabel: {
-      fontSize: '14@ratio',
-      fontFamily: FONT.medium,
+      fontSize: '13@ratio',
+      fontFamily: FONT.semiBold,
       color: "#1C1C1E",
     },
   });

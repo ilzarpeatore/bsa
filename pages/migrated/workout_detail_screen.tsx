@@ -18,6 +18,7 @@ import { VStack } from '@components/ui/vstack';
 import { Divider } from '@components/ui/divider';
 import { C, FONT } from './theme';
 import { workoutsApi } from '../../api/workouts';
+import { pickWorkoutFallbackImage } from './workoutViewShared';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -212,15 +213,11 @@ export default function WorkoutDetailScreen(props: any) {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       <Box style={styles.heroSection}>
-        {workoutDetail?.workout_image ? (
-          <Image
-            source={{ uri: workoutDetail.workout_image }}
-            style={styles.heroImage}
-            contentFit="cover"
-          />
-        ) : (
-          <Box style={[styles.heroImage, { backgroundColor: C.surface }]} />
-        )}
+        <Image
+          source={workoutDetail?.workout_image ? { uri: workoutDetail.workout_image } : pickWorkoutFallbackImage(workoutDetail?.id)}
+          style={styles.heroImage}
+          contentFit="cover"
+        />
         <LinearGradient
           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
           style={styles.heroOverlay}

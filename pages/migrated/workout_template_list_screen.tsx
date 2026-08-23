@@ -10,6 +10,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { C } from './theme';
 import { workoutTemplateApi, WorkoutTemplateListItem } from '../../api/workoutTemplate';
+import { pickWorkoutFallbackImage } from './workoutViewShared';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -69,18 +70,11 @@ export default function WorkoutTemplateListScreen(props: any) {
             })
           }
         >
-          {item.thumbnail ? (
-            <Image
-              source={{ uri: item.thumbnail }}
-              style={{ width: columnWidth, height: 140, borderRadius: 12 }}
-              contentFit="cover"
-            />
-          ) : (
-            <Box
-              className="bg-secondary"
-              style={{ width: columnWidth, height: 140, borderRadius: 12 }}
-            />
-          )}
+          <Image
+            source={item.thumbnail ? { uri: item.thumbnail } : pickWorkoutFallbackImage(item.id)}
+            style={{ width: columnWidth, height: 140, borderRadius: 12 }}
+            contentFit="cover"
+          />
           {locked && (
             <Box
               className="flex-row items-center"
