@@ -189,12 +189,15 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
           {/*navigation icons end*/}
         </View>
 
-        {/* Botón "+" flotante -- abre el submenu de accesos rápidos */}
+        {/* Botón "+" flotante -- abre el submenu de accesos rápidos. Cambia a
+            icono "cerrar" mientras el menú está abierto (mismo criterio que
+            la referencia), sin cambiar de color entre estados (pedido
+            explícito en el rediseño anterior). */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Accesos rápidos"
+          accessibilityLabel={menuOpen ? "Cerrar accesos rápidos" : "Accesos rápidos"}
           style={({ pressed }) => [styles.plusBtn, pressed && { opacity: 0.85 }]}
-          onPress={openMenu}
+          onPress={() => (menuOpen ? closeMenu() : openMenu())}
         >
           <LinearGradient
             colors={["#FF8A50", C.orange, "#E85A2A"]}
@@ -202,16 +205,19 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-          <Icon name="add" size={26} color="#FFFFFF" />
+          <Icon name={menuOpen ? "close" : "add"} size={26} color="#FFFFFF" />
         </Pressable>
       </View>
 
-      {/* Submenu de accesos rápidos -- rediseñado (pedido explícito, antes
-          era ilegible: fondo GlassView translúcido con el contenido de la
-          pantalla de debajo transparentándose sobre el texto). Ahora fondo
-          sólido opaco (sin GlassView) y rejilla 2x2 -- mismos círculos
-          naranjas del botón "+" para que ambos estados (cerrado/abierto)
-          compartan un único color, tal como se pidió. */}
+      {/* Submenu de accesos rápidos -- vuelve a usar Liquid Glass real (pedido
+          explícito, captura de referencia), esta vez sin repetir el bug de
+          legibilidad de la primera vez: aquella tenía el texto directamente
+          sobre el material translúcido, con el contenido de la pantalla de
+          debajo transparentándose encima. Aquí el propio GlassView queda
+          debajo de una capa blanca semi-opaca (quickMenuTint) que garantiza
+          contraste sea cual sea la pantalla de fondo, y el icono de cada
+          acceso sigue en su círculo opaco de siempre -- el efecto glass se
+          nota en el borde/blur del contorno, no arriesga la lectura del texto. */}
       <Modal visible={menuOpen} transparent animationType="none" onRequestClose={closeMenu}>
         <View style={{ flex: 1 }}>
           <Pressable style={[StyleSheet.absoluteFill, styles.modalBackdrop]} onPress={closeMenu} />
@@ -222,6 +228,7 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
             <Animated.View
               style={[
                 styles.quickMenu,
+                !isGlassEffectAPIAvailable() && styles.quickMenuFallbackBg,
                 {
                   opacity: menuAnim,
                   transform: [
@@ -231,6 +238,8 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                 },
               ]}
             >
+              <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, styles.quickMenuTint]} />
               <View style={styles.quickMenuGrid}>
                 {QUICK_ACTIONS.map((action) => (
                   <Pressable
@@ -291,7 +300,7 @@ function useStyle() {
       backgroundColor: "rgba(255,255,255,0.92)",
     },
     modalBackdrop: {
-      backgroundColor: "rgba(0,0,0,0.35)",
+      backgroundColor: "rgba(0,0,0,0.2)",
     },
     navigationglow: {
       position: "absolute",
@@ -344,12 +353,24 @@ function useStyle() {
       width: "82%",
       borderRadius: '24@ratio',
       overflow: "hidden",
-      backgroundColor: C.surface,
       shadowColor: "#000",
       shadowOpacity: 0.2,
       shadowRadius: 16,
       shadowOffset: { width: 0, height: 8 },
       elevation: 10,
+    },
+    // Fondo sólido de reserva -- solo cuando NO hay Liquid Glass real
+    // (Android, iOS<26), mismo criterio que navigationFallbackBg más arriba.
+    quickMenuFallbackBg: {
+      backgroundColor: C.surface,
+    },
+    // Capa blanca semi-opaca sobre el propio GlassView -- el bug de
+    // legibilidad original (texto directo sobre el material translúcido, con
+    // la pantalla de debajo transparentándose encima) se evita garantizando
+    // este contraste mínimo pase lo que pase detrás, sin perder el efecto
+    // glass (que se sigue notando en el blur del borde/contorno).
+    quickMenuTint: {
+      backgroundColor: "rgba(255,255,255,0.55)",
     },
     quickMenuGrid: {
       flexDirection: "row",
