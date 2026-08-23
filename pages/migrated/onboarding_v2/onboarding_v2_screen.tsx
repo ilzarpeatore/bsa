@@ -271,22 +271,39 @@ function QuestionInput({
       first_name: defaultFirstName ?? '',
       last_name: defaultLastName ?? '',
     };
+    // Antes eran 2 pills sueltas flotando sobre el fondo gris, sin más
+    // jerarquía que el placeholder -- agrupadas en una sola tarjeta con
+    // etiqueta encima de cada campo y un divisor fino entre filas, mismo
+    // patrón que ya usa edit_profile_screen.tsx (pedido explícito: acercar
+    // esta pantalla al nivel visual de esa otra).
+    const initials = [value.first_name[0], value.last_name[0]].filter(Boolean).join('').toUpperCase() || '?';
     return (
-      <View style={{ gap: 12 }}>
-        <Input>
-          <InputField
-            placeholder="Nombre"
-            value={value.first_name}
-            onChangeText={(t) => setAnswer('name', { ...value, first_name: t })}
-          />
-        </Input>
-        <Input>
-          <InputField
-            placeholder="Apellidos"
-            value={value.last_name}
-            onChangeText={(t) => setAnswer('name', { ...value, last_name: t })}
-          />
-        </Input>
+      <View>
+        <View style={styles.nameAvatar}>
+          <Text style={styles.nameAvatarText}>{initials}</Text>
+        </View>
+        <View style={styles.nameCard}>
+          <View style={styles.nameRow}>
+            <Text style={styles.nameLabel}>Nombre</Text>
+            <Input style={styles.nameInput}>
+              <InputField
+                placeholder="Nombre"
+                value={value.first_name}
+                onChangeText={(t) => setAnswer('name', { ...value, first_name: t })}
+              />
+            </Input>
+          </View>
+          <View style={[styles.nameRow, styles.nameRowLast]}>
+            <Text style={styles.nameLabel}>Apellidos</Text>
+            <Input style={styles.nameInput}>
+              <InputField
+                placeholder="Apellidos"
+                value={value.last_name}
+                onChangeText={(t) => setAnswer('name', { ...value, last_name: t })}
+              />
+            </Input>
+          </View>
+        </View>
       </View>
     );
   }
@@ -417,4 +434,25 @@ const styles = StyleSheet.create({
   unitPillActive: { backgroundColor: C.surface },
   unitPillText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.textSecondary },
   unitPillTextActive: { color: C.textPrimary },
+  nameAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: C.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  nameAvatarText: { fontFamily: FONT.extraBold, fontSize: 26, color: '#FFFFFF' },
+  nameCard: { backgroundColor: C.gray80, borderRadius: 16 },
+  nameRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  nameRowLast: { borderBottomWidth: 0 },
+  nameLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary, marginBottom: 4 },
+  nameInput: { borderWidth: 0, height: 26, backgroundColor: 'transparent' },
 });
