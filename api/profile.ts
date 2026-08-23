@@ -45,6 +45,10 @@ export interface UserData {
   is_subscribe: number;
   is_personal_client: boolean;
   access_tier: 'free' | 'subscriber' | 'personal';
+  // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Marcar onboarding
+  // completado server-side"). Opcional a propósito: hasta que el backend lo
+  // mande, AuthContext cae al flag local (AsyncStorage) que ya existía.
+  onboarding_completed?: boolean;
 }
 
 export interface UserResponse {

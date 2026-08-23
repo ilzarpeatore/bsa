@@ -216,7 +216,6 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Recommendations', route: 'MigratedRecommendations', category: 'Migrated - Onboarding', file: 'recommendations_screen.tsx' },
   { name: 'Health (onboard)', route: 'MigratedHealth', category: 'Migrated - Onboarding', file: 'health_screen.tsx' },
   { name: 'Articles', route: 'MigratedArticles', category: 'Migrated - Onboarding', file: 'articles_screen.tsx' },
-  { name: 'Onboarding Complete', route: 'MigratedOnboardingComplete', category: 'Migrated - Onboarding', file: 'onboarding_complete_screen.tsx' },
 
   // === MIGRATED - AÑADIDAS (estaban registradas en App.tsx pero faltaban aquí) ===
   { name: 'Estadísticas', route: 'MigratedStatistics', category: 'Migrated - Estadísticas', file: 'statistics_screen.tsx', gluestackMigrated: true },

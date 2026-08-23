@@ -4,11 +4,9 @@ import {
   Pressable,
   Animated,
   StyleSheet,
-  LayoutChangeEvent,
   Modal,
 } from "react-native";
-import { Image } from "expo-image";
-import { GlassView, isGlassEffectAPIAvailable } from "@components/ui/glass-view";
+import { GlassView } from "@components/ui/glass-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { NavigationTabOptionsInterface, IoniconName } from "./_types/NavigationTab.i";
@@ -18,10 +16,6 @@ import { Icon } from "@components/ui/icon";
 import { Text } from "@components/ui/text";
 import { C, FONT } from "../pages/migrated/theme";
 import { useTabBarScroll } from "@store/TabBarScrollContext";
-// Modulo-scope: Animated.createAnimatedComponent(Image) solo depende del
-// import estatico de Image, no de props/estado del componente -- crearlo
-// aqui evita reconstruirlo (y su wrapper interno) en cada render.
-const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 // Espacio que las pantallas RAÍZ de una pestaña (las únicas que muestran
 // esta barra flotante -- ver tabBarVisible en App.tsx) deben reservar al
@@ -74,13 +68,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
   const safearea = useSafeAreaInsets();
   /* top bar options */
   const focusedOptions = descriptors[state.routes[state.index].key].options as NavigationTabOptionsInterface;
-  /* show navigation btn ellipse */
-  const [navigation_ellipse_show, set_navigation_ellipse_show] = useState(
-    false
-  );
-  /* save navigation nav x location */
-  const [navlocations, set_navlocations] = useState([0, 0, 0, 0]);
-  const [navigationbtnactiveX] = useState(() => new Animated.Value(0));
 
   /* submenu "+" */
   const [menuOpen, setMenuOpen] = useState(false);
@@ -111,33 +98,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
     Animated.timing(menuAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => setMenuOpen(false));
   };
 
-  const set_nav_positions = (event: LayoutChangeEvent, index: number) => {
-    /* save navigation tab x positions */
-    let { x } = event.nativeEvent.layout;
-    let locations = navlocations;
-    locations[index] = x;
-    set_navlocations(locations);
-    /* if is the active page move navigation btn ellipse to it location and show it */
-    if (index == state.index) {
-      navigationbtnactiveX.setValue(x + ((styles.navigationbtn.width / 2) - 4.5));
-      set_navigation_ellipse_show(true);
-    }
-  };
-  const navigation_press = (index: number, onPress: Function) => {
-    /* if navigationbtnactiveX return 0 set it location to the active page index xlocation */
-    //@ts-ignore exits
-    if (navigationbtnactiveX.__getValue() == 0)
-      navigationbtnactiveX.setValue(navlocations[state.index] + ((styles.navigationbtn.width / 2) - 4.5));
-    /* animate navigation btn ellipse */
-    Animated.timing(navigationbtnactiveX, {
-      toValue: navlocations[index] + ((styles.navigationbtn.width / 2) - 4.5),
-      duration: 250,
-      useNativeDriver: false,
-    }).start(() => {
-      /* navigate to bottom tab screen */
-      onPress();
-    });
-  };
   /* hide if tabBarVisible is false */
   if (focusedOptions.tabBarVisible === false) {
     return null;
@@ -171,26 +131,31 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
             { opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) },
           ]}
         >
-          <View style={[styles.navigationBlur, !isGlassEffectAPIAvailable() && styles.navigationFallbackBg]}>
-            <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+          <View style={styles.navigationBlur}>
+            {/* Wrapper propio solo para recortar el glass (mismo patrón que
+                Fab/SimpleBottomSheet/Card variant="glass" -- ver
+                components/ui/fab/index.tsx): GlassView no lleva borderRadius
+                propio (usa StyleSheet.absoluteFill), así que sin este
+                recorte dedicado su material nativo puede asomar en forma de
+                rectángulo por detrás de las esquinas redondeadas del
+                borde/sombra del contenedor exterior. Separarlo del View que
+                lleva el borde es lo que evita el "reborde cuadrado"
+                reportado. */}
+            <View style={styles.navigationGlassClip}>
+              <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+              {/* Capa blanca semi-opaca -- sin esto, sobre fotos de fondo
+                  claras (amanecer) o de noche el material translúcido por sí
+                  solo no da contraste suficiente para leer iconos/texto
+                  (reportado con captura). Con esta capa, el texto/iconos
+                  oscuros siempre leen bien pase lo que pase detrás. */}
+              <View style={[StyleSheet.absoluteFill, styles.navigationTint]} />
+            </View>
             <View style={styles.navigationglow} />
-            <AnimatedImage
-              source={require("./../assets/icons/navigationellipse.png")}
-              contentFit="contain"
-              style={[
-                styles.navigationbtnactive,
-                {
-                  transform: [{ translateX: navigationbtnactiveX }],
-                  tintColor: "#1C1C1E",
-                },
-                navigation_ellipse_show ? { opacity: 1 } : { opacity: 0 },
-              ]}
-            />
             {/*navigation icons start*/}
-            {state.routes.map((route, index) => {
+            {state.routes.map((route) => {
               const { options } = descriptors[route.key];
               const typedOptions = options as NavigationTabOptionsInterface;
-              const isFocused = state.index === index;
+              const isFocused = state.routes[state.index].key === route.key;
 
               const onPress = () => {
                 const event = navigation.emit({
@@ -218,10 +183,7 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                   accessibilityState={isFocused ? { selected: true } : {}}
                   accessibilityLabel={typedOptions.tabBarAccessibilityLabel}
                   testID={(typedOptions as any).tabBarTestID}
-                  onLayout={(event) => set_nav_positions(event, index)}
-                  onPress={() => {
-                    navigation_press(index, onPress);
-                  }}
+                  onPress={onPress}
                   onLongPress={onLongPress}
                   style={({ pressed }) => [styles.navigationbtn, pressed && { opacity: 0.2 }]}
                 >
@@ -246,13 +208,19 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
         </Animated.View>
 
         {/* Fila plegada -- solo el icono de la pestaña activa + el "+"
-            (pedido explícito, captura de referencia). */}
+            (pedido explícito, captura de referencia), el primero anclado al
+            borde izquierdo y el segundo al derecho (antes ambos quedaban
+            juntos a la izquierda, con toda la fila vacía a la derecha --
+            reportado con captura). */}
         <Animated.View
           pointerEvents={collapsed ? "auto" : "none"}
-          style={[styles.navigationOuterRow, { opacity: collapseAnim }]}
+          style={[styles.navigationOuterRow, styles.navigationOuterRowCollapsed, { opacity: collapseAnim }]}
         >
-          <View style={[styles.collapsedCircle, !isGlassEffectAPIAvailable() && styles.navigationFallbackBg]}>
-            <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+          <View style={styles.collapsedCircle}>
+            <View style={styles.navigationGlassClip}>
+              <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, styles.navigationTint]} />
+            </View>
             <Icon name={focusedOptions.icon} size={22} color="#1C1C1E" />
           </View>
           {renderPlusButton()}
@@ -278,7 +246,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
             <Animated.View
               style={[
                 styles.quickMenu,
-                !isGlassEffectAPIAvailable() && styles.quickMenuFallbackBg,
                 {
                   opacity: menuAnim,
                   transform: [
@@ -345,18 +312,31 @@ function useStyle() {
       alignItems: "center",
       gap: '12@ratio',
     },
+    // Fila plegada: el círculo activo pegado al borde izquierdo y el "+" al
+    // derecho (reportado con captura: antes ambos quedaban juntos a la
+    // izquierda, con toda la fila vacía a la derecha).
+    navigationOuterRowCollapsed: {
+      justifyContent: "space-between",
+    },
     // Círculo plegado -- mismo tamaño que plusBtn para que la fila plegada
     // quede visualmente equilibrada (dos círculos iguales, como en la
-    // referencia).
+    // referencia). Sin borderWidth aquí (ver navigationGlassClip): un View
+    // con borde + overflow:hidden + un GlassView nativo dentro puede dejar
+    // asomar el borde en línea recta por detrás de la esquina redondeada
+    // (reportado con captura: "reborde" en los laterales/arriba/abajo) --
+    // mismo criterio que components/ui/fab/index.tsx, que tampoco usa borde
+    // sobre su glass, solo sombra para dar definición.
     collapsedCircle: {
       width: '64@ratio',
       height: '64@ratio',
       borderRadius: '32@ratio',
-      overflow: "hidden",
       alignItems: "center",
       justifyContent: "center",
-      borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.4)",
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
     },
     navigationBlur: {
       flex: 1,
@@ -365,15 +345,32 @@ function useStyle() {
       alignItems: "center",
       height: '64@ratio',
       borderRadius: '32@ratio',
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.4)",
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
     },
-    // Fondo sólido de reserva -- solo se aplica cuando NO hay Liquid Glass
-    // real (Android, iOS<26); con glass real el material translúcido ya lo
-    // pinta el propio GlassView (mismo criterio que Fab/Modal/Popover).
-    navigationFallbackBg: {
-      backgroundColor: "rgba(255,255,255,0.92)",
+    // Wrapper dedicado SOLO a recortar el glass (nunca lleva borde) -- mismo
+    // patrón que components/ui/fab/index.tsx. Es lo que de verdad evita el
+    // reborde cuadrado, separado del contenedor que si lleva forma/borde.
+    navigationGlassClip: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: '32@ratio',
+      overflow: "hidden",
+    },
+    // Capa blanca semi-opaca sobre el glass -- sin ella, sobre fotos claras
+    // (amanecer) o de noche el material translúcido no da contraste
+    // suficiente para leer iconos/texto oscuros (reportado con captura).
+    // Funciona igual con o sin Liquid Glass real (Android/iOS<26 ya caen a
+    // una <View> plana por su cuenta), así que sustituye al fallback sólido
+    // condicional que había antes.
+    navigationTint: {
+      backgroundColor: "rgba(255,255,255,0.85)",
     },
     modalBackdrop: {
       backgroundColor: "rgba(0,0,0,0.2)",
@@ -401,13 +398,6 @@ function useStyle() {
     navigationLabelActive: {
       color: "#1C1C1E",
     },
-    navigationbtnactive: {
-      position: "absolute",
-      top: '8@ratio',
-      left: 0,
-      width: '9@ratio',
-      height: '5@ratio',
-    },
     plusBtn: {
       width: '64@ratio',
       height: '64@ratio',
@@ -431,18 +421,16 @@ function useStyle() {
       shadowOffset: { width: 0, height: 8 },
       elevation: 10,
     },
-    // Fondo sólido de reserva -- solo cuando NO hay Liquid Glass real
-    // (Android, iOS<26), mismo criterio que navigationFallbackBg más arriba.
-    quickMenuFallbackBg: {
-      backgroundColor: C.surface,
-    },
-    // Capa blanca semi-opaca sobre el propio GlassView -- el bug de
+    // Capa blanca casi opaca sobre el propio GlassView -- el bug de
     // legibilidad original (texto directo sobre el material translúcido, con
-    // la pantalla de debajo transparentándose encima) se evita garantizando
-    // este contraste mínimo pase lo que pase detrás, sin perder el efecto
-    // glass (que se sigue notando en el blur del borde/contorno).
+    // la pantalla de debajo transparentándose encima) seguía notándose sobre
+    // fotos de fondo reales (reportado de nuevo con captura: el popup se
+    // veía "mal" al desplegarse, el contenido de detrás se leía a través).
+    // Subido de 0.55 a 0.85 -- garantiza contraste real pase lo que pase
+    // detrás, funciona igual con o sin Liquid Glass real (sustituye también
+    // al fallback sólido condicional que había antes).
     quickMenuTint: {
-      backgroundColor: "rgba(255,255,255,0.55)",
+      backgroundColor: "rgba(255,255,255,0.85)",
     },
     quickMenuGrid: {
       flexDirection: "row",

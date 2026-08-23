@@ -18,12 +18,26 @@ export interface TutorialStep {
   title: string;
   text: string;
   completion: TutorialCompletion;
+  // Pasos que dependen de una métrica concreta (reps/descanso/rir/rpe...)
+  // configurada por el coach para ESE ejercicio -- varía de un entrenamiento
+  // a otro, así que su target puede no llegar a registrarse nunca (ver
+  // store/TutorialContext.tsx: si no aparece en unos segundos, se salta
+  // solo en vez de quedarse bloqueado esperando algo que no existe en este
+  // entrenamiento). Los pasos "siempre presentes" (abrir la tarjeta, pulsar
+  // iniciar entrenamiento, marcar la serie) NO llevan esto -- deben ocurrir
+  // de verdad.
+  skippable?: boolean;
 }
 
 export interface TutorialChallenge {
   id: string;
   label: string;
   steps: TutorialStep[];
+  // Reto que arranca automáticamente en cuanto este termina (pedido
+  // explícito: aprovechar que "accede a tu entrenamiento" ya deja al
+  // usuario dentro del flujo real para encadenar "registra tu primera
+  // serie" sin que tenga que volver a la lista y tocarlo a mano).
+  nextChallengeId?: string;
 }
 
 export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
@@ -38,11 +52,56 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
         completion: { type: 'navigate', screen: 'MigratedWorkoutPreview' },
       },
     ],
+    // Encadena directamente con "Registra tu primera serie" -- el usuario ya
+    // está dentro del flujo real (vista previa del entrenamiento), tiene
+    // sentido seguir guiándolo hasta registrar algo de verdad en vez de
+    // devolverlo a la lista de retos.
+    nextChallengeId: 'log-first-set',
   },
   {
     id: 'log-first-set',
     label: 'Registra tu primera serie',
     steps: [
+      {
+        targetId: 'workout-preview-start-button',
+        title: 'Empieza tu entrenamiento',
+        text: 'Toca aquí para iniciar la sesión de hoy.',
+        completion: { type: 'navigate', screen: 'MigratedWorkoutSession' },
+      },
+      // Estas 4 explican, una por una, las métricas más habituales de una
+      // serie -- pero cada ejercicio real solo muestra las que el coach le
+      // configuró (ver enabledMetrics en workout_session_screen.tsx), así
+      // que se marcan skippable: si el entrenamiento de hoy no usa alguna
+      // de estas métricas, ese paso se salta solo en vez de bloquear el
+      // tutorial esperando algo que no va a aparecer.
+      {
+        targetId: 'workout-session-metric-reps',
+        title: 'Repeticiones',
+        text: 'Aquí anotas cuántas repeticiones has hecho en esta serie.',
+        completion: { type: 'action', actionId: 'metric_focus_reps' },
+        skippable: true,
+      },
+      {
+        targetId: 'workout-session-metric-descanso',
+        title: 'Descanso',
+        text: 'El tiempo de descanso que toca antes de la siguiente serie. Al marcarla, arrancamos un contador automático.',
+        completion: { type: 'action', actionId: 'metric_focus_descanso' },
+        skippable: true,
+      },
+      {
+        targetId: 'workout-session-metric-rir',
+        title: 'RIR (repeticiones en reserva)',
+        text: 'Cuántas repeticiones más podrías haber hecho antes de fallar. RIR 2 significa que te quedaban 2 repeticiones en el tanque.',
+        completion: { type: 'action', actionId: 'metric_focus_rir' },
+        skippable: true,
+      },
+      {
+        targetId: 'workout-session-metric-rpe',
+        title: 'RPE (esfuerzo percibido)',
+        text: 'Del 1 al 10, cuánto esfuerzo sentiste en la serie. 10 es el máximo esfuerzo posible.',
+        completion: { type: 'action', actionId: 'metric_focus_rpe' },
+        skippable: true,
+      },
       {
         targetId: 'workout-session-first-set-toggle',
         title: 'Marca una serie como hecha',
@@ -91,6 +150,11 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
         completion: { type: 'navigate', screen: 'MigratedPlan' },
       },
     ],
+    // Encadena con "Marca una comida como realizada" -- mismo patrón que
+    // "access-workout" -> "log-first-set": el usuario ya está dentro de
+    // MigratedPlan, tiene sentido seguir guiándolo hasta marcar una comida de
+    // verdad en vez de devolverlo a la lista de retos.
+    nextChallengeId: 'mark-meal-done',
   },
   {
     id: 'mark-meal-done',
@@ -115,5 +179,12 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
         completion: { type: 'action', actionId: 'checkin_submitted' },
       },
     ],
+    // Pedido explícito: el check-in de preparación es un paso real que ocurre
+    // (una vez al día, automático) ANTES de cada entrenamiento -- así que su
+    // tutorial se encadena con el resto de retos de entrenamiento
+    // ("access-workout", que a su vez ya encadena con "log-first-set"),
+    // reproduciendo el mismo orden que sigue el usuario de verdad en vez de
+    // dejarlo como un reto suelto e independiente.
+    nextChallengeId: 'access-workout',
   },
 ];

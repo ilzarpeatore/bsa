@@ -33,7 +33,12 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     options: [
       { value: 'male', label: 'Hombre', icon: '♂️', emoji: true },
       { value: 'female', label: 'Mujer', icon: '♀️', emoji: true },
-      { value: 'other', label: 'Otro / Prefiero no decirlo', icon: '⚧️', emoji: true },
+      // Antes usaba el emoji ⚧️, que en iOS sale a todo color (icono azul
+      // relleno) muy distinto al trazo fino de los símbolos ♂️/♀️ de las otras
+      // dos opciones -- se sustituye por un icono Ionicons real (mismo path
+      // de render que el resto de la app, sin `emoji: true`) para que las 3
+      // opciones tengan el mismo estilo de icono de sistema, monocromo.
+      { value: 'other', label: 'Otro / Prefiero no decirlo', icon: 'male-female-outline' },
     ],
   },
   {
@@ -224,15 +229,20 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     ],
   },
   {
-    id: 'training_experience_months',
+    // El campo real del backend (training_experience_months, ver
+    // api/onboardingV2.ts) sigue en meses -- solo cambia lo que se le
+    // pregunta al usuario (pedido explícito: años en vez de meses, más
+    // natural de estimar). La conversión ×12 se hace al enviar la etapa,
+    // ver submitStage() en onboarding_v2_screen.tsx.
+    id: 'training_experience_years',
     stage: 'training_questionnaire',
     type: 'number_wheel',
-    title: '¿Cuántos meses llevas entrenando?',
+    title: '¿Cuántos años llevas entrenando?',
     subtitle: 'Si nunca has entrenado, deja el valor en 0',
     min: 0,
-    max: 360,
+    max: 30,
     defaultValue: 0,
-    suffix: 'meses',
+    suffix: 'años',
   },
   {
     id: 'training_days_per_week',

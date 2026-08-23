@@ -24,6 +24,13 @@ interface MenuItem {
   route: string;
   params?: Record<string, any>;
   visible?: boolean;
+  iconColor: string;
+  iconBg: string;
+}
+
+interface MenuSection {
+  label: string;
+  items: MenuItem[];
 }
 
 // Fusionado desde MigratedSetting (2026-08-06): esa pantalla intermedia solo
@@ -31,25 +38,46 @@ interface MenuItem {
 // placeholder sin persistencia real (Metrics Settings, Goal Calories & Macros,
 // App Themes) — se eliminaron en vez de arrastrarlos aquí. Un solo menú en
 // vez de Profile → engranaje → Settings → item.
-// Rediseño 2026-08-23 (pedido explícito, capturas de referencia): filas
-// dentro de una sola tarjeta con separadores, título + subtítulo, icono
-// plano (sin círculo de color) — "Sign Out" se deja fuera de la lista,
-// como acción destructiva propia al final (como ya era antes).
-function buildMenuItems(isSocial: boolean): MenuItem[] {
+// Rediseño 2026-08-23 (pedido explícito, capturas de referencia de la propia
+// Bevel real): en vez de una única tarjeta plana con todos los items, se
+// agrupan por sección (tarjeta blanca + etiqueta gris encima, como el
+// "Ajustes" real de Bevel) y cada fila lleva su icono en un cuadrado de
+// color, no un icono plano suelto.
+function buildMenuSections(isSocial: boolean): MenuSection[] {
   return [
-    { icon: 'person-outline', title: 'Editar perfil', subtitle: 'Nombre, foto, peso, altura y más', route: 'MigratedEditProfile' },
-    { icon: 'barbell-outline', title: 'Mi programa', subtitle: 'Tu plan de entrenamiento actual', route: 'MigratedMyProgramCalendar' },
-    { icon: 'time-outline', title: 'Historial de entrenamientos', subtitle: 'Tus sesiones completadas', route: 'MigratedWorkoutHistory' },
-    { icon: 'trending-up-outline', title: 'Progreso', subtitle: 'Tu evolución a lo largo del tiempo', route: 'MigratedProgress' },
-    { icon: 'heart-outline', title: 'Favoritos', subtitle: 'Recetas y workouts guardados', route: 'MigratedFavourite' },
-    // Todavía no hay integración real con wearables (backend pendiente) —
-    // entrada visible ya, pantalla honesta "Próximamente" en vez de fingir
-    // datos, mismo criterio que se aplicó a "Sueño" en el Informe.
-    { icon: 'watch-outline', title: 'Dispositivos', subtitle: 'Conecta tu reloj o app de salud', route: 'MigratedComingSoon', params: { title: 'Dispositivos' } },
-    { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification' },
-    { icon: 'language-outline', title: 'Idioma', route: 'MigratedLanguage' },
-    { icon: 'key-outline', title: 'Cambiar contraseña', route: 'MigratedChangePwd', visible: !isSocial },
-    { icon: 'information-circle-outline', title: 'Acerca de', route: 'MigratedAboutApp' },
+    {
+      label: 'Cuenta',
+      items: [
+        { icon: 'person-outline', title: 'Editar perfil', subtitle: 'Nombre, foto, peso, altura y más', route: 'MigratedEditProfile', iconColor: C.textPrimary, iconBg: C.brand10 },
+        { icon: 'key-outline', title: 'Cambiar contraseña', route: 'MigratedChangePwd', visible: !isSocial, iconColor: C.warning60, iconBg: C.warning10 },
+      ],
+    },
+    {
+      label: 'Actividad',
+      items: [
+        { icon: 'barbell-outline', title: 'Mi programa', subtitle: 'Tu plan de entrenamiento actual', route: 'MigratedMyProgramCalendar', iconColor: C.success60, iconBg: C.success10 },
+        { icon: 'time-outline', title: 'Historial de entrenamientos', subtitle: 'Tus sesiones completadas', route: 'MigratedWorkoutHistory', iconColor: C.blue, iconBg: C.blue10 },
+        { icon: 'trending-up-outline', title: 'Progreso', subtitle: 'Tu evolución a lo largo del tiempo', route: 'MigratedProgress', iconColor: C.orange, iconBg: 'rgba(255,107,53,0.15)' },
+        { icon: 'heart-outline', title: 'Favoritos', subtitle: 'Recetas y workouts guardados', route: 'MigratedFavourite', iconColor: C.destructive, iconBg: C.destructive10 },
+      ],
+    },
+    {
+      label: 'Preferencias',
+      items: [
+        // Todavía no hay integración real con wearables (backend pendiente)
+        // -- entrada visible ya, pantalla honesta "Próximamente" en vez de
+        // fingir datos, mismo criterio que se aplicó a "Sueño" en el Informe.
+        { icon: 'watch-outline', title: 'Dispositivos', subtitle: 'Conecta tu reloj o app de salud', route: 'MigratedComingSoon', params: { title: 'Dispositivos' }, iconColor: C.blue, iconBg: C.blue10 },
+        { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
+        { icon: 'language-outline', title: 'Idioma', route: 'MigratedLanguage', iconColor: C.success60, iconBg: C.success10 },
+      ],
+    },
+    {
+      label: 'Información',
+      items: [
+        { icon: 'information-circle-outline', title: 'Acerca de', route: 'MigratedAboutApp', iconColor: C.textPrimary, iconBg: C.brand10 },
+      ],
+    },
   ];
 }
 
@@ -67,7 +95,9 @@ export default function ProfileScreen(props: any) {
   const userEmail = user?.email || '';
   const profileImage = user?.profile_image || '';
   const isSocial = user?.login_type != null;
-  const menuItems = buildMenuItems(isSocial).filter((item) => item.visible !== false);
+  const menuSections = buildMenuSections(isSocial)
+    .map((section) => ({ ...section, items: section.items.filter((item) => item.visible !== false) }))
+    .filter((section) => section.items.length > 0);
 
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
@@ -107,7 +137,7 @@ export default function ProfileScreen(props: any) {
         <Box className="px-5" style={{ paddingTop: 16 }}>
           <Heading size="md" style={{ marginBottom: 16 }}>Perfil</Heading>
 
-          <Box className="rounded-lg items-center px-5" style={{ backgroundColor: C.gray80, paddingVertical: 24 }}>
+          <Box className="rounded-lg items-center px-5" style={{ backgroundColor: C.surface, paddingVertical: 24 }}>
             <Box className="relative" style={{ marginBottom: 12 }}>
               <Box
                 className="rounded-pill items-center justify-center overflow-hidden"
@@ -121,7 +151,7 @@ export default function ProfileScreen(props: any) {
               </Box>
               <Pressable
                 className="absolute rounded-pill items-center justify-center"
-                style={{ bottom: 0, right: 0, width: 28, height: 28, backgroundColor: C.orange, borderWidth: 2, borderColor: C.gray80 }}
+                style={{ bottom: 0, right: 0, width: 28, height: 28, backgroundColor: C.orange, borderWidth: 2, borderColor: C.surface }}
                 onPress={() => props.navigation?.navigate('MigratedEditProfile')}
               >
                 <Icon name="pencil" size={12} color="#FFFFFF" />
@@ -158,7 +188,7 @@ export default function ProfileScreen(props: any) {
           <HStack style={{ marginTop: 16, gap: 12 }}>
             <Pressable
               className="flex-1 rounded-lg"
-              style={{ backgroundColor: C.gray80, padding: 16 }}
+              style={{ backgroundColor: C.surface, padding: 16 }}
               onPress={() => props.navigation?.navigate('MigratedCommunity')}
             >
               <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
@@ -167,7 +197,7 @@ export default function ProfileScreen(props: any) {
             </Pressable>
             <Pressable
               className="flex-1 rounded-lg"
-              style={{ backgroundColor: C.gray80, padding: 16 }}
+              style={{ backgroundColor: C.surface, padding: 16 }}
               onPress={() => props.navigation?.navigate('MigratedChatting', { isDirect: true })}
             >
               <AppIcon name="chatbubble-ellipses-outline" size={18} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
@@ -176,27 +206,31 @@ export default function ProfileScreen(props: any) {
             </Pressable>
           </HStack>
 
-          <Text weight="bold" size="sm" style={{ marginTop: 24, marginBottom: 10 }}>Cuenta y ajustes</Text>
-          <Box className="rounded-lg overflow-hidden" style={{ backgroundColor: C.gray80 }}>
-            {menuItems.map((item, index) => (
-              <Pressable
-                key={item.route + item.title}
-                className="flex-row items-center px-4"
-                style={[
-                  { paddingVertical: 14 },
-                  index < menuItems.length - 1 ? { borderBottomWidth: 1, borderBottomColor: C.border } : null,
-                ]}
-                onPress={() => handleMenuItemPress(item)}
-              >
-                <Icon name={item.icon} size={20} color={C.textPrimary} />
-                <Box className="flex-1" style={{ marginLeft: 14 }}>
-                  <Text weight="medium" size="sm">{item.title}</Text>
-                  {!!item.subtitle && <Text size="xs" muted style={{ marginTop: 2 }}>{item.subtitle}</Text>}
-                </Box>
-                <Icon name="chevron-forward" size={18} color={C.gray50} />
-              </Pressable>
-            ))}
-          </Box>
+          {menuSections.map((section) => (
+            <Box key={section.label} style={{ marginTop: 24 }}>
+              <Text weight="bold" size="sm" style={{ marginBottom: 10, marginLeft: 4 }}>{section.label}</Text>
+              <Box className="rounded-lg overflow-hidden" style={{ backgroundColor: C.surface }}>
+                {section.items.map((item, index) => (
+                  <Pressable
+                    key={item.route + item.title}
+                    className="flex-row items-center px-4"
+                    style={[
+                      { paddingVertical: 12 },
+                      index < section.items.length - 1 ? { borderBottomWidth: 1, borderBottomColor: C.border } : null,
+                    ]}
+                    onPress={() => handleMenuItemPress(item)}
+                  >
+                    <AppIcon name={item.icon} size={18} color={item.iconColor} bg={item.iconBg} containerSize={36} borderRadius={12} style={{ marginRight: 14 }} />
+                    <Box className="flex-1">
+                      <Text weight="medium" size="sm">{item.title}</Text>
+                      {!!item.subtitle && <Text size="xs" muted style={{ marginTop: 2 }}>{item.subtitle}</Text>}
+                    </Box>
+                    <Icon name="chevron-forward" size={18} color={C.gray50} />
+                  </Pressable>
+                ))}
+              </Box>
+            </Box>
+          ))}
 
           <Pressable
             className="flex-row items-center justify-center rounded-lg"

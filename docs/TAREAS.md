@@ -4,6 +4,83 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ El onboarding ya no debería "reiniciarse" para usuarios ya registrados + confirmación de los 3 formularios (PAR-Q/entrenamiento/nutrición) (2026-08-23)
+
+Pedido explícito: "el tutorial no debería reiniciarse para personas que ya se han registrado, se deben registrar en la DB las respuestas y verlas desde el admin panel. Se deben crear tres formularios: PAR-Q, Cuestionario de entrenamiento y Cuestionario de nutrición."
+
+**Los 3 formularios ya existen** -- se diseñaron completos en la sesión anterior (2026-08-22, ver "Onboarding v2 — 4 etapas" más abajo): las 36 preguntas están declaradas en `constants/onboardingV2Questions.ts`, la capa de API con los payloads exactos en `api/onboardingV2.ts`, y el contrato completo (request/response + esquema SQL de las 3 tablas) en `docs/ONBOARDING_V2.md`. Lo único que falta es que el backend implemente los 3 endpoints (`POST v1/onboarding/par-q`, `.../training-questionnaire`, `.../nutrition-questionnaire`) + las 3 tablas -- no hace falta volver a diseñarlos, ya está todo especificado y listo para implementar.
+
+**Bug real encontrado (la causa del "se reinicia")**: `AuthContext.completeOnboarding()` solo guardaba `ONBOARDING_COMPLETED` en `AsyncStorage` del dispositivo -- sin ningún respaldo server-side. Un usuario que ya completó el onboarding lo veía entero de nuevo al reinstalar la app o entrar desde otro dispositivo, porque esa clave local simplemente no existe ahí. Corregido en el frontend (best-effort, mismo patrón que el resto del onboarding v2): nuevo `onboardingV2Api.completeOnboarding()` (`POST v1/onboarding/complete`, pendiente de backend), y `resolveOnboardingCompleted()` en `AuthContext.tsx` que prioriza `user.onboarding_completed` (nuevo campo opcional en `UserData`) sobre el flag local en cuanto el backend lo mande -- hasta entonces sigue funcionando exactamente igual que antes (cero regresión).
+
+**Pendiente real de backend** (ver "Marcar onboarding completado server-side" en `docs/ONBOARDING_V2.md` para el detalle completo):
+
+- Los 3 endpoints de los formularios + sus 3 tablas (ya contratados).
+- `POST v1/onboarding/complete` + columna `users.onboarding_completed_at` + devolver `onboarding_completed` en `UserData`.
+- Admin panel: pantalla para ver, por cliente, el estado de onboarding y las respuestas de los 3 formularios -- hoy no existe ningún sitio en el admin para verlas.
+
+---
+
+## ✅ El botón flotante de Screen Explorer ya no se solapa con el contenido (2026-08-23)
+
+Reportado con captura en `MigratedProgress` (Informe): el círculo gris del botón de Screen Explorer (`components/ScreenExplorerFab.tsx`, herramienta temporal de desarrollo, ver ese archivo) se veía incrustado en la esquina de la tarjeta "Entrenamiento" en vez de flotar limpiamente por encima.
+
+Causa real: el FAB vive fuera del tab navigator (montado como hermano en `App.tsx`, igual que `WorkoutMinimizedBar`) para ser alcanzable desde cualquier pantalla, con un `bottom` fijo pensado para las 4 pantallas raíz de pestaña (Home/Plan diario/Nutrición/Hábitos, las únicas con la barra flotante real debajo, que sí reservan `TAB_BAR_CLEARANCE` al final del scroll). Pero en cualquier otra pantalla apilada (la inmensa mayoría, incluida Informe/Progreso) no hay barra ni ese hueco reservado -- el contenido real llega mucho más abajo, y ese mismo valor fijo caía encima de la última tarjeta.
+
+Corregido seguiendo la ruta activa (mismo patrón que el listener de navegación de `TutorialContext.tsx`): si la ruta actual es una de las 4 raíces de pestaña, el FAB se posiciona por encima de la barra; en cualquier otra, se posiciona cerca del borde inferior real (dentro del hueco que cada pantalla ya reserva con su propio `SafeAreaView edges=['bottom']`). También se le añadió sombra propia (antes era un círculo plano sin elevación, lo que reforzaba la sensación de estar "pegado" a la tarjeta de debajo en vez de flotar de verdad por encima).
+
+---
+
+## ✅ Tutorial guiado encadenado + explicación por métrica en "Registra tu primera serie" — falta un workout demo para usuarios nuevos (2026-08-23)
+
+Pedido explícito, sobre el mismo tutorial ya arreglado antes en esta sesión (ver más abajo "Arregla el tutorial guiado"): el reto "Registra tu primera serie" no respondía al tocarlo desde la lista. Causa real: `startChallenge('log-first-set')` activaba el reto sin comprobar que su target (`workout-session-first-set-toggle`) existiera en algún sitio alcanzable -- si el usuario no estaba ya dentro de una sesión de entrenamiento en curso, `TutorialOverlay` no mostraba nada y no había ninguna navegación que lo llevara hasta ahí. Corregido con 3 piezas, todas en frontend:
+
+1. **Encadenado entre retos** (`TutorialChallenge.nextChallengeId`, nuevo campo): al completar "Accede a tu entrenamiento de hoy" (llega a `MigratedWorkoutPreview`), arranca automáticamente "Registra tu primera serie" en vez de devolver al usuario a la lista de retos.
+2. **Nuevo primer paso** en "Registra tu primera serie": apunta al botón "INICIAR ENTRENAMIENTO" de `workout_preview_screen.tsx` (nuevo `<TutorialTarget id="workout-preview-start-button">`), con `completion: navigate MigratedWorkoutSession` -- así el reto lleva de verdad hasta dentro de la sesión antes de pedir nada más.
+3. **Explicación campo a campo**: 4 pasos nuevos, uno por métrica (reps/descanso/rir/rpe), cada uno con su propio texto explicativo, apuntando a la celda correspondiente de la primera fila del primer ejercicio (`workout-session-metric-<key>`, nuevos `<TutorialTarget>` en `workout_session_screen.tsx`, con `onFocus` disparando `reportAction('metric_focus_<key>')`). Termina con el paso ya existente (marcar la serie con el círculo ✓).
+
+**Bug real evitado con `skippable` (nuevo campo en `TutorialStep`)**: qué métricas están habilitadas por ejercicio (`enabledMetrics`) lo decide el coach al configurar el `WorkoutTemplateExercise` en el backend -- varía de un entrenamiento a otro, así que un ejercicio real puede no tener, por ejemplo, RPE configurado. Sin nada más, ese paso se habría quedado esperando para siempre un elemento que nunca se registra. Los 4 pasos de métricas llevan `skippable: true`: si el target no aparece en 2.5s (ya con la pantalla correcta abierta, porque el paso anterior ya navegó ahí de verdad), `TutorialContext` avanza solo al siguiente paso. Los pasos "siempre presentes" (tocar la tarjeta, pulsar iniciar entrenamiento, marcar la serie) no lo llevan -- esos si tienen que ocurrir de verdad.
+
+**Pendiente real de backend, fuera de alcance en esta sesión (sin repo del backend ni acceso SSH/VPS adjuntos aquí)**: el usuario pidió que un usuario **nuevo, sin ningún entrenamiento asignado todavía**, tenga automáticamente un **workout de demostración** asignado al registrarse, precisamente para que este tutorial (y el resto de la app) tengan algo real que mostrar desde el primer día. Sin esto, un usuario nuevo simplemente no ve la tarjeta "Tu entrenamiento de hoy" en absoluto (nada que tocar, el primer paso del reto "Accede a tu entrenamiento de hoy" nunca encuentra su target) -- comportamiento correcto dado el estado actual, pero deja el tutorial inutilizable para cualquiera que no tenga ya un coach real asignándole entrenamientos. Contrato sugerido para quien lo retome:
+
+- Un `WorkoutTemplate` real "demo" (con sus `WorkoutTemplateExercise`, ejercicios de ejemplo) sembrado una vez en la base de datos.
+- Al completarse el registro (`RegisterController` o el evento que corresponda), si el usuario no tiene ningún `ProgramDayAssignment`/entrenamiento real todavía, crear una asignación de ese workout demo para "hoy" -- mismo mecanismo que ya usa el calendario real (`ProgramDayAssignment`), no una tabla ni un tipo de dato nuevo.
+- Aunque `skippable` hace que el tutorial no se rompa si faltan métricas, lo ideal es que ese workout demo configure exactamente `reps`/`descanso`/`rir`/`rpe` en su primer ejercicio, para que se expliquen las 4 en vez de saltarse alguna.
+
+---
+
+## ✅ Encadenado del check-in y de "marca una comida" en el tutorial guiado (2026-08-23)
+
+Pedido explícito: unir "Marca una comida como realizada" a "Accede a tu plan de nutrición" (mismo patrón ya usado en entrenamiento), y unir "Rellena tu check-in de preparación" al resto de retos de entrenamiento para que ocurra ANTES de entrar al entrenamiento (el check-in de preparación es un paso real, automático, una vez al día, previo a cada sesión). Ambos resueltos con el mismo mecanismo ya existente (`TutorialChallenge.nextChallengeId`, ver arriba "Tutorial guiado encadenado..."), sin código nuevo:
+
+- `access-nutrition-plan.nextChallengeId = 'mark-meal-done'`.
+- `complete-checkin.nextChallengeId = 'access-workout'` (que a su vez ya encadena con `log-first-set`) -- reproduce el orden real: check-in → entrenamiento → primera serie.
+
+**Sobre "casi ningún botón del tutorial responde al tocarlo, salvo entrenamiento y nutrición (y tampoco esos)"**: revisado targetId por targetId (`habit-toggle-first` en `habits_list_screen.tsx`, `plan-meal-toggle-first` en `plan_screen.tsx`, `home-checkin-card`/`home-today-workout-card` en `home_screen_modern_v2.tsx`) -- todos llaman a `reportAction(...)` en el sitio correcto y `TutorialOverlay` ya no usa `<Modal>` (ver el arreglo de esta misma sesión, más abajo "Arregla el tutorial guiado"). No hay ningún bug nuevo encontrado en el código actual. Lo que describe el usuario ("en el anterior build ninguno funciona") coincide exactamente con el comportamiento ANTES de ese arreglo del `<Modal>` -- que ya está en este branch pero no se ha vuelto a compilar un IPA desde entonces. Falta un build nuevo para confirmarlo en dispositivo.
+
+---
+
+## ✅ Eliminada la pantalla "¡Todo listo!" tras el onboarding (2026-08-23)
+
+Pedido explícito: `onboarding_complete_screen.tsx` (`MigratedOnboardingComplete`, la pantalla con trofeo/confeti y checklist "Perfil completado/Plan seleccionado/Objetivos definidos" que salía justo después de `MigratedAssessmentResult`) era un paso intermedio innecesario. Borrada:
+
+- `pages/migrated/onboarding/onboarding_complete_screen.tsx` — archivo eliminado.
+- `App.tsx` — quitado el `React.lazy` y sus 2 registros (`MStack.Screen` dentro de `MigratedNavigator` + `Stack.Screen` en la rama real de onboarding de `RootNavigator`, `!state.onboardingCompleted`).
+- `pages/ScreenExplorer.tsx` — quitada su entrada.
+- Su única lógica real (`completeOnboarding()` del `AuthContext` + `navigation.replace('Home')`) se movió directamente al botón final de `assessment_result_screen.tsx` ("Confirmar mi plan", y también al "Continuar" de su estado vacío) — un único `finishOnboarding()` compartido por ambos.
+- `articles_screen.tsx` (cadena vieja del carrusel de onboarding ya retirado, confirmada inalcanzable en `docs/DEAD_SCREENS.md`) todavía tiene un `navigate("MigratedOnboardingComplete")` colgante — inofensivo, nunca se alcanza. No se tocó (fuera de alcance, ya documentado como pantalla muerta).
+
+---
+
+## ✅ Bug real: kcalTarget de AssessmentResult ignoraba goal_type (2026-08-23)
+
+`assessment_result_screen.tsx` guardaba y mostraba el objetivo real (`goal_type`: perder grasa/ganar músculo/recomposición/mantener), pero `kcalTarget` solo calculaba mantenimiento puro (`BMR × multiplicador de actividad`) sin aplicar ningún ajuste según ese objetivo — un cliente que marcaba "Ganar masa muscular" veía exactamente las mismas kcal que uno que marcaba "Mantener mi forma física". Encontrado al confirmar con el usuario si de verdad se sumaban/restaban kcal según el objetivo.
+
+Corregido con `GOAL_KCAL_ADJUSTMENT` (déficit -20% para `lose_fat`, superávit +10% para `gain_muscle`, 0% para `recomposition`/`maintain`) aplicado sobre el TDEE antes de redondear. Ajuste conservador a propósito — la propia tarjeta ya deja claro que "tu coach ajustará estos números según tu objetivo y tu evolución real", así que solo tiene que ser una orientación razonable, no la cifra final.
+
+De paso, dos bugs de recorte de texto (mismo patrón ya documentado: Gilroy Bold/ExtraBold sin `lineHeight` explícito se recorta en iOS) en `kcalValue`/`hydrationValue`/`iconRowEmoji`, y un bug de tamaño real: el `<Text>` anidado de "plan personalizado" dentro del titular (`heroTitleAccent`) solo sobreescribía `color` — el resto de su propio `className` por defecto (`@components/ui/text`, `size="md"` → ~16px, peso regular) ganaba sobre la herencia de estilo de texto de RN, así que salía en un tamaño mucho más pequeño que el resto del titular pese a heredar (aparentemente) el mismo estilo. Corregido repitiendo `fontSize`/`fontFamily`/`lineHeight` explícitos iguales al padre.
+
+---
+
 ## ✅ Foto de perfil real en EditProfile — subida por verificar en backend (2026-08-23)
 
 `edit_profile_screen.tsx`: "Cambiar foto"/el botón de cámara no hacían nada — `pickImage()` era un stub sin implementar (`ImagePicker` comentado, nunca importado). Arreglado con el mismo patrón que ya usa `add_post_screen.tsx` (único sitio de la app con `expo-image-picker` real): `Alert.alert` con "Elegir de la galería"/"Hacer una foto", permisos (`requestMediaLibraryPermissionsAsync`/`requestCameraPermissionsAsync`) y `allowsEditing`+`aspect:[1,1]` para recortar cuadrado antes de subir.

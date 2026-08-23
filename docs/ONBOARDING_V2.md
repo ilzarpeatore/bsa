@@ -19,8 +19,8 @@ posterior.
 solo:
 
 - `MigratedOnboardingV2` (nuevo, `pages/migrated/onboarding_v2/onboarding_v2_screen.tsx`) — las 4 etapas.
-- `MigratedAssessmentResult` (reutilizada tal cual — ya muestra IMC/BMR reales calculados en el backend a partir de `user_profile.height/weight/age` una vez la etapa 1 se guarda).
-- `MigratedOnboardingComplete` (reutilizada tal cual — ya llama a `completeOnboarding()` y navega a Home).
+- `MigratedAssessmentResult` (reutilizada tal cual — ya muestra IMC/BMR reales calculados en el backend a partir de `user_profile.height/weight/age` una vez la etapa 1 se guarda). Su botón final ("Confirmar mi plan") llama directamente a `completeOnboarding()` + `navigation.replace('Home')`.
+- ~~`MigratedOnboardingComplete`~~ — **eliminada 2026-08-23** (pedido explícito: paso intermedio "¡Todo listo!" innecesario). Su única lógica real (`completeOnboarding()` + navegar a Home) se movió al botón final de `MigratedAssessmentResult`; el archivo `onboarding_complete_screen.tsx` se borró junto con su registro en `App.tsx` (`MStack.Screen`/`Stack.Screen`) y su entrada en `ScreenExplorer.tsx`. `articles_screen.tsx` (cadena vieja del carrusel ya retirado, inalcanzable) sigue teniendo un `navigate("MigratedOnboardingComplete")` colgante — inofensivo porque ese archivo nunca se alcanza, mismo criterio que el resto de referencias muertas documentadas en `docs/DEAD_SCREENS.md`.
 
 Las pantallas quitadas de esta rama (`AvatarSetup`, `PrivacyPolicyOnboard`,
 `NotificationsOnboard`, `Recommendations`, `Health`, `Articles`, el carrusel
@@ -149,20 +149,20 @@ esta tarea), pero es el uso típico de un PAR-Q real.
 
 ### Etapa 3 — Cuestionario de entrenamiento (`training_questionnaire`)
 
-| id                            | tipo            | pregunta / opciones                                                                                                                                                                                                                                                      |
-| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `goal_type`                   | selección única | Objetivo principal: `lose_fat` (perder grasa) / `gain_muscle` (ganar músculo) / `recomposition` (recomposición) / `maintain` (mantener). Añadida 2026-08-23 — la pantalla de resultado del onboarding la necesita para no inventar un objetivo con una fórmula genérica. |
-| `activity_level`              | selección única | Nivel de actividad: `sedentary` / `light` / `moderate` / `active` / `very_active`                                                                                                                                                                                        |
-| `lifestyle_type`              | selección única | Estilo de vida (solo movimiento diario, no entrenamientos): `mostly_sitting` / `sometimes_standing` / `mostly_standing` / `always_moving` / `heavy_labor`                                                                                                                |
-| `training_experience_months`  | rueda numérica  | Meses entrenando (0-360)                                                                                                                                                                                                                                                 |
-| `training_days_per_week`      | rueda numérica  | Días/semana disponibles (1-7)                                                                                                                                                                                                                                            |
-| `session_duration_preference` | selección única | Duración de sesión: `30` / `45` / `60` / `90` / `90_plus` (minutos)                                                                                                                                                                                                      |
-| `training_mindset`            | selección única | Cómo sueles entrenar: `rushed` (con prisa) / `calm` (con calma) / `motivated` (con motivación) / `unmotivated` (sin ganas)                                                                                                                                               |
-| `previous_coaching`           | selección única | `online_coach` / `in_person_coach` / `self_trained`                                                                                                                                                                                                                      |
-| `current_routine_style`       | selección única | `improvised` / `copied` / `structured` / `always_same` / `very_varied`                                                                                                                                                                                                   |
-| `weekly_split_preference`     | selección única | `upper_lower` (torso-pierna) / `push_pull` / `full_body` / `no_preference`                                                                                                                                                                                               |
-| `technique_level`             | escala 1-10     | Nivel de técnica percibido                                                                                                                                                                                                                                               |
-| `realistic_goal`              | texto libre     | Objetivo realista                                                                                                                                                                                                                                                        |
+| id                            | tipo            | pregunta / opciones                                                                                                                                                                                                                                                                                    |
+| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `goal_type`                   | selección única | Objetivo principal: `lose_fat` (perder grasa) / `gain_muscle` (ganar músculo) / `recomposition` (recomposición) / `maintain` (mantener). Añadida 2026-08-23 — la pantalla de resultado del onboarding la necesita para no inventar un objetivo con una fórmula genérica.                               |
+| `activity_level`              | selección única | Nivel de actividad: `sedentary` / `light` / `moderate` / `active` / `very_active`                                                                                                                                                                                                                      |
+| `lifestyle_type`              | selección única | Estilo de vida (solo movimiento diario, no entrenamientos): `mostly_sitting` / `sometimes_standing` / `mostly_standing` / `always_moving` / `heavy_labor`                                                                                                                                              |
+| `training_experience_years`   | rueda numérica  | Años entrenando (0-30) — pedido explícito 2026-08-23, antes preguntaba meses (0-360). El id de la pregunta y del payload al backend (`training_experience_months`, ver tabla más abajo) siguen en meses; el cliente multiplica ×12 al enviar la etapa (`submitStage()` en `onboarding_v2_screen.tsx`). |
+| `training_days_per_week`      | rueda numérica  | Días/semana disponibles (1-7)                                                                                                                                                                                                                                                                          |
+| `session_duration_preference` | selección única | Duración de sesión: `30` / `45` / `60` / `90` / `90_plus` (minutos)                                                                                                                                                                                                                                    |
+| `training_mindset`            | selección única | Cómo sueles entrenar: `rushed` (con prisa) / `calm` (con calma) / `motivated` (con motivación) / `unmotivated` (sin ganas)                                                                                                                                                                             |
+| `previous_coaching`           | selección única | `online_coach` / `in_person_coach` / `self_trained`                                                                                                                                                                                                                                                    |
+| `current_routine_style`       | selección única | `improvised` / `copied` / `structured` / `always_same` / `very_varied`                                                                                                                                                                                                                                 |
+| `weekly_split_preference`     | selección única | `upper_lower` (torso-pierna) / `push_pull` / `full_body` / `no_preference`                                                                                                                                                                                                                             |
+| `technique_level`             | escala 1-10     | Nivel de técnica percibido                                                                                                                                                                                                                                                                             |
+| `realistic_goal`              | texto libre     | Objetivo realista                                                                                                                                                                                                                                                                                      |
 
 **Nota de producto**: `activity_level` y `lifestyle_type` se pidieron como
 dos preguntas separadas en el encargo original, aunque conceptualmente se
@@ -235,6 +235,48 @@ pedirlo como texto libre.
 ```
 
 **Response esperada**: `{ "message": "OK", "status": true }`.
+
+## Marcar onboarding completado server-side (2026-08-23, pendiente de backend)
+
+**Bug real encontrado y corregido en el frontend** (reportado: "el tutorial
+[onboarding] no debería reiniciarse para personas que ya se han
+registrado"): `AuthContext.completeOnboarding()` solo escribía
+`AsyncStorage.setItem('ONBOARDING_COMPLETED', 'true')` -- un flag puramente
+local al dispositivo, sin ningún respaldo en el backend. Un usuario que ya
+completó el onboarding volvía a verlo entero de cero si reinstalaba la app o
+entraba desde otro dispositivo/dispositivo nuevo, porque esa clave de
+AsyncStorage simplemente no existía ahí. Tampoco había forma de que un
+coach/admin supiera desde el panel si un cliente ya completó el onboarding.
+
+Corregido en el cliente para usar un flag server-side en cuanto exista,
+cayendo al flag local mientras tanto (mismo patrón "best effort" que el
+resto de esta página):
+
+- `api/onboardingV2.ts`: nuevo `onboardingV2Api.completeOnboarding()` → `POST
+v1/onboarding/complete` (endpoint pendiente, hoy 404).
+- `store/AuthContext.tsx`: `completeOnboarding()` ahora también llama a ese
+  endpoint (best-effort, no bloquea si falla) además de seguir guardando el
+  flag local. `restoreToken`/`login`/`register` usan un nuevo helper
+  `resolveOnboardingCompleted()`: si el `UserData` devuelto por el backend
+  trae `onboarding_completed` (nuevo campo opcional en `api/profile.ts`), ese
+  valor manda; si no viene (backend actual, todavía sin el endpoint), cae al
+  flag local de `AsyncStorage` exactamente como antes -- cero regresión
+  mientras el backend no exista.
+
+**Pendiente real de backend**:
+
+- `POST v1/onboarding/complete` — marca el onboarding como terminado para el
+  usuario autenticado (mismo `user_id` vía token que el resto de esta API).
+  Columna sugerida: `users.onboarding_completed_at` (TIMESTAMP NULL) --
+  simplemente si es NULL o no da el booleano.
+- `login`/`register`/`update-profile` (y cualquier otro endpoint que
+  devuelva `UserData`) deben incluir `onboarding_completed: boolean` en la
+  respuesta para que el cliente deje de depender del flag local en cuanto
+  esto exista.
+- **Admin panel**: pantalla o columna nueva para que el coach vea, por
+  cliente, si ya completó el onboarding (y, junto con las 3 tablas de más
+  abajo, sus respuestas de PAR-Q/entrenamiento/nutrición) -- hoy no hay
+  ningún sitio en el admin donde verlas.
 
 ## Esquema de BD sugerido (backend, pendiente)
 
@@ -332,6 +374,14 @@ frontend lo mande en el body).
 - [ ] Backend: implementar `POST v1/onboarding/par-q`,
       `POST v1/onboarding/training-questionnaire`,
       `POST v1/onboarding/nutrition-questionnaire` + las 3 tablas de arriba.
+- [ ] Backend: implementar `POST v1/onboarding/complete` +
+      `users.onboarding_completed_at` + devolver `onboarding_completed` en
+      `UserData` (login/register/update-profile) -- ver sección "Marcar
+      onboarding completado server-side" más arriba. Sin esto, un usuario ya
+      onboardeado que reinstala la app o cambia de dispositivo vuelve a ver
+      el onboarding entero de cero.
+- [ ] Backend/admin: pantalla en el panel para ver, por cliente, el estado
+      de onboarding y sus respuestas de PAR-Q/entrenamiento/nutrición.
 - [ ] Backend/producto: decidir si un PAR-Q con respuesta positiva en alguna
       pregunta de riesgo cardíaco debe bloquear/marcar el perfil para
       revisión de un coach antes de asignar un plan de entrenamiento.

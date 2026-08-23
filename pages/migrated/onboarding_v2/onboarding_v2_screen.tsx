@@ -85,6 +85,22 @@ export default function OnboardingV2Screen({ navigation }: any) {
     setAnswers((prev) => ({ ...prev, [id]: value }));
   }, []);
 
+  // Bug real reportado: ruler/number_wheel muestran su defaultValue en el
+  // picker desde el primer render (para no arrancar vacíos), pero hasta que
+  // el usuario mueve el dedo no se llama a setAnswer -- si el valor que
+  // quiere es justo el que ya se ve preseleccionado (ej. su edad real
+  // coincide con el default mostrado), "Continuar" se queda deshabilitado
+  // porque isAnswered() lee `answers[question.id]` (todavía undefined), no
+  // lo que hay pintado en pantalla. Sembrar aquí el default en cuanto se
+  // entra a una pregunta de este tipo hace que el valor mostrado y el
+  // guardado sean el mismo desde el principio, sin esperar a un gesto.
+  useEffect(() => {
+    if (!restored) return;
+    if ((question.type === 'ruler' || question.type === 'number_wheel') && answers[question.id] === undefined) {
+      setAnswer(question.id, question.defaultValue);
+    }
+  }, [question, restored, answers, setAnswer]);
+
   const submitStage = useCallback(
     async (stageId: string) => {
       try {
@@ -122,7 +138,10 @@ export default function OnboardingV2Screen({ navigation }: any) {
             goal_type: answers.goal_type as any,
             activity_level: answers.activity_level as any,
             lifestyle_type: answers.lifestyle_type as any,
-            training_experience_months: Number(answers.training_experience_months) || 0,
+            // El usuario responde en años (training_experience_years, ver
+            // constants/onboardingV2Questions.ts) -- el backend sigue
+            // esperando meses, se convierte aquí antes de enviar.
+            training_experience_months: (Number(answers.training_experience_years) || 0) * 12,
             training_days_per_week: Number(answers.training_days_per_week) || 0,
             session_duration_preference: answers.session_duration_preference as any,
             training_mindset: answers.training_mindset as any,
@@ -271,22 +290,39 @@ function QuestionInput({
       first_name: defaultFirstName ?? '',
       last_name: defaultLastName ?? '',
     };
+    // Antes eran 2 pills sueltas flotando sobre el fondo gris, sin más
+    // jerarquía que el placeholder -- agrupadas en una sola tarjeta con
+    // etiqueta encima de cada campo y un divisor fino entre filas, mismo
+    // patrón que ya usa edit_profile_screen.tsx (pedido explícito: acercar
+    // esta pantalla al nivel visual de esa otra).
+    const initials = [value.first_name[0], value.last_name[0]].filter(Boolean).join('').toUpperCase() || '?';
     return (
-      <View style={{ gap: 12 }}>
-        <Input>
-          <InputField
-            placeholder="Nombre"
-            value={value.first_name}
-            onChangeText={(t) => setAnswer('name', { ...value, first_name: t })}
-          />
-        </Input>
-        <Input>
-          <InputField
-            placeholder="Apellidos"
-            value={value.last_name}
-            onChangeText={(t) => setAnswer('name', { ...value, last_name: t })}
-          />
-        </Input>
+      <View>
+        <View style={styles.nameAvatar}>
+          <Text style={styles.nameAvatarText}>{initials}</Text>
+        </View>
+        <View style={styles.nameCard}>
+          <View style={styles.nameRow}>
+            <Text style={styles.nameLabel}>Nombre</Text>
+            <Input style={styles.nameInput}>
+              <InputField
+                placeholder="Nombre"
+                value={value.first_name}
+                onChangeText={(t) => setAnswer('name', { ...value, first_name: t })}
+              />
+            </Input>
+          </View>
+          <View style={[styles.nameRow, styles.nameRowLast]}>
+            <Text style={styles.nameLabel}>Apellidos</Text>
+            <Input style={styles.nameInput}>
+              <InputField
+                placeholder="Apellidos"
+                value={value.last_name}
+                onChangeText={(t) => setAnswer('name', { ...value, last_name: t })}
+              />
+            </Input>
+          </View>
+        </View>
       </View>
     );
   }
@@ -388,9 +424,13 @@ function QuestionInput({
     );
   }
 
-  // textarea
+  // textarea -- el componente compartido (components/ui/textarea) no fija
+  // ningún bg-* en modo claro (solo dark:bg-input/30), así que el bloque
+  // quedaba transparente, mezclándose con el fondo gris de la pantalla y
+  // distinguiéndose solo por el borde fino. Fondo blanco explícito (C.surface,
+  // ya se adapta solo a modo oscuro) para que se note como un bloque propio.
   return (
-    <Textarea className="h-auto" style={{ minHeight: 120 }}>
+    <Textarea className="h-auto" style={{ minHeight: 120, backgroundColor: C.surface }}>
       <TextareaInput
         placeholder={question.placeholder}
         value={(answers[question.id] as string | undefined) ?? ''}
@@ -417,4 +457,25 @@ const styles = StyleSheet.create({
   unitPillActive: { backgroundColor: C.surface },
   unitPillText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.textSecondary },
   unitPillTextActive: { color: C.textPrimary },
+  nameAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: C.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  nameAvatarText: { fontFamily: FONT.extraBold, fontSize: 26, color: '#FFFFFF' },
+  nameCard: { backgroundColor: C.gray80, borderRadius: 16 },
+  nameRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  nameRowLast: { borderBottomWidth: 0 },
+  nameLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary, marginBottom: 4 },
+  nameInput: { borderWidth: 0, height: 26, backgroundColor: 'transparent' },
 });
