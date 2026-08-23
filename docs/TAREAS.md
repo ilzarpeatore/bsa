@@ -4,6 +4,17 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## 🔲 Cambiar los iconos de toda la app a nativos de plataforma (SF Symbols / Material Symbols) — pedido explícito, no iniciado (2026-08-23)
+
+Hoy toda la app usa **Ionicons** (`@expo/vector-icons`) de forma consistente en las ~200 pantallas migradas — mismo dibujo en iOS y Android, no son iconos custom dibujados a mano. El usuario ha pedido explorar sustituirlos por los iconos **nativos de cada plataforma de verdad**: SF Symbols en iOS, Material Symbols en Android.
+
+- **Alcance**: cambio de toda la app, no solo una pantalla (para no romper la consistencia visual actual, que sí es uniforme hoy).
+- **Lo que implicaría**: mantener **dos mapeos de iconos en paralelo** (uno por plataforma) en vez del actual mapeo único de Ionicons; SF Symbols en Expo se resuelve vía `expo-symbols` (nombres de símbolo de Apple, solo iOS); Material Symbols en Android no tiene un paquete Expo tan directo — habría que evaluar opciones (ej. `@expo/vector-icons` ya incluye `MaterialIcons`/`MaterialCommunityIcons`, que sí son parte del sistema de diseño de Google aunque no literalmente "el sistema del dispositivo" como SF Symbols en iOS).
+- **Puntos de partida para cuando se retome**: `components/ui/icon/index.tsx` (wrapper único de Ionicons usado en toda la app), `constants/habitIcons.ts` (mapeo de ejemplo, uno de varios `constants/*Icons.ts`), y buscar todos los `<Icon name="...">`/`name={...}` para el inventario completo de nombres de icono en uso antes de mapear equivalentes por plataforma.
+- **No iniciado** — solo queda esta anotación, a la espera de decidir alcance/prioridad.
+
+---
+
 ## 🔲 62 errores de `tsc --noEmit` en `theme.ts` — arreglar la próxima vez que se toquen los colores (detectado 2026-08-23)
 
 `npx tsc --noEmit -p .` da 62 errores `TS2322`, todos en `pages/migrated/theme.ts`, todos con el mismo patrón:
