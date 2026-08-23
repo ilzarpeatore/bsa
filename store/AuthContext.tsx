@@ -92,7 +92,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // docs/ONBOARDING_V2.md) cuando el backend lo manda; el flag local de
 // AsyncStorage queda solo como resguardo mientras ese campo no exista
 // todavía en la respuesta real del backend.
-async function resolveOnboardingCompleted(user: UserData | null): Promise<boolean> {
+// Tipado mínimo a propósito (no `UserData` completo): `login()`/`register()`
+// reciben `LoginResponse['data']` (api/auth.ts), una forma distinta que no
+// incluye `user_profile` -- nunca ha sido asignable a `UserData` tal cual
+// (de ahí el `as any` ya existente al despachar `SIGN_IN`). Pedir aquí solo
+// el campo que de verdad se lee evita ese choque de tipos sin necesitar otro
+// `any`.
+async function resolveOnboardingCompleted(user: { onboarding_completed?: boolean } | null): Promise<boolean> {
   if (user?.onboarding_completed !== undefined) return user.onboarding_completed;
   const local = await AsyncStorage.getItem('ONBOARDING_COMPLETED');
   return local === 'true';

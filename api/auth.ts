@@ -28,6 +28,9 @@ export interface LoginResponse {
     access_tier: 'free' | 'subscriber' | 'personal';
     created_at: string;
     updated_at: string;
+    // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Marcar onboarding
+    // completado server-side") y api/profile.ts (UserData.onboarding_completed).
+    onboarding_completed?: boolean;
   };
 }
 
