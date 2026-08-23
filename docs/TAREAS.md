@@ -4,6 +4,17 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Rediseño completo de "tu plan está listo" tras el onboarding (2026-08-23)
+
+`assessment_result_screen.tsx` (`MigratedAssessmentResult`, a donde navega `onboarding_v2_screen.tsx` justo al terminar las 36 preguntas) era un resumen muy básico de IMC/BMR. Petición del usuario, con 3 capturas de referencia: pantalla completa "tu plan está listo" con objetivo de peso, kcal/macros, hidratación y comidas.
+
+- **Dato real cableado, no inventado**: `onboarding_v2_screen.tsx` ahora pasa `route.params.answers` (las respuestas en crudo) al navegar aquí — antes se perdían porque `AsyncStorage.removeItem` se llamaba justo antes del `navigation.replace` sin haberlas leído en ningún sitio. BMR y peso ideal usan `user_profile.bmr`/`user_profile.ideal_weight` (ya calculados en el backend, Mifflin-St Jeor + Devine) con fallback a las mismas fórmulas calculadas en cliente si por lo que sea no llegaron todavía. Objetivo calórico = BMR × multiplicador de actividad estándar (Harris-Benedict) según la respuesta real de `activity_level`. Macros = split fijo 45/30/25 (carbos/grasas/proteína, mismo que la referencia) sobre ese objetivo calórico real. Hidratación = 30 ml/kg (fórmula estándar) sobre el peso real.
+- **Sí es ilustrativo, a propósito**: las 3 fotos de comida (Desayuno/Almuerzo/Cena) — todavía no existe un plan de comidas real generado en este punto del alta, así que son fotos de stock (LoremFlickr, sin API key, mismo criterio que las imágenes de workouts/recursos de Home v2 de esta misma sesión).
+- **Deliberadamente NO incluido**: la sección "Amado por nuestros usuarios" (testimonios) de la referencia — habría requerido inventar nombres/fotos/citas de usuarios falsos.
+- Pendiente real, no bloqueante: no hay pregunta de "peso objetivo"/"fecha objetivo" en las 36 preguntas del onboarding — la meta se infiere del peso ideal calculado (Devine) y un ritmo semanal estándar (0,4 kg/semana). Si en el futuro se añade una pregunta explícita de objetivo, sustituir ese cálculo por la respuesta real.
+
+---
+
 ## 🔲 Reorganizar semana en MyProgramCalendar — cambio directo, pendiente de backend (2026-08-23)
 
 Petición del usuario: reportó que arrastrar un entrenamiento a otro día "no guarda el cambio, se queda en su día asignado". No era un bug — por diseño, "Reorganiza tu semana" (`reorderMode` en `my_program_calendar_screen.tsx`) solo creaba una **propuesta** (`adaptiveWeekPlansApi.requestReorder`, mismo criterio "siempre propuesto" que el resto del motor de auto-regulación de carga) que requería aprobación del coach antes de reflejarse en el calendario real. Preguntado explícitamente, el usuario prefiere que el cambio se aplique **al instante, sin aprobación**.
