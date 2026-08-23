@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Pressable,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@components/ui/icon";
 import { Text } from "@components/ui/text";
 import { C, FONT } from "../pages/migrated/theme";
+import { useTabBarScroll } from "@store/TabBarScrollContext";
 // Modulo-scope: Animated.createAnimatedComponent(Image) solo depende del
 // import estatico de Image, no de props/estado del componente -- crearlo
 // aqui evita reconstruirlo (y su wrapper interno) en cada render.
@@ -85,6 +86,23 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
   const [menuOpen, setMenuOpen] = useState(false);
   const menuAnim = useRef(new Animated.Value(0)).current;
 
+  // Plegar la barra al hacer scroll (pedido explícito, ver
+  // store/TabBarScrollContext.tsx) -- las pantallas raíz de cada pestaña
+  // reportan ahí su scrollY; aquí solo se anima la transición y se resetea
+  // a desplegado en cuanto cambia la pestaña activa (si no, se arrastraría
+  // el estado plegado de la pestaña anterior al entrar en una nueva que
+  // todavía no se ha scrolleado).
+  const { collapsed, setCollapsed } = useTabBarScroll();
+  const collapseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(collapseAnim, { toValue: collapsed ? 1 : 0, duration: 220, useNativeDriver: true }).start();
+  }, [collapsed, collapseAnim]);
+
+  useEffect(() => {
+    setCollapsed(false);
+  }, [state.index, setCollapsed]);
+
   const openMenu = () => {
     setMenuOpen(true);
     Animated.spring(menuAnim, { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 }).start();
@@ -124,94 +142,121 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
   if (focusedOptions.tabBarVisible === false) {
     return null;
   }
+  const renderPlusButton = () => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={menuOpen ? "Cerrar accesos rápidos" : "Accesos rápidos"}
+      style={({ pressed }) => [styles.plusBtn, pressed && { opacity: 0.85 }]}
+      onPress={() => (menuOpen ? closeMenu() : openMenu())}
+    >
+      <LinearGradient
+        colors={["#FF8A50", C.orange, "#E85A2A"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Icon name={menuOpen ? "close" : "add"} size={26} color="#FFFFFF" />
+    </Pressable>
+  );
+
   return (
     <>
       <View style={[styles.navigationOuter, { marginBottom: safearea.bottom || 12 }]}>
-        <View style={[styles.navigationBlur, !isGlassEffectAPIAvailable() && styles.navigationFallbackBg]}>
-          <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
-          <View style={styles.navigationglow} />
-          <AnimatedImage
-            source={require("./../assets/icons/navigationellipse.png")}
-            contentFit="contain"
-            style={[
-              styles.navigationbtnactive,
-              {
-                transform: [{ translateX: navigationbtnactiveX }],
-                tintColor: "#1C1C1E",
-              },
-              navigation_ellipse_show ? { opacity: 1 } : { opacity: 0 },
-            ]}
-          />
-          {/*navigation icons start*/}
-          {state.routes.map((route, index) => {
-            const { options } = descriptors[route.key];
-            const typedOptions = options as NavigationTabOptionsInterface;
-            const isFocused = state.index === index;
-
-            const onPress = () => {
-              const event = navigation.emit({
-                type: "tabPress",
-                target: route.key,
-                canPreventDefault: true,
-              });
-
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            const onLongPress = () => {
-              navigation.emit({
-                type: "tabLongPress",
-                target: route.key,
-              });
-            };
-
-            return (
-              <Pressable
-                key={route.key}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-                accessibilityLabel={typedOptions.tabBarAccessibilityLabel}
-                testID={(typedOptions as any).tabBarTestID}
-                onLayout={(event) => set_nav_positions(event, index)}
-                onPress={() => {
-                  navigation_press(index, onPress);
-                }}
-                onLongPress={onLongPress}
-                style={({ pressed }) => [styles.navigationbtn, pressed && { opacity: 0.2 }]}
-              >
-                <Icon name={typedOptions.icon} size={22} color={isFocused ? "#1C1C1E" : "#AEAEB2"} />
-                <Text style={[styles.navigationLabel, isFocused && styles.navigationLabelActive]} numberOfLines={1}>
-                  {typedOptions.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-          {/*navigation icons end*/}
-        </View>
-
-        {/* Botón "+" separado de la barra (pedido explícito, captura de
-            referencia: "todos los iconos juntos y separado el +") -- ya no
-            se superpone centrado encima de la barra, vive al lado como
-            círculo propio dentro de la misma fila. Cambia a icono "cerrar"
-            mientras el menú está abierto (mismo criterio que la
-            referencia), sin cambiar de color entre estados (pedido
-            explícito en el rediseño anterior). */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={menuOpen ? "Cerrar accesos rápidos" : "Accesos rápidos"}
-          style={({ pressed }) => [styles.plusBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => (menuOpen ? closeMenu() : openMenu())}
+        {/* Fila completa (4 pestañas + "+") -- visible solo arriba del todo,
+            se pliega en cuanto se hace scroll (ver useTabBarScroll). */}
+        <Animated.View
+          pointerEvents={collapsed ? "none" : "auto"}
+          style={[
+            styles.navigationOuterRow,
+            { opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) },
+          ]}
         >
-          <LinearGradient
-            colors={["#FF8A50", C.orange, "#E85A2A"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Icon name={menuOpen ? "close" : "add"} size={26} color="#FFFFFF" />
-        </Pressable>
+          <View style={[styles.navigationBlur, !isGlassEffectAPIAvailable() && styles.navigationFallbackBg]}>
+            <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+            <View style={styles.navigationglow} />
+            <AnimatedImage
+              source={require("./../assets/icons/navigationellipse.png")}
+              contentFit="contain"
+              style={[
+                styles.navigationbtnactive,
+                {
+                  transform: [{ translateX: navigationbtnactiveX }],
+                  tintColor: "#1C1C1E",
+                },
+                navigation_ellipse_show ? { opacity: 1 } : { opacity: 0 },
+              ]}
+            />
+            {/*navigation icons start*/}
+            {state.routes.map((route, index) => {
+              const { options } = descriptors[route.key];
+              const typedOptions = options as NavigationTabOptionsInterface;
+              const isFocused = state.index === index;
+
+              const onPress = () => {
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+
+                if (!isFocused && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              };
+
+              const onLongPress = () => {
+                navigation.emit({
+                  type: "tabLongPress",
+                  target: route.key,
+                });
+              };
+
+              return (
+                <Pressable
+                  key={route.key}
+                  accessibilityRole="button"
+                  accessibilityState={isFocused ? { selected: true } : {}}
+                  accessibilityLabel={typedOptions.tabBarAccessibilityLabel}
+                  testID={(typedOptions as any).tabBarTestID}
+                  onLayout={(event) => set_nav_positions(event, index)}
+                  onPress={() => {
+                    navigation_press(index, onPress);
+                  }}
+                  onLongPress={onLongPress}
+                  style={({ pressed }) => [styles.navigationbtn, pressed && { opacity: 0.2 }]}
+                >
+                  <Icon name={typedOptions.icon} size={22} color={isFocused ? "#1C1C1E" : "#AEAEB2"} />
+                  <Text style={[styles.navigationLabel, isFocused && styles.navigationLabelActive]} numberOfLines={1}>
+                    {typedOptions.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {/*navigation icons end*/}
+          </View>
+
+          {/* Botón "+" separado de la barra (pedido explícito, captura de
+              referencia: "todos los iconos juntos y separado el +") -- ya no
+              se superpone centrado encima de la barra, vive al lado como
+              círculo propio dentro de la misma fila. Cambia a icono "cerrar"
+              mientras el menú está abierto (mismo criterio que la
+              referencia), sin cambiar de color entre estados (pedido
+              explícito en el rediseño anterior). */}
+          {renderPlusButton()}
+        </Animated.View>
+
+        {/* Fila plegada -- solo el icono de la pestaña activa + el "+"
+            (pedido explícito, captura de referencia). */}
+        <Animated.View
+          pointerEvents={collapsed ? "auto" : "none"}
+          style={[styles.navigationOuterRow, { opacity: collapseAnim }]}
+        >
+          <View style={[styles.collapsedCircle, !isGlassEffectAPIAvailable() && styles.navigationFallbackBg]}>
+            <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+            <Icon name={focusedOptions.icon} size={22} color="#1C1C1E" />
+          </View>
+          {renderPlusButton()}
+        </Animated.View>
       </View>
 
       {/* Submenu de accesos rápidos -- vuelve a usar Liquid Glass real (pedido
@@ -286,9 +331,32 @@ function useStyle() {
       right: '20@ratio',
       bottom: 0,
       height: '64@ratio',
+    },
+    // Ambas filas (desplegada/plegada) se superponen exactamente en el mismo
+    // sitio -- se cruza su opacidad (collapseAnim) en vez de animar anchos,
+    // más simple y fiable que hacer "morphing" del ancho de navigationBlur.
+    navigationOuterRow: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
       flexDirection: "row",
       alignItems: "center",
       gap: '12@ratio',
+    },
+    // Círculo plegado -- mismo tamaño que plusBtn para que la fila plegada
+    // quede visualmente equilibrada (dos círculos iguales, como en la
+    // referencia).
+    collapsedCircle: {
+      width: '64@ratio',
+      height: '64@ratio',
+      borderRadius: '32@ratio',
+      overflow: "hidden",
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.4)",
     },
     navigationBlur: {
       flex: 1,

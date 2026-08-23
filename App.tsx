@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from "@store/AuthContext";
 import "@helper/reminderNotifications";
 import NavigationTab from "@components/NavigationTab";
 import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
+import { TabBarScrollProvider } from "@store/TabBarScrollContext";
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -207,40 +208,42 @@ function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: IoniconNa
 
 function Homenavigator() {
   return (
-    <Tab.Navigator
-      initialRouteName="InicioTab"
-      screenOptions={{ headerShown: false }}
-      tabBar={(props) => <NavigationTab {...props} />}
-      backBehavior="order"
-    >
-      {/* Las 4 pestañas comparten el mismo stack completo (MigratedNavigator,
-          con las ~100 pantallas migradas) para no duplicar rutas -- solo
-          cambia la pantalla inicial de cada una via initialParams.initialScreen. */}
-      <Tab.Screen
-        name="InicioTab"
-        component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedHomeModernV2" }}
-        options={tabScreenOptions("InicioTab", "home-outline", "Inicio")}
-      />
-      <Tab.Screen
-        name="PlanDiarioTab"
-        component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedMyProgramCalendar" }}
-        options={tabScreenOptions("PlanDiarioTab", "calendar-outline", "Plan del día")}
-      />
-      <Tab.Screen
-        name="NutritionTab"
-        component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedPlan" }}
-        options={tabScreenOptions("NutritionTab", "nutrition-outline", "Nutrición")}
-      />
-      <Tab.Screen
-        name="HabitsTab"
-        component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedHabits" }}
-        options={tabScreenOptions("HabitsTab", "flame-outline", "Hábitos")}
-      />
-    </Tab.Navigator>
+    <TabBarScrollProvider>
+      <Tab.Navigator
+        initialRouteName="InicioTab"
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => <NavigationTab {...props} />}
+        backBehavior="order"
+      >
+        {/* Las 4 pestañas comparten el mismo stack completo (MigratedNavigator,
+            con las ~100 pantallas migradas) para no duplicar rutas -- solo
+            cambia la pantalla inicial de cada una via initialParams.initialScreen. */}
+        <Tab.Screen
+          name="InicioTab"
+          component={MigratedNavigator}
+          initialParams={{ initialScreen: "MigratedHomeModernV2" }}
+          options={tabScreenOptions("InicioTab", "home-outline", "Inicio")}
+        />
+        <Tab.Screen
+          name="PlanDiarioTab"
+          component={MigratedNavigator}
+          initialParams={{ initialScreen: "MigratedMyProgramCalendar" }}
+          options={tabScreenOptions("PlanDiarioTab", "calendar-outline", "Plan del día")}
+        />
+        <Tab.Screen
+          name="NutritionTab"
+          component={MigratedNavigator}
+          initialParams={{ initialScreen: "MigratedPlan" }}
+          options={tabScreenOptions("NutritionTab", "nutrition-outline", "Nutrición")}
+        />
+        <Tab.Screen
+          name="HabitsTab"
+          component={MigratedNavigator}
+          initialParams={{ initialScreen: "MigratedHabits" }}
+          options={tabScreenOptions("HabitsTab", "flame-outline", "Hábitos")}
+        />
+      </Tab.Navigator>
+    </TabBarScrollProvider>
   );
 }
 

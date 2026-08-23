@@ -25,6 +25,7 @@ import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
+import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { C, FONT } from './theme';
 import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
 import { recipesApi, RecipeListItem } from '../../api/recipes';
@@ -157,6 +158,15 @@ export default function PlanScreen(props: any) {
     (show, prevShow) => {
       if (show !== prevShow) {
         runOnJS(setShowCompactSummary)(show);
+      }
+    }
+  );
+  const { reportScrollY } = useTabBarScroll();
+  useAnimatedReaction(
+    () => scrollY.value > 8,
+    (collapsed, prevCollapsed) => {
+      if (collapsed !== prevCollapsed) {
+        runOnJS(reportScrollY)(scrollY.value);
       }
     }
   );

@@ -7,6 +7,7 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
+import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, SharedValue } from 'react-native-reanimated';
 import { runOnJS } from 'react-native-worklets';
@@ -217,6 +218,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   const { navigation } = props;
   const today = toDateOnly(new Date());
   const todayKey = toDateKey(today);
+  const { reportScrollY } = useTabBarScroll();
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -961,7 +963,11 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           <Text style={styles.emptyText}>{errorMessage}</Text>
         </Box>
       ) : viewMode === 'calendar' ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}
+          onScroll={(e) => reportScrollY(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
+        >
           <GestureDetector gesture={calendarSwipeGesture}>
             <View>
               {periodMode === 'month' && (
@@ -1009,6 +1015,8 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         <ScrollView
           contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: TAB_BAR_CLEARANCE }}
           scrollEnabled={!(reorderMode && movingWorkout)}
+          onScroll={(e) => reportScrollY(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
         >
           {(periodMode === 'week' ? visibleDays : daysWithWorkouts).map((day) => {
             const isDropTarget = reorderMode && !!movingWorkout && isCurrentWeekDate(day.date) && movingWorkout.fromDate !== day.date;
