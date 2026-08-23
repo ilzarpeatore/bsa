@@ -119,6 +119,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
           });
         } else if (stageId === 'training_questionnaire') {
           await onboardingV2Api.submitTrainingQuestionnaire({
+            goal_type: answers.goal_type as any,
             activity_level: answers.activity_level as any,
             lifestyle_type: answers.lifestyle_type as any,
             training_experience_months: Number(answers.training_experience_months) || 0,

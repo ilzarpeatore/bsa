@@ -7,6 +7,7 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
+import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, SharedValue } from 'react-native-reanimated';
 import { runOnJS } from 'react-native-worklets';
@@ -217,6 +218,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   const { navigation } = props;
   const today = toDateOnly(new Date());
   const todayKey = toDateKey(today);
+  const { reportScrollY } = useTabBarScroll();
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -831,7 +833,6 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           style={[
             styles.dayCellText,
             !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
-            isSelected && !big && !selectionMode && styles.dayCellTextSelected,
           ]}
         >
           {dateObj.getDate()}
@@ -845,7 +846,6 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                 styles.dayDot,
                 hasCompletedWorkout && styles.dayDotCompleted,
                 !hasWorkout && hasCheckinTasks && styles.dayDotCheckin,
-                isSelected && !big && styles.dayDotSelected,
               ]}
             />
           )
@@ -961,7 +961,11 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           <Text style={styles.emptyText}>{errorMessage}</Text>
         </Box>
       ) : viewMode === 'calendar' ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}
+          onScroll={(e) => reportScrollY(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
+        >
           <GestureDetector gesture={calendarSwipeGesture}>
             <View>
               {periodMode === 'month' && (
@@ -1007,8 +1011,10 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         </Box>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: TAB_BAR_CLEARANCE }}
+          contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: TAB_BAR_CLEARANCE }}
           scrollEnabled={!(reorderMode && movingWorkout)}
+          onScroll={(e) => reportScrollY(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
         >
           {(periodMode === 'week' ? visibleDays : daysWithWorkouts).map((day) => {
             const isDropTarget = reorderMode && !!movingWorkout && isCurrentWeekDate(day.date) && movingWorkout.fromDate !== day.date;
@@ -1203,7 +1209,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   dayCellSelected: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: C.orange,
   },
   dayCellToday: {
     borderWidth: 1.5,
@@ -1232,9 +1240,6 @@ const styles = StyleSheet.create({
   dayCellTextMuted: {
     color: C.textTertiary,
   },
-  dayCellTextSelected: {
-    color: '#FFFFFF',
-  },
   dayDot: {
     width: 5,
     height: 5,
@@ -1246,9 +1251,6 @@ const styles = StyleSheet.create({
   },
   dayDotCheckin: {
     backgroundColor: C.warning60,
-  },
-  dayDotSelected: {
-    backgroundColor: '#FFFFFF',
   },
   selectedDaySection: {
     marginTop: 16,
@@ -1274,7 +1276,7 @@ const styles = StyleSheet.create({
     borderColor: C.success,
   },
   dropTargetText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.orange, marginRight: 8 },
-  dayDate: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary, paddingHorizontal: 16 },
+  dayDate: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary },
   workoutImage: { width: 72, height: 72, borderRadius: 16 },
   checkinIconWrap: {
     width: 72,

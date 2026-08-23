@@ -149,19 +149,20 @@ esta tarea), pero es el uso típico de un PAR-Q real.
 
 ### Etapa 3 — Cuestionario de entrenamiento (`training_questionnaire`)
 
-| id                            | tipo            | pregunta / opciones                                                                                                                                       |
-| ----------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `activity_level`              | selección única | Nivel de actividad: `sedentary` / `light` / `moderate` / `active` / `very_active`                                                                         |
-| `lifestyle_type`              | selección única | Estilo de vida (solo movimiento diario, no entrenamientos): `mostly_sitting` / `sometimes_standing` / `mostly_standing` / `always_moving` / `heavy_labor` |
-| `training_experience_months`  | rueda numérica  | Meses entrenando (0-360)                                                                                                                                  |
-| `training_days_per_week`      | rueda numérica  | Días/semana disponibles (1-7)                                                                                                                             |
-| `session_duration_preference` | selección única | Duración de sesión: `30` / `45` / `60` / `90` / `90_plus` (minutos)                                                                                       |
-| `training_mindset`            | selección única | Cómo sueles entrenar: `rushed` (con prisa) / `calm` (con calma) / `motivated` (con motivación) / `unmotivated` (sin ganas)                                |
-| `previous_coaching`           | selección única | `online_coach` / `in_person_coach` / `self_trained`                                                                                                       |
-| `current_routine_style`       | selección única | `improvised` / `copied` / `structured` / `always_same` / `very_varied`                                                                                    |
-| `weekly_split_preference`     | selección única | `upper_lower` (torso-pierna) / `push_pull` / `full_body` / `no_preference`                                                                                |
-| `technique_level`             | escala 1-10     | Nivel de técnica percibido                                                                                                                                |
-| `realistic_goal`              | texto libre     | Objetivo realista                                                                                                                                         |
+| id                            | tipo            | pregunta / opciones                                                                                                                                                                                                                                                      |
+| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `goal_type`                   | selección única | Objetivo principal: `lose_fat` (perder grasa) / `gain_muscle` (ganar músculo) / `recomposition` (recomposición) / `maintain` (mantener). Añadida 2026-08-23 — la pantalla de resultado del onboarding la necesita para no inventar un objetivo con una fórmula genérica. |
+| `activity_level`              | selección única | Nivel de actividad: `sedentary` / `light` / `moderate` / `active` / `very_active`                                                                                                                                                                                        |
+| `lifestyle_type`              | selección única | Estilo de vida (solo movimiento diario, no entrenamientos): `mostly_sitting` / `sometimes_standing` / `mostly_standing` / `always_moving` / `heavy_labor`                                                                                                                |
+| `training_experience_months`  | rueda numérica  | Meses entrenando (0-360)                                                                                                                                                                                                                                                 |
+| `training_days_per_week`      | rueda numérica  | Días/semana disponibles (1-7)                                                                                                                                                                                                                                            |
+| `session_duration_preference` | selección única | Duración de sesión: `30` / `45` / `60` / `90` / `90_plus` (minutos)                                                                                                                                                                                                      |
+| `training_mindset`            | selección única | Cómo sueles entrenar: `rushed` (con prisa) / `calm` (con calma) / `motivated` (con motivación) / `unmotivated` (sin ganas)                                                                                                                                               |
+| `previous_coaching`           | selección única | `online_coach` / `in_person_coach` / `self_trained`                                                                                                                                                                                                                      |
+| `current_routine_style`       | selección única | `improvised` / `copied` / `structured` / `always_same` / `very_varied`                                                                                                                                                                                                   |
+| `weekly_split_preference`     | selección única | `upper_lower` (torso-pierna) / `push_pull` / `full_body` / `no_preference`                                                                                                                                                                                               |
+| `technique_level`             | escala 1-10     | Nivel de técnica percibido                                                                                                                                                                                                                                               |
+| `realistic_goal`              | texto libre     | Objetivo realista                                                                                                                                                                                                                                                        |
 
 **Nota de producto**: `activity_level` y `lifestyle_type` se pidieron como
 dos preguntas separadas en el encargo original, aunque conceptualmente se
@@ -176,6 +177,7 @@ de producto a tomar más adelante, no resuelta aquí.
 
 ```json
 {
+  "goal_type": "gain_muscle",
   "activity_level": "moderate",
   "lifestyle_type": "mostly_sitting",
   "training_experience_months": 18,
@@ -263,6 +265,7 @@ CREATE TABLE par_q_answers (
 CREATE TABLE training_questionnaire_answers (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  goal_type VARCHAR(20) NOT NULL,
   activity_level VARCHAR(20) NOT NULL,
   lifestyle_type VARCHAR(30) NOT NULL,
   training_experience_months SMALLINT UNSIGNED NOT NULL,

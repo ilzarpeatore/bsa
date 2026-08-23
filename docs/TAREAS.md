@@ -4,14 +4,65 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
-## ✅ Rediseño completo de "tu plan está listo" tras el onboarding (2026-08-23)
+## ✅ Foto de perfil real en EditProfile — subida por verificar en backend (2026-08-23)
 
-`assessment_result_screen.tsx` (`MigratedAssessmentResult`, a donde navega `onboarding_v2_screen.tsx` justo al terminar las 36 preguntas) era un resumen muy básico de IMC/BMR. Petición del usuario, con 3 capturas de referencia: pantalla completa "tu plan está listo" con objetivo de peso, kcal/macros, hidratación y comidas.
+`edit_profile_screen.tsx`: "Cambiar foto"/el botón de cámara no hacían nada — `pickImage()` era un stub sin implementar (`ImagePicker` comentado, nunca importado). Arreglado con el mismo patrón que ya usa `add_post_screen.tsx` (único sitio de la app con `expo-image-picker` real): `Alert.alert` con "Elegir de la galería"/"Hacer una foto", permisos (`requestMediaLibraryPermissionsAsync`/`requestCameraPermissionsAsync`) y `allowsEditing`+`aspect:[1,1]` para recortar cuadrado antes de subir.
 
-- **Dato real cableado, no inventado**: `onboarding_v2_screen.tsx` ahora pasa `route.params.answers` (las respuestas en crudo) al navegar aquí — antes se perdían porque `AsyncStorage.removeItem` se llamaba justo antes del `navigation.replace` sin haberlas leído en ningún sitio. BMR y peso ideal usan `user_profile.bmr`/`user_profile.ideal_weight` (ya calculados en el backend, Mifflin-St Jeor + Devine) con fallback a las mismas fórmulas calculadas en cliente si por lo que sea no llegaron todavía. Objetivo calórico = BMR × multiplicador de actividad estándar (Harris-Benedict) según la respuesta real de `activity_level`. Macros = split fijo 45/30/25 (carbos/grasas/proteína, mismo que la referencia) sobre ese objetivo calórico real. Hidratación = 30 ml/kg (fórmula estándar) sobre el peso real.
-- **Sí es ilustrativo, a propósito**: las 3 fotos de comida (Desayuno/Almuerzo/Cena) — todavía no existe un plan de comidas real generado en este punto del alta, así que son fotos de stock (LoremFlickr, sin API key, mismo criterio que las imágenes de workouts/recursos de Home v2 de esta misma sesión).
-- **Deliberadamente NO incluido**: la sección "Amado por nuestros usuarios" (testimonios) de la referencia — habría requerido inventar nombres/fotos/citas de usuarios falsos.
-- Pendiente real, no bloqueante: no hay pregunta de "peso objetivo"/"fecha objetivo" en las 36 preguntas del onboarding — la meta se infiere del peso ideal calculado (Devine) y un ritmo semanal estándar (0,4 kg/semana). Si en el futuro se añade una pregunta explícita de objetivo, sustituir ese cálculo por la respuesta real.
+De paso, un segundo bug que habría dejado la función a medias: `save()` metía la `uri` local del picker (`file://...`) como string plano dentro del JSON de `update-profile` — eso no sube ningún fichero real. `profile_image` no es una columna de `users`, se calcula vía `getSingleMedia()` (mismo hallazgo que el bug real ya documentado de `community_screen.tsx` más abajo en este mismo MD), así que hace falta multipart con el fichero real, igual que `api/posts.ts` ya hace para medios de posts. Añadido `buildProfileFormData()` (bracket notation `user_profile[age]` etc. para el objeto anidado + `profile_image` como fichero) y `authApi.updateProfile()` ahora acepta un segundo parámetro `isMultipart` para mandar el header `multipart/form-data` solo cuando hay foto nueva.
+
+**Sin verificar contra el backend real**: no hay forma de confirmar desde aquí que `UserController::updateProfile` acepta de verdad un fichero en el campo `profile_image` dentro de un multipart (no hay precedente de subida real de avatar en esta app — `avatar_setup_screen.tsx` usa solo presets locales, ver más abajo). Si al probar en dispositivo la foto no se actualiza tras guardar, revisar primero el nombre de campo esperado por el backend.
+
+---
+
+## 🔲 Cambiar los iconos de toda la app a nativos de plataforma (SF Symbols / Material Symbols) — pedido explícito, no iniciado (2026-08-23)
+
+Hoy toda la app usa **Ionicons** (`@expo/vector-icons`) de forma consistente en las ~200 pantallas migradas — mismo dibujo en iOS y Android, no son iconos custom dibujados a mano. El usuario ha pedido explorar sustituirlos por los iconos **nativos de cada plataforma de verdad**: SF Symbols en iOS, Material Symbols en Android.
+
+- **Alcance**: cambio de toda la app, no solo una pantalla (para no romper la consistencia visual actual, que sí es uniforme hoy).
+- **Lo que implicaría**: mantener **dos mapeos de iconos en paralelo** (uno por plataforma) en vez del actual mapeo único de Ionicons; SF Symbols en Expo se resuelve vía `expo-symbols` (nombres de símbolo de Apple, solo iOS); Material Symbols en Android no tiene un paquete Expo tan directo — habría que evaluar opciones (ej. `@expo/vector-icons` ya incluye `MaterialIcons`/`MaterialCommunityIcons`, que sí son parte del sistema de diseño de Google aunque no literalmente "el sistema del dispositivo" como SF Symbols en iOS).
+- **Puntos de partida para cuando se retome**: `components/ui/icon/index.tsx` (wrapper único de Ionicons usado en toda la app), `constants/habitIcons.ts` (mapeo de ejemplo, uno de varios `constants/*Icons.ts`), y buscar todos los `<Icon name="...">`/`name={...}` para el inventario completo de nombres de icono en uso antes de mapear equivalentes por plataforma.
+- **No iniciado** — solo queda esta anotación, a la espera de decidir alcance/prioridad.
+
+---
+
+## 🔲 62 errores de `tsc --noEmit` en `theme.ts` — arreglar la próxima vez que se toquen los colores (detectado 2026-08-23)
+
+`npx tsc --noEmit -p .` da 62 errores `TS2322`, todos en `pages/migrated/theme.ts`, todos con el mismo patrón:
+
+```
+theme.ts(101,3): Type '"#0B0B0D"' is not assignable to type '"#EBEBF0"'.
+theme.ts(102,3): Type '"#1C1C1E"' is not assignable to type '"#FFFFFF"'.
+theme.ts(108,3): Type '"#48484A"' is not assignable to type '"#D1D1D6"'.
+... (62 en total, una por cada color que difiere entre C y C_DARK)
+```
+
+**Causa raíz**: `export const C = { bg: "#EBEBF0", ... } as const;` — el `as const` infiere el tipo de cada propiedad como su valor **literal** exacto (`bg` es de tipo `"#EBEBF0"`, no `string`). Más abajo, `export const C_DARK: typeof C = { bg: "#0B0B0D", ... }` anota `C_DARK` como `typeof C`, así que TypeScript exige que cada propiedad de `C_DARK` tenga el **mismo valor literal exacto** que `C`, no solo el mismo tipo `string`. Como el tema oscuro tiene (correctamente) colores distintos, cada color que difiere dispara el error.
+
+Es un fallo puramente de anotación de tipos, no de lógica — en tiempo de ejecución `C_DARK` funciona bien (JS no comprueba tipos), así que nunca ha roto ningún build. Viene desde el commit `bf23806` (cuando se añadió el modo oscuro) y no se ha corregido desde entonces.
+
+**Fix** (una línea, cuando se retomen los colores claro/oscuro): cambiar la anotación de `C_DARK` de `typeof C` a algo que solo exija "mismas claves, valores `string`", por ejemplo:
+
+```ts
+const C_DARK: Record<keyof typeof C, string> = { ... };
+```
+
+o quitar el `as const` de `C` si en algún punto se necesita que sus valores también sean `string` genérico en vez de literales (revisar antes si algún sitio depende de los literales exactos de `C` para inferencia de tipos).
+
+---
+
+## ✅ Pantalla de resultado del onboarding — 2 iteraciones (2026-08-23)
+
+`assessment_result_screen.tsx` (`MigratedAssessmentResult`, a donde navega `onboarding_v2_screen.tsx` justo al terminar las 36 preguntas) era un resumen muy básico de IMC/BMR.
+
+**Primera pasada**: rediseño completo estilo "tu plan está listo" (3 capturas de referencia) con kcal/macros, meta de peso/fecha y comidas. El peso objetivo/fecha se inventaban con peso ideal (Devine) + un ritmo semanal estándar, porque no había ninguna pregunta real de objetivo en el onboarding.
+
+**Segunda pasada (corrección de fondo, pedido explícito tras revisar la primera)**: esta app funciona con coach real, no con un algoritmo que entrega un plan cerrado — decir "tu plan está listo" con cifras concretas era engañoso, y encima esas cifras eran inventadas. Cambios:
+
+- **Pregunta nueva real**: `goal_type` (selección única: perder grasa / ganar músculo / recomposición / mantener) añadida en `constants/onboardingV2Questions.ts`, etapa `training_questionnaire` (primera pregunta de esa etapa). Cableada en `api/onboardingV2.ts` (`TrainingQuestionnairePayload.goal_type`), `onboarding_v2_screen.tsx` y documentada en `docs/ONBOARDING_V2.md` (tabla + JSON de ejemplo + esquema SQL). Sustituye por completo el cálculo inventado de peso objetivo/fecha (eliminado de la pantalla).
+- **Reencuadre de la pantalla**: de "tu plan está listo" a "hemos recibido tus datos, tu coach preparará tu plan personalizado" — las kcal/macros ahora se etiquetan como "orientativas" con nota explícita de que el coach las ajustará, no como el plan final.
+- **Nuevas secciones, con datos reales del onboarding**: "Planificación de entrenamiento" (días/semana y duración de sesión reales) separada de "Tips de entrenamiento"; "Tips de nutrición" separado de "Planificación de comidas". Resumen final ("Lo que hemos enviado a tu coach") incluye el objetivo real elegido.
+- **Colores**: verde → naranja de marca (`C.orange`) en toda la pantalla, pedido explícito.
+- Sigue igual: las 3 fotos de comida son ilustrativas (LoremFlickr); no se incluye la sección de testimonios de la referencia (habría requerido inventar usuarios falsos).
 
 ---
 

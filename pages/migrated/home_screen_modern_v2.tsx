@@ -21,9 +21,11 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedProps,
   useAnimatedStyle,
+  useAnimatedReaction,
   useSharedValue,
   interpolate,
   Extrapolation,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -43,6 +45,7 @@ import { TUTORIAL_CHALLENGES } from '../../constants/tutorialChallenges';
 import { AvatarMem } from '@components/Avatar';
 import { FONT } from './theme';
 import { useAppColorMode } from '../../helper/useAppColorMode';
+import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -159,6 +162,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const heroScrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
+  // Plegar la barra de pestañas al hacer scroll (pedido explícito, ver
+  // store/TabBarScrollContext.tsx) -- reutiliza el mismo scrollY que ya
+  // existía para el efecto de blur del hero. Mismo patrón que
+  // showCompactSummary en plan_screen.tsx: reaccionar sobre el booleano ya
+  // resuelto (no el scrollY crudo) y solo avisar a React cuando cambia de
+  // lado, para no cruzar al hilo de JS en cada frame de scroll.
+  const { reportScrollY } = useTabBarScroll();
+  useAnimatedReaction(
+    () => scrollY.value > 8,
+    (collapsed, prevCollapsed) => {
+      if (collapsed !== prevCollapsed) runOnJS(reportScrollY)(scrollY.value);
+    }
+  );
   const heroBlurAnimatedProps = useAnimatedProps(() => ({
     intensity: interpolate(scrollY.value, [0, HERO_BLUR_SCROLL_RANGE], [0, HERO_BLUR_MAX_INTENSITY], Extrapolation.CLAMP),
   }));

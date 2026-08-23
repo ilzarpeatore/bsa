@@ -45,7 +45,7 @@ function CompositionTile({
   return (
     <Pressable
       className="rounded-md bg-card"
-      style={{ width: '47%', padding: 14, ...SHADOW.card }}
+      style={{ width: '47%', minHeight: 104, padding: 14, ...SHADOW.card }}
       onPress={onPress}
     >
       <Text size="xs" weight="medium" muted>{label}</Text>
@@ -151,15 +151,13 @@ export default function ProgressScreen(props: any) {
             ))}
           </Box>
           <Button
-            variant="outline"
-            className="rounded-sm"
-            style={{ marginTop: 14, backgroundColor: 'rgba(255,107,53,0.12)', borderColor: C.orange }}
+            radius="pill"
+            className="py-4"
+            style={{ marginTop: 14 }}
             onPress={() => props.navigation?.navigate('MigratedBodyMetrics')}
           >
-            <ButtonText style={{ fontSize: 14, fontWeight: '700', color: C.orange }}>
-              Ver todas las medidas (cintura, cadera, pecho...)
-            </ButtonText>
-            <Icon name="chevron-forward" size={16} color={C.orange} />
+            <ButtonText>Ver todas las medidas (cintura, cadera, pecho...)</ButtonText>
+            <Icon name="chevron-forward" size={18} className="text-primary-foreground" />
           </Button>
 
           {/* Constancia */}

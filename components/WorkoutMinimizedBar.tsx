@@ -7,6 +7,7 @@ import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view';
+import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { subscribeWorkoutSession, ActiveWorkoutSession } from '../helper/workoutSessionBus';
 
 interface Props {
@@ -83,7 +84,15 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
         position: 'absolute',
         left: 12,
         right: 12,
-        bottom: Math.max(insets.bottom, 12) + (Platform.OS === 'ios' ? 6 : 10),
+        // Antes se solapaba con la barra de pestañas flotante (misma zona
+        // inferior, ambas con zIndex/render alto) -- pedido explícito: el
+        // menú tiene que quedar siempre visible. Se suma TAB_BAR_CLEARANCE
+        // (el mismo hueco que ya reservan las pantallas raíz de cada
+        // pestaña) para flotar SIEMPRE por encima de donde iría la barra,
+        // aunque la pantalla actual no tenga barra (coste menor: queda un
+        // poco más alto de lo estrictamente necesario ahí, pero nunca tapa
+        // el menú cuando sí la tiene).
+        bottom: Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE + (Platform.OS === 'ios' ? 6 : 10),
         zIndex: 50,
         borderRadius: 20,
         boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',

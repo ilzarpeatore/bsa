@@ -176,6 +176,25 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   },
 
   // ---------- Etapa 3: Cuestionario de entrenamiento ----------
+  // Añadida 2026-08-23 (pedido explícito): antes no había ninguna pregunta
+  // estructurada de objetivo -- solo el texto libre `realistic_goal` más
+  // abajo, que la pantalla de resultado (assessment_result_screen.tsx) no
+  // podía usar para nada concreto. Con esto el coach recibe un dato
+  // estructurado real en vez de tener que inferirlo (o peor, que la app se
+  // lo invente con una fórmula genérica).
+  {
+    id: 'goal_type',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿Cuál es tu objetivo principal?',
+    subtitle: 'Tu coach lo usará para orientar tu plan de entrenamiento y nutrición',
+    options: [
+      { value: 'lose_fat', label: 'Perder grasa', icon: '🔥', emoji: true },
+      { value: 'gain_muscle', label: 'Ganar masa muscular', icon: '💪', emoji: true },
+      { value: 'recomposition', label: 'Recomposición corporal', icon: '⚖️', emoji: true },
+      { value: 'maintain', label: 'Mantener mi forma física', icon: '🎯', emoji: true },
+    ],
+  },
   {
     id: 'activity_level',
     stage: 'training_questionnaire',

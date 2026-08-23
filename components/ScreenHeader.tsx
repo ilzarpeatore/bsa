@@ -41,7 +41,7 @@ export default function ScreenHeader({ title, onBack, hideBack, rightAction, gla
   const insets = useSafeAreaInsets();
 
   const content = (
-    <Box className="flex-row items-center justify-between px-4" style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}>
+    <Box className="flex-row items-center justify-between px-4" style={{ paddingTop: insets.top + 4, paddingBottom: 8 }}>
       {hideBack ? (
         <Box style={{ width: SIDE_SLOT_WIDTH }} />
       ) : (

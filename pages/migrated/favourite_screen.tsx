@@ -36,7 +36,7 @@ export default function FavouriteScreen(props: FavouriteScreenProps) {
       <Box className="border-b border-border px-4" style={{ marginTop: 16 }}>
         <Box className="flex-row">
           <Pressable
-            style={{ paddingBottom: 8 }}
+            style={{ paddingTop: 12, paddingBottom: 10 }}
             className={`flex-1 items-center border-b-2 ${select ? 'border-foreground' : 'border-transparent'}`}
             onPress={() => setSelect(true)}
           >
@@ -45,7 +45,7 @@ export default function FavouriteScreen(props: FavouriteScreenProps) {
             </Text>
           </Pressable>
           <Pressable
-            style={{ paddingBottom: 8 }}
+            style={{ paddingTop: 12, paddingBottom: 10 }}
             className={`flex-1 items-center border-b-2 ${!select ? 'border-foreground' : 'border-transparent'}`}
             onPress={() => setSelect(false)}
           >
