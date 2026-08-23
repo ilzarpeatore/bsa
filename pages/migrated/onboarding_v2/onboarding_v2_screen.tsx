@@ -421,9 +421,13 @@ function QuestionInput({
     );
   }
 
-  // textarea
+  // textarea -- el componente compartido (components/ui/textarea) no fija
+  // ningún bg-* en modo claro (solo dark:bg-input/30), así que el bloque
+  // quedaba transparente, mezclándose con el fondo gris de la pantalla y
+  // distinguiéndose solo por el borde fino. Fondo blanco explícito (C.surface,
+  // ya se adapta solo a modo oscuro) para que se note como un bloque propio.
   return (
-    <Textarea className="h-auto" style={{ minHeight: 120 }}>
+    <Textarea className="h-auto" style={{ minHeight: 120, backgroundColor: C.surface }}>
       <TextareaInput
         placeholder={question.placeholder}
         value={(answers[question.id] as string | undefined) ?? ''}
