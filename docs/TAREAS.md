@@ -4,6 +4,16 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Bug real: kcalTarget de AssessmentResult ignoraba goal_type (2026-08-23)
+
+`assessment_result_screen.tsx` guardaba y mostraba el objetivo real (`goal_type`: perder grasa/ganar músculo/recomposición/mantener), pero `kcalTarget` solo calculaba mantenimiento puro (`BMR × multiplicador de actividad`) sin aplicar ningún ajuste según ese objetivo — un cliente que marcaba "Ganar masa muscular" veía exactamente las mismas kcal que uno que marcaba "Mantener mi forma física". Encontrado al confirmar con el usuario si de verdad se sumaban/restaban kcal según el objetivo.
+
+Corregido con `GOAL_KCAL_ADJUSTMENT` (déficit -20% para `lose_fat`, superávit +10% para `gain_muscle`, 0% para `recomposition`/`maintain`) aplicado sobre el TDEE antes de redondear. Ajuste conservador a propósito — la propia tarjeta ya deja claro que "tu coach ajustará estos números según tu objetivo y tu evolución real", así que solo tiene que ser una orientación razonable, no la cifra final.
+
+De paso, dos bugs de recorte de texto (mismo patrón ya documentado: Gilroy Bold/ExtraBold sin `lineHeight` explícito se recorta en iOS) en `kcalValue`/`hydrationValue`/`iconRowEmoji`, y un bug de tamaño real: el `<Text>` anidado de "plan personalizado" dentro del titular (`heroTitleAccent`) solo sobreescribía `color` — el resto de su propio `className` por defecto (`@components/ui/text`, `size="md"` → ~16px, peso regular) ganaba sobre la herencia de estilo de texto de RN, así que salía en un tamaño mucho más pequeño que el resto del titular pese a heredar (aparentemente) el mismo estilo. Corregido repitiendo `fontSize`/`fontFamily`/`lineHeight` explícitos iguales al padre.
+
+---
+
 ## ✅ Foto de perfil real en EditProfile — subida por verificar en backend (2026-08-23)
 
 `edit_profile_screen.tsx`: "Cambiar foto"/el botón de cámara no hacían nada — `pickImage()` era un stub sin implementar (`ImagePicker` comentado, nunca importado). Arreglado con el mismo patrón que ya usa `add_post_screen.tsx` (único sitio de la app con `expo-image-picker` real): `Alert.alert` con "Elegir de la galería"/"Hacer una foto", permisos (`requestMediaLibraryPermissionsAsync`/`requestCameraPermissionsAsync`) y `allowsEditing`+`aspect:[1,1]` para recortar cuadrado antes de subir.

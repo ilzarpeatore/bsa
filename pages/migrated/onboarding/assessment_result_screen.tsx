@@ -65,6 +65,22 @@ const ACTIVITY_LABEL: Record<string, string> = {
   very_active: 'muy activo',
 };
 
+// Bug real corregido (2026-08-23): el objetivo (goal_type) se guardaba y se
+// mostraba, pero el cálculo de kcalTarget nunca lo usaba -- daba siempre el
+// mantenimiento puro (BMR × actividad), sin superávit para ganar masa
+// muscular ni déficit para perder grasa. Ajuste estándar y conservador
+// (el coach lo afina de verdad después, ver cardNote de la tarjeta de
+// macros): -20% para perder grasa (ritmo sostenible, ~0.5-1 kg/semana),
+// +10% para ganar músculo (superávit moderado, evita ganar grasa de más),
+// 0% para recomposición (se apoya en reparto de macros + entrenamiento, no
+// en un superávit/déficit) y mantenimiento.
+const GOAL_KCAL_ADJUSTMENT: Record<string, number> = {
+  lose_fat: -0.2,
+  gain_muscle: 0.1,
+  recomposition: 0,
+  maintain: 0,
+};
+
 const GOAL_LABEL: Record<string, string> = {
   lose_fat: 'Perder grasa',
   gain_muscle: 'Ganar masa muscular',
@@ -133,7 +149,9 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
   const bmr = Number.isNaN(bmrFromProfile) ? mifflinStJeorBmr(weight!, height!, age!, gender) : bmrFromProfile;
 
   const activityMultiplier = ACTIVITY_MULTIPLIER[activityLevel ?? ''] ?? 1.2;
-  const kcalTarget = Math.round(bmr * activityMultiplier);
+  const tdee = bmr * activityMultiplier;
+  const goalAdjustment = GOAL_KCAL_ADJUSTMENT[goalType ?? ''] ?? 0;
+  const kcalTarget = Math.round(tdee * (1 + goalAdjustment));
   const carbsG = Math.round((kcalTarget * 0.45) / 4);
   const fatG = Math.round((kcalTarget * 0.3) / 9);
   const proteinG = Math.round((kcalTarget * 0.25) / 4);
@@ -177,7 +195,7 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
             </AnimatedRing>
             <View style={localStyles.macroCols}>
               <View style={localStyles.macroCol}>
-                <Text style={[localStyles.macroLabel, { color: C.orange }]}>Carbohidratos</Text>
+                <Text style={[localStyles.macroLabel, { color: C.orange }]}>Carbs</Text>
                 <Text style={localStyles.macroValue}>{carbsG}g</Text>
                 <Text style={localStyles.macroPct}>45%</Text>
               </View>
@@ -363,7 +381,14 @@ const localStyles = StyleSheet.create({
   },
   heroGreeting: { fontFamily: FONT.regular, fontSize: 15, color: C.gray50, marginBottom: 10, textAlign: 'center' },
   heroTitle: { fontFamily: FONT.bold, fontSize: 26, lineHeight: 33, color: C.textPrimary, textAlign: 'center' },
-  heroTitleAccent: { color: C.orange },
+  // El <Text> compartido (components/ui/text) aplica sus propios defaults
+  // (size="md" -> ~16px, weight="regular") vía className siempre que no se
+  // le pasen esas props -- al anidarlo dentro de heroTitle solo heredaba el
+  // color (única propiedad que este style sobreescribía), el resto de su
+  // propio className (tamaño/peso más pequeños) ganaba por encima de la
+  // herencia de texto de RN. Repetir aquí fontSize/fontFamily/lineHeight
+  // explícitos iguales a heroTitle es lo que de verdad iguala el tamaño.
+  heroTitleAccent: { color: C.orange, fontSize: 26, lineHeight: 33, fontFamily: FONT.bold },
   goalChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -377,25 +402,31 @@ const localStyles = StyleSheet.create({
   goalChipEmoji: { fontSize: 18 },
   goalChipText: { fontFamily: FONT.semiBold, fontSize: 14, color: C.orange },
   card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 16 },
-  cardTitle: { fontFamily: FONT.bold, fontSize: 18, color: C.textPrimary, marginBottom: 18 },
+  cardTitle: { fontFamily: FONT.bold, fontSize: 18, lineHeight: 23, color: C.textPrimary, marginBottom: 18 },
   cardNote: { fontFamily: FONT.regular, fontSize: 12.5, color: C.gray50, marginTop: 14 },
   macrosRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  kcalValue: { fontFamily: FONT.bold, fontSize: 24, color: C.textPrimary, textAlign: 'center' },
+  // Gilroy Bold/ExtraBold/Black sin lineHeight explícito se recorta en iOS
+  // (bug ya documentado y barrido en otras pantallas esta sesión) -- 2012 y
+  // el ml de hidratación son justo ese patrón: números grandes en negrita
+  // sin lineHeight.
+  kcalValue: { fontFamily: FONT.bold, fontSize: 24, lineHeight: 30, color: C.textPrimary, textAlign: 'center' },
   kcalUnit: { fontFamily: FONT.regular, fontSize: 12, color: C.gray50, textAlign: 'center' },
   macroCols: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   macroCol: { flex: 1, alignItems: 'flex-start' },
   macroDivider: { width: 1, height: 44, backgroundColor: C.border, marginHorizontal: 8 },
   macroLabel: { fontFamily: FONT.semiBold, fontSize: 12.5, marginBottom: 4 },
-  macroValue: { fontFamily: FONT.bold, fontSize: 16, color: C.textPrimary },
+  macroValue: { fontFamily: FONT.bold, fontSize: 16, lineHeight: 20, color: C.textPrimary },
   macroPct: { fontFamily: FONT.regular, fontSize: 12, color: C.gray50, marginTop: 2 },
   iconRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8 },
-  iconRowEmoji: { fontSize: 22, width: 28, textAlign: 'center' },
+  // Mismo bug de recorte -- también afecta a emojis (glifos altos como
+  // 🧑‍🏫 se cortan sin lineHeight, no solo texto Gilroy).
+  iconRowEmoji: { fontSize: 22, lineHeight: 28, width: 28, textAlign: 'center' },
   iconRowText: { flex: 1, fontFamily: FONT.medium, fontSize: 14.5, color: C.textPrimary },
   iconRowTitle: { fontFamily: FONT.semiBold, fontSize: 14.5, color: C.textPrimary },
   iconRowSubtitle: { fontFamily: FONT.regular, fontSize: 12.5, color: C.gray50, marginTop: 2 },
   hydrationRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  hydrationEmoji: { fontSize: 26, marginRight: 4 },
-  hydrationValue: { fontFamily: FONT.bold, fontSize: 26, color: C.textPrimary },
+  hydrationEmoji: { fontSize: 26, lineHeight: 32, marginRight: 4 },
+  hydrationValue: { fontFamily: FONT.bold, fontSize: 26, lineHeight: 32, color: C.textPrimary },
   hydrationUnit: { fontFamily: FONT.regular, fontSize: 14, color: C.gray50, marginBottom: 3 },
   mealsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
   mealItem: { alignItems: 'center', gap: 8 },
