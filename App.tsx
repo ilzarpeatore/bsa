@@ -8,6 +8,7 @@ import { DefaultTheme, NavigationContainer, createNavigationContainerRef, getFoc
 // Herramienta temporal de desarrollo (ver components/ScreenReviewFab.tsx) —
 // borrar este import + el ref + el mount del FAB mas abajo cuando ya no haga falta.
 import ScreenReviewFab from "@components/ScreenReviewFab";
+import ScreenExplorerFab from "@components/ScreenExplorerFab";
 import WorkoutMinimizedBar from "@components/WorkoutMinimizedBar";
 import TutorialOverlay from "@components/tutorial/TutorialOverlay";
 import { TutorialProvider } from "@store/TutorialContext";
@@ -180,18 +181,17 @@ const Tab = createBottomTabNavigator();
 // nombre de pantalla actualmente enfocado DENTRO del stack anidado
 // (getFocusedRouteNameFromRoute) y solo muestra la barra cuando esa
 // pantalla enfocada es la raíz de la propia pestaña.
-// Rediseño de la barra (2026-08-23, pedido explícito): las 4 pestañas dejan
-// de ser Inicio/Buscar/Comunidad/Perfil -- pasan a ser los 4 accesos
-// principales del día a día (Plan diario, Nutrición, Hábitos, Perfil).
-// Buscar/Comunidad/Blog/Métricas/Check-ins se mueven al menú "+" de accesos
-// rápidos (ver QUICK_ACTIONS en NavigationTab.tsx), junto con Home v2 (ya
-// no es raíz de ninguna pestaña, pero sigue siendo una pantalla más dentro
-// del stack compartido MigratedNavigator).
+// Segundo rediseño de la barra (2026-08-23, pedido explícito): Home v2
+// había quedado inalcanzable desde el rediseño anterior (ya no era raíz de
+// ninguna pestaña, solo llegable navegando a mano) -- vuelve a serlo, como
+// "Inicio", sustituyendo a Perfil en la barra fija. Perfil pasa al menú "+"
+// de accesos rápidos (ver QUICK_ACTIONS en NavigationTab.tsx), junto con
+// Blog/Comunidad/Métricas/Check-ins.
 const TAB_ROOT_SCREEN: Record<string, string> = {
+  InicioTab: "MigratedHomeModernV2",
   PlanDiarioTab: "MigratedMyProgramCalendar",
   NutritionTab: "MigratedPlan",
   HabitsTab: "MigratedHabits",
-  ProfileTab: "MigratedProfile",
 };
 
 function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: IoniconName, label: string) {
@@ -208,7 +208,7 @@ function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: IoniconNa
 function Homenavigator() {
   return (
     <Tab.Navigator
-      initialRouteName="PlanDiarioTab"
+      initialRouteName="InicioTab"
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <NavigationTab {...props} />}
       backBehavior="order"
@@ -217,10 +217,16 @@ function Homenavigator() {
           con las ~100 pantallas migradas) para no duplicar rutas -- solo
           cambia la pantalla inicial de cada una via initialParams.initialScreen. */}
       <Tab.Screen
+        name="InicioTab"
+        component={MigratedNavigator}
+        initialParams={{ initialScreen: "MigratedHomeModernV2" }}
+        options={tabScreenOptions("InicioTab", "home-outline", "Inicio")}
+      />
+      <Tab.Screen
         name="PlanDiarioTab"
         component={MigratedNavigator}
         initialParams={{ initialScreen: "MigratedMyProgramCalendar" }}
-        options={tabScreenOptions("PlanDiarioTab", "calendar-outline", "Plan diario")}
+        options={tabScreenOptions("PlanDiarioTab", "calendar-outline", "Plan del día")}
       />
       <Tab.Screen
         name="NutritionTab"
@@ -233,12 +239,6 @@ function Homenavigator() {
         component={MigratedNavigator}
         initialParams={{ initialScreen: "MigratedHabits" }}
         options={tabScreenOptions("HabitsTab", "flame-outline", "Hábitos")}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={MigratedNavigator}
-        initialParams={{ initialScreen: "MigratedProfile" }}
-        options={tabScreenOptions("ProfileTab", "person-outline", "Perfil")}
       />
     </Tab.Navigator>
   );
@@ -495,6 +495,7 @@ export default function App() {
                 <RootNavigator />
               </NavigationContainer>
               <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
+              <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
               <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
               <TutorialOverlay />
             </TutorialProvider>

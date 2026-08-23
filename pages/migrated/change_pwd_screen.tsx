@@ -9,7 +9,7 @@ import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import { authApi } from '@api/auth';
-import { C } from './theme';
+import { C, FONT } from './theme';
 
 export default function ChangePwdScreen({ navigation }: any) {
 
@@ -31,19 +31,19 @@ export default function ChangePwdScreen({ navigation }: any) {
   const changePwd = async () => {
     Keyboard.dismiss();
     if (!oldPassword.trim()) {
-      Alert.alert('Error', 'Please enter your current password');
+      Alert.alert('Error', 'Introduce tu contraseña actual');
       return;
     }
     if (!newPassword.trim()) {
-      Alert.alert('Error', 'Please enter a new password');
+      Alert.alert('Error', 'Introduce una contraseña nueva');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
       return;
     }
     if (newPassword.trim() !== confirmPassword.trim()) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
 
@@ -51,85 +51,101 @@ export default function ChangePwdScreen({ navigation }: any) {
     try {
       await authApi.changePassword({ old_password: oldPassword.trim(), new_password: newPassword.trim() });
       setLoading(false);
-      Alert.alert('Success', 'Password changed successfully');
+      Alert.alert('Listo', 'Contraseña cambiada correctamente');
       navigation.goBack();
     } catch (e: any) {
       setLoading(false);
-      Alert.alert('Error', e?.message ?? 'Failed to change password');
+      Alert.alert('Error', e?.message ?? 'No se pudo cambiar la contraseña');
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
-      <ScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
+      <ScreenHeader title="Cambiar contraseña" onBack={() => navigation.goBack()} />
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 20 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text size="sm" muted style={{ marginBottom: 24 }}>
-          Please enter your current password and choose a new password.
+        <Text size="sm" muted style={{ marginBottom: 20 }}>
+          Introduce tu contraseña actual y elige una contraseña nueva.
         </Text>
 
-        {/* Current password */}
-        <Text weight="semibold" size="sm" style={{ marginBottom: 6 }}>Current Password</Text>
-        <Input className="rounded-sm">
-          <InputField
-            placeholder="Enter current password"
-            value={oldPassword}
-            onChangeText={setOldPassword}
-            secureTextEntry={oldSecure}
-            returnKeyType="next"
-            onSubmitEditing={() => newPasswordRef.current?.focus()}
-          />
-          <InputSlot className="px-3" onPress={() => setOldSecure(!oldSecure)}>
-            <Icon name={oldSecure ? 'eye-off-outline' : 'eye-outline'} size={18} className="text-muted-foreground" />
-          </InputSlot>
-        </Input>
+        {/* Campos agrupados en una sola tarjeta con separadores -- mismo
+            patrón de lista que edit_profile_screen.tsx/profile_screen.tsx. */}
+        <Box style={localStyles.card}>
+          <Box style={localStyles.row}>
+            <Text style={localStyles.label}>Contraseña actual</Text>
+            <Input style={localStyles.input}>
+              <InputField
+                className="text-sm"
+                style={{ color: C.textPrimary }}
+                placeholder="Introduce tu contraseña actual"
+                placeholderTextColor={C.gray40}
+                value={oldPassword}
+                onChangeText={setOldPassword}
+                secureTextEntry={oldSecure}
+                returnKeyType="next"
+                onSubmitEditing={() => newPasswordRef.current?.focus()}
+              />
+              <InputSlot className="pr-1" onPress={() => setOldSecure(!oldSecure)}>
+                <Icon name={oldSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+              </InputSlot>
+            </Input>
+          </Box>
 
-        {/* New password */}
-        <Text weight="semibold" size="sm" style={{ marginTop: 16, marginBottom: 6 }}>New Password</Text>
-        <Input className="rounded-sm">
-          <InputField
-            ref={newPasswordRef}
-            placeholder="Enter new password"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry={newSecure}
-            returnKeyType="next"
-            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-          />
-          <InputSlot className="px-3" onPress={() => setNewSecure(!newSecure)}>
-            <Icon name={newSecure ? 'eye-off-outline' : 'eye-outline'} size={18} className="text-muted-foreground" />
-          </InputSlot>
-        </Input>
+          <Box style={localStyles.row}>
+            <Text style={localStyles.label}>Contraseña nueva</Text>
+            <Input style={localStyles.input}>
+              <InputField
+                ref={newPasswordRef}
+                className="text-sm"
+                style={{ color: C.textPrimary }}
+                placeholder="Introduce tu contraseña nueva"
+                placeholderTextColor={C.gray40}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={newSecure}
+                returnKeyType="next"
+                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              />
+              <InputSlot className="pr-1" onPress={() => setNewSecure(!newSecure)}>
+                <Icon name={newSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+              </InputSlot>
+            </Input>
+          </Box>
 
-        {/* Confirm password */}
-        <Text weight="semibold" size="sm" style={{ marginTop: 16, marginBottom: 6 }}>Confirm Password</Text>
-        <Input className="rounded-sm">
-          <InputField
-            ref={confirmPasswordRef}
-            placeholder="Enter confirm password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={confirmSecure}
-            returnKeyType="done"
-            onSubmitEditing={changePwd}
-          />
-          <InputSlot className="px-3" onPress={() => setConfirmSecure(!confirmSecure)}>
-            <Icon name={confirmSecure ? 'eye-off-outline' : 'eye-outline'} size={18} className="text-muted-foreground" />
-          </InputSlot>
-        </Input>
+          <Box style={[localStyles.row, localStyles.rowLast]}>
+            <Text style={localStyles.label}>Confirmar contraseña</Text>
+            <Input style={localStyles.input}>
+              <InputField
+                ref={confirmPasswordRef}
+                className="text-sm"
+                style={{ color: C.textPrimary }}
+                placeholder="Confirma tu contraseña nueva"
+                placeholderTextColor={C.gray40}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={confirmSecure}
+                returnKeyType="done"
+                onSubmitEditing={changePwd}
+              />
+              <InputSlot className="pr-1" onPress={() => setConfirmSecure(!confirmSecure)}>
+                <Icon name={confirmSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+              </InputSlot>
+            </Input>
+          </Box>
+        </Box>
 
         {confirmPassword.length > 0 && confirmPassword !== newPassword && (
-          <Text size="xs" className="text-destructive" style={{ marginTop: 6 }}>Passwords do not match</Text>
+          <Text size="xs" className="text-destructive" style={{ marginTop: 8, marginLeft: 4 }}>Las contraseñas no coinciden</Text>
         )}
 
         {/* Submit */}
         <Button onPress={changePwd} className="w-full" style={{ marginTop: 24 }}>
-          <ButtonText>Submit</ButtonText>
+          <ButtonText>Guardar</ButtonText>
         </Button>
       </ScrollView>
 
@@ -144,3 +160,30 @@ export default function ChangePwdScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  card: {
+    backgroundColor: C.gray80,
+    borderRadius: 16,
+  },
+  row: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
+  },
+  label: {
+    fontFamily: FONT.medium,
+    fontSize: 13,
+    color: C.textSecondary,
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 0,
+    height: 26,
+    backgroundColor: 'transparent',
+  },
+});

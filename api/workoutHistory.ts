@@ -177,6 +177,23 @@ export const workoutHistoryApi = {
   getMyCalendarDayDetail: (programDayAssignmentId: number) =>
     apiClient.get<{ data: CalendarDayDetail }>('v1/my-calendar-day-detail', { params: { program_day_assignment_id: programDayAssignmentId } }),
 
+  // Mover entrenamientos ya asignados a otro día DENTRO de la misma semana en
+  // curso -- aplicado directamente, sin pasar por aprobación del coach
+  // (pedido explícito 2026-08-23: hasta ahora "reorganizar tu semana" solo
+  // creaba una propuesta vía adaptiveWeekPlansApi.requestReorder, que el
+  // calendario real no reflejaba hasta que el coach la aprobaba -- se quería
+  // el cambio al instante). Distinto del flujo adaptive-week-plans, que
+  // sigue existiendo tal cual para "marcar días no disponibles".
+  // TODO backend (fuera de este repo, ver docs/TAREAS.md): implementar
+  // POST v1/my-calendar-move-assignments -- valida que todos los
+  // assignment_id pertenezcan al cliente autenticado y que to_date caiga
+  // dentro de la misma semana ISO que la fecha actual del assignment, y
+  // actualiza ProgramDayAssignment.date directamente (sin AdaptiveWeekPlan).
+  moveCalendarAssignments: (moves: { assignmentId: number; toDate: string }[]) =>
+    apiClient.post<ApiMessageResponse>('v1/my-calendar-move-assignments', {
+      moves: moves.map((m) => ({ assignment_id: m.assignmentId, to_date: m.toDate })),
+    }),
+
   logCalendarSets: (payload: {
     // Uno de los dos es obligatorio: workout_template_exercise_id para
     // ejercicios prescritos por el coach, exercise_id para ejercicios

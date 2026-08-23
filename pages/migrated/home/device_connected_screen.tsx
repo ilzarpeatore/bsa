@@ -29,7 +29,7 @@ export default function DeviceConnectedScreen({ navigation, route }: any) {
         <Button
           size="lg"
           className="px-12"
-          onPress={() => navigation.navigate("Home", { screen: "PlanDiarioTab" })}
+          onPress={() => navigation.navigate("Home", { screen: "InicioTab" })}
         >
           <ButtonText>Volver al inicio</ButtonText>
         </Button>

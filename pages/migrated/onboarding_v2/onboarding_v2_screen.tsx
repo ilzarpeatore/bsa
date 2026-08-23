@@ -163,12 +163,17 @@ export default function OnboardingV2Screen({ navigation }: any) {
       setSubmitting(false);
     }
     if (isLastQuestion) {
+      // Se pasan las respuestas por params en vez de depender de que la
+      // screen de resultado las relea de AsyncStorage -- se borran justo
+      // antes de navegar (una fila más abajo), así que para cuando esa
+      // pantalla montase ya no estarían disponibles ahí.
+      const finalAnswers = answers;
       await AsyncStorage.removeItem(ANSWERS_STORAGE_KEY).catch(() => {});
-      navigation.replace('MigratedAssessmentResult');
+      navigation.replace('MigratedAssessmentResult', { answers: finalAnswers });
       return;
     }
     setQuestionIndex((i) => i + 1);
-  }, [isLastOfStage, isLastQuestion, question.stage, submitStage, navigation]);
+  }, [isLastOfStage, isLastQuestion, question.stage, submitStage, navigation, answers]);
 
   const handleBack = useCallback(() => {
     if (questionIndex === 0) {

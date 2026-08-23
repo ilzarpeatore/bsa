@@ -47,10 +47,12 @@ interface QuickAction {
   params?: Record<string, any>;
 }
 
-// Rediseño 2026-08-23 (pedido explícito): la barra pasa a tener solo 4
-// pestañas fijas (Plan diario/Nutrición/Hábitos/Perfil, ver App.tsx
-// Homenavigator) -- Blog/Comunidad/Métricas/Check-ins viven aquí, en el "+".
+// Segundo rediseño 2026-08-23 (pedido explícito): Home v2 vuelve a la barra
+// fija como "Inicio" (sustituyendo a Perfil, que pasaba desapercibido ahí
+// -- ver App.tsx Homenavigator), así que Perfil se muda aquí, al "+", junto
+// a Blog/Comunidad/Métricas/Check-ins.
 const QUICK_ACTIONS: QuickAction[] = [
+  { id: "profile", label: "Perfil", icon: "person-outline", route: "MigratedProfile" },
   { id: "blog", label: "Blog", icon: "newspaper-outline", route: "MigratedBlog" },
   { id: "community", label: "Comunidad", icon: "people-outline", route: "MigratedCommunity" },
   { id: "metrics", label: "Métricas", icon: "body-outline", route: "MigratedBodyMetrics" },

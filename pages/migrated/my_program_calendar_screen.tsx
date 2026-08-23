@@ -388,14 +388,14 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   const submitReorder = async () => {
     if (pendingMoves.size === 0) return;
     setSubmittingReorder(true);
-    // Siempre la semana en curso real -- no depender de weekAnchor, que
-    // solo se actualiza navegando en vista Semana y puede no reflejar la
-    // semana actual si el reorder se inició desde Mes o Lista.
-    const weekStartKey = toDateKey(startOfWeekMonday(today));
+    // Cambio directo, sin aprobación del coach (pedido explícito
+    // 2026-08-23) -- antes esto creaba una propuesta vía
+    // adaptiveWeekPlansApi.requestReorder que el calendario real no
+    // reflejaba hasta que el coach la aprobaba. Ahora aplica el movimiento
+    // al instante y recarga el mes para ver el resultado real.
     let ok = false;
     try {
-      await adaptiveWeekPlansApi.requestReorder(
-        weekStartKey,
+      await workoutHistoryApi.moveCalendarAssignments(
         Array.from(pendingMoves, ([assignmentId, m]) => ({ assignmentId, toDate: m.toDate }))
       );
       ok = true;
@@ -407,14 +407,14 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     const count = pendingMoves.size;
     cancelReorderMode();
     if (ok) {
+      const [yearStr, monthStr] = ym.split('-');
+      getData(Number(monthStr), Number(yearStr), ym);
       Alert.alert(
-        'Solicitud enviada',
-        count > 1
-          ? `Se propusieron ${count} cambios de día. Tu entrenador los revisará antes de aplicarlos.`
-          : 'Tu entrenador revisará el cambio antes de aplicarlo a tu calendario.'
+        'Guardado',
+        count > 1 ? `Se movieron ${count} entrenamientos de día.` : 'Se movió el entrenamiento de día.'
       );
     } else {
-      Alert.alert('No se pudo enviar', 'Inténtalo de nuevo en unos minutos.');
+      Alert.alert('No se pudo guardar', 'Inténtalo de nuevo en unos minutos.');
     }
   };
 
@@ -1095,7 +1095,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             {submittingReorder ? (
               <Spinner size="small" color="#FFFFFF" />
             ) : (
-              <ButtonText style={styles.unavailableSubmitText}>Enviar cambios</ButtonText>
+              <ButtonText style={styles.unavailableSubmitText}>Guardar cambios</ButtonText>
             )}
           </Button>
         </HStack>

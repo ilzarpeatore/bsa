@@ -4,6 +4,38 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Rediseño completo de "tu plan está listo" tras el onboarding (2026-08-23)
+
+`assessment_result_screen.tsx` (`MigratedAssessmentResult`, a donde navega `onboarding_v2_screen.tsx` justo al terminar las 36 preguntas) era un resumen muy básico de IMC/BMR. Petición del usuario, con 3 capturas de referencia: pantalla completa "tu plan está listo" con objetivo de peso, kcal/macros, hidratación y comidas.
+
+- **Dato real cableado, no inventado**: `onboarding_v2_screen.tsx` ahora pasa `route.params.answers` (las respuestas en crudo) al navegar aquí — antes se perdían porque `AsyncStorage.removeItem` se llamaba justo antes del `navigation.replace` sin haberlas leído en ningún sitio. BMR y peso ideal usan `user_profile.bmr`/`user_profile.ideal_weight` (ya calculados en el backend, Mifflin-St Jeor + Devine) con fallback a las mismas fórmulas calculadas en cliente si por lo que sea no llegaron todavía. Objetivo calórico = BMR × multiplicador de actividad estándar (Harris-Benedict) según la respuesta real de `activity_level`. Macros = split fijo 45/30/25 (carbos/grasas/proteína, mismo que la referencia) sobre ese objetivo calórico real. Hidratación = 30 ml/kg (fórmula estándar) sobre el peso real.
+- **Sí es ilustrativo, a propósito**: las 3 fotos de comida (Desayuno/Almuerzo/Cena) — todavía no existe un plan de comidas real generado en este punto del alta, así que son fotos de stock (LoremFlickr, sin API key, mismo criterio que las imágenes de workouts/recursos de Home v2 de esta misma sesión).
+- **Deliberadamente NO incluido**: la sección "Amado por nuestros usuarios" (testimonios) de la referencia — habría requerido inventar nombres/fotos/citas de usuarios falsos.
+- Pendiente real, no bloqueante: no hay pregunta de "peso objetivo"/"fecha objetivo" en las 36 preguntas del onboarding — la meta se infiere del peso ideal calculado (Devine) y un ritmo semanal estándar (0,4 kg/semana). Si en el futuro se añade una pregunta explícita de objetivo, sustituir ese cálculo por la respuesta real.
+
+---
+
+## 🔲 Reorganizar semana en MyProgramCalendar — cambio directo, pendiente de backend (2026-08-23)
+
+Petición del usuario: reportó que arrastrar un entrenamiento a otro día "no guarda el cambio, se queda en su día asignado". No era un bug — por diseño, "Reorganiza tu semana" (`reorderMode` en `my_program_calendar_screen.tsx`) solo creaba una **propuesta** (`adaptiveWeekPlansApi.requestReorder`, mismo criterio "siempre propuesto" que el resto del motor de auto-regulación de carga) que requería aprobación del coach antes de reflejarse en el calendario real. Preguntado explícitamente, el usuario prefiere que el cambio se aplique **al instante, sin aprobación**.
+
+- **Frontend ya cableado**: `submitReorder()` ahora llama a `workoutHistoryApi.moveCalendarAssignments()` (nuevo método, `api/workoutHistory.ts`) en vez de `adaptiveWeekPlansApi.requestReorder()`, y recarga el mes (`getData()`) al terminar para reflejar el resultado real. Copys actualizados ("Guardar cambios" en vez de "Enviar cambios", sin mención a revisión del entrenador).
+- **Pendiente real, backend (VPS, fuera de este repo)**: implementar `POST v1/my-calendar-move-assignments` — payload `{ moves: [{ assignment_id, to_date }] }`, valida que cada `assignment_id` pertenezca al cliente autenticado y que `to_date` caiga dentro de la misma semana ISO que la fecha actual de ese `ProgramDayAssignment`, y actualiza `ProgramDayAssignment.date` directamente (sin crear ningún `AdaptiveWeekPlan`, a diferencia de `request-reorder`). Hasta que exista, "Guardar cambios" fallará con el alert "No se pudo guardar" (llamada a un endpoint que todavía no existe).
+- El flujo separado "Marca los días" (`selectionMode`, marcar días no disponibles) **no se tocó** — sigue yendo por aprobación del coach vía `adaptiveWeekPlansApi.requestUnavailable`, el usuario solo pidió cambiar el de reorganizar.
+
+---
+
+## ✅ Segundo rediseño de la barra de pestañas — Home v2 vuelve como "Inicio" (2026-08-23)
+
+El primer rediseño de la barra (mismo día, entrada anterior en el historial de commits) dejó Home v2 sin ser raíz de ninguna pestaña — solo llegable navegando a mano, en la práctica inalcanzable para un usuario normal. Petición explícita: la barra debe ser **Inicio (Home v2) / Plan del día / Nutrición / Hábitos**.
+
+- **`App.tsx`**: `TAB_ROOT_SCREEN` y `Homenavigator()` — `ProfileTab` (`MigratedProfile`) sustituido por `InicioTab` (`MigratedHomeModernV2`), primero en el orden e `initialRouteName` de `Tab.Navigator`. Pestaña "Plan diario" renombrada a "Plan del día" (mismo route `PlanDiarioTab`/`MigratedMyProgramCalendar`, solo cambia la etiqueta visible).
+- **`components/NavigationTab.tsx`**: Perfil se muda al menú "+" de accesos rápidos (`QUICK_ACTIONS`, ahora 5 items: Perfil/Blog/Comunidad/Métricas/Check-ins) — mismo criterio que ya se aplicó ahí con Blog/Comunidad/Métricas/Check-ins en el rediseño anterior.
+- **Botón flotante de Screen Explorer, ahora global**: vivía solo en `home_screen_modern_v2.tsx`, lo que lo volvía a dejar inalcanzable en cuanto Home v2 no era la pantalla activa. Extraído a `components/ScreenExplorerFab.tsx` y montado en `App.tsx` como hermano de `NavigationContainer` (mismo patrón que `ScreenReviewFab`/`WorkoutMinimizedBar`, usando el `navigationRef` compartido en vez del prop `navigation` de una pantalla concreta) — visible en cualquier pantalla de la app, no solo Home v2.
+- `pages/migrated/home/device_connected_screen.tsx`: el botón "Volver al inicio" apuntaba a `PlanDiarioTab` (parche del rediseño anterior, cuando esa era la única pestaña "de entrada"); corregido a `InicioTab`, semánticamente correcto ahora que existe una pestaña Inicio real.
+
+---
+
 ## 🔲 Recursos — imagen por recurso (`image_url`), pendiente de backend (2026-08-23)
 
 La sección "Recursos" de Home v2 (`pages/migrated/home_screen_modern_v2.tsx`) mostraba cada recurso (artículo/vídeo/link/doc) como un icono sobre fondo de color plano — no hay ningún campo de imagen en `resources` hoy. Petición del usuario: previsualizar cómo quedarían las tarjetas con imagen real.
