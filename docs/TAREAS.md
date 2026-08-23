@@ -4,6 +4,16 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## 🔲 Reorganizar semana en MyProgramCalendar — cambio directo, pendiente de backend (2026-08-23)
+
+Petición del usuario: reportó que arrastrar un entrenamiento a otro día "no guarda el cambio, se queda en su día asignado". No era un bug — por diseño, "Reorganiza tu semana" (`reorderMode` en `my_program_calendar_screen.tsx`) solo creaba una **propuesta** (`adaptiveWeekPlansApi.requestReorder`, mismo criterio "siempre propuesto" que el resto del motor de auto-regulación de carga) que requería aprobación del coach antes de reflejarse en el calendario real. Preguntado explícitamente, el usuario prefiere que el cambio se aplique **al instante, sin aprobación**.
+
+- **Frontend ya cableado**: `submitReorder()` ahora llama a `workoutHistoryApi.moveCalendarAssignments()` (nuevo método, `api/workoutHistory.ts`) en vez de `adaptiveWeekPlansApi.requestReorder()`, y recarga el mes (`getData()`) al terminar para reflejar el resultado real. Copys actualizados ("Guardar cambios" en vez de "Enviar cambios", sin mención a revisión del entrenador).
+- **Pendiente real, backend (VPS, fuera de este repo)**: implementar `POST v1/my-calendar-move-assignments` — payload `{ moves: [{ assignment_id, to_date }] }`, valida que cada `assignment_id` pertenezca al cliente autenticado y que `to_date` caiga dentro de la misma semana ISO que la fecha actual de ese `ProgramDayAssignment`, y actualiza `ProgramDayAssignment.date` directamente (sin crear ningún `AdaptiveWeekPlan`, a diferencia de `request-reorder`). Hasta que exista, "Guardar cambios" fallará con el alert "No se pudo guardar" (llamada a un endpoint que todavía no existe).
+- El flujo separado "Marca los días" (`selectionMode`, marcar días no disponibles) **no se tocó** — sigue yendo por aprobación del coach vía `adaptiveWeekPlansApi.requestUnavailable`, el usuario solo pidió cambiar el de reorganizar.
+
+---
+
 ## ✅ Segundo rediseño de la barra de pestañas — Home v2 vuelve como "Inicio" (2026-08-23)
 
 El primer rediseño de la barra (mismo día, entrada anterior en el historial de commits) dejó Home v2 sin ser raíz de ninguna pestaña — solo llegable navegando a mano, en la práctica inalcanzable para un usuario normal. Petición explícita: la barra debe ser **Inicio (Home v2) / Plan del día / Nutrición / Hábitos**.
