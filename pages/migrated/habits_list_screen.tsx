@@ -199,7 +199,7 @@ export default function HabitsListScreen(props: Props) {
           </Button>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
           {totalStreakDays > 0 && (
             <Box
               className="flex-row items-center rounded-md"
