@@ -4,6 +4,24 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ Tutorial guiado encadenado + explicación por métrica en "Registra tu primera serie" — falta un workout demo para usuarios nuevos (2026-08-23)
+
+Pedido explícito, sobre el mismo tutorial ya arreglado antes en esta sesión (ver más abajo "Arregla el tutorial guiado"): el reto "Registra tu primera serie" no respondía al tocarlo desde la lista. Causa real: `startChallenge('log-first-set')` activaba el reto sin comprobar que su target (`workout-session-first-set-toggle`) existiera en algún sitio alcanzable -- si el usuario no estaba ya dentro de una sesión de entrenamiento en curso, `TutorialOverlay` no mostraba nada y no había ninguna navegación que lo llevara hasta ahí. Corregido con 3 piezas, todas en frontend:
+
+1. **Encadenado entre retos** (`TutorialChallenge.nextChallengeId`, nuevo campo): al completar "Accede a tu entrenamiento de hoy" (llega a `MigratedWorkoutPreview`), arranca automáticamente "Registra tu primera serie" en vez de devolver al usuario a la lista de retos.
+2. **Nuevo primer paso** en "Registra tu primera serie": apunta al botón "INICIAR ENTRENAMIENTO" de `workout_preview_screen.tsx` (nuevo `<TutorialTarget id="workout-preview-start-button">`), con `completion: navigate MigratedWorkoutSession` -- así el reto lleva de verdad hasta dentro de la sesión antes de pedir nada más.
+3. **Explicación campo a campo**: 4 pasos nuevos, uno por métrica (reps/descanso/rir/rpe), cada uno con su propio texto explicativo, apuntando a la celda correspondiente de la primera fila del primer ejercicio (`workout-session-metric-<key>`, nuevos `<TutorialTarget>` en `workout_session_screen.tsx`, con `onFocus` disparando `reportAction('metric_focus_<key>')`). Termina con el paso ya existente (marcar la serie con el círculo ✓).
+
+**Bug real evitado con `skippable` (nuevo campo en `TutorialStep`)**: qué métricas están habilitadas por ejercicio (`enabledMetrics`) lo decide el coach al configurar el `WorkoutTemplateExercise` en el backend -- varía de un entrenamiento a otro, así que un ejercicio real puede no tener, por ejemplo, RPE configurado. Sin nada más, ese paso se habría quedado esperando para siempre un elemento que nunca se registra. Los 4 pasos de métricas llevan `skippable: true`: si el target no aparece en 2.5s (ya con la pantalla correcta abierta, porque el paso anterior ya navegó ahí de verdad), `TutorialContext` avanza solo al siguiente paso. Los pasos "siempre presentes" (tocar la tarjeta, pulsar iniciar entrenamiento, marcar la serie) no lo llevan -- esos si tienen que ocurrir de verdad.
+
+**Pendiente real de backend, fuera de alcance en esta sesión (sin repo del backend ni acceso SSH/VPS adjuntos aquí)**: el usuario pidió que un usuario **nuevo, sin ningún entrenamiento asignado todavía**, tenga automáticamente un **workout de demostración** asignado al registrarse, precisamente para que este tutorial (y el resto de la app) tengan algo real que mostrar desde el primer día. Sin esto, un usuario nuevo simplemente no ve la tarjeta "Tu entrenamiento de hoy" en absoluto (nada que tocar, el primer paso del reto "Accede a tu entrenamiento de hoy" nunca encuentra su target) -- comportamiento correcto dado el estado actual, pero deja el tutorial inutilizable para cualquiera que no tenga ya un coach real asignándole entrenamientos. Contrato sugerido para quien lo retome:
+
+- Un `WorkoutTemplate` real "demo" (con sus `WorkoutTemplateExercise`, ejercicios de ejemplo) sembrado una vez en la base de datos.
+- Al completarse el registro (`RegisterController` o el evento que corresponda), si el usuario no tiene ningún `ProgramDayAssignment`/entrenamiento real todavía, crear una asignación de ese workout demo para "hoy" -- mismo mecanismo que ya usa el calendario real (`ProgramDayAssignment`), no una tabla ni un tipo de dato nuevo.
+- Aunque `skippable` hace que el tutorial no se rompa si faltan métricas, lo ideal es que ese workout demo configure exactamente `reps`/`descanso`/`rir`/`rpe` en su primer ejercicio, para que se expliquen las 4 en vez de saltarse alguna.
+
+---
+
 ## ✅ Eliminada la pantalla "¡Todo listo!" tras el onboarding (2026-08-23)
 
 Pedido explícito: `onboarding_complete_screen.tsx` (`MigratedOnboardingComplete`, la pantalla con trofeo/confeti y checklist "Perfil completado/Plan seleccionado/Objetivos definidos" que salía justo después de `MigratedAssessmentResult`) era un paso intermedio innecesario. Borrada:

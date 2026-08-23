@@ -74,6 +74,12 @@ export function TutorialProvider({
           persist(next);
           return next;
         });
+        // Encadenado (pedido explícito): si este reto define nextChallengeId,
+        // el siguiente arranca ya mismo en vez de volver a la lista -- el
+        // usuario sigue dentro del flujo real (ver "access-workout" ->
+        // "log-first-set").
+        const finished = TUTORIAL_CHALLENGES.find((c) => c.id === prevId);
+        if (finished?.nextChallengeId) return finished.nextChallengeId;
       }
       return null;
     });
@@ -125,6 +131,19 @@ export function TutorialProvider({
       setActiveStepIndex(nextIndex);
     }
   }, [activeChallenge, activeStepIndex, endChallenge]);
+
+  // Pasos "skippable" (ver constants/tutorialChallenges.ts) apuntan a una
+  // métrica concreta (reps/descanso/rir/rpe) que el coach puede no haber
+  // configurado en ESTE ejercicio -- sin esto, el tutorial se quedaría
+  // esperando para siempre un elemento que nunca va a registrarse. Si el
+  // target no aparece en un tiempo razonable (ya dentro de la pantalla
+  // correcta, dado que el paso anterior ya navegó ahí de verdad), se asume
+  // que ese ejercicio no usa esa métrica y se avanza solo al siguiente paso.
+  useEffect(() => {
+    if (!activeStep?.skippable || !activeStep.targetId || activeTargetRect) return;
+    const timeout = setTimeout(() => advanceOrFinish(), 2500);
+    return () => clearTimeout(timeout);
+  }, [activeStep, activeTargetRect, advanceOrFinish]);
 
   const reportAction = useCallback((actionId: string) => {
     if (!activeStep) return;

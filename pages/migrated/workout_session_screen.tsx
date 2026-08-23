@@ -1078,13 +1078,24 @@ export default function WorkoutSessionScreen(props: Props) {
                           key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
                         const hasSuggestion = suggestedValue != null;
                         const target = hasSuggestion ? suggestedValue : ex.prescribed?.[key];
-                        return (
+                        // Solo la primera fila del primer ejercicio de la
+                        // sesión es el objetivo del tutorial "Registra tu
+                        // primera serie" (una explicación por métrica) --
+                        // mismo criterio que ya usa el toggle de completar
+                        // más abajo (blockIdx===0 && rowIdx===0).
+                        const isTutorialMetric =
+                          blockIdx === 0 &&
+                          exIdx === 0 &&
+                          rowIdx === 0 &&
+                          ['reps', 'descanso', 'rir', 'rpe'].includes(key);
+                        const cell = (
                           <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
                             <TextInput
                               className="bg-card rounded-sm text-foreground"
                               style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center' }}
                               value={row.values[key] ?? ''}
                               onChangeText={(t) => setCellValue(blockIdx, exIdx, rowIdx, key, t)}
+                              onFocus={isTutorialMetric ? () => reportAction(`metric_focus_${key}`) : undefined}
                               keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
                               placeholder="-"
                               placeholderTextColor={C.textSecondary}
@@ -1104,6 +1115,13 @@ export default function WorkoutSessionScreen(props: Props) {
                               </Text>
                             ) : null}
                           </Box>
+                        );
+                        return isTutorialMetric ? (
+                          <TutorialTarget key={key} id={`workout-session-metric-${key}`}>
+                            {cell}
+                          </TutorialTarget>
+                        ) : (
+                          cell
                         );
                       })}
                       {(() => {
