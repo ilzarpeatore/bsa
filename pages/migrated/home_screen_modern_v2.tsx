@@ -75,10 +75,11 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 // claridad), HERO_BLUR_SCROLL_RANGE = la foto ya no se distingue -- blur al
 // máximo (casi opaco de por sí) + oscurecido animado por encima que la tapa
 // del todo, para que "desaparezca" de verdad y no se quede a medias. Subido
-// de 160 a 280 (pedido explícito: el oscurecido se notaba "de golpe") para
-// que el mismo recorrido de opacidad se reparta en más scroll, más lento y
-// progresivo.
-const HERO_BLUR_SCROLL_RANGE = 280;
+// de 160 a 280 (pedido explícito: el oscurecido se notaba "de golpe"), y
+// ahora de 280 a 420 (mismo pedido repetido: seguía notándose demasiado
+// rápido nada más empezar a hacer scroll) para repartir el mismo recorrido
+// de opacidad en todavía más scroll.
+const HERO_BLUR_SCROLL_RANGE = 420;
 const HERO_BLUR_MAX_INTENSITY = 100;
 const HERO_DARKEN_MAX_OPACITY = 0.92;
 // Antes de hacer scroll (scrollY=0) el oscurecido animado partía de 0 -- la
@@ -256,10 +257,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
     // ocupe todo el tamaño de la screen según entras") -- antes la altura del
     // Box salía solo del contenido (padding + hijos), así que la foto
-    // terminaba mucho antes del final de la pantalla. Con esto el hero llena
-    // el viewport completo al entrar (antes de hacer scroll); el contenido
-    // (anillos/frase/banner) sigue anclado arriba dentro de esa misma altura.
-    heroHeader: { height: winH, paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
+    // terminaba mucho antes del final de la pantalla. Con el 100% del alto,
+    // el contenido real (anillos/frase/banner/tarjetas Agua-Actividad) se
+    // quedaba anclado arriba dejando un margen muerto enorme debajo (pedido
+    // explícito de corregirlo) -- reducido a un 64% del alto de pantalla,
+    // que sigue dando una foto grande pero sin ese hueco vacío.
+    heroHeader: { height: winH * 0.64, paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
     heroDarkenLayer: { backgroundColor: '#1A100A' },
     heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
