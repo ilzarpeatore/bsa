@@ -48,7 +48,8 @@ import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistor
 import { dietApi } from '../../api/diet';
 import { blogApi } from '../../api/blog';
 import { workoutTemplateApi, WorkoutTemplateListItem } from '../../api/workoutTemplate';
-import { resourcesApi, ResourceListItem } from '../../api/resources';
+import { pickWorkoutFallbackImage } from './workoutViewShared';
+import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { habitsApi, Habit } from '../../api/habits';
 import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
@@ -105,6 +106,27 @@ function getHeroImageForHour(hour: number) {
   if (hour >= 8 && hour < 19) return HERO_IMAGES.day;
   if (hour >= 19 && hour < 21) return HERO_IMAGES.sunriseSunset; // atardecer
   return HERO_IMAGES.night;
+}
+
+// Imagen de recurso: todavía no existe `image_url` en el backend (pendiente,
+// ver docs/TAREAS.md), así que mientras tanto se previsualiza con una foto
+// real de internet (LoremFlickr, sin API key) elegida por categoría -- más
+// fiable que buscar por el título suelto (en español, frase libre), que da
+// resultados peores en un buscador de fotos en inglés. `lock` fija la misma
+// foto para el mismo recurso en cada carga (si no, cambiaría en cada pull-to-
+// refresh). Sustituir por `r.image_url` en cuanto el backend lo mande.
+const RESOURCE_CATEGORY_KEYWORDS: Record<ResourceCategory, string> = {
+  entrenamiento: 'fitness,workout',
+  nutricion: 'healthy,food',
+  habitos_mindset: 'meditation,mindfulness',
+  onboarding: 'welcome,journey',
+  planes_actuales: 'planning,goals',
+};
+
+function resourceImageSource(r: ResourceListItem) {
+  if (r.image_url) return { uri: r.image_url };
+  const keyword = r.category ? RESOURCE_CATEGORY_KEYWORDS[r.category] : (r.type === 'video' ? 'video,camera' : 'reading,book');
+  return { uri: `https://loremflickr.com/400/300/${keyword}?lock=${r.id}` };
 }
 
 interface HomeScreenModernProps {
@@ -314,6 +336,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     blogTitle: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.white, marginTop: r(6) },
     blogDate: { fontSize: r(10), color: C.textSecondary, marginTop: r(4) },
     seeAllImage: { backgroundColor: C.orange, alignItems: 'center' as const, justifyContent: 'center' as const },
+    resourceTypeBadge: {
+      position: 'absolute' as const,
+      top: r(8),
+      right: r(8),
+      width: r(26),
+      height: r(26),
+      borderRadius: r(13),
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
     lockBadge: { position: 'absolute' as const, top: r(8), right: r(8), flexDirection: 'row' as const, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: r(10), paddingHorizontal: r(7), paddingVertical: r(3), gap: r(4) },
     lockBadgeText: { fontSize: r(9), color: '#FFFFFF', fontFamily: FONT.semiBold },
     supportTitle: { flex: 1, fontSize: r(14), fontFamily: FONT.bold, color: C.white },
@@ -1113,11 +1146,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     style={styles.blogCard}
                     onPress={() => navigation?.navigate('MigratedWorkoutPreview', { workoutTemplateId: w.id, mTitle: w.title })}
                   >
-                    {w.thumbnail ? (
-                      <ExpoImage source={{ uri: w.thumbnail }} style={styles.blogImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-                    ) : (
-                      <Box style={styles.blogImage} />
-                    )}
+                    <ExpoImage
+                      source={w.thumbnail ? { uri: w.thumbnail } : pickWorkoutFallbackImage(w.id)}
+                      style={styles.blogImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
                     {locked && (
                       <Box style={styles.lockBadge}>
                         <Icon name="lock-closed" size={11} color={'#FFFFFF'} />
@@ -1160,12 +1195,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   style={styles.blogCard}
                   onPress={() => navigation?.navigate('MigratedResourceDetail', { resourceId: r.id, title: r.title })}
                 >
-                  <Box style={[styles.blogImage, styles.seeAllImage]}>
-                    <Icon
-                      name={r.type === 'video' ? 'play-circle-outline' : r.type === 'link' ? 'link-outline' : 'document-text-outline'}
-                      size={32}
-                      color="#FFFFFF"
-                    />
+                  <Box style={styles.blogImage}>
+                    <ExpoImage source={resourceImageSource(r)} style={styles.blogImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                    <Box style={styles.resourceTypeBadge}>
+                      <Icon
+                        name={r.type === 'video' ? 'play-circle-outline' : r.type === 'link' ? 'link-outline' : 'document-text-outline'}
+                        size={16}
+                        color="#FFFFFF"
+                      />
+                    </Box>
                   </Box>
                   <Box style={styles.blogContent}>
                     <Text style={styles.blogTitle} numberOfLines={2}>{r.title}</Text>

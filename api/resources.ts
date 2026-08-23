@@ -16,6 +16,11 @@ export interface ResourceListItem {
   content: string | null;
   external_url: string | null;
   created_at: string;
+  // Todavía no existe en el backend (columna pendiente de añadir a
+  // `resources` + devolverla en resource-list/resource-detail) — se deja
+  // tipado en optimista para que en cuanto se implemente empiece a usarse
+  // sola, sin más cambios en el cliente. Ver docs/TAREAS.md.
+  image_url?: string | null;
 }
 
 export interface Pagination {
