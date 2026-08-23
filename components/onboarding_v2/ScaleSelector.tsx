@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { C, FONT } from '../../pages/migrated/theme';
 
 interface Props {
@@ -9,41 +10,103 @@ interface Props {
   onChange: (value: number) => void;
 }
 
-// Fila de números 1-N, tap para elegir -- mismo patrón visual que ChoiceRow
-// en checkin_fill_screen.tsx (escala de check-ins diarios).
+const THUMB_SIZE = 44;
+const TRACK_HEIGHT = 56;
+
+// Bloque continuo arrastrable con degradado rojo→verde (pedido explícito:
+// nivel bajo = rojo, nivel alto = verde) -- sustituye la cuadrícula de
+// círculos 1-10 anterior (un tap por número) por un único slider. A
+// diferencia de RulerPicker/NumberWheelPicker (misma carpeta, ambos ruedas
+// horizontales por ScrollView) aquí la metáfora es un slider real -- pista
+// fija con relleno de color + una única "bola" que se arrastra encima, así
+// que se implementa con PanResponder (sin depender del Slider genérico de
+// components/ui, que usa @react-stately/slider vía gluestack y no tiene
+// ningún uso real todavía en la app para confiar en su gesto táctil en RN
+// sin poder probarlo en dispositivo).
 export default function ScaleSelector({ min, max, value, onChange }: Props) {
-  const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [liveValue, setLiveValue] = useState<number | null>(null);
+
+  const valueFromX = useCallback(
+    (x: number, width: number) => {
+      if (width <= 0) return min;
+      const ratio = Math.min(1, Math.max(0, x / width));
+      return Math.min(max, Math.max(min, Math.round(min + ratio * (max - min))));
+    },
+    [min, max]
+  );
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (e) => setLiveValue(valueFromX(e.nativeEvent.locationX, trackWidth)),
+        onPanResponderMove: (e) => setLiveValue(valueFromX(e.nativeEvent.locationX, trackWidth)),
+        onPanResponderRelease: (e) => {
+          const v = valueFromX(e.nativeEvent.locationX, trackWidth);
+          setLiveValue(null);
+          onChange(v);
+        },
+        onPanResponderTerminate: () => setLiveValue(null),
+      }),
+    [valueFromX, trackWidth, onChange]
+  );
+
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    setTrackWidth(e.nativeEvent.layout.width);
+  }, []);
+
+  const displayValue = liveValue ?? value ?? min;
+  const ratio = max > min ? (displayValue - min) / (max - min) : 0;
+  const rawLeft = ratio * trackWidth - THUMB_SIZE / 2;
+  const thumbLeft = trackWidth > 0 ? Math.min(trackWidth - THUMB_SIZE, Math.max(0, rawLeft)) : 0;
+
   return (
-    <View style={styles.row}>
-      {values.map((n) => {
-        const active = value === n;
-        return (
-          <Pressable
-            key={n}
-            onPress={() => onChange(n)}
-            style={[styles.item, active && styles.itemActive]}
-          >
-            <Text style={[styles.label, active && styles.labelActive]}>{n}</Text>
-          </Pressable>
-        );
-      })}
+    <View>
+      <View style={styles.track} onLayout={handleLayout} {...panResponder.panHandlers}>
+        <LinearGradient
+          colors={[C.destructive, C.warning, C.success]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+        {trackWidth > 0 && (
+          <View style={[styles.thumb, { left: thumbLeft }]} pointerEvents="none">
+            <Text style={styles.thumbText}>{displayValue}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.captions}>
+        <Text style={styles.captionText}>{min}</Text>
+        <Text style={styles.captionText}>{max}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  item: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  track: {
+    height: TRACK_HEIGHT,
+    borderRadius: TRACK_HEIGHT / 2,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  thumb: {
+    position: 'absolute',
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: THUMB_SIZE / 2,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: C.surface,
-    borderWidth: 1.5,
-    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
-  itemActive: { backgroundColor: C.accentBlack, borderColor: C.accentBlack },
-  label: { fontSize: 15, fontFamily: FONT.bold, color: C.textPrimary },
-  labelActive: { color: '#FFFFFF' },
+  thumbText: { fontSize: 17, fontFamily: FONT.bold, color: C.textPrimary },
+  captions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingHorizontal: 4 },
+  captionText: { fontSize: 12, fontFamily: FONT.medium, color: C.gray40 },
 });
