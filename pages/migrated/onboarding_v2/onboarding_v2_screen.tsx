@@ -85,6 +85,22 @@ export default function OnboardingV2Screen({ navigation }: any) {
     setAnswers((prev) => ({ ...prev, [id]: value }));
   }, []);
 
+  // Bug real reportado: ruler/number_wheel muestran su defaultValue en el
+  // picker desde el primer render (para no arrancar vacíos), pero hasta que
+  // el usuario mueve el dedo no se llama a setAnswer -- si el valor que
+  // quiere es justo el que ya se ve preseleccionado (ej. su edad real
+  // coincide con el default mostrado), "Continuar" se queda deshabilitado
+  // porque isAnswered() lee `answers[question.id]` (todavía undefined), no
+  // lo que hay pintado en pantalla. Sembrar aquí el default en cuanto se
+  // entra a una pregunta de este tipo hace que el valor mostrado y el
+  // guardado sean el mismo desde el principio, sin esperar a un gesto.
+  useEffect(() => {
+    if (!restored) return;
+    if ((question.type === 'ruler' || question.type === 'number_wheel') && answers[question.id] === undefined) {
+      setAnswer(question.id, question.defaultValue);
+    }
+  }, [question, restored, answers, setAnswer]);
+
   const submitStage = useCallback(
     async (stageId: string) => {
       try {
