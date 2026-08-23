@@ -33,9 +33,9 @@ function buildUpcomingWeek(): { date: string; dayLetter: string; dayNumber: stri
 }
 
 const MEAL_TYPES: { key: MealType; label: string }[] = [
-  { key: 'breakfast', label: 'Breakfast' },
-  { key: 'lunch', label: 'Lunch' },
-  { key: 'dinner', label: 'Dinner' },
+  { key: 'breakfast', label: 'Desayuno' },
+  { key: 'lunch', label: 'Comida' },
+  { key: 'dinner', label: 'Cena' },
   { key: 'snacks', label: 'Snacks' },
 ];
 
@@ -56,7 +56,7 @@ export default function AssignedMealsScreen(props: any) {
 
   const [goal, setGoal] = useState<AssignedMealsSummary['goal'] | null>(null);
   const [meals, setMeals] = useState<AssignedMealsSummary['meals'] | null>(null);
-  const [title, setTitle] = useState<string>(dietTitle ?? 'Assigned to Me');
+  const [title, setTitle] = useState<string>(dietTitle ?? 'Comidas asignadas');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<MealType>(initialMealType);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -265,11 +265,19 @@ export default function AssignedMealsScreen(props: any) {
             </Card>
           )}
 
-          {/* En modo dieta (isDietMode) no se pinta la tarjeta de kcal de
-              arriba, así que esta fila de pestañas pasa a ser el primer
-              bloque tras ScreenHeader -- necesita su propio marginTop
-              (en el otro modo ya lo da el marginBottom de esa tarjeta). */}
-          <HStack space="sm" className="px-4" style={{ marginTop: isDietMode ? 16 : 0, marginBottom: 12 }}>
+          {/* Primero el día, luego el tipo de comida (pedido explícito) -- en
+              modo dieta (isDietMode) no se pinta la tarjeta de kcal de
+              arriba, así que este bloque pasa a ser el primero tras
+              ScreenHeader y necesita su propio marginTop (en el otro modo ya
+              lo da el marginBottom de esa tarjeta). */}
+          <Box className="px-4" style={{ marginTop: isDietMode ? 16 : 0, marginBottom: 16 }}>
+            <Text size="xs" weight="semibold" muted style={{ marginBottom: 8 }}>
+              Añadir a tu plan del día
+            </Text>
+            <DaySelectorStrip days={upcomingDays} selectedDate={selectedDate} onSelect={setSelectedDate} />
+          </Box>
+
+          <HStack space="sm" className="px-4" style={{ marginBottom: 12 }}>
             {MEAL_TYPES.map(({ key, label }) => (
               <Pressable
                 key={key}
@@ -287,19 +295,12 @@ export default function AssignedMealsScreen(props: any) {
             ))}
           </HStack>
 
-          <Box className="px-4" style={{ marginBottom: 16 }}>
-            <Text size="xs" weight="semibold" muted style={{ marginBottom: 8 }}>
-              Añadir a tu plan del día
-            </Text>
-            <DaySelectorStrip days={upcomingDays} selectedDate={selectedDate} onSelect={setSelectedDate} />
-          </Box>
-
           <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
             {activeRecipes.length === 0 ? (
               <Box className="items-center" style={{ paddingVertical: 60 }}>
                 <Icon name="restaurant-outline" size={40} color={C.gray30} />
                 <Text size="sm" style={{ color: C.gray30, marginTop: 10 }}>
-                  No {MEAL_TYPES.find(m => m.key === activeTab)?.label.toLowerCase()} assigned yet.
+                  Todavía no hay {MEAL_TYPES.find(m => m.key === activeTab)?.label.toLowerCase()} asignado.
                 </Text>
               </Box>
             ) : (
