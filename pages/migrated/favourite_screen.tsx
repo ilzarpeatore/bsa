@@ -30,10 +30,10 @@ export default function FavouriteScreen(props: FavouriteScreenProps) {
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
       {/* App Bar */}
-      <ScreenHeader title="Favourite Workouts & Nutritions" onBack={() => props.navigation.goBack()} />
+      <ScreenHeader title="Entrenamientos y recetas favoritas" onBack={() => props.navigation.goBack()} />
 
       {/* Tab Bar */}
-      <Box className="border-b border-border px-4">
+      <Box className="border-b border-border px-4" style={{ marginTop: 16 }}>
         <Box className="flex-row">
           <Pressable
             style={{ paddingBottom: 8 }}
@@ -41,7 +41,7 @@ export default function FavouriteScreen(props: FavouriteScreenProps) {
             onPress={() => setSelect(true)}
           >
             <Text weight="bold" size="sm" className={select ? 'text-foreground' : 'text-muted-foreground'}>
-              Workouts
+              Entrenamientos
             </Text>
           </Pressable>
           <Pressable
@@ -50,7 +50,7 @@ export default function FavouriteScreen(props: FavouriteScreenProps) {
             onPress={() => setSelect(false)}
           >
             <Text weight="bold" size="sm" className={!select ? 'text-foreground' : 'text-muted-foreground'}>
-              Recipes
+              Recetas
             </Text>
           </Pressable>
         </Box>
@@ -127,7 +127,7 @@ function WorkoutsFavContent({ navigation }: { navigation: any }) {
   if (workouts.length === 0) {
     return (
       <Box className="flex-1 items-center justify-center">
-        <Text muted size="sm">No favourite workouts</Text>
+        <Text muted size="sm">No tienes entrenamientos favoritos</Text>
       </Box>
     );
   }
@@ -201,7 +201,7 @@ function RecipesFavContent({ navigation }: { navigation: any }) {
   if (recipes.length === 0) {
     return (
       <Box className="flex-1 items-center justify-center">
-        <Text muted size="sm">No favourite recipes</Text>
+        <Text muted size="sm">No tienes recetas favoritas</Text>
       </Box>
     );
   }
