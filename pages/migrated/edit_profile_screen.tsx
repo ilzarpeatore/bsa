@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, ScrollView, Dimensions, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
@@ -8,14 +8,12 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField } from '@components/ui/input';
+import ScreenHeader from '@components/ScreenHeader';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
 import { C, FONT } from './theme';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -29,7 +27,11 @@ function getGender() {
   return genderList;
 }
 
- 
+function initialsFor(fName: string, lName: string): string {
+  const letters = [fName[0], lName[0]].filter(Boolean).join('').toUpperCase();
+  return letters || 'U';
+}
+
 async function pickImage() {
   // ImagePicker logic
   // const result = await ImagePicker.launchImageLibraryAsync({...});
@@ -53,7 +55,6 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [mHeight, setMHeight] = useState<number | undefined>(undefined);
   const [mWeight, setMWeight] = useState<number | undefined>(undefined);
-  const [weightType, setWeightType] = useState('kg');
 
   useEffect(() => {
     init();
@@ -140,27 +141,20 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   };
 
   const genderList = getGender();
+  const fullName = `${fName} ${lName}`.trim() || 'Usuario';
 
   const renderProfileImage = () => {
-    if (imageUri) {
+    const uri = imageUri || profileImage;
+    if (uri) {
       return (
-        <Box style={localStyles.profileImageContainer}>
-          <Image source={{ uri: imageUri }} contentFit="cover" style={localStyles.profileImage} />
-        </Box>
-      );
-    }
-    if (profileImage) {
-      return (
-        <Box style={localStyles.profileImageContainer}>
-          <Image source={{ uri: profileImage }} contentFit="cover" style={localStyles.profileImage} />
+        <Box style={localStyles.avatarCircle}>
+          <Image source={{ uri }} contentFit="cover" style={localStyles.avatarImage} />
         </Box>
       );
     }
     return (
-      <Box style={localStyles.profileImageContainer}>
-        <Box style={localStyles.profileImagePlaceholder}>
-          <Icon name="person" size={40} color={C.gray40} />
-        </Box>
+      <Box style={localStyles.avatarCircle}>
+        <Text weight="bold" size="2xl" style={{ color: '#FFFFFF' }}>{initialsFor(fName, lName)}</Text>
       </Box>
     );
   };
@@ -210,68 +204,73 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Box style={localStyles.container}>
-        {/* Header Background */}
-        <Box style={localStyles.headerBg} />
-
-        {/* Back Button */}
-        <Pressable style={localStyles.backBtn} onPress={() => props.navigation.goBack()}>
-          <Icon name="chevron-back" size={24} color={C.white} />
-        </Pressable>
-
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
+      <ScreenHeader
+        title="Editar perfil"
+        onBack={() => props.navigation.goBack()}
+        rightAction={
+          <Pressable onPress={save} disabled={isLoading} style={{ minWidth: 40, alignItems: 'flex-end' }}>
+            <Text weight="bold" size="sm" style={{ color: isLoading ? C.gray30 : C.orange }}>
+              Guardar
+            </Text>
+          </Pressable>
+        }
+      />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView contentContainerStyle={localStyles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Profile Image */}
+          {/* Avatar */}
           <Box style={localStyles.imageSection}>
             {renderProfileImage()}
             <Pressable style={localStyles.cameraBtn} onPress={pickImage}>
-              <Icon name="camera" size={20} color={C.textPrimary} />
+              <Icon name="camera" size={14} color="#FFFFFF" />
+            </Pressable>
+            <Text weight="bold" size="lg" style={{ marginTop: 12 }}>{fullName}</Text>
+            <Pressable onPress={pickImage}>
+              <Text size="sm" muted style={{ marginTop: 2 }}>Cambiar foto</Text>
             </Pressable>
           </Box>
 
-          {/* Form Fields */}
-          <Box style={localStyles.formContainer}>
-            {/* First Name */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+          {/* Datos, agrupados en una sola tarjeta con separadores -- antes cada
+              campo era una tarjeta suelta con su propio hueco, aquí se sigue
+              el mismo patrón de lista que profile_screen.tsx. */}
+          <Box style={localStyles.card}>
+            <Box style={localStyles.row}>
               <Text style={localStyles.label}>Nombre</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={fName}
                   onChangeText={setFName}
                   placeholder="Nombre"
                   placeholderTextColor={C.gray40}
                 />
               </Input>
-            </VStack>
+            </Box>
 
-            {/* Last Name */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+            <Box style={localStyles.row}>
               <Text style={localStyles.label}>Apellidos</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={lName}
                   onChangeText={setLName}
                   placeholder="Apellidos"
                   placeholderTextColor={C.gray40}
                 />
               </Input>
-            </VStack>
+            </Box>
 
-            {/* Email */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+            <Box style={localStyles.row}>
               <Text style={localStyles.label}>Email</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={email}
                   onChangeText={setEmail}
                   placeholder="Email"
@@ -280,12 +279,11 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
                   autoCapitalize="none"
                 />
               </Input>
-            </VStack>
+            </Box>
 
-            {/* Gender */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
-              <Text style={localStyles.label}>Género</Text>
-              <HStack className="gap-2.5">
+            <Box style={localStyles.row}>
+              <Text style={localStyles.label}>Sexo</Text>
+              <HStack className="gap-2.5" style={{ marginTop: 4 }}>
                 {genderList.map((g) => (
                   <Button
                     key={g.id}
@@ -302,15 +300,14 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
                   </Button>
                 ))}
               </HStack>
-            </VStack>
+            </Box>
 
-            {/* Phone Number */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+            <Box style={localStyles.row}>
               <Text style={localStyles.label}>Número de teléfono</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
                   placeholder="Número de teléfono"
@@ -318,15 +315,14 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
                   keyboardType="phone-pad"
                 />
               </Input>
-            </VStack>
+            </Box>
 
-            {/* Age */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+            <Box style={localStyles.row}>
               <Text style={localStyles.label}>Edad</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={age}
                   onChangeText={setAge}
                   placeholder="Edad"
@@ -334,15 +330,14 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
                   keyboardType="number-pad"
                 />
               </Input>
-            </VStack>
+            </Box>
 
-            {/* Weight */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+            <Box style={localStyles.row}>
               <Text style={localStyles.label}>Peso</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={weight}
                   onChangeText={setWeight}
                   placeholder="Peso"
@@ -354,15 +349,14 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
                 {renderWeightOption('lbs', 0)}
                 {renderWeightOption('kg', 1)}
               </HStack>
-            </VStack>
+            </Box>
 
-            {/* Height */}
-            <VStack className="gap-1.5" style={localStyles.fieldGroup}>
+            <Box style={[localStyles.row, localStyles.rowLast]}>
               <Text style={localStyles.label}>Altura</Text>
-              <Input style={{ borderRadius: 8 }}>
+              <Input style={localStyles.input}>
                 <InputField
-                  className="text-sm px-3.5"
-                  style={{ color: C.white }}
+                  className="text-sm"
+                  style={{ color: C.textPrimary }}
                   value={heightVal}
                   onChangeText={setHeightVal}
                   placeholder="Altura"
@@ -374,20 +368,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
                 {renderHeightOption('feet', 0)}
                 {renderHeightOption('cm', 1)}
               </HStack>
-            </VStack>
-
-            {/* Save Button */}
-            <Button
-              style={localStyles.saveBtn}
-              onPress={save}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Spinner color={C.white} />
-              ) : (
-                <ButtonText style={localStyles.saveBtnText}>Guardar</ButtonText>
-              )}
-            </Button>
+            </Box>
           </Box>
         </ScrollView>
 
@@ -396,130 +377,107 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
             <Spinner size="large" color={C.orange} />
           </Box>
         )}
-      </Box>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const localStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  headerBg: {
-    height: SCREEN_HEIGHT * 0.3,
-    backgroundColor: C.brand5,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-  },
-  backBtn: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    padding: 8,
-    zIndex: 10,
-  },
   scrollContent: {
-    paddingTop: SCREEN_HEIGHT * 0.15 + 16,
+    paddingTop: 24,
+    paddingHorizontal: 20,
     paddingBottom: 40,
   },
   imageSection: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
-  profileImageContainer: {
-    padding: 2,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: C.brand60,
-  },
-  profileImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: C.gray70,
-  },
-  profileImagePlaceholder: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: C.surface,
-    justifyContent: 'center',
+  avatarCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: C.blue,
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
   },
   cameraBtn: {
     position: 'absolute',
-    bottom: -5,
-    right: SCREEN_WIDTH / 2 - 60,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.brand20,
+    top: 62,
+    left: '50%',
+    marginLeft: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: C.orange,
+    borderWidth: 2,
+    borderColor: C.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  formContainer: {
-    backgroundColor: C.bg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 20,
-    paddingTop: 24,
+  card: {
+    backgroundColor: C.gray80,
+    borderRadius: 16,
   },
-  fieldGroup: {
-    marginBottom: 18,
+  row: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   label: {
     fontFamily: FONT.medium,
     fontSize: 13,
-    color: C.gray30,
-    marginBottom: 6,
+    color: C.textSecondary,
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 0,
+    height: 26,
+    backgroundColor: 'transparent',
   },
   genderBtn: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 6,
-    backgroundColor: C.surfaceLight,
+    backgroundColor: C.surface,
     alignItems: 'center',
   },
   genderBtnActive: {
-    backgroundColor: C.brand5,
+    backgroundColor: C.orange,
   },
   genderText: {
     fontFamily: FONT.regular,
     fontSize: 14,
-    color: C.gray30,
+    color: C.textSecondary,
   },
   genderTextActive: {
-    color: C.white,
+    color: '#FFFFFF',
   },
   unitBtn: {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: C.surfaceLight,
+    backgroundColor: C.surface,
   },
   unitBtnActive: {
-    backgroundColor: C.brand5,
+    backgroundColor: C.orange,
   },
   unitBtnText: {
     fontFamily: FONT.regular,
     fontSize: 13,
-    color: C.gray30,
+    color: C.textSecondary,
   },
   unitBtnTextActive: {
-    color: C.white,
-  },
-  saveBtn: {
-    backgroundColor: C.brand5,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  saveBtnText: {
-    fontFamily: FONT.bold,
-    fontSize: 16,
-    color: C.white,
+    color: '#FFFFFF',
   },
   loaderContainer: {
     ...StyleSheet.absoluteFill,
