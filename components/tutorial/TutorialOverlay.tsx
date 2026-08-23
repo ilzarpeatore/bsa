@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, Modal, Pressable, View, StyleSheet } from 'react-native';
+import { Dimensions, Pressable, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -16,12 +16,17 @@ const SPOTLIGHT_PADDING = 6;
 // con el elemento real de debajo, y el reto avanza solo cuando esa acción
 // real tiene éxito (reportAction/navegación), nunca con un botón "Siguiente".
 //
-// Importante sobre touch: el root del Modal lleva pointerEvents="box-none"
-// (mismo patrón que NavigationTab.tsx) -- así el propio root NO intercepta
-// nada, y el "hueco" del spotlight (donde no hay ninguna vista encima) deja
-// pasar el toque directo al elemento real de debajo. Las 4 franjas oscuras SÍ
-// deben bloquear el toque (llevan el pointerEvents por defecto, no 'none'),
-// para que no se pueda interactuar con lo que tapan visualmente.
+// Bug real corregido (reportado: tocar el hueco del spotlight no hacía
+// nada, solo "Saltar tutorial" respondía): esto vivía dentro de un
+// <Modal transparent>, que en iOS/Android se presenta en una ventana nativa
+// aparte -- pointerEvents="box-none" solo controla el hit-testing DENTRO del
+// propio árbol de ese Modal, no hace que la pantalla de debajo (una
+// ventana/jerarquía nativa distinta) vuelva a ser interactiva. El toque en
+// el "hueco" no llegaba nunca a la tarjeta real de Home, aunque se viera
+// perfectamente. Sustituido por un <View> absoluto normal, hermano del
+// resto de overlays globales (WorkoutMinimizedBar/ScreenReviewFab, que
+// nunca usaron Modal por esto mismo) -- al vivir en el mismo árbol/ventana
+// que la pantalla real, pointerEvents="box-none" sí funciona de verdad.
 export default function TutorialOverlay() {
   const { activeChallenge, activeStep, activeStepIndex, activeTargetRect, skipChallenge } = useTutorial();
   const insets = useSafeAreaInsets();
@@ -44,15 +49,13 @@ export default function TutorialOverlay() {
   // biblioteca") -- aviso flotante abajo, sin oscurecer la pantalla.
   if (!activeStep.targetId) {
     return (
-      <Modal visible transparent animationType="fade">
-        <View style={{ flex: 1 }} pointerEvents="box-none">
-          {skipBtn}
-          <Box style={[styles.banner, { bottom: insets.bottom + 24 }]}>
-            <Text style={styles.tooltipTitle}>{activeStep.title}</Text>
-            <Text style={styles.tooltipText}>{activeStep.text}</Text>
-          </Box>
-        </View>
-      </Modal>
+      <View style={styles.root} pointerEvents="box-none">
+        {skipBtn}
+        <Box style={[styles.banner, { bottom: insets.bottom + 24 }]}>
+          <Text style={styles.tooltipTitle}>{activeStep.title}</Text>
+          <Text style={styles.tooltipText}>{activeStep.text}</Text>
+        </Box>
+      </View>
     );
   }
 
@@ -67,47 +70,49 @@ export default function TutorialOverlay() {
   const tooltipBelow = spaceBelow > 160;
 
   return (
-    <Modal visible transparent animationType="fade">
-      <View style={{ flex: 1 }} pointerEvents="box-none">
-        {/* Estas 4 franjas SÍ deben bloquear el toque (no llevan pointerEvents
-            "none"): son la máscara oscura, y nada de lo que tapan debe poder
-            tocarse. El propio hueco central, sin ninguna vista encima, deja
-            pasar el toque gracias al pointerEvents="box-none" del root. */}
-        <Box style={[styles.mask, { left: 0, top: 0, right: 0, height: padded.y }]} />
-        <Box style={[styles.mask, { left: 0, top: padded.y + padded.height, right: 0, bottom: 0 }]} />
-        <Box style={[styles.mask, { left: 0, top: padded.y, width: padded.x, height: padded.height }]} />
-        <Box style={[styles.mask, { left: padded.x + padded.width, top: padded.y, right: 0, height: padded.height }]} />
-        {/* Solo decorativo (borde alrededor del hueco) -- pointerEvents="none"
-            para no bloquear el propio hueco que enmarca. */}
-        <Box
-          pointerEvents="none"
-          style={[styles.spotlightBorder, { left: padded.x, top: padded.y, width: padded.width, height: padded.height }]}
-        />
+    <View style={styles.root} pointerEvents="box-none">
+      {/* Estas 4 franjas SÍ deben bloquear el toque (no llevan pointerEvents
+          "none"): son la máscara oscura, y nada de lo que tapan debe poder
+          tocarse. El propio hueco central, sin ninguna vista encima, deja
+          pasar el toque gracias al pointerEvents="box-none" del root. */}
+      <Box style={[styles.mask, { left: 0, top: 0, right: 0, height: padded.y }]} />
+      <Box style={[styles.mask, { left: 0, top: padded.y + padded.height, right: 0, bottom: 0 }]} />
+      <Box style={[styles.mask, { left: 0, top: padded.y, width: padded.x, height: padded.height }]} />
+      <Box style={[styles.mask, { left: padded.x + padded.width, top: padded.y, right: 0, height: padded.height }]} />
+      {/* Solo decorativo (borde alrededor del hueco) -- pointerEvents="none"
+          para no bloquear el propio hueco que enmarca. */}
+      <Box
+        pointerEvents="none"
+        style={[styles.spotlightBorder, { left: padded.x, top: padded.y, width: padded.width, height: padded.height }]}
+      />
 
-        {skipBtn}
+      {skipBtn}
 
-        <Box
-          style={[
-            styles.tooltip,
-            tooltipBelow ? { top: padded.y + padded.height + 12 } : { bottom: screenH - padded.y + 12 },
-          ]}
-        >
-          <Text style={styles.stepCounter}>
-            {activeChallenge.label} · {activeStepIndex + 1}/{activeChallenge.steps.length}
-          </Text>
-          <Text style={styles.tooltipTitle}>{activeStep.title}</Text>
-          <Text style={styles.tooltipText}>{activeStep.text}</Text>
-          <Box style={styles.tooltipHint}>
-            <Icon name="hand-left-outline" size={14} color={C.orange} />
-            <Text style={styles.tooltipHintText}>Tócalo para continuar</Text>
-          </Box>
+      <Box
+        style={[
+          styles.tooltip,
+          tooltipBelow ? { top: padded.y + padded.height + 12 } : { bottom: screenH - padded.y + 12 },
+        ]}
+      >
+        <Text style={styles.stepCounter}>
+          {activeChallenge.label} · {activeStepIndex + 1}/{activeChallenge.steps.length}
+        </Text>
+        <Text style={styles.tooltipTitle}>{activeStep.title}</Text>
+        <Text style={styles.tooltipText}>{activeStep.text}</Text>
+        <Box style={styles.tooltipHint}>
+          <Icon name="hand-left-outline" size={14} color={C.orange} />
+          <Text style={styles.tooltipHintText}>Tócalo para continuar</Text>
         </Box>
-      </View>
-    </Modal>
+      </Box>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Sin Modal, hay que fijar el stacking a mano -- mismo zIndex/elevation que
+  // WorkoutMinimizedBar (ver ese archivo) para quedar por encima de la barra
+  // de pestañas y el minimizador de workout, que también son overlays planos.
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, elevation: 60 },
   mask: { position: 'absolute', backgroundColor: 'rgba(0,0,0,0.72)' },
   spotlightBorder: {
     position: 'absolute',
