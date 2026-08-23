@@ -101,4 +101,12 @@ export const onboardingV2Api = {
   // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Tabla nutrition_questionnaire_answers").
   submitNutritionQuestionnaire: (payload: NutritionQuestionnairePayload) =>
     apiClient.post<ApiMessageResponse>('v1/onboarding/nutrition-questionnaire', payload),
+
+  // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Marcar onboarding
+  // completado server-side"). Marca el onboarding como terminado para el
+  // usuario autenticado (mismo mecanismo user_id vía token que el resto de
+  // esta API). AuthContext.completeOnboarding() la llama best-effort, igual
+  // que el resto de etapas -- hasta que exista, sigue funcionando solo con
+  // el flag local.
+  completeOnboarding: () => apiClient.post<ApiMessageResponse>('v1/onboarding/complete'),
 };

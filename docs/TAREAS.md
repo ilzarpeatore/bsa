@@ -4,6 +4,22 @@ Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica
 
 ---
 
+## ✅ El onboarding ya no debería "reiniciarse" para usuarios ya registrados + confirmación de los 3 formularios (PAR-Q/entrenamiento/nutrición) (2026-08-23)
+
+Pedido explícito: "el tutorial no debería reiniciarse para personas que ya se han registrado, se deben registrar en la DB las respuestas y verlas desde el admin panel. Se deben crear tres formularios: PAR-Q, Cuestionario de entrenamiento y Cuestionario de nutrición."
+
+**Los 3 formularios ya existen** -- se diseñaron completos en la sesión anterior (2026-08-22, ver "Onboarding v2 — 4 etapas" más abajo): las 36 preguntas están declaradas en `constants/onboardingV2Questions.ts`, la capa de API con los payloads exactos en `api/onboardingV2.ts`, y el contrato completo (request/response + esquema SQL de las 3 tablas) en `docs/ONBOARDING_V2.md`. Lo único que falta es que el backend implemente los 3 endpoints (`POST v1/onboarding/par-q`, `.../training-questionnaire`, `.../nutrition-questionnaire`) + las 3 tablas -- no hace falta volver a diseñarlos, ya está todo especificado y listo para implementar.
+
+**Bug real encontrado (la causa del "se reinicia")**: `AuthContext.completeOnboarding()` solo guardaba `ONBOARDING_COMPLETED` en `AsyncStorage` del dispositivo -- sin ningún respaldo server-side. Un usuario que ya completó el onboarding lo veía entero de nuevo al reinstalar la app o entrar desde otro dispositivo, porque esa clave local simplemente no existe ahí. Corregido en el frontend (best-effort, mismo patrón que el resto del onboarding v2): nuevo `onboardingV2Api.completeOnboarding()` (`POST v1/onboarding/complete`, pendiente de backend), y `resolveOnboardingCompleted()` en `AuthContext.tsx` que prioriza `user.onboarding_completed` (nuevo campo opcional en `UserData`) sobre el flag local en cuanto el backend lo mande -- hasta entonces sigue funcionando exactamente igual que antes (cero regresión).
+
+**Pendiente real de backend** (ver "Marcar onboarding completado server-side" en `docs/ONBOARDING_V2.md` para el detalle completo):
+
+- Los 3 endpoints de los formularios + sus 3 tablas (ya contratados).
+- `POST v1/onboarding/complete` + columna `users.onboarding_completed_at` + devolver `onboarding_completed` en `UserData`.
+- Admin panel: pantalla para ver, por cliente, el estado de onboarding y las respuestas de los 3 formularios -- hoy no existe ningún sitio en el admin para verlas.
+
+---
+
 ## ✅ El botón flotante de Screen Explorer ya no se solapa con el contenido (2026-08-23)
 
 Reportado con captura en `MigratedProgress` (Informe): el círculo gris del botón de Screen Explorer (`components/ScreenExplorerFab.tsx`, herramienta temporal de desarrollo, ver ese archivo) se veía incrustado en la esquina de la tarjeta "Entrenamiento" en vez de flotar limpiamente por encima.

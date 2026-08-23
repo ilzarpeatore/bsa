@@ -2,7 +2,9 @@ import React, { createContext, useContext, useEffect, useReducer, useCallback, u
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, LoginPayload, RegisterPayload } from '../api/auth';
 import { UserData } from '../api/profile';
+import { onboardingV2Api } from '../api/onboardingV2';
 import { setLogoutHandler } from '../api/client';
+import logger from '../helper/logger';
 
 interface AuthState {
   token: string | null;
@@ -81,6 +83,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Bug real corregido (reportado: el onboarding "se reinicia" para gente que
+// ya se registró): `ONBOARDING_COMPLETED` vivía SOLO en AsyncStorage del
+// dispositivo, sin ningún respaldo en el backend -- un usuario que ya
+// terminó el onboarding volvía a verlo entero si reinstalaba la app o
+// entraba desde otro dispositivo, porque ahí esa clave local nunca existió.
+// Ahora se prioriza `user.onboarding_completed` (servidor, ver
+// docs/ONBOARDING_V2.md) cuando el backend lo manda; el flag local de
+// AsyncStorage queda solo como resguardo mientras ese campo no exista
+// todavía en la respuesta real del backend.
+async function resolveOnboardingCompleted(user: UserData | null): Promise<boolean> {
+  if (user?.onboarding_completed !== undefined) return user.onboarding_completed;
+  const local = await AsyncStorage.getItem('ONBOARDING_COMPLETED');
+  return local === 'true';
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
@@ -89,8 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await AsyncStorage.getItem('TOKEN');
       const userJson = await AsyncStorage.getItem('USER');
       const user = userJson ? JSON.parse(userJson) : null;
-      const onboardingCompletedStr = await AsyncStorage.getItem('ONBOARDING_COMPLETED');
-      const onboardingCompleted = onboardingCompletedStr === 'true';
+      const onboardingCompleted = await resolveOnboardingCompleted(user);
       dispatch({ type: 'RESTORE_TOKEN', token, user, onboardingCompleted });
     } catch {
       dispatch({ type: 'RESTORE_TOKEN', token: null, user: null, onboardingCompleted: false });
@@ -107,8 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = userData.api_token;
     await AsyncStorage.setItem('TOKEN', token);
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
-    const onboardingCompletedStr = await AsyncStorage.getItem('ONBOARDING_COMPLETED');
-    const onboardingCompleted = onboardingCompletedStr === 'true';
+    const onboardingCompleted = await resolveOnboardingCompleted(userData);
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
   }, []);
 
@@ -118,8 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = userData.api_token;
     await AsyncStorage.setItem('TOKEN', token);
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
-    const onboardingCompletedStr = await AsyncStorage.getItem('ONBOARDING_COMPLETED');
-    const onboardingCompleted = onboardingCompletedStr === 'true';
+    const onboardingCompleted = await resolveOnboardingCompleted(userData);
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
   }, []);
 
@@ -137,6 +151,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(async () => {
     await AsyncStorage.setItem('ONBOARDING_COMPLETED', 'true');
     dispatch({ type: 'SET_ONBOARDING_COMPLETED' });
+    // Best-effort, mismo criterio que el resto de onboardingV2Api: el
+    // endpoint todavía no existe en el backend, así que esto falla con 404
+    // hoy -- no debe bloquear el paso a Home, el flag local ya se guardó.
+    try {
+      await onboardingV2Api.completeOnboarding();
+    } catch (e) {
+      logger.error('completeOnboarding: no se pudo marcar en el backend', e);
+    }
   }, []);
 
   useEffect(() => {

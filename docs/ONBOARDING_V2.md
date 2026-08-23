@@ -236,6 +236,48 @@ pedirlo como texto libre.
 
 **Response esperada**: `{ "message": "OK", "status": true }`.
 
+## Marcar onboarding completado server-side (2026-08-23, pendiente de backend)
+
+**Bug real encontrado y corregido en el frontend** (reportado: "el tutorial
+[onboarding] no debería reiniciarse para personas que ya se han
+registrado"): `AuthContext.completeOnboarding()` solo escribía
+`AsyncStorage.setItem('ONBOARDING_COMPLETED', 'true')` -- un flag puramente
+local al dispositivo, sin ningún respaldo en el backend. Un usuario que ya
+completó el onboarding volvía a verlo entero de cero si reinstalaba la app o
+entraba desde otro dispositivo/dispositivo nuevo, porque esa clave de
+AsyncStorage simplemente no existía ahí. Tampoco había forma de que un
+coach/admin supiera desde el panel si un cliente ya completó el onboarding.
+
+Corregido en el cliente para usar un flag server-side en cuanto exista,
+cayendo al flag local mientras tanto (mismo patrón "best effort" que el
+resto de esta página):
+
+- `api/onboardingV2.ts`: nuevo `onboardingV2Api.completeOnboarding()` → `POST
+v1/onboarding/complete` (endpoint pendiente, hoy 404).
+- `store/AuthContext.tsx`: `completeOnboarding()` ahora también llama a ese
+  endpoint (best-effort, no bloquea si falla) además de seguir guardando el
+  flag local. `restoreToken`/`login`/`register` usan un nuevo helper
+  `resolveOnboardingCompleted()`: si el `UserData` devuelto por el backend
+  trae `onboarding_completed` (nuevo campo opcional en `api/profile.ts`), ese
+  valor manda; si no viene (backend actual, todavía sin el endpoint), cae al
+  flag local de `AsyncStorage` exactamente como antes -- cero regresión
+  mientras el backend no exista.
+
+**Pendiente real de backend**:
+
+- `POST v1/onboarding/complete` — marca el onboarding como terminado para el
+  usuario autenticado (mismo `user_id` vía token que el resto de esta API).
+  Columna sugerida: `users.onboarding_completed_at` (TIMESTAMP NULL) --
+  simplemente si es NULL o no da el booleano.
+- `login`/`register`/`update-profile` (y cualquier otro endpoint que
+  devuelva `UserData`) deben incluir `onboarding_completed: boolean` en la
+  respuesta para que el cliente deje de depender del flag local en cuanto
+  esto exista.
+- **Admin panel**: pantalla o columna nueva para que el coach vea, por
+  cliente, si ya completó el onboarding (y, junto con las 3 tablas de más
+  abajo, sus respuestas de PAR-Q/entrenamiento/nutrición) -- hoy no hay
+  ningún sitio en el admin donde verlas.
+
 ## Esquema de BD sugerido (backend, pendiente)
 
 `user_profiles` ya tiene `age`/`height`/`height_unit`/`weight`/`weight_unit`/
@@ -332,6 +374,14 @@ frontend lo mande en el body).
 - [ ] Backend: implementar `POST v1/onboarding/par-q`,
       `POST v1/onboarding/training-questionnaire`,
       `POST v1/onboarding/nutrition-questionnaire` + las 3 tablas de arriba.
+- [ ] Backend: implementar `POST v1/onboarding/complete` +
+      `users.onboarding_completed_at` + devolver `onboarding_completed` en
+      `UserData` (login/register/update-profile) -- ver sección "Marcar
+      onboarding completado server-side" más arriba. Sin esto, un usuario ya
+      onboardeado que reinstala la app o cambia de dispositivo vuelve a ver
+      el onboarding entero de cero.
+- [ ] Backend/admin: pantalla en el panel para ver, por cliente, el estado
+      de onboarding y sus respuestas de PAR-Q/entrenamiento/nutrición.
 - [ ] Backend/producto: decidir si un PAR-Q con respuesta positiva en alguna
       pregunta de riesgo cardíaco debe bloquear/marcar el perfil para
       revisión de un coach antes de asignar un plan de entrenamiento.
