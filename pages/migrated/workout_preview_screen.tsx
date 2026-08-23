@@ -26,6 +26,7 @@ import { readinessApi, ReadinessValues } from '../../api/readiness';
 import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
+  pickWorkoutFallbackImage,
   UnifiedWorkout,
   UnifiedExercise,
 } from './workoutViewShared';
@@ -314,16 +315,11 @@ export default function WorkoutPreviewScreen(props: Props) {
       >
         {/* Header image */}
         <Box style={styles.heroSection}>
-          {workout.thumbnail ? (
-            <Image source={{ uri: workout.thumbnail }} style={styles.heroImage} contentFit="cover" />
-          ) : (
-            <LinearGradient
-              colors={[C.gray20, C.surface]}
-              style={[styles.heroImage, styles.heroFallback]}
-            >
-              <Icon name="barbell-outline" size={64} color={C.gray30} />
-            </LinearGradient>
-          )}
+          <Image
+            source={workout.thumbnail ? { uri: workout.thumbnail } : pickWorkoutFallbackImage(workoutTemplateId ?? programDayAssignmentId)}
+            style={styles.heroImage}
+            contentFit="cover"
+          />
           <LinearGradient
             colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)']}
             style={styles.heroTopFade}
@@ -472,7 +468,6 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT * 0.38,
   },
   heroImage: { width: '100%', height: '100%' },
-  heroFallback: { alignItems: 'center', justifyContent: 'center' },
   heroTopFade: {
     position: 'absolute',
     top: 0,
