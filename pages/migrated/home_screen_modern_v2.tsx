@@ -42,7 +42,7 @@ import { TUTORIAL_CHALLENGES } from '../../constants/tutorialChallenges';
 import { AvatarMem } from '@components/Avatar';
 import { FONT } from './theme';
 import { useAppColorMode } from '../../helper/useAppColorMode';
-import { dashboardApi, BannerSliderItem } from '../../api/dashboard';
+import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { dietApi } from '../../api/diet';
@@ -188,6 +188,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const [dailyPlan, setDailyPlan] = useState<any>(null);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
+  // Agua/Actividad (sustituyen los placeholders "Sueño"/"Balance de carga") --
+  // ya venían en dashboard-detail sin leerse (ver fetchData).
+  const [water, setWater] = useState<WaterSummary | null>(null);
+  const [steps, setSteps] = useState<StepsSummary | null>(null);
+  const [workout, setWorkout] = useState<WorkoutSummary | null>(null);
   const [workoutTemplateList, setWorkoutTemplateList] = useState<WorkoutTemplateListItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceListItem[]>([]);
   const [pendingCheckins, setPendingCheckins] = useState<CheckInAssignment[]>([]);
@@ -250,12 +255,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // esas tarjetas (ver miniCardsRow) — mismo marginTop = -altura/2 de
     // antes, solo escalado hacia arriba para cubrir más superficie.
     seamGradient: { height: r(130), marginTop: r(-1) },
-    // Sueño / Balance de carga — a caballo entre los dos bloques (la mitad
-    // superior de la tarjeta queda sobre el degradado del header, la mitad
-    // inferior sobre "Mi plan de hoy") para que la costura entre ambos
-    // fondos sea menos visible. marginTop negativo (~mitad de la altura de
-    // seamGradient) tira la fila hacia arriba, hasta la mitad de la tarjeta.
-    miniCardsRow: { paddingHorizontal: r(20), marginTop: r(-65), marginBottom: r(8) },
+    // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
+    // de demo, todavía sobre la foto), no a caballo sobre el degradado como
+    // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
+    // ya lo hereda de heroHeader.
+    miniCardsRow: { marginTop: r(16) },
     heroPhrase: { fontSize: r(14), color: 'rgba(255,255,255,0.92)', textAlign: 'center' as const, lineHeight: r(20), marginBottom: r(16) },
     bannerCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: r(18), padding: r(16), alignItems: 'center' as const, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
     bannerTitle: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF', marginTop: r(8) },
@@ -263,8 +267,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     bannerBtn: { backgroundColor: '#FFFFFF', borderRadius: r(999), paddingHorizontal: r(24), paddingVertical: r(9), marginTop: r(12) },
     bannerBtnText: { fontSize: r(13), fontFamily: FONT.bold, color: C.orange },
     miniCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: r(16), padding: r(14) },
-    miniCardTitle: { fontSize: r(12), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.75)', marginTop: r(6) },
-    miniCardValue: { fontSize: r(20), fontFamily: FONT.extraBold, color: '#FFFFFF', marginTop: r(4) },
+    miniCardTitle: { fontSize: r(12), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.75)' },
+    miniCardValue: { fontSize: r(18), fontFamily: FONT.extraBold, color: '#FFFFFF', marginTop: r(8) },
+    miniCardValueMuted: { fontSize: r(12), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.55)' },
+    miniCardAddBtn: {
+      width: r(22),
+      height: r(22),
+      borderRadius: r(11),
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    glassGrid: { flexWrap: 'wrap' as const, gap: r(4), marginTop: r(8) },
+    miniCardSubRow: { fontSize: r(10.5), fontFamily: FONT.medium, color: 'rgba(255,255,255,0.7)' },
     sectionTitle: { fontSize: r(17), fontFamily: FONT.bold, color: C.white },
     seeAll: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
     todayWorkoutTitle: { fontSize: r(15), fontFamily: FONT.bold, color: C.white },
@@ -379,6 +394,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         // pero se guarda igual para que el codigo ya quede conectado.
         const banners: BannerSliderItem[] = d?.banner_slider ?? [];
         setActiveBanner(banners.length > 0 ? banners[0] : null);
+        setWater(d?.water ?? null);
+        setSteps(d?.steps ?? null);
+        setWorkout(d?.workout ?? null);
       } else {
         errors.push('dashboard');
       }
@@ -602,6 +620,27 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     );
   };
 
+  // Agua: sin campo real de "vasos" en el backend (solo total/goal en ml,
+  // ver api/dashboard.ts WaterSummary) -- se deriva una rejilla de vasos
+  // asumiendo un tamaño de vaso estándar, igual que hacen la mayoría de apps
+  // de agua cuando el usuario no fija su propio tamaño de vaso.
+  const GLASS_SIZE_ML = 250;
+  const waterTotal = water?.total ?? 0;
+  const waterGoal = water?.goal ?? 0;
+  const totalGlasses = waterGoal > 0 ? Math.max(1, Math.round(waterGoal / GLASS_SIZE_ML)) : 8;
+  const filledGlasses = Math.min(totalGlasses, Math.floor(waterTotal / GLASS_SIZE_ML));
+
+  // Actividad: el backend no calcula kcal a partir de pasos (solo cuenta de
+  // pasos), así que se estima con el mismo factor ~0.03 kcal/paso que usan
+  // la mayoría de wearables para una persona media -- las kcal reales de
+  // entrenamiento (totalCalories) sí vienen del backend tal cual.
+  const KCAL_PER_STEP = 0.03;
+  const stepsCount = steps?.total ?? 0;
+  const stepsKcal = Math.round(stepsCount * KCAL_PER_STEP);
+  const workoutKcal = workout?.totalCalories ?? 0;
+  const activityKcal = stepsKcal + workoutKcal;
+  const activityGoalKcal = steps?.goal ? Math.round(steps.goal * KCAL_PER_STEP) : 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       {/* Barra fija con efecto glass (calendario / saludo / notificaciones /
@@ -740,8 +779,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
                 <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
                 <Text style={styles.bannerText}>
-                  Los anillos de Recovery/Strain y las tarjetas de Sueño se activarán con datos reales en cuanto
-                  conectes Apple Health o Health Connect.
+                  Los anillos de Recovery/Strain se activarán con datos reales en cuanto conectes Apple Health o
+                  Health Connect.
                 </Text>
                 <Pressable style={styles.bannerBtn} onPress={() => setDemoBannerDismissed(true)}>
                   <Text style={styles.bannerBtnText}>Continuar</Text>
@@ -749,6 +788,57 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               </Box>
             )
           )}
+
+          {/* Agua / Actividad -- sustituyen los placeholders "Sueño"/"Balance
+              de carga" (pedido explícito: moverlas dentro de la foto del
+              hero, justo debajo del banner de demo, y sacar "Reto para
+              empezar" fuera de la imagen). Datos reales de dashboard-detail
+              (agua: total/goal en ml; actividad: kcal estimadas de pasos +
+              kcal reales de entrenamientos). */}
+          <HStack space="sm" style={styles.miniCardsRow}>
+            <Box style={styles.miniCard}>
+              <HStack className="items-center justify-between">
+                <HStack space="xs" className="items-center">
+                  <Icon name="water" size={15} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.miniCardTitle}>Agua</Text>
+                </HStack>
+                <Pressable style={styles.miniCardAddBtn} onPress={() => navigation?.navigate('MigratedWaterTracker')} hitSlop={8}>
+                  <Icon name="add" size={14} color="#FFFFFF" />
+                </Pressable>
+              </HStack>
+              <Text style={styles.miniCardValue}>
+                {waterTotal}<Text style={styles.miniCardValueMuted}>/{waterGoal || '--'} mL</Text>
+              </Text>
+              <HStack style={styles.glassGrid}>
+                {Array.from({ length: totalGlasses }, (_, i) => (
+                  <Icon
+                    key={i}
+                    name={i < filledGlasses ? 'water' : 'water-outline'}
+                    size={13}
+                    color={i < filledGlasses ? '#7DD3FC' : 'rgba(255,255,255,0.35)'}
+                  />
+                ))}
+              </HStack>
+            </Box>
+            <Box style={styles.miniCard}>
+              <HStack className="items-center justify-between">
+                <HStack space="xs" className="items-center">
+                  <Icon name="walk" size={15} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.miniCardTitle}>Actividad</Text>
+                </HStack>
+                <Pressable style={styles.miniCardAddBtn} onPress={() => navigation?.navigate('MigratedActivityTracker')} hitSlop={8}>
+                  <Icon name="add" size={14} color="#FFFFFF" />
+                </Pressable>
+              </HStack>
+              <Text style={styles.miniCardValue}>
+                {activityKcal}<Text style={styles.miniCardValueMuted}>/{activityGoalKcal || '--'} kcal</Text>
+              </Text>
+              <VStack style={{ marginTop: r(6), gap: r(4) }}>
+                <Text style={styles.miniCardSubRow}>Pasos · {stepsCount} · {stepsKcal} kcal</Text>
+                <Text style={styles.miniCardSubRow}>Entrenamientos · {workoutKcal} kcal</Text>
+              </VStack>
+            </Box>
+          </HStack>
         </Box>
 
         {/* Degradado de transición hacia "Mi plan de hoy" (petición
@@ -769,22 +859,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           locations={[0, 0.3, 0.6, 1]}
           style={styles.seamGradient}
         />
-
-        {/* Sueño / Balance de carga — a caballo entre el bloque superior y
-            "Mi plan de hoy" (mitad sobre el degradado, mitad sobre el
-            siguiente bloque) para difuminar la costura entre ambos fondos. */}
-        <HStack space="sm" style={styles.miniCardsRow}>
-          <Box style={styles.miniCard}>
-            <Icon name="moon" size={16} color="rgba(255,255,255,0.75)" />
-            <Text style={styles.miniCardTitle}>Sueño</Text>
-            <Text style={styles.miniCardValue}>--</Text>
-          </Box>
-          <Box style={styles.miniCard}>
-            <Icon name="briefcase-outline" size={16} color="rgba(255,255,255,0.75)" />
-            <Text style={styles.miniCardTitle}>Balance de carga</Text>
-            <Text style={styles.miniCardValue}>--</Text>
-          </Box>
-        </HStack>
 
         {errorMessage && (
           <HStack style={styles.errorBanner}>
