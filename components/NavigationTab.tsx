@@ -27,17 +27,19 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
 // final de su contenido desplazable para que el último bloque no quede
 // tapado detrás de la barra (reportado con captura: una tarjeta quedaba
 // justo debajo/tapada por la barra al hacer scroll hasta el fondo).
-// navigationOuter mide '64@ratio' de alto y el "+" sobresale '22@ratio' por
-// encima de ese contenedor (ver plusBtn.top más abajo) -- a escala ~1 (ancho
-// de referencia) son ~86px de la barra en sí, más un margen extra de aire.
-// Deliberadamente NO incluye insets.bottom: la barra se posiciona sobre el
-// screen completo (fuera del SafeAreaView de cada pantalla) y ya añade su
-// propio `marginBottom: safearea.bottom` (ver navigationOuter más abajo) --
-// sumarlo aquí también lo contaría dos veces en cualquier pantalla cuyo
-// SafeAreaView ya reserve el edge 'bottom'. Cada pantalla ya es responsable
-// de su propio inset físico (SafeAreaView con edge 'bottom', o insets.bottom
-// a mano); esta constante es solo el hueco adicional para la barra flotante.
-export const TAB_BAR_CLEARANCE = 86 + 20;
+// navigationOuter mide '64@ratio' de alto -- desde el rediseño que separó el
+// "+" de la barra (ya no se superpone centrado encima), la fila entera mide
+// eso mismo, sin ningún elemento sobresaliendo por arriba. A escala ~1
+// (ancho de referencia) son ~64px de la barra en sí, más un margen extra de
+// aire. Deliberadamente NO incluye insets.bottom: la barra se posiciona
+// sobre el screen completo (fuera del SafeAreaView de cada pantalla) y ya
+// añade su propio `marginBottom: safearea.bottom` (ver navigationOuter más
+// abajo) -- sumarlo aquí también lo contaría dos veces en cualquier
+// pantalla cuyo SafeAreaView ya reserve el edge 'bottom'. Cada pantalla ya
+// es responsable de su propio inset físico (SafeAreaView con edge 'bottom',
+// o insets.bottom a mano); esta constante es solo el hueco adicional para
+// la barra flotante.
+export const TAB_BAR_CLEARANCE = 64 + 20;
 
 interface QuickAction {
   id: string;
@@ -189,9 +191,12 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
           {/*navigation icons end*/}
         </View>
 
-        {/* Botón "+" flotante -- abre el submenu de accesos rápidos. Cambia a
-            icono "cerrar" mientras el menú está abierto (mismo criterio que
-            la referencia), sin cambiar de color entre estados (pedido
+        {/* Botón "+" separado de la barra (pedido explícito, captura de
+            referencia: "todos los iconos juntos y separado el +") -- ya no
+            se superpone centrado encima de la barra, vive al lado como
+            círculo propio dentro de la misma fila. Cambia a icono "cerrar"
+            mientras el menú está abierto (mismo criterio que la
+            referencia), sin cambiar de color entre estados (pedido
             explícito en el rediseño anterior). */}
         <Pressable
           accessibilityRole="button"
@@ -281,12 +286,15 @@ function useStyle() {
       right: '20@ratio',
       bottom: 0,
       height: '64@ratio',
+      flexDirection: "row",
+      alignItems: "center",
+      gap: '12@ratio',
     },
     navigationBlur: {
+      flex: 1,
       flexDirection: "row",
       justifyContent: "space-around",
       alignItems: "center",
-      width: "100%",
       height: '64@ratio',
       borderRadius: '32@ratio',
       overflow: "hidden",
@@ -333,13 +341,9 @@ function useStyle() {
       height: '5@ratio',
     },
     plusBtn: {
-      position: "absolute",
-      top: '-22@ratio',
-      left: "50%",
-      marginLeft: '-28@ratio',
-      width: '56@ratio',
-      height: '56@ratio',
-      borderRadius: '28@ratio',
+      width: '64@ratio',
+      height: '64@ratio',
+      borderRadius: '32@ratio',
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
