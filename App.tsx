@@ -25,6 +25,7 @@ import "@helper/reminderNotifications";
 import NavigationTab from "@components/NavigationTab";
 import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
 import { TabBarScrollProvider } from "@store/TabBarScrollContext";
+import { AppColorModeProvider } from "@helper/useAppColorMode";
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -48,6 +49,7 @@ const AboutUsScreen = React.lazy(() => import('@pages/migrated/about_us_screen')
 const ActivityTrackerScreen = React.lazy(() => import('@pages/migrated/activity_tracker_screen'));
 const AddPostScreen = React.lazy(() => import('@pages/migrated/add_post_screen'));
 const AddShoppingListScreen = React.lazy(() => import('@pages/migrated/add_shopping_list_screen'));
+const AppearanceScreen = React.lazy(() => import('@pages/migrated/appearance_screen'));
 const BlogDetailScreen = React.lazy(() => import('@pages/migrated/blog_detail_screen'));
 const BlogScreen = React.lazy(() => import('@pages/migrated/blog_screen'));
 const BodyMetricsScreen = React.lazy(() => import('@pages/migrated/body_metrics_screen'));
@@ -255,6 +257,7 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedActivityTracker" component={ActivityTrackerScreen} />
       <MStack.Screen name="MigratedAddPost" component={AddPostScreen} />
       <MStack.Screen name="MigratedAddShoppingList" component={AddShoppingListScreen} />
+      <MStack.Screen name="MigratedAppearance" component={AppearanceScreen} />
       <MStack.Screen name="MigratedBlogDetail" component={BlogDetailScreen} />
       <MStack.Screen name="MigratedBlog" component={BlogScreen} />
       <MStack.Screen name="MigratedBodyMetrics" component={BodyMetricsScreen} />
@@ -498,21 +501,27 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GluestackUIProvider mode="light">
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <AuthProvider>
-            <TutorialProvider navigationRef={screenReviewNavigationRef}>
-              <NavigationContainer
-                ref={screenReviewNavigationRef}
-                theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
-                onReady={onLayoutRootView}
-              >
-                <RootNavigator />
-              </NavigationContainer>
-              <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
-              <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
-              <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
-              <TutorialOverlay />
-            </TutorialProvider>
-          </AuthProvider>
+          {/* Cerca de la raíz (no solo alrededor de Home v2) para que
+              cualquier pantalla que consuma useAppColorMode() -- hoy Home v2
+              y MigratedAppearance -- comparta el mismo estado real, ver
+              helper/useAppColorMode.ts. */}
+          <AppColorModeProvider>
+            <AuthProvider>
+              <TutorialProvider navigationRef={screenReviewNavigationRef}>
+                <NavigationContainer
+                  ref={screenReviewNavigationRef}
+                  theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
+                  onReady={onLayoutRootView}
+                >
+                  <RootNavigator />
+                </NavigationContainer>
+                <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
+                <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
+                <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
+                <TutorialOverlay />
+              </TutorialProvider>
+            </AuthProvider>
+          </AppColorModeProvider>
         </SafeAreaProvider>
       </GluestackUIProvider>
     </GestureHandlerRootView>

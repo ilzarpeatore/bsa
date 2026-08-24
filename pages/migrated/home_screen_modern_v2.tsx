@@ -200,7 +200,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // helper/useAppColorMode.ts) -- "C" queda con el mismo nombre que el
   // import estático de siempre para no reescribir los ~85 usos C.xxx de
   // este fichero; sigue el modo salvo que el usuario lo fije a mano.
-  const { preference: themePreference, setPreference: setThemePreference, colors: C } = useAppColorMode();
+  const { preference: themePreference, colors: C } = useAppColorMode();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -475,16 +475,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuItemSubtext: { fontSize: r(12), color: C.textSecondary, marginTop: r(1) },
     menuLogoutBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(20) },
     menuLogoutText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.destructive },
-    themeOptionBtn: {
-      flex: 1,
-      paddingVertical: r(9),
-      borderRadius: r(10),
-      alignItems: 'center' as const,
-      backgroundColor: C.gray70,
-    },
-    themeOptionBtnActive: { backgroundColor: C.orange },
-    themeOptionText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary },
-    themeOptionTextActive: { color: '#FFFFFF' },
   }), [sc, r, C, winH, insets.bottom, heroGradient]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
@@ -1531,26 +1521,26 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue
                   la hora del dispositivo (isNightHour en theme.ts), el usuario
                   puede fijarlo a Claro/Oscuro y eso manda hasta que vuelva a
-                  elegir Auto. Ver helper/useAppColorMode.ts. */}
+                  elegir Auto. Ver helper/useAppColorMode.ts. El selector
+                  inline de 3 botones se sustituye por una fila que lleva a
+                  MigratedAppearance (pedido explícito, captura de referencia
+                  de Bevel: "Aspecto" con tarjetas de vista previa) -- tener
+                  las dos formas de cambiar el mismo ajuste en el mismo menú
+                  habría sido redundante. */}
               <Text style={styles.menuSectionLabel}>Apariencia</Text>
-              <Box style={[styles.menuCard, { padding: r(14) }]}>
-                <HStack className="items-center" style={{ marginBottom: r(12) }}>
-                  <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                  <Text style={styles.menuItemText}>Tema</Text>
-                </HStack>
-                <HStack space="xs">
-                  {(['auto', 'light', 'dark'] as const).map((option) => (
-                    <Pressable
-                      key={option}
-                      style={[styles.themeOptionBtn, themePreference === option && styles.themeOptionBtnActive]}
-                      onPress={() => setThemePreference(option)}
-                    >
-                      <Text style={[styles.themeOptionText, themePreference === option && styles.themeOptionTextActive]}>
-                        {option === 'auto' ? 'Automático' : option === 'light' ? 'Claro' : 'Oscuro'}
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedAppearance')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <VStack className="flex-1">
+                      <Text style={styles.menuItemText}>Aspecto</Text>
+                      <Text style={styles.menuItemSubtext}>
+                        {themePreference === 'auto' ? 'Automático' : themePreference === 'light' ? 'Leve' : 'Oscuro'}
                       </Text>
-                    </Pressable>
-                  ))}
-                </HStack>
+                    </VStack>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
               </Box>
 
               <Text style={styles.menuSectionLabel}>Más</Text>
