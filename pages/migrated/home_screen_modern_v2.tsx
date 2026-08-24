@@ -56,6 +56,8 @@ import { pickWorkoutFallbackImage } from './workoutViewShared';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { habitsApi, Habit } from '../../api/habits';
+import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
+import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
 import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
 import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
@@ -94,6 +96,22 @@ function greetingForHour(hour: number): string {
   if (hour < 12) return 'Buenos días';
   if (hour < 20) return 'Buenas tardes';
   return 'Buenas noches';
+}
+
+// Recovery del hero -- estimación 100% cliente a partir del chequeo
+// subjetivo diario que el cliente ya rellena (daily_readiness_checks, mismo
+// dato que consume workout_preview_screen.tsx). NO es el `combined_score`
+// real que calcula `ReadinessCalculationService` en el backend (ese cruza
+// esto con HRV/sueño objetivo de wearable vía `readiness_scores`, y hoy no
+// hay endpoint que lo exponga al cliente) -- es una media simple de las 4
+// respuestas normalizadas a 0-100, pensada como aproximación honesta
+// mientras no exista ese endpoint, no como sustituto exacto del score real.
+function computeRecoveryScore(v: ReadinessValues): number {
+  const sleep = ((v.sleep_quality - 1) / 4) * 100; // 1-5, mayor = mejor
+  const energy = ((v.energy_level - 1) / 4) * 100; // 1-5, mayor = mejor
+  const soreness = ((10 - v.soreness_level) / 9) * 100; // 1-10, invertido (mayor = peor)
+  const stress = ((5 - v.stress_level) / 4) * 100; // 1-5, invertido (mayor = peor)
+  return Math.round((sleep + energy + soreness + stress) / 4);
 }
 
 // Fondo real del hero (sustituye al LinearGradient plano) -- 3 fotos fijas
@@ -281,6 +299,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // resumen (mismo patrón que MigratedMyProgramCalendar::goToWorkout), no el
   // preview de la plantilla — de ahí este set de assignment_id completados.
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
+  // Recovery real (opción 1 + 3 del hueco Recovery/Strain del hero, ver
+  // computeRecoveryScore arriba): `readinessToday` es null mientras no se
+  // resuelve la petición (evita el parpadeo de mostrar el CTA un instante
+  // antes de saber si ya se rellenó hoy). `showReadinessSheet` abre el
+  // formulario opcional (ReadinessCheckSheet) al tocar el anillo cuando
+  // todavía no hay chequeo de hoy.
+  const [readinessToday, setReadinessToday] = useState<ReadinessTodayResponse['data'] | null>(null);
+  const [showReadinessSheet, setShowReadinessSheet] = useState(false);
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
@@ -336,6 +362,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     ringValue: { fontSize: r(26), lineHeight: r(32), fontFamily: FONT.extraBold, color: '#FFFFFF' },
     ringLabel: { fontSize: r(10), lineHeight: r(14), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.65)', letterSpacing: 0.5, marginTop: r(2) },
     ringSubLabel: { fontSize: r(9), lineHeight: r(13), color: 'rgba(255,255,255,0.5)' },
+    readinessCtaHint: { fontSize: r(11), color: 'rgba(255,255,255,0.6)', textAlign: 'center' as const, marginTop: r(-8) },
     // Degradado de transición entre el bloque superior y "Mi plan de hoy" —
     // sustituye el borde redondeado que había antes (petición 2026-08-19).
     // Revisión 2026-08-20: el degradado quedaba "cutre" (salto duro de solo 2
@@ -471,7 +498,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
 
-      const [dashRes, calendarRes, dietRes, blogRes, workoutTemplatesRes, resourcesRes, checkinsRes, habitsRes, phraseRes, completedRes] = await Promise.allSettled([
+      const [dashRes, calendarRes, dietRes, blogRes, workoutTemplatesRes, resourcesRes, checkinsRes, habitsRes, phraseRes, completedRes, readinessRes] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         workoutHistoryApi.getMyCalendar(currentMonth, currentYear),
         dietApi.getDailyPlan(todayStr),
@@ -482,6 +509,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         habitsApi.getMyList(7),
         motivationalPhraseApi.getPhrase(),
         workoutHistoryApi.getMyCompletedSessions(),
+        readinessApi.getToday(),
       ]);
 
       const errors: string[] = [];
@@ -558,6 +586,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         setCompletedAssignmentIds(
           new Set(sessions.filter((s) => s.program_day_assignment_id != null).map((s) => s.program_day_assignment_id as number))
         );
+      }
+
+      if (readinessRes.status === 'fulfilled') {
+        setReadinessToday(readinessRes.value.data.data);
       }
 
       if (errors.length > 0) {
@@ -741,6 +773,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const activityKcal = stepsKcal + workoutKcal;
   const activityGoalKcal = steps?.goal ? Math.round(steps.goal * KCAL_PER_STEP) : 0;
 
+  // Recovery del anillo del hero -- null mientras no se resuelve la petición
+  // (evita parpadeo del CTA), número real una vez que hay chequeo de hoy.
+  const recoveryScore = readinessToday?.today ? computeRecoveryScore(readinessToday.today) : null;
+  const recoveryColor = recoveryScore == null ? '#FFFFFF' : recoveryScore >= 70 ? C.success : recoveryScore >= 40 ? C.warning : C.destructive;
+  const readinessCtaVisible = readinessToday != null && !readinessToday.submitted_today;
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       {/* Barra fija con efecto glass (calendario / saludo / notificaciones /
@@ -840,22 +878,44 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             pointerEvents="none"
           />
 
-          {/* Anillos Recovery/Strain — placeholder "-%" sin datos reales
-              (dependen de la integración de salud, fase futura, ver sección 3
-              del encargo). Mismo AnimatedRing que ya usa Nutrición más abajo. */}
-          <HStack style={styles.ringsRow}>
-            <VStack style={styles.ringSide}>
-              <Text style={styles.ringValue}>-%</Text>
-              <Text style={styles.ringLabel}>RECOVERY</Text>
-            </VStack>
-            <AnimatedRing size={r(120)} strokeWidth={r(9)} percent={0} color="rgba(255,255,255,0.85)" trackColor="rgba(255,255,255,0.18)" duration={0}>
-              <Icon name="fitness-outline" size={26} color="rgba(255,255,255,0.6)" />
-            </AnimatedRing>
-            <VStack style={[styles.ringSide, { alignItems: 'flex-end' as const }]}>
-              <Text style={styles.ringValue}>-%</Text>
-              <Text style={styles.ringLabel}>STRAIN</Text>
-            </VStack>
-          </HStack>
+          {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin
+              fuente de datos real todavía (necesitaría el ACWR que ya
+              calcula el backend en `readiness_scores`, no expuesto al
+              cliente aún). Recovery ya no es placeholder: si el cliente
+              rellenó su chequeo diario hoy, se muestra la estimación real
+              (computeRecoveryScore); si no, el anillo es un CTA tocable que
+              abre ReadinessCheckSheet (opción 3 del hueco Recovery/Strain
+              del hero). Mientras `readinessToday` no resuelve, se mantiene
+              el placeholder de siempre para no parpadear un CTA de más. */}
+          <Pressable
+            disabled={!readinessCtaVisible}
+            onPress={() => setShowReadinessSheet(true)}
+            style={({ pressed }) => [pressed && readinessCtaVisible && { opacity: 0.75 }]}
+          >
+            <HStack style={styles.ringsRow}>
+              <VStack style={styles.ringSide}>
+                <Text style={[styles.ringValue, recoveryScore != null && { color: recoveryColor }]}>
+                  {recoveryScore != null ? `${recoveryScore}%` : '-%'}
+                </Text>
+                <Text style={styles.ringLabel}>RECOVERY</Text>
+              </VStack>
+              <AnimatedRing
+                size={r(120)}
+                strokeWidth={r(9)}
+                percent={recoveryScore ?? 0}
+                color={recoveryScore != null ? recoveryColor : 'rgba(255,255,255,0.85)'}
+                trackColor="rgba(255,255,255,0.18)"
+                duration={0}
+              >
+                <Icon name={readinessCtaVisible ? 'add-circle-outline' : 'fitness-outline'} size={26} color="rgba(255,255,255,0.6)" />
+              </AnimatedRing>
+              <VStack style={[styles.ringSide, { alignItems: 'flex-end' as const }]}>
+                <Text style={styles.ringValue}>-%</Text>
+                <Text style={styles.ringLabel}>STRAIN</Text>
+              </VStack>
+            </HStack>
+            {readinessCtaVisible && <Text style={styles.readinessCtaHint}>Toca para registrar cómo llegas hoy</Text>}
+          </Pressable>
 
           {/* Frase contextual (motivational-phrase, ver sección 4) */}
           {motivationalPhrase && <Text style={styles.heroPhrase}>{motivationalPhrase}</Text>}
@@ -1373,6 +1433,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
         <Box style={{ height: TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
+
+      {/* Chequeo diario opcional (ver nota en el anillo Recovery más arriba)
+          -- al guardar, se refleja al instante en el anillo sin esperar a un
+          refetch completo de fetchData(). */}
+      <ReadinessCheckSheet
+        visible={showReadinessSheet}
+        onClose={() => setShowReadinessSheet(false)}
+        onSubmitted={(values) => setReadinessToday({ required: readinessToday?.required ?? false, submitted_today: true, today: values })}
+      />
 
       {/* Menú de usuario (perfil, favoritos, ajustes, salud, comunidad, logout).
           Rediseño 2026-08-23 (pedido explícito, capturas de referencia de la
