@@ -1963,7 +1963,7 @@ Mismo hueco reportado (anillos Recovery/Strain siempre en placeholder "-%") — 
 
 **Nuevo `components/ReadinessCheckSheet.tsx`:** versión descartable/opcional (bottom sheet, `SimpleBottomSheet`) del mismo cuestionario de 4 preguntas que `workout_preview_screen.tsx` ya usa como gate obligatorio de pantalla completa — deliberadamente **no** se reutilizó ese componente (es privado al archivo, asume pantalla completa y respuesta obligatoria); se replicó siguiendo el patrón ya establecido de `PainReportSheet.tsx` (mismo `SimpleBottomSheet`, misma estructura de header/scroll/footer) en vez de forzar una abstracción compartida entre un gate obligatorio y una acción voluntaria. Al guardar, `onSubmitted` actualiza el estado de Home al instante (sin esperar un refetch completo) para que el anillo refleje el nuevo % de inmediato.
 
-Verificado: `eslint` limpio (0 errores; los 2 warnings nuevos —`set-state-in-effect` del reset al reabrir el sheet, y `catch (e)` sin usar— son el mismo patrón ya aceptado en `PainReportSheet.tsx`, no algo nuevo). `tsc --noEmit -p .` corriendo en background junto con el fix del hero de la sección anterior.
+Verificado: `eslint` limpio (0 errores; los 2 warnings nuevos —`set-state-in-effect` del reset al reabrir el sheet, y `catch (e)` sin usar— son el mismo patrón ya aceptado en `PainReportSheet.tsx`, no algo nuevo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`).
 
 ### ✅ Bug real: "Cumplimiento semanal" marcaba días como hechos sin estar completados
 
@@ -1973,7 +1973,7 @@ Reportado con captura: la tarjeta "Cumplimiento semanal" del Home mostraba 7 de 
 
 **Fix:** se adelanta el cálculo del `Set` de `program_day_assignment_id` completados (antes solo se construía dentro del bloque de `completedRes`, más abajo — se movió arriba y se reutiliza en ambos sitios, sin recalcularlo dos veces) y cada día de la semana ahora exige `dayData.workouts.some(w => completedAssignmentIdSet.has(w.assignment_id))` — la misma fuente de verdad (`workoutHistoryApi.getMyCompletedSessions()`) que ya usa "Mi plan de hoy" para distinguir una tarjeta completada de una pendiente. Días de descanso (sin workout asignado) siguen sin check, igual que antes — el fix solo corrige el caso "asignado pero no completado", que antes se contaba como hecho.
 
-Verificado: `eslint` limpio (0 errores, mismos warnings preexistentes). `tsc --noEmit -p .` corriendo en background junto con los cambios anteriores de esta sesión.
+Verificado: `eslint` limpio (0 errores, mismos warnings preexistentes). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`).
 
 ### Efecto glass real en el calendario y el contador de kcal de MigratedPlan (`plan_screen.tsx`)
 
@@ -1986,7 +1986,7 @@ Pedido con captura: la barra de días de la semana y la tarjeta compacta de Kcal
 - `weekdayPicker` (barra de días): fondo de reserva cambiado de `C.surface` sólido a `rgba(255,255,255,0.8)` translúcido — mismo 80% de opacidad que ya usa el design system para `Card variant="glass"` (`bg-card/80`, ver `components/ui/card`), para que ambas secciones lean como el mismo lenguaje visual. Se añade un hairline `C.border` en el borde inferior (mismo criterio que un toolbar real de iOS con glass) para separar la barra del contenido que hace scroll debajo, en ambas ramas.
 - Tarjeta compacta de Kcal (`compactBar`): `Card variant="ghost"` → `variant="glass"` — activa el wiring de `GlassView`+fallback translúcido que el componente `Card` ya trae de fábrica (opt-in, documentado explícitamente en el propio componente como "todavía no visto en dispositivo real" — esta es su primera activación real en una pantalla). Cambio de una sola prop, sin estilos nuevos: `Card` ya resuelve el wrapper `overflow:hidden`/`borderRadius` necesario para que `GlassView` no se vea con esquinas cuadradas (mismo patrón documentado en `WorkoutMinimizedBar.tsx`/`SimpleBottomSheet.tsx`).
 
-Verificado: `eslint` limpio (0 errores, mismos warnings preexistentes, ninguno nuevo en las líneas tocadas). `tsc --noEmit -p .` corriendo en background junto con los cambios anteriores. **Pendiente de verificación visual en dispositivo real** (esta sesión no tiene MCP de control de dispositivo disponible) — confirmar que la translucidez se ve bien tanto en el fallback (Android/iOS<26) como, si hay algún dispositivo con Liquid Glass real disponible, en la rama `hasGlass`.
+Verificado: `eslint` limpio (0 errores, mismos warnings preexistentes, ninguno nuevo en las líneas tocadas). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`). **Pendiente de verificación visual en dispositivo real** (esta sesión no tiene MCP de control de dispositivo disponible) — confirmar que la translucidez se ve bien tanto en el fallback (Android/iOS<26) como, si hay algún dispositivo con Liquid Glass real disponible, en la rama `hasGlass`.
 
 ### Header colapsable en MigratedAssignedMeals (`assigned_meals_screen.tsx`)
 
@@ -1999,7 +1999,7 @@ Reportado con captura: el header fijo (tarjeta de objetivo kcal/macros + selecto
 - `contentContainerStyle.paddingBottom` del scroll subido de `24` a `40` como margen extra de seguridad para que la última opción de la lista no quede pegada/tapada por overlays flotantes.
 - Efecto colateral de limpieza: las clases `mx-4`/`px-4` de cada bloque del header (que daban su propio margen horizontal cuando vivían fuera del scroll) se quitaron — ahora todo el contenido, header incluido, se alinea con el único `paddingHorizontal:16` del `contentContainerStyle`, igual que ya hacían las filas de la lista.
 
-Verificado: `eslint` limpio (0 errores, mismos 2 warnings preexistentes sin relación). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión. **Pendiente de verificación visual en dispositivo real** (sin MCP de control de dispositivo en esta sesión) — confirmar en vivo que el umbral de colapso (`HEADER_HEIGHT_ESTIMATE=260`) se siente natural y que la barra compacta no tapa contenido al aparecer.
+Verificado: `eslint` limpio (0 errores, mismos 2 warnings preexistentes sin relación). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`). **Pendiente de verificación visual en dispositivo real** (sin MCP de control de dispositivo en esta sesión) — confirmar en vivo que el umbral de colapso (`HEADER_HEIGHT_ESTIMATE=260`) se siente natural y que la barra compacta no tapa contenido al aparecer.
 
 ### Margen superior del toggle Frontal/Trasera en MigratedViewBodyPart (`view_body_part_screen.tsx`)
 
@@ -2009,7 +2009,7 @@ Reportado con captura: el botón "Frontal" del toggle interno de `MuscleBodyMap`
 
 **Fix, scoped a este archivo (sin tocar el componente compartido):** nueva constante `TOGGLE_TOP_BREATHING_ROOM = 16`, restada también del alto disponible al calcular `bodyMapHeight` (junto a `BODY_MAP_TOGGLE_HEIGHT`, ya existente) — libera un hueco extra que el centrado del `Box` reparte, dando aire real por encima del toggle sin reducir perceptiblemente el tamaño del mapa muscular.
 
-Verificado: `eslint` limpio (0 errores, 0 warnings). `tsc --noEmit -p .` — se detectó que el proceso en background de la sesión llevaba corriendo desde ANTES de varios commits posteriores (compliance semanal, glass effect, header colapsable de assigned-meals, y este fix), por lo que sus resultados no reflejarían esos archivos con fiabilidad; se mató y se relanzó un `tsc` limpio que cubre el estado actual completo del repo. **Pendiente de verificación visual en dispositivo real.**
+Verificado: `eslint` limpio (0 errores, 0 warnings). `tsc --noEmit -p .` — se detectó que el proceso en background de la sesión llevaba corriendo desde ANTES de varios commits posteriores (compliance semanal, glass effect, header colapsable de assigned-meals, y este fix), por lo que sus resultados no reflejarían esos archivos con fiabilidad; se mató y se relanzó un `tsc` limpio que cubre el estado actual completo del repo — terminó limpio, 0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`. **Pendiente de verificación visual en dispositivo real.**
 
 ### Scroll infinito en la búsqueda de MigratedRecipeMain (`recipe_main_screen.tsx`)
 
@@ -2023,7 +2023,7 @@ Reportado: la búsqueda de recetas mostraba un máximo de 10 resultados, sin for
 - Los resultados de búsqueda pasan de un `HStack` con `flexWrap` (dentro del `ScrollView` general de la pantalla) a un `FlatList` con `numColumns={2}` y `onEndReached`/`onEndReachedThreshold={0.4}` — un `ScrollView` no tiene forma nativa de disparar "cargar más" al llegar al final, hacía falta el `FlatList` para el scroll infinito real (mismo motivo por el que `plan_screen.tsx` ya usa `FlatList` para esto).
 - Efecto colateral necesario: la barra de búsqueda se sacó del `ScrollView` del feed a una posición fija siempre visible (antes vivía dentro de ese scroll) — necesario porque ahora, en modo búsqueda, el scroll lo lleva un `FlatList` totalmente distinto del `ScrollView` del feed (no pueden anidarse dos scrolls verticales sin conflicto de gestos), así que la barra ya no puede vivir dentro de ninguno de los dos. Se le añadió su propio `marginHorizontal`/`marginTop` (antes los heredaba del padding del `ScrollView` que la contenía).
 
-Verificado: `eslint` limpio (0 errores; los 4 warnings —`fetchFeed()`/`setSearchResults([])` en efectos, comillas sin escapar en "Sin resultados"— ya existían antes de este cambio, ninguno nuevo). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión (proceso relanzado limpio, cubre este archivo). **Pendiente de verificación visual en dispositivo real** — confirmar que el scroll infinito carga bien y que la barra de búsqueda fija no introduce ningún salto visual al cambiar entre modo feed y modo búsqueda.
+Verificado: `eslint` limpio (0 errores; los 4 warnings —`fetchFeed()`/`setSearchResults([])` en efectos, comillas sin escapar en "Sin resultados"— ya existían antes de este cambio, ninguno nuevo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`). **Pendiente de verificación visual en dispositivo real** — confirmar que el scroll infinito carga bien y que la barra de búsqueda fija no introduce ningún salto visual al cambiar entre modo feed y modo búsqueda.
 
 ### Reorganización de categorías en MigratedRecipeTagList (`recipe_tag_list_screen.tsx`)
 
@@ -2050,6 +2050,6 @@ Comunidades de España va ANTES que Países a propósito (más específico: "coc
 - Concordancia de género: "bajo en calorías"/"alto en proteína" no hacían match contra "**baja** en calorías"/"**alta** en proteína" (frecuente en español, ya que el adjetivo concuerda con el sustantivo de la receta — "ensalada baja" vs "plato bajo"). Corregido a `baj[ao]`/`alt[ao]`.
 - "bajo en carb" (con `\b` de cierre del grupo completo) nunca hacía match contra "carbohidratos" — el `\b` exige fin de palabra justo tras "carb", que en "carbohidratos" sigue en mitad de palabra. Corregido a `baj[ao] en carb\w*` (mismo patrón que ya usa `adelgaz\w*`).
 
-Verificado con un script Node de prueba (13 títulos de ejemplo cubriendo las 8 categorías + fallback) contra la lógica de clasificación extraída — todos clasifican donde se esperaba tras los 2 fixes de regex. `eslint` limpio (0 errores, mismos 3 warnings preexistentes sin relación). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión.
+Verificado con un script Node de prueba (13 títulos de ejemplo cubriendo las 8 categorías + fallback) contra la lógica de clasificación extraída — todos clasifican donde se esperaba tras los 2 fixes de regex. `eslint` limpio (0 errores, mismos 3 warnings preexistentes sin relación). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`).
 
 **Pendiente real (documentado en `docs/PENDIENTE_BACKEND_ADMIN.md` #11):** esto sigue siendo una heurística de texto, no un dato real del backend — un tag mal titulado (ej. "Andalucía" sin el adjetivo "andaluza") no clasificará donde debería. La solución real es un campo de grupo/categoría en `recipe_tags` que el backend/admin puedan asignar de verdad.
