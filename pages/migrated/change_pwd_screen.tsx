@@ -3,13 +3,26 @@ import { ScrollView, Alert, Keyboard, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
+import { HStack } from '@components/ui/hstack';
+import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField, InputSlot } from '@components/ui/input';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import AppIcon from '@components/AppIcon';
 import { authApi } from '@api/auth';
 import { C, FONT } from './theme';
+
+// Mismo rediseño que edit_profile_screen.tsx (pedido explícito: "el mismo
+// diseño de interfaz que le diste a EditProfile"): badge de icono de color
+// por fila (AppIcon), tarjeta blanca de verdad con etiqueta de sección
+// encima, en vez de una tarjeta gris con filas de solo texto.
+const FIELD_ICON = {
+  old: { icon: 'lock-closed-outline' as const, color: C.destructive },
+  new: { icon: 'key-outline' as const, color: C.blue },
+  confirm: { icon: 'shield-checkmark-outline' as const, color: C.success },
+};
 
 export default function ChangePwdScreen({ navigation }: any) {
 
@@ -73,69 +86,87 @@ export default function ChangePwdScreen({ navigation }: any) {
           Introduce tu contraseña actual y elige una contraseña nueva.
         </Text>
 
-        {/* Campos agrupados en una sola tarjeta con separadores -- mismo
-            patrón de lista que edit_profile_screen.tsx/profile_screen.tsx. */}
+        {/* Campos agrupados en una tarjeta blanca con badge de icono por
+            fila -- mismo rediseño que edit_profile_screen.tsx (pedido
+            explícito, misma captura de referencia de la pantalla "Ajustes"
+            de Bevel). */}
+        <Text style={localStyles.sectionLabel}>Contraseña</Text>
         <Box style={localStyles.card}>
           <Box style={localStyles.row}>
-            <Text style={localStyles.label}>Contraseña actual</Text>
-            <Input style={localStyles.input}>
-              <InputField
-                className="text-sm"
-                style={{ color: C.textPrimary }}
-                placeholder="Introduce tu contraseña actual"
-                placeholderTextColor={C.gray40}
-                value={oldPassword}
-                onChangeText={setOldPassword}
-                secureTextEntry={oldSecure}
-                returnKeyType="next"
-                onSubmitEditing={() => newPasswordRef.current?.focus()}
-              />
-              <InputSlot className="pr-1" onPress={() => setOldSecure(!oldSecure)}>
-                <Icon name={oldSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
-              </InputSlot>
-            </Input>
+            <HStack space="md" className="items-center">
+              <AppIcon name={FIELD_ICON.old.icon} color="#FFFFFF" bg={FIELD_ICON.old.color} containerSize={40} borderRadius={12} />
+              <VStack className="flex-1">
+                <Text style={localStyles.label}>Contraseña actual</Text>
+                <Input style={localStyles.input}>
+                  <InputField
+                    className="text-sm"
+                    style={{ color: C.textPrimary }}
+                    placeholder="Introduce tu contraseña actual"
+                    placeholderTextColor={C.gray40}
+                    value={oldPassword}
+                    onChangeText={setOldPassword}
+                    secureTextEntry={oldSecure}
+                    returnKeyType="next"
+                    onSubmitEditing={() => newPasswordRef.current?.focus()}
+                  />
+                  <InputSlot className="pr-1" onPress={() => setOldSecure(!oldSecure)}>
+                    <Icon name={oldSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+                  </InputSlot>
+                </Input>
+              </VStack>
+            </HStack>
           </Box>
 
           <Box style={localStyles.row}>
-            <Text style={localStyles.label}>Contraseña nueva</Text>
-            <Input style={localStyles.input}>
-              <InputField
-                ref={newPasswordRef}
-                className="text-sm"
-                style={{ color: C.textPrimary }}
-                placeholder="Introduce tu contraseña nueva"
-                placeholderTextColor={C.gray40}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={newSecure}
-                returnKeyType="next"
-                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-              />
-              <InputSlot className="pr-1" onPress={() => setNewSecure(!newSecure)}>
-                <Icon name={newSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
-              </InputSlot>
-            </Input>
+            <HStack space="md" className="items-center">
+              <AppIcon name={FIELD_ICON.new.icon} color="#FFFFFF" bg={FIELD_ICON.new.color} containerSize={40} borderRadius={12} />
+              <VStack className="flex-1">
+                <Text style={localStyles.label}>Contraseña nueva</Text>
+                <Input style={localStyles.input}>
+                  <InputField
+                    ref={newPasswordRef}
+                    className="text-sm"
+                    style={{ color: C.textPrimary }}
+                    placeholder="Introduce tu contraseña nueva"
+                    placeholderTextColor={C.gray40}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={newSecure}
+                    returnKeyType="next"
+                    onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                  />
+                  <InputSlot className="pr-1" onPress={() => setNewSecure(!newSecure)}>
+                    <Icon name={newSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+                  </InputSlot>
+                </Input>
+              </VStack>
+            </HStack>
           </Box>
 
           <Box style={[localStyles.row, localStyles.rowLast]}>
-            <Text style={localStyles.label}>Confirmar contraseña</Text>
-            <Input style={localStyles.input}>
-              <InputField
-                ref={confirmPasswordRef}
-                className="text-sm"
-                style={{ color: C.textPrimary }}
-                placeholder="Confirma tu contraseña nueva"
-                placeholderTextColor={C.gray40}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={confirmSecure}
-                returnKeyType="done"
-                onSubmitEditing={changePwd}
-              />
-              <InputSlot className="pr-1" onPress={() => setConfirmSecure(!confirmSecure)}>
-                <Icon name={confirmSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
-              </InputSlot>
-            </Input>
+            <HStack space="md" className="items-center">
+              <AppIcon name={FIELD_ICON.confirm.icon} color="#FFFFFF" bg={FIELD_ICON.confirm.color} containerSize={40} borderRadius={12} />
+              <VStack className="flex-1">
+                <Text style={localStyles.label}>Confirmar contraseña</Text>
+                <Input style={localStyles.input}>
+                  <InputField
+                    ref={confirmPasswordRef}
+                    className="text-sm"
+                    style={{ color: C.textPrimary }}
+                    placeholder="Confirma tu contraseña nueva"
+                    placeholderTextColor={C.gray40}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={confirmSecure}
+                    returnKeyType="done"
+                    onSubmitEditing={changePwd}
+                  />
+                  <InputSlot className="pr-1" onPress={() => setConfirmSecure(!confirmSecure)}>
+                    <Icon name={confirmSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+                  </InputSlot>
+                </Input>
+              </VStack>
+            </HStack>
           </Box>
         </Box>
 
@@ -162,9 +193,18 @@ export default function ChangePwdScreen({ navigation }: any) {
 }
 
 const localStyles = StyleSheet.create({
+  // Tarjeta blanca de verdad (antes C.gray80, mismo tono que el fondo de la
+  // pantalla) -- mismo fix que edit_profile_screen.tsx.
   card: {
-    backgroundColor: C.gray80,
+    backgroundColor: C.surface,
     borderRadius: 16,
+  },
+  sectionLabel: {
+    fontFamily: FONT.semiBold,
+    fontSize: 13,
+    color: C.textSecondary,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   row: {
     paddingHorizontal: 16,

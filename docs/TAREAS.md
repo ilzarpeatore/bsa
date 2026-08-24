@@ -2068,3 +2068,21 @@ Reportados con 2 capturas en la misma sesión de feedback.
 **3. Fondo del menú "+" más oscuro:** `modalBackdrop` de `rgba(0,0,0,0.2)` a `rgba(0,0,0,0.4)` (pedido explícito: "oscurece un poco el fondo del menú +").
 
 Verificado: `eslint` limpio (0 errores; 15 warnings vs. 14 en el baseline sin tocar el archivo — el único nuevo es `setForceExpanded(false)` en el mismo efecto que ya tenía `setCollapsed(false)`, mismo patrón `set-state-in-effect` ya tolerado en todo el repo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`, ninguno en `NavigationTab.tsx`/`TabBarScrollContext.tsx`). **Pendiente de verificación visual en dispositivo real** — confirmar que el intervalo de 150ms recolapsa la barra con la sensación correcta al volver a scrollear en Hábitos/Mi programa/Home/Plan.
+
+### Rediseño de tarjetas en MigratedEditProfile y MigratedChangePwd (badge de icono por fila)
+
+Pedido explícito con 2 capturas de referencia: la pantalla "Ajustes" de Bevel (menú general de la app, no algo que exista hoy en esta app) — tarjetas blancas agrupadas con etiqueta de sección encima, cada fila con un badge cuadrado de color + icono a la izquierda. Aclarado con el usuario que el pedido real era **solo el lenguaje visual** (tarjetas blancas + badges de color por fila), no llevarse el contenido literal de "Ajustes" (Bevel Pro, Cuenta, Notificaciones...) a `edit_profile_screen.tsx`, que es un formulario de datos personales sin relación con esa pantalla.
+
+**Causa del look "plano" anterior:** en ambos archivos, `card.backgroundColor` era `C.gray80` (`#E5E5EA`), prácticamente el mismo tono que el fondo de la pantalla (`C.bg`, `#EBEBF0`) — la tarjeta apenas se distinguía del fondo, muy lejos del blanco limpio de la referencia.
+
+**`edit_profile_screen.tsx`:**
+
+- `card` → `C.surface` (blanco real).
+- Campos divididos en 2 tarjetas con etiqueta de sección encima (mismo patrón que "General"/"Datos" de la referencia): "Datos personales" (nombre, apellidos, email, teléfono) y "Datos físicos" (sexo, edad, peso, altura).
+- Cada fila gana un `AppIcon` (componente ya existente en el proyecto, mismo patrón de badge que ya usa Home — no se creó ninguno nuevo) a la izquierda: nombre/apellidos azul, email morado, teléfono verde, sexo rosa, edad naranja, peso rojo, altura teal.
+- Sin chevron de navegación (a diferencia de la referencia): estas filas se editan in-situ, no llevan a otra pantalla.
+- Efecto colateral necesario: `genderBtn`/`unitBtn` (botones de sexo y de unidad kg/lbs, feet/cm) usaban `backgroundColor: C.surface` (blanco) para contrastar contra la tarjeta gris de antes — con la tarjeta ya blanca, quedaban invisibles. Cambiados a `C.gray10`.
+
+**`change_pwd_screen.tsx`:** mismo patrón aplicado — tarjeta blanca única con etiqueta "Contraseña" encima, badge por fila: contraseña actual (candado, rojo), contraseña nueva (llave, azul), confirmar contraseña (escudo, verde).
+
+Verificado: `eslint` limpio (0 errores en ambos archivos; los 2 warnings de `edit_profile_screen.tsx` —`init` accedido antes de declararse— ya existían antes de este cambio, sin relación). `tsc --noEmit -p .` corriendo en background.

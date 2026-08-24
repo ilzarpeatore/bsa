@@ -9,12 +9,30 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { HStack } from '@components/ui/hstack';
+import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
+import AppIcon from '@components/AppIcon';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
 import { C, FONT } from './theme';
+
+// Color/icono por campo, reutilizando AppIcon (mismo patrón de badge
+// cuadrado redondeado + icono ya usado en Home) -- pedido explícito, misma
+// captura de referencia que la pantalla "Ajustes" de Bevel: filas agrupadas
+// en tarjetas blancas con un badge de color por fila en vez de la lista
+// plana de antes. Aquí no hay chevron de navegación (a diferencia de la
+// referencia) porque cada fila se edita in-situ, no lleva a otra pantalla.
+const FIELD_ICON = {
+  name: { icon: 'person-outline' as const, color: C.blue },
+  email: { icon: 'mail-outline' as const, color: C.purple60 },
+  phone: { icon: 'call-outline' as const, color: C.success },
+  gender: { icon: 'male-female-outline' as const, color: C.pink },
+  age: { icon: 'calendar-outline' as const, color: C.warning },
+  weight: { icon: 'barbell-outline' as const, color: C.destructive },
+  height: { icon: 'resize-outline' as const, color: '#14B8A6' },
+};
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -294,140 +312,191 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
             </Pressable>
           </Box>
 
-          {/* Datos, agrupados en una sola tarjeta con separadores -- antes cada
-              campo era una tarjeta suelta con su propio hueco, aquí se sigue
-              el mismo patrón de lista que profile_screen.tsx. */}
+          {/* Datos personales -- agrupados en tarjetas blancas con badge de
+              icono por fila (pedido explícito, misma captura de referencia
+              que la pantalla "Ajustes" de Bevel: General/Datos/Recursos como
+              tarjetas separadas con etiqueta de sección encima). Antes era
+              una sola tarjeta gris (C.gray80, casi el mismo tono que el
+              fondo de la pantalla) con filas de solo texto -- ahora tarjetas
+              realmente blancas (C.surface) que destacan del fondo, igual que
+              en la referencia. */}
+          <Text style={localStyles.sectionLabel}>Datos personales</Text>
           <Box style={localStyles.card}>
             <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Nombre</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={fName}
-                  onChangeText={setFName}
-                  placeholder="Nombre"
-                  placeholderTextColor={C.gray40}
-                />
-              </Input>
-            </Box>
-
-            <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Apellidos</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={lName}
-                  onChangeText={setLName}
-                  placeholder="Apellidos"
-                  placeholderTextColor={C.gray40}
-                />
-              </Input>
-            </Box>
-
-            <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Email</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
-                  placeholderTextColor={C.gray40}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </Input>
-            </Box>
-
-            <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Sexo</Text>
-              <HStack className="gap-2.5" style={{ marginTop: 4 }}>
-                {genderList.map((g) => (
-                  <Button
-                    key={g.id}
-                    variant="outline"
-                    style={[localStyles.genderBtn, selectGender === g.id && localStyles.genderBtnActive] as any}
-                    onPress={() => {
-                      setSelectGender(g.id);
-                      genderRef.current = g.key;
-                    }}
-                  >
-                    <ButtonText style={[localStyles.genderText, selectGender === g.id && localStyles.genderTextActive] as any}>
-                      {g.label}
-                    </ButtonText>
-                  </Button>
-                ))}
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.name.icon} color="#FFFFFF" bg={FIELD_ICON.name.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Nombre</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={fName}
+                      onChangeText={setFName}
+                      placeholder="Nombre"
+                      placeholderTextColor={C.gray40}
+                    />
+                  </Input>
+                </VStack>
               </HStack>
             </Box>
 
             <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Número de teléfono</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="Número de teléfono"
-                  placeholderTextColor={C.gray40}
-                  keyboardType="phone-pad"
-                />
-              </Input>
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.name.icon} color="#FFFFFF" bg={FIELD_ICON.name.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Apellidos</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={lName}
+                      onChangeText={setLName}
+                      placeholder="Apellidos"
+                      placeholderTextColor={C.gray40}
+                    />
+                  </Input>
+                </VStack>
+              </HStack>
             </Box>
 
             <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Edad</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={age}
-                  onChangeText={setAge}
-                  placeholder="Edad"
-                  placeholderTextColor={C.gray40}
-                  keyboardType="number-pad"
-                />
-              </Input>
-            </Box>
-
-            <Box style={localStyles.row}>
-              <Text style={localStyles.label}>Peso</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={weight}
-                  onChangeText={setWeight}
-                  placeholder="Peso"
-                  placeholderTextColor={C.gray40}
-                  keyboardType="decimal-pad"
-                />
-              </Input>
-              <HStack space="sm" style={{ marginTop: 8 }}>
-                {renderWeightOption('lbs', 0)}
-                {renderWeightOption('kg', 1)}
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.email.icon} color="#FFFFFF" bg={FIELD_ICON.email.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Email</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Email"
+                      placeholderTextColor={C.gray40}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </Input>
+                </VStack>
               </HStack>
             </Box>
 
             <Box style={[localStyles.row, localStyles.rowLast]}>
-              <Text style={localStyles.label}>Altura</Text>
-              <Input style={localStyles.input}>
-                <InputField
-                  className="text-sm"
-                  style={{ color: C.textPrimary }}
-                  value={heightVal}
-                  onChangeText={setHeightVal}
-                  placeholder="Altura"
-                  placeholderTextColor={C.gray40}
-                  keyboardType="decimal-pad"
-                />
-              </Input>
-              <HStack space="sm" style={{ marginTop: 8 }}>
-                {renderHeightOption('feet', 0)}
-                {renderHeightOption('cm', 1)}
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.phone.icon} color="#FFFFFF" bg={FIELD_ICON.phone.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Número de teléfono</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      placeholder="Número de teléfono"
+                      placeholderTextColor={C.gray40}
+                      keyboardType="phone-pad"
+                    />
+                  </Input>
+                </VStack>
+              </HStack>
+            </Box>
+          </Box>
+
+          {/* Datos físicos -- segunda tarjeta separada, mismo criterio de
+              agrupación que la referencia. */}
+          <Text style={[localStyles.sectionLabel, { marginTop: 20 }]}>Datos físicos</Text>
+          <Box style={localStyles.card}>
+            <Box style={localStyles.row}>
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.gender.icon} color="#FFFFFF" bg={FIELD_ICON.gender.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Sexo</Text>
+                  <HStack className="gap-2.5" style={{ marginTop: 4 }}>
+                    {genderList.map((g) => (
+                      <Button
+                        key={g.id}
+                        variant="outline"
+                        style={[localStyles.genderBtn, selectGender === g.id && localStyles.genderBtnActive] as any}
+                        onPress={() => {
+                          setSelectGender(g.id);
+                          genderRef.current = g.key;
+                        }}
+                      >
+                        <ButtonText style={[localStyles.genderText, selectGender === g.id && localStyles.genderTextActive] as any}>
+                          {g.label}
+                        </ButtonText>
+                      </Button>
+                    ))}
+                  </HStack>
+                </VStack>
+              </HStack>
+            </Box>
+
+            <Box style={localStyles.row}>
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.age.icon} color="#FFFFFF" bg={FIELD_ICON.age.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Edad</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={age}
+                      onChangeText={setAge}
+                      placeholder="Edad"
+                      placeholderTextColor={C.gray40}
+                      keyboardType="number-pad"
+                    />
+                  </Input>
+                </VStack>
+              </HStack>
+            </Box>
+
+            <Box style={localStyles.row}>
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.weight.icon} color="#FFFFFF" bg={FIELD_ICON.weight.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Peso</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={weight}
+                      onChangeText={setWeight}
+                      placeholder="Peso"
+                      placeholderTextColor={C.gray40}
+                      keyboardType="decimal-pad"
+                    />
+                  </Input>
+                  <HStack space="sm" style={{ marginTop: 8 }}>
+                    {renderWeightOption('lbs', 0)}
+                    {renderWeightOption('kg', 1)}
+                  </HStack>
+                </VStack>
+              </HStack>
+            </Box>
+
+            <Box style={[localStyles.row, localStyles.rowLast]}>
+              <HStack space="md" className="items-center">
+                <AppIcon name={FIELD_ICON.height.icon} color="#FFFFFF" bg={FIELD_ICON.height.color} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text style={localStyles.label}>Altura</Text>
+                  <Input style={localStyles.input}>
+                    <InputField
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                      value={heightVal}
+                      onChangeText={setHeightVal}
+                      placeholder="Altura"
+                      placeholderTextColor={C.gray40}
+                      keyboardType="decimal-pad"
+                    />
+                  </Input>
+                  <HStack space="sm" style={{ marginTop: 8 }}>
+                    {renderHeightOption('feet', 0)}
+                    {renderHeightOption('cm', 1)}
+                  </HStack>
+                </VStack>
               </HStack>
             </Box>
           </Box>
@@ -481,9 +550,22 @@ const localStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Tarjeta blanca de verdad (antes C.gray80, casi el mismo tono que el
+  // fondo de la pantalla -- la tarjeta apenas se distinguía). Mismo look
+  // que las tarjetas "General"/"Datos" de la referencia.
   card: {
-    backgroundColor: C.gray80,
+    backgroundColor: C.surface,
     borderRadius: 16,
+  },
+  // Etiqueta gris encima de cada tarjeta (mismo patrón que "General"/"Datos"
+  // en la referencia) -- agrupa los campos en 2 tarjetas en vez de una sola
+  // lista larga.
+  sectionLabel: {
+    fontFamily: FONT.semiBold,
+    fontSize: 13,
+    color: C.textSecondary,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   row: {
     paddingHorizontal: 16,
@@ -505,11 +587,13 @@ const localStyles = StyleSheet.create({
     height: 26,
     backgroundColor: 'transparent',
   },
+  // Fondo gris claro (antes C.surface/blanco) -- con la tarjeta ya blanca,
+  // un botón inactivo blanco se volvía invisible sobre ella.
   genderBtn: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 6,
-    backgroundColor: C.surface,
+    backgroundColor: C.gray10,
     alignItems: 'center',
   },
   genderBtnActive: {
@@ -527,7 +611,7 @@ const localStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: C.surface,
+    backgroundColor: C.gray10,
   },
   unitBtnActive: {
     backgroundColor: C.orange,
