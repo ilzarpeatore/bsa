@@ -2010,3 +2010,17 @@ Reportado con captura: el botón "Frontal" del toggle interno de `MuscleBodyMap`
 **Fix, scoped a este archivo (sin tocar el componente compartido):** nueva constante `TOGGLE_TOP_BREATHING_ROOM = 16`, restada también del alto disponible al calcular `bodyMapHeight` (junto a `BODY_MAP_TOGGLE_HEIGHT`, ya existente) — libera un hueco extra que el centrado del `Box` reparte, dando aire real por encima del toggle sin reducir perceptiblemente el tamaño del mapa muscular.
 
 Verificado: `eslint` limpio (0 errores, 0 warnings). `tsc --noEmit -p .` — se detectó que el proceso en background de la sesión llevaba corriendo desde ANTES de varios commits posteriores (compliance semanal, glass effect, header colapsable de assigned-meals, y este fix), por lo que sus resultados no reflejarían esos archivos con fiabilidad; se mató y se relanzó un `tsc` limpio que cubre el estado actual completo del repo. **Pendiente de verificación visual en dispositivo real.**
+
+### Scroll infinito en la búsqueda de MigratedRecipeMain (`recipe_main_screen.tsx`)
+
+Reportado: la búsqueda de recetas mostraba un máximo de 10 resultados, sin forma de ver más aunque el catálogo tuviera más coincidencias.
+
+**Causa raíz:** `recipesApi.getFilteredList({ title: query, page: 1 })` no pasaba `per_page` — el backend cae a su default (10) — y nunca se pedía ninguna página siguiente; no había ningún mecanismo de paginación en la búsqueda.
+
+**Fix — mismo patrón ya usado y verificado en `plan_screen.tsx`** (buscador de "Añadir comida" del modal, `searchPageRef`/`searchIsLastPageRef`/`onEndReached`):
+
+- `searchRecipes(query, page)` (nueva función, sustituye el `fetch` inline del `useEffect`) pide `per_page: 20` y añade (`page > 1`) o reemplaza (`page === 1`) los resultados; `searchIsLastPageRef` se marca con `page >= pagination.totalPages` de la respuesta, para dejar de pedir más en cuanto se llega al final.
+- Los resultados de búsqueda pasan de un `HStack` con `flexWrap` (dentro del `ScrollView` general de la pantalla) a un `FlatList` con `numColumns={2}` y `onEndReached`/`onEndReachedThreshold={0.4}` — un `ScrollView` no tiene forma nativa de disparar "cargar más" al llegar al final, hacía falta el `FlatList` para el scroll infinito real (mismo motivo por el que `plan_screen.tsx` ya usa `FlatList` para esto).
+- Efecto colateral necesario: la barra de búsqueda se sacó del `ScrollView` del feed a una posición fija siempre visible (antes vivía dentro de ese scroll) — necesario porque ahora, en modo búsqueda, el scroll lo lleva un `FlatList` totalmente distinto del `ScrollView` del feed (no pueden anidarse dos scrolls verticales sin conflicto de gestos), así que la barra ya no puede vivir dentro de ninguno de los dos. Se le añadió su propio `marginHorizontal`/`marginTop` (antes los heredaba del padding del `ScrollView` que la contenía).
+
+Verificado: `eslint` limpio (0 errores; los 4 warnings —`fetchFeed()`/`setSearchResults([])` en efectos, comillas sin escapar en "Sin resultados"— ya existían antes de este cambio, ninguno nuevo). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión (proceso relanzado limpio, cubre este archivo). **Pendiente de verificación visual en dispositivo real** — confirmar que el scroll infinito carga bien y que la barra de búsqueda fija no introduce ningún salto visual al cambiar entre modo feed y modo búsqueda.

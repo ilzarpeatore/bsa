@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, ScrollView, TextInput, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StyleSheet, ScrollView, TextInput, Dimensions, FlatList } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
@@ -73,6 +73,15 @@ export default function RecipeMainScreen(props: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<RecipeCardItem[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  // Scroll infinito de la búsqueda (bug real corregido, reportado: solo se
+  // veían 10 resultados como máximo -- antes siempre se pedía page:1 y nunca
+  // se pedían más páginas). Mismo patrón ya usado en plan_screen.tsx para el
+  // buscador de "Añadir comida": refs (no state) para la página actual y si
+  // ya se llegó a la última, para no disparar peticiones de más tras el
+  // final ni relanzar en cada render.
+  const [isSearchLoadingMore, setIsSearchLoadingMore] = useState(false);
+  const searchPageRef = useRef(1);
+  const searchIsLastPageRef = useRef(false);
   const styles = useStyle();
 
   const isSearching = searchQuery.trim().length > 0;
@@ -101,28 +110,53 @@ export default function RecipeMainScreen(props: any) {
     fetchFeed();
   }, [fetchFeed]);
 
-  // Búsqueda por título en el catálogo completo (soportada por el backend
-  // vía el parámetro `title` de recipe-filter-list), con debounce.
+  // Búsqueda por título en el catálogo completo (soportada por el backend vía
+  // el parámetro `title` de recipe-filter-list), con debounce + scroll
+  // infinito. per_page:20 (antes sin especificar -- el backend cae a su
+  // default de 10, de ahí el tope de 10 resultados reportado).
+  const searchRecipes = useCallback(async (query: string, page: number) => {
+    if (page === 1) {
+      setIsSearchLoading(true);
+    } else {
+      setIsSearchLoadingMore(true);
+    }
+    try {
+      const res = await recipesApi.getFilteredList({ title: query, per_page: 20, page });
+      const items = (res.data.data ?? []).map(mapRecipe);
+      setSearchResults((prev) => (page === 1 ? items : [...prev, ...items]));
+      const totalPages = res.data?.pagination?.totalPages ?? 1;
+      searchIsLastPageRef.current = page >= totalPages;
+    } catch (e) {
+      logger.error(e);
+      if (page === 1) setSearchResults([]);
+    } finally {
+      setIsSearchLoading(false);
+      setIsSearchLoadingMore(false);
+    }
+  }, []);
+
   useEffect(() => {
     const query = searchQuery.trim();
     if (!query) {
       setSearchResults([]);
       setIsSearchLoading(false);
+      searchIsLastPageRef.current = false;
       return;
     }
-    setIsSearchLoading(true);
-    const handle = setTimeout(async () => {
-      try {
-        const res = await recipesApi.getFilteredList({ title: query, page: 1 });
-        setSearchResults((res.data.data ?? []).map(mapRecipe));
-      } catch (e) {
-        logger.error(e);
-      } finally {
-        setIsSearchLoading(false);
-      }
+    const handle = setTimeout(() => {
+      searchPageRef.current = 1;
+      searchIsLastPageRef.current = false;
+      searchRecipes(query, 1);
     }, 400);
     return () => clearTimeout(handle);
-  }, [searchQuery]);
+  }, [searchQuery, searchRecipes]);
+
+  const handleSearchEndReached = () => {
+    if (searchIsLastPageRef.current || isSearchLoading || isSearchLoadingMore) return;
+    const nextPage = searchPageRef.current + 1;
+    searchPageRef.current = nextPage;
+    searchRecipes(searchQuery.trim(), nextPage);
+  };
 
   // `source` identifica dónde vive el item que cambió (la misma receta puede
   // aparecer a la vez en "Lo que está de moda" y en su franja horaria) para
@@ -213,47 +247,61 @@ export default function RecipeMainScreen(props: any) {
         }
       />
 
-      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <HStack space="sm" style={s.searchWrap}>
-          <Icon name="search-outline" size={18} color={C.gray40} />
-          <TextInput
-            style={[s.searchInput, styles.fontRegular]}
-            placeholder="Buscar recetas..."
-            placeholderTextColor={C.gray40}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')}>
-              <Icon name="close-circle" size={18} color={C.gray40} />
-            </Pressable>
-          )}
-        </HStack>
+      {/* Barra de búsqueda -- fija fuera del ScrollView/FlatList de abajo (antes
+          vivía dentro del ScrollView del feed) para que siga visible mientras
+          se hace scroll infinito por los resultados. */}
+      <HStack space="sm" style={s.searchWrap}>
+        <Icon name="search-outline" size={18} color={C.gray40} />
+        <TextInput
+          style={[s.searchInput, styles.fontRegular]}
+          placeholder="Buscar recetas..."
+          placeholderTextColor={C.gray40}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <Pressable onPress={() => setSearchQuery('')}>
+            <Icon name="close-circle" size={18} color={C.gray40} />
+          </Pressable>
+        )}
+      </HStack>
 
-        {isSearching ? (
-          <Box style={s.section}>
-            <Text style={[s.sectionTitle, styles.fontBold]}>
-              {isSearchLoading ? 'Buscando…' : `Resultados (${searchResults.length})`}
-            </Text>
-            {isSearchLoading ? (
-              <Spinner size="small" color={C.orange} style={{ paddingVertical: 24 }} />
-            ) : searchResults.length === 0 ? (
-              <VStack space="sm" style={s.emptyBox}>
-                <Icon name="search-outline" size={40} color={C.gray30} />
-                <Text style={[s.emptyText, styles.fontMedium]}>Sin resultados para "{searchQuery.trim()}"</Text>
-              </VStack>
-            ) : (
-              <HStack style={s.grid}>
-                {searchResults.map((item) => renderRecipeCard(item, { width: SEARCH_CARD_WIDTH }, 'search'))}
-              </HStack>
-            )}
-          </Box>
-        ) : isFeedLoading ? (
-          <Spinner size="large" color={C.orange} style={{ paddingVertical: 60 }} />
+      {isSearching ? (
+        isSearchLoading ? (
+          <Spinner size="small" color={C.orange} style={{ paddingVertical: 24 }} />
+        ) : searchResults.length === 0 ? (
+          <VStack space="sm" style={s.emptyBox}>
+            <Icon name="search-outline" size={40} color={C.gray30} />
+            <Text style={[s.emptyText, styles.fontMedium]}>Sin resultados para "{searchQuery.trim()}"</Text>
+          </VStack>
         ) : (
-          <>
-            {featuredRecipes.length > 0 && (
+          // FlatList (no el ScrollView del feed de abajo) -- scroll infinito
+          // real vía onEndReached, mismo patrón ya usado en plan_screen.tsx
+          // para el buscador de "Añadir comida".
+          <FlatList
+            data={searchResults}
+            keyExtractor={(item) => String(item.id)}
+            numColumns={2}
+            columnWrapperStyle={s.gridRow}
+            contentContainerStyle={s.searchListContent}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              <Text style={[s.sectionTitle, styles.fontBold]}>Resultados ({searchResults.length})</Text>
+            }
+            renderItem={({ item }) => renderRecipeCard(item, { width: SEARCH_CARD_WIDTH }, 'search')}
+            onEndReached={handleSearchEndReached}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              isSearchLoadingMore ? <Spinner size="small" color={C.orange} style={{ paddingVertical: 16 }} /> : null
+            }
+          />
+        )
+      ) : isFeedLoading ? (
+        <Spinner size="large" color={C.orange} style={{ paddingVertical: 60 }} />
+      ) : (
+        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          {featuredRecipes.length > 0 && (
               <Box style={s.section}>
                 <Text style={[s.sectionTitle, styles.fontBold]}>Lo que está de moda</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.featuredRow}>
@@ -313,9 +361,8 @@ export default function RecipeMainScreen(props: any) {
               <Text style={[s.tagsLinkText, styles.fontSemiBold]}>Ver por etiquetas</Text>
               <Icon name="chevron-forward" size={16} color={C.gray40} />
             </Pressable>
-          </>
-        )}
-      </ScrollView>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -331,6 +378,12 @@ const s = StyleSheet.create({
     borderColor: C.border,
     paddingHorizontal: 12,
     height: 44,
+    // marginHorizontal (antes solo lo daba el padding:16 del ScrollView del
+    // feed) -- ahora la barra de búsqueda vive fuera de ese ScrollView (fija,
+    // para no desaparecer al hacer scroll infinito por los resultados), así
+    // que necesita su propio margen lateral.
+    marginHorizontal: 16,
+    marginTop: 16,
     marginBottom: 20,
   },
   searchInput: { flex: 1, fontSize: 14, color: C.textPrimary },
@@ -376,7 +429,10 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   tagsLinkText: { flex: 1, fontSize: 13.5, color: C.textSecondary },
-  grid: { flexWrap: 'wrap', justifyContent: 'space-between' },
+  // Resultados de búsqueda: FlatList numColumns=2 en vez del HStack+wrap
+  // anterior (necesario para el scroll infinito real vía onEndReached).
+  searchListContent: { paddingHorizontal: 16, paddingBottom: 32 },
+  gridRow: { justifyContent: 'space-between' },
   recipeCard: { marginBottom: 16 },
   recipeImageWrap: { position: 'relative' },
   recipeImage: { width: '100%', height: 130, borderRadius: 12 },
