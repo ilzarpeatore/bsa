@@ -131,11 +131,34 @@ export default function ProfileScreen(props: any) {
     ]);
   };
 
+  // Misma screen registrada dos veces en App.tsx (MigratedProfile /
+  // MigratedProfileModal, presentation:'modal' solo en la segunda) para
+  // poder abrirse como diálogo desde el icono de ajustes de Home v2 sin
+  // duplicar contenido -- `route.name` es lo único que distingue por cuál
+  // de las dos se llegó. La X de cerrar solo tiene sentido en el modal (en
+  // push normal ya se cierra con el gesto de volver de siempre, y añadir la
+  // X ahí cambiaría cómo se ve entrando desde cualquier otro sitio, que es
+  // justo lo que no se quería tocar).
+  const isModal = props.route?.name === 'MigratedProfileModal';
+
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Box className="px-5" style={{ paddingTop: 16 }}>
-          <Heading size="md" style={{ marginBottom: 16 }}>Perfil</Heading>
+          {isModal ? (
+            <HStack className="items-center justify-between" style={{ marginBottom: 16 }}>
+              <Heading size="md">Perfil</Heading>
+              <Pressable
+                className="items-center justify-center rounded-pill"
+                style={{ width: 32, height: 32, backgroundColor: C.surface }}
+                onPress={() => props.navigation?.goBack()}
+              >
+                <Icon name="close" size={18} color={C.textPrimary} />
+              </Pressable>
+            </HStack>
+          ) : (
+            <Heading size="md" style={{ marginBottom: 16 }}>Perfil</Heading>
+          )}
 
           <Box className="rounded-lg items-center px-5" style={{ backgroundColor: C.surface, paddingVertical: 24 }}>
             <Box className="relative" style={{ marginBottom: 12 }}>

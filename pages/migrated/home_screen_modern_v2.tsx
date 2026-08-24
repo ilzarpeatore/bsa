@@ -1479,7 +1479,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             <ScrollView style={styles.menuScroll} contentContainerStyle={{ paddingBottom: r(24) }} showsVerticalScrollIndicator={false}>
               <Text style={styles.menuSectionLabel}>Cuenta</Text>
               <Box style={styles.menuCard}>
-                <Pressable onPress={() => navigateFromMenu('MigratedProfile')}>
+                {/* MigratedProfileModal (no MigratedProfile) -- misma screen,
+                    registrada aparte en App.tsx con presentation:'modal' para
+                    que abrirla desde aquí se sienta como un diálogo, sin
+                    duplicar el contenido de profile_screen.tsx. */}
+                <Pressable onPress={() => navigateFromMenu('MigratedProfileModal')}>
                   <HStack space="md" className="items-center px-4 py-3">
                     <AvatarMem uri={user?.profile_image} name={user?.display_name || displayName} size={40} />
                     <VStack className="flex-1">

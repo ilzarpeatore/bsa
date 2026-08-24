@@ -290,6 +290,19 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedPostDetails" component={PostDetailsScreen} />
       <MStack.Screen name="MigratedPrivacyPolicy" component={PrivacyPolicyScreen} />
       <MStack.Screen name="MigratedProfile" component={ProfileScreenMigrated as any} />
+      {/* Misma screen que MigratedProfile de arriba, registrada una segunda vez
+          bajo otro nombre de ruta con presentation:'modal' -- pedido
+          explícito: el icono de ajustes de Home v2 debe abrir Perfil como un
+          diálogo (desliza desde abajo, X para cerrar), pero entrar desde
+          cualquier otro sitio (navegación normal a "MigratedProfile") tiene
+          que verse exactamente igual que siempre. Cero contenido duplicado:
+          es el mismo componente, la screen sabe si está en modo modal
+          comprobando `route.name` (ver profile_screen.tsx). */}
+      <MStack.Screen
+        name="MigratedProfileModal"
+        component={ProfileScreenMigrated as any}
+        options={{ presentation: 'modal' }}
+      />
       <MStack.Screen name="MigratedProgress" component={ProgressScreen} />
       <MStack.Screen name="MigratedStatistics" component={StatisticsScreen} />
       <MStack.Screen name="MigratedStatisticsMuscles" component={StatisticsMuscleDistributionScreen} />
