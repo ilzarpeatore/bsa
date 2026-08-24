@@ -8,6 +8,8 @@ import { Platform ,
   Modal,
   Alert,
   Switch,
+  Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
@@ -48,6 +50,8 @@ import { FONT } from './theme';
 import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
+import { SUPPORT_EMAIL, APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
+import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -225,6 +229,62 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // lado, para no cruzar al hilo de JS en cada frame de scroll.
   const { reportScrollY } = useTabBarScroll();
   const { reloadApp } = useAppReload();
+
+  // "Habilitar diagnósticos" (Ajustes, pedido explícito) -- refleja el
+  // flag real guardado en AsyncStorage vía helper/logger.ts, no un estado
+  // local suelto (mismo motivo que el switch de notificaciones: si se
+  // inicializa en false a ciegas, un usuario que ya lo activó antes vería
+  // el switch "apagado" hasta tocarlo, desincronizado del buffer real que
+  // sí está activo).
+  const [diagnosticsOn, setDiagnosticsOnState] = useState(false);
+  useEffect(() => {
+    loadDiagnosticsEnabled().then(setDiagnosticsOnState);
+  }, []);
+  const handleToggleDiagnostics = useCallback((value: boolean) => {
+    setDiagnosticsOnState(value);
+    setDiagnosticsEnabled(value);
+  }, []);
+  const handleContactSupport = useCallback((subject: string) => {
+    if (!SUPPORT_EMAIL) {
+      Alert.alert('Aún no configurado', 'Todavía no hay un email de soporte configurado para recibir esto.');
+      return;
+    }
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`);
+  }, []);
+  const handleRateApp = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      if (!APP_STORE_ID) {
+        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en la App Store.');
+        return;
+      }
+      Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`);
+    } else {
+      if (!PLAY_STORE_PUBLISHED) {
+        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en Google Play.');
+        return;
+      }
+      const pkg = Constants.expoConfig?.android?.package;
+      Linking.openURL(`market://details?id=${pkg}`).catch(() =>
+        Linking.openURL(`https://play.google.com/store/apps/details?id=${pkg}`)
+      );
+    }
+  }, []);
+  const handleSendLogs = useCallback(async () => {
+    const report = getDiagnosticsReportText();
+    if (!report) {
+      Alert.alert(
+        'No hay registros que enviar',
+        'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.'
+      );
+      return;
+    }
+    const header = `BeFit ${Constants.expoConfig?.version ?? ''} · ${Platform.OS}\n\n`;
+    try {
+      await Share.share({ message: header + report });
+    } catch {
+      // Usuario canceló el share sheet -- no hace falta feedback.
+    }
+  }, []);
   useAnimatedReaction(
     () => scrollY.value > 8,
     (collapsed, prevCollapsed) => {
@@ -1586,6 +1646,40 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Pressable>
               </Box>
 
+              {/* "Recursos" (pedido explícito, captura de referencia) --
+                  las 3 filas dependen de configuración real que hoy está
+                  vacía en constants/appLinks.ts (email de soporte, ID de
+                  App Store, publicación en Play Store). Con eso vacío,
+                  tocarlas avisa que aún no está configurado en vez de abrir
+                  un mailto sin destinatario o un deep link a una ficha de
+                  tienda inexistente -- ver docs/TAREAS.md de esta sesión. */}
+              <Text style={styles.menuSectionLabel}>Recursos</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => handleContactSupport('Solicitud de función — BeFit')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="bulb-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Solicitar una función</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={() => handleContactSupport('Informe de error — BeFit')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="bug-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Informar de un error</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={handleRateApp}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="star-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Valora BeFit en la tienda</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+              </Box>
+
               {/* Aviso legal (pedido explícito, captura de referencia) --
                   ambas pantallas ya existían y ya funcionaban (usadas en el
                   flujo de registro/onboarding), solo no estaban enlazadas
@@ -1631,15 +1725,48 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Text style={styles.menuActionBtnText}>Borrar caché y recargar todos los datos</Text>
               </Pressable>
 
-              {/* Logo + versión real (Constants.expoConfig), no hardcodeada --
-                  el resto de filas de la captura de referencia (Solicitar
-                  función / Informar de error / Valorar en la tienda /
-                  Enviar registros / Habilitar diagnósticos / redes sociales)
-                  se dejan fuera a propósito: necesitan un email de soporte,
-                  ficha real en la tienda, o un sistema de logs/diagnósticos
-                  que hoy no existen en el proyecto -- ver nota en
-                  docs/TAREAS.md de esta sesión en vez de enlazar a algo que
-                  no funciona. */}
+              {/* "Habilitar diagnósticos" (pedido explícito) -- sin SDK de
+                  crash-reporting instalado, el switch activa/desactiva un
+                  buffer real en memoria de los propios logs de la app (ver
+                  helper/logger.ts), no un flag decorativo. Fila con Switch,
+                  no un botón de tap: es un ajuste persistente (igual que
+                  Apple Health/Smart Watch arriba), no una acción puntual. */}
+              <Text style={styles.menuSectionLabel}>Diagnóstico</Text>
+              <Box style={styles.menuCard}>
+                <HStack className="items-center px-4 py-3">
+                  <AppIcon name="pulse-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                  <VStack className="flex-1" style={{ marginRight: r(12) }}>
+                    <Text style={styles.menuItemText}>Habilitar diagnósticos</Text>
+                    <Text style={styles.menuItemSubtext}>Guarda un registro local que puedes enviar al desarrollador</Text>
+                  </VStack>
+                  <Switch
+                    value={diagnosticsOn}
+                    onValueChange={handleToggleDiagnostics}
+                    trackColor={{ false: C.gray70, true: C.primary }}
+                    thumbColor={C.white}
+                  />
+                </HStack>
+              </Box>
+              <Pressable style={styles.menuActionBtn} onPress={handleSendLogs}>
+                <Text style={styles.menuActionBtnText}>Enviar registros al desarrollador</Text>
+              </Pressable>
+
+              {/* Redes sociales (pedido explícito) -- constants/appLinks.ts
+                  no tiene handles reales todavía (SOCIAL_LINKS vacío), así
+                  que esta fila no se renderiza hasta que se rellenen: un
+                  icono que no lleva a ninguna URL real sería el mismo
+                  problema que ya tenía about_us_screen.tsx. */}
+              {SOCIAL_LINKS.length > 0 && (
+                <HStack className="justify-center" space="lg" style={{ marginTop: r(20) }}>
+                  {SOCIAL_LINKS.map((s) => (
+                    <Pressable key={s.name} onPress={() => Linking.openURL(s.url)}>
+                      <AppIcon name={s.icon} size={20} color={C.textSecondary} bg={C.gray70} containerSize={r(40)} />
+                    </Pressable>
+                  ))}
+                </HStack>
+              )}
+
+              {/* Logo + versión real (Constants.expoConfig), no hardcodeada. */}
               <Box className="items-center" style={{ marginTop: r(24), marginBottom: r(8) }}>
                 <ExpoImage source={require('../../assets/applogo.png')} style={{ width: r(32), height: r(32), borderRadius: r(8) }} contentFit="cover" />
                 <Text style={styles.menuFooterText}>BeFit {Constants.expoConfig?.version ?? ''}</Text>

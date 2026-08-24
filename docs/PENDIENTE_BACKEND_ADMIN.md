@@ -96,6 +96,17 @@ La compra **dentro de la app se eliminó por completo** (cumplimiento de políti
 - **Recetas**: de 5276, 297 quedaron marcadas `inactive` por estar vacías (76 sin ingredientes ni pasos, 221 con pasos pero sin ingredientes); otras 22 tienen ingredientes pero macros en 0; más ampliamente, 429 tienen `protein` en 0/null. Ninguna de las 5276 recetas tiene foto real subida (100% placeholder) — diferido explícitamente, decidir entre subida manual desde el admin o una integración por lote (revisar licencias de imágenes antes).
 - **Blog**: bibliografía real vacía en los 4 posts existentes — el acordeón ya está construido en la app, solo falta que el coach la rellene desde el admin.
 
+## Configuración pendiente — datos externos, no backend/admin (2026-08-24)
+
+El menú de Ajustes (`home_screen_modern_v2.tsx`) tiene 3 filas construidas y funcionando en cuanto se rellene una constante en `constants/appLinks.ts` — ningún endpoint ni tabla nueva, solo valores que hoy están vacíos a propósito (mientras estén vacíos, la app avisa "aún no configurado" en vez de abrir un enlace roto):
+
+- **`SUPPORT_EMAIL`** — email real de soporte. Alimenta "Solicitar una función" e "Informar de un error" (abren un `mailto:` con el asunto ya puesto).
+- **`APP_STORE_ID`** — ID numérico de la ficha de App Store (el de la URL pública, no el bundle identifier). Alimenta "Valora BeFit en la tienda" en iOS.
+- **`PLAY_STORE_PUBLISHED`** — pasar a `true` cuando la ficha de Google Play esté publicada (el `package` ya se lee de `app.json`, no hace falta duplicarlo). Alimenta la misma fila en Android.
+- **`SOCIAL_LINKS`** — array de `{ name, icon, url }`, uno por red social real (Instagram/X/etc.). Vacío = la fila de iconos no se muestra en absoluto.
+
+"Enviar registros al desarrollador" y "Habilitar diagnósticos" ya son 100% funcionales sin configuración externa — no dependen de este archivo (ver `helper/logger.ts`: buffer local en memoria + `Share.share()`, sin SDK de terceros).
+
 ## Bloqueantes de infraestructura (no son "implementar", pero condicionan features reales)
 
 - **HealthKit en iOS requiere Apple Developer Program de pago ($99/año)** — el proyecto firma sus IPA con un Apple ID personal/gratuito, y Apple no concede la capability HealthKit a cuentas gratuitas. Hasta entonces, "Apple Salud" queda oculto en iOS (Android/Health Connect no tiene esta restricción). Cuando se resuelva: añadir `com.apple.developer.healthkit`(`.background-delivery`) a `befit.entitlements`, configurar `DEVELOPMENT_TEAM` real, reactivar la tarjeta en `link_device_choice_screen.tsx`.
