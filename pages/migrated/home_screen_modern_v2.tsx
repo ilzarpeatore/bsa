@@ -106,12 +106,46 @@ const HERO_IMAGES = {
   night: require('../../assets/hero-night.jpg'),
 };
 
-function getHeroImageForHour(hour: number) {
-  if (hour >= 5 && hour < 8) return HERO_IMAGES.sunriseSunset; // amanecer
-  if (hour >= 8 && hour < 19) return HERO_IMAGES.day;
-  if (hour >= 19 && hour < 21) return HERO_IMAGES.sunriseSunset; // atardecer
-  return HERO_IMAGES.night;
+type HeroMood = keyof typeof HERO_IMAGES;
+
+function getHeroMoodForHour(hour: number): HeroMood {
+  if (hour >= 5 && hour < 8) return 'sunriseSunset'; // amanecer
+  if (hour >= 8 && hour < 19) return 'day';
+  if (hour >= 19 && hour < 21) return 'sunriseSunset'; // atardecer
+  return 'night';
 }
+
+// Degradados por mood -- antes eran un único marrón cálido fijo
+// (rgba(20,11,6,...)) reutilizado para las 3 fotos, así que desentonaba con
+// el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya
+// oscura de por sí). Cada mood tiene su propio tono: cálido dorado para
+// amanecer/atardecer, azul frío para día, casi negro/navy para noche.
+// `seam` mantiene el criterio ya establecido (revisión 2026-08-20): el
+// último color SIEMPRE es C.bg, nunca alpha 0, para que la transición acabe
+// en el color de fondo real de la app en vez de un lavado sucio.
+const HERO_GRADIENTS: Record<
+  HeroMood,
+  { scrim: [string, string]; close: [string, string]; darken: string; seam: (bg: string) => [string, string, string, string] }
+> = {
+  sunriseSunset: {
+    scrim: ['rgba(40,20,8,0.22)', 'rgba(28,13,5,0.52)'],
+    close: ['rgba(40,18,6,0)', 'rgba(30,14,6,0.68)'],
+    darken: '#2B1608',
+    seam: (bg) => ['rgba(30,14,6,0.68)', 'rgba(30,14,6,0.42)', 'rgba(30,14,6,0.16)', bg],
+  },
+  day: {
+    scrim: ['rgba(10,22,38,0.18)', 'rgba(8,16,30,0.48)'],
+    close: ['rgba(8,16,30,0)', 'rgba(10,20,34,0.62)'],
+    darken: '#0E1B2E',
+    seam: (bg) => ['rgba(10,20,34,0.62)', 'rgba(10,20,34,0.38)', 'rgba(10,20,34,0.14)', bg],
+  },
+  night: {
+    scrim: ['rgba(0,4,12,0.3)', 'rgba(0,3,9,0.6)'],
+    close: ['rgba(0,3,9,0)', 'rgba(2,4,10,0.7)'],
+    darken: '#04070D',
+    seam: (bg) => ['rgba(2,4,10,0.7)', 'rgba(2,4,10,0.44)', 'rgba(2,4,10,0.16)', bg],
+  },
+};
 
 // Imagen de recurso: todavía no existe `image_url` en el backend (pendiente,
 // ver docs/TAREAS.md), así que mientras tanto se previsualiza con una foto
@@ -207,6 +241,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const sc = useMemo(() => Math.min(winW / FIGMA_W, winH / FIGMA_H), [winW, winH]);
   const r = useCallback((n: number) => Math.round(n * sc), [sc]);
   const insets = useSafeAreaInsets();
+
+  // Mood del hero (amanecer/atardecer, día o noche) por hora local -- se
+  // recalcula por render (barato, solo lee la hora actual) y sirve tanto
+  // para elegir la foto de fondo como su paleta de degradado a juego (ver
+  // HERO_GRADIENTS más abajo).
+  const heroMood = getHeroMoodForHour(new Date().getHours());
+  const heroGradient = HERO_GRADIENTS[heroMood];
   const [showMenu, setShowMenu] = useState(false);
   const [appleHealthOn, setAppleHealthOn] = useState(true);
   const [smartWatchOn, setSmartWatchOn] = useState(false);
@@ -245,7 +286,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     container: { flex: 1, backgroundColor: C.bg },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
     // Con foto real de fondo (amanecer/atardecer, día o noche, ver
-    // getHeroImageForHour) + scrim oscuro -- antes era un LinearGradient
+    // getHeroMoodForHour) + scrim oscuro -- antes era un LinearGradient
     // plano; el texto blanco de encima sigue necesitando fondo oscuro real,
     // ahora lo da el scrim. Sin border-radius inferior a propósito (revisión
     // 2026-08-19): el bloque superior se funde con "Mi plan de hoy" mediante
@@ -255,15 +296,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // poco más vertical") -- más foto real antes de que empiece el
     // degradado de cierre, no solo un recorrido de gradiente más largo.
     // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
-    // ocupe todo el tamaño de la screen según entras") -- antes la altura del
-    // Box salía solo del contenido (padding + hijos), así que la foto
-    // terminaba mucho antes del final de la pantalla. Con el 100% del alto,
-    // el contenido real (anillos/frase/banner/tarjetas Agua-Actividad) se
-    // quedaba anclado arriba dejando un margen muerto enorme debajo (pedido
-    // explícito de corregirlo) -- reducido a un 64% del alto de pantalla,
-    // que sigue dando una foto grande pero sin ese hueco vacío.
-    heroHeader: { height: winH * 0.64, paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
-    heroDarkenLayer: { backgroundColor: '#1A100A' },
+    // ocupe todo el tamaño de la screen según entras") -- con el 100% de
+    // winH crudo el contenido se quedaba anclado arriba dejando un margen
+    // muerto enorme debajo, porque winH incluye zonas que ya no son
+    // "pantalla visible" (status bar, home indicator, barra flotante de
+    // pestañas). Se probó luego un 64% fijo, pero al ser una fracción fija
+    // el hueco muerto reaparece en pantallas más altas (revisión 2026-08-24,
+    // reportado con captura). Fix real: altura = viewport visible exacto
+    // (winH menos el inset inferior seguro menos la barra flotante), así la
+    // foto llena TODO lo que se ve al entrar en cualquier tamaño de
+    // pantalla, sin cálculo de porcentaje de por medio.
+    heroHeader: {
+      height: Math.max(r(360), winH - insets.bottom - TAB_BAR_CLEARANCE),
+      paddingBottom: r(48),
+      paddingHorizontal: r(20),
+      overflow: 'hidden' as const,
+    },
+    heroDarkenLayer: { backgroundColor: heroGradient.darken },
     heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
     // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
@@ -409,7 +458,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     themeOptionBtnActive: { backgroundColor: C.orange },
     themeOptionText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary },
     themeOptionTextActive: { color: '#FFFFFF' },
-  }), [sc, r, C, winH]);
+  }), [sc, r, C, winH, insets.bottom, heroGradient]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -748,15 +797,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* Foto real de fondo (amanecer/atardecer, día o noche según la
               hora) en vez del degradado plano anterior. */}
           <ExpoImage
-            source={getHeroImageForHour(new Date().getHours())}
+            source={HERO_IMAGES[heroMood]}
             contentFit="cover"
             style={StyleSheet.absoluteFill}
           />
           {/* Scrim oscuro sobre la foto -- el texto/iconos en blanco de la
               cabecera necesitan contraste real, la foto sola (sobre todo
-              día/amanecer, cielo muy claro) no lo da. */}
+              día/amanecer, cielo muy claro) no lo da. Color a juego con el
+              mood de la foto (ver HERO_GRADIENTS) -- antes era un negro
+              plano fijo para las 3 fotos, por lo que no seguía la tonalidad
+              real de cada una (cálida en amanecer/atardecer, fría en día,
+              casi negra ya en noche). */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.55)']}
+            colors={heroGradient.scrim}
             style={StyleSheet.absoluteFill}
           />
           {/* Glass-effect progresivo (estilo KOTCHA): el fondo del hero se
@@ -779,9 +832,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* Degradado de cierre, fijo (no animado): sin él, el límite
               inferior de la foto contra el resto del contenido se nota como
               un corte -- este remate suaviza esa transición siempre, esté o
-              no en marcha el efecto de scroll. */}
+              no en marcha el efecto de scroll. Color a juego con el mood de
+              la foto, mismo criterio que el scrim de arriba. */}
           <LinearGradient
-            colors={['rgba(20,11,6,0)', 'rgba(20,11,6,0.65)']}
+            colors={heroGradient.close}
             style={styles.heroCloseGradient}
             pointerEvents="none"
           />
@@ -904,9 +958,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             fondo claro dejaba un lavado grisáceo/sucio en vez de una
             transición limpia -- pedido explícito de que la imagen "termine
             con un degradado hacia el color de fondo del resto de la
-            pantalla", literal. */}
+            pantalla", literal. Revisión 2026-08-24: el tono ya no es un
+            marrón fijo para las 3 fotos -- sigue el mismo mood (heroGradient)
+            que el scrim y el heroCloseGradient de arriba, para que las 3
+            franjas horarias se lean como una sola transición coherente en
+            vez de un remate genérico desconectado de la foto real. */}
         <LinearGradient
-          colors={['rgba(20,11,6,0.65)', 'rgba(20,11,6,0.4)', 'rgba(20,11,6,0.15)', C.bg]}
+          colors={heroGradient.seam(C.bg)}
           locations={[0, 0.3, 0.6, 1]}
           style={styles.seamGradient}
         />

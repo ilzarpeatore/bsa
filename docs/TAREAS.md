@@ -1935,3 +1935,15 @@ Traducciones, texto/números cortados (causa raíz: fuente Gilroy Bold/ExtraBold
 ### Verificación final de la sesión
 
 `eslint` y `tsc --noEmit` limpios (0 errores) sobre todo el repo fusionado tras cada ronda. Build IPA Release relanzado tras esta ronda de fixes; ver historial de runs en GitHub Actions del repo `ilzarpeatore/bsa` para el resultado.
+
+## Sesión 2026-08-24 — Fix hero de HomeModernV2 (altura no adaptativa + degradado desentonado)
+
+Reportado con captura real de dispositivo: debajo de la foto de cabecera de `home_screen_modern_v2.tsx` aparecía un hueco gris muerto grande antes de "Reto para empezar".
+
+**Causa raíz:** `heroHeader` usaba `height: winH * 0.64` — una fracción **fija** del alto de pantalla, elegida ad-hoc en la revisión 2026-08-22 (antes se había probado `height: winH` a secas, que dejaba un margen muerto aún mayor porque `winH` crudo incluye zonas que ya no son pantalla realmente visible: status bar, home indicator, barra flotante de pestañas). Al ser una fracción fija en vez de un cálculo del viewport real, el hueco muerto reaparece en pantallas con más alto disponible que el dispositivo de prueba original.
+
+**Fix:** `heroHeader.height` ahora es el viewport visible exacto: `winH - insets.bottom - TAB_BAR_CLEARANCE` (con un suelo `r(360)` para no colapsar en casos extremos) — la foto llena exactamente lo que se ve al entrar, sin porcentaje mágico, adaptado a cualquier tamaño de pantalla.
+
+**Segundo bug, mismo reporte:** el scrim superior, el degradado de cierre (`heroCloseGradient`) y el degradado de costura hacia el fondo (`seamGradient`) usaban un único marrón cálido fijo (`rgba(20,11,6,...)`) para las 3 fotos del hero (`getHeroImageForHour` — amanecer/atardecer, día, noche), así que desentonaba con el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya oscura de por sí). Se introdujo `HERO_GRADIENTS`, una paleta por mood (`HeroMood` = `sunriseSunset | day | night`, ahora seleccionado con `getHeroMoodForHour`, refactor de la antigua `getHeroImageForHour`) con tono propio para las 3 capas de degradado: dorado cálido para amanecer/atardecer, azul frío para día, casi negro/navy para noche. Se mantiene el criterio ya establecido en la revisión 2026-08-20 (`seamGradient` siempre termina en `C.bg` opaco, nunca en alpha 0, para no dejar un lavado sucio sobre el fondo claro).
+
+Verificado: `eslint` limpio (0 errores, mismos 3 warnings preexistentes no relacionados). `tsc --noEmit -p .` lanzado en background (10-20 min); si aparece algún error nuevo fuera de los 62 conocidos y no bloqueantes de `theme.ts`, se corrige en un commit de seguimiento.
