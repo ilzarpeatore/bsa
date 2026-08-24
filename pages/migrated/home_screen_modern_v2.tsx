@@ -50,7 +50,7 @@ import { FONT } from './theme';
 import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
-import { SUPPORT_EMAIL, APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
+import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
 import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
@@ -243,13 +243,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleToggleDiagnostics = useCallback((value: boolean) => {
     setDiagnosticsOnState(value);
     setDiagnosticsEnabled(value);
-  }, []);
-  const handleContactSupport = useCallback((subject: string) => {
-    if (!SUPPORT_EMAIL) {
-      Alert.alert('Aún no configurado', 'Todavía no hay un email de soporte configurado para recibir esto.');
-      return;
-    }
-    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`);
   }, []);
   const handleRateApp = useCallback(() => {
     if (Platform.OS === 'ios') {
@@ -741,9 +734,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     ]);
   };
 
-  const navigateFromMenu = (routeName: string) => {
+  const navigateFromMenu = (routeName: string, params?: object) => {
     setShowMenu(false);
-    navigation?.navigate(routeName);
+    navigation?.navigate(routeName, params);
   };
 
   // "Mi plan de hoy" — fusiona check-ins/formularios pendientes (obligaciones
@@ -1646,16 +1639,21 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Pressable>
               </Box>
 
-              {/* "Recursos" (pedido explícito, captura de referencia) --
-                  las 3 filas dependen de configuración real que hoy está
-                  vacía en constants/appLinks.ts (email de soporte, ID de
-                  App Store, publicación en Play Store). Con eso vacío,
-                  tocarlas avisa que aún no está configurado en vez de abrir
-                  un mailto sin destinatario o un deep link a una ficha de
-                  tienda inexistente -- ver docs/TAREAS.md de esta sesión. */}
+              {/* "Recursos" (pedido explícito, captura de referencia). Las 2
+                  primeras filas abren MigratedAppFeedback -- formulario real
+                  que guarda en el backend (mismo mecanismo que
+                  ScreenReviewFab/"Revisar pantalla": v1/app-feedback,
+                  visible después desde el admin panel, ver
+                  docs/PENDIENTE_BACKEND_ADMIN.md -- el endpoint todavía no
+                  existe, pero el formulario y la llamada sí son reales). La
+                  3ª depende de configuración que hoy está vacía en
+                  constants/appLinks.ts (ID de App Store, publicación en
+                  Play Store) -- con eso vacío, avisa que aún no está
+                  disponible en vez de abrir un deep link a una ficha
+                  inexistente. */}
               <Text style={styles.menuSectionLabel}>Recursos</Text>
               <Box style={styles.menuCard}>
-                <Pressable onPress={() => handleContactSupport('Solicitud de función — BeFit')}>
+                <Pressable onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'feature_request' })}>
                   <HStack className="items-center px-4 py-3">
                     <AppIcon name="bulb-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Solicitar una función</Text>
@@ -1663,7 +1661,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   </HStack>
                 </Pressable>
                 <Divider className="ml-4" />
-                <Pressable onPress={() => handleContactSupport('Informe de error — BeFit')}>
+                <Pressable onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'bug_report' })}>
                   <HStack className="items-center px-4 py-3">
                     <AppIcon name="bug-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Informar de un error</Text>

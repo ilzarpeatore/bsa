@@ -37,6 +37,29 @@ Pedido para que el tutorial guiado ("Registra tu primera serie") funcione desde 
 - UI de admin para subir/asignar la imagen al crear/editar un recurso.
 - En cuanto exista, `resourceImageSource()` la usa automáticamente y la app deja de pedir fotos de LoremFlickr — no hace falta tocar más el cliente.
 
+### 5. "Solicitar función" / "Informar de error" — formulario real, falta el endpoint (2026-08-24)
+
+`app_feedback_screen.tsx` (Ajustes → Recursos) ya es un formulario completo y funcional en el cliente — título, descripción, sección relacionada (Entrenamiento/Nutrición/Hábitos/Métricas/Otro), y adjunta el buffer de diagnóstico local si "Habilitar diagnósticos" está activo (`helper/logger.ts::getDiagnosticsReportText()`). Llama a `appFeedbackApi.submit()` (`api/appFeedback.ts`) contra `POST v1/app-feedback`, que todavía no existe — hasta que exista, enviar el formulario falla con el mismo `Alert` de error que cualquier otro formulario de la app cuando el backend responde mal (no es un bug, es el endpoint que falta).
+
+Mismo mecanismo ya usado por la herramienta temporal `ScreenReviewFab`/"Revisar pantalla" (`api/screenReview.ts` → `v1/screen-review-mark`, que sí existe en el backend y sí se ve desde el admin panel) — aplicado aquí a feedback de producto en vez de a la revisión de las 200+ pantallas migradas.
+
+- **`POST v1/app-feedback`** — payload:
+  ```json
+  {
+    "type": "feature_request | bug_report",
+    "title": "string, máx 100 caracteres",
+    "description": "string",
+    "section": "workout | nutrition | habits | metrics | other",
+    "section_other": "string opcional, solo si section = other",
+    "diagnostics_log": "string opcional, texto plano multilinea",
+    "app_version": "string opcional, ej. 1.2.0",
+    "platform": "ios | android"
+  }
+  ```
+  Guardar también `user_id` (del token autenticado) y `created_at`. Respuesta: `{ data: { id, ...mismos campos, created_at } }` (el cliente hoy no lee el body de la respuesta, pero conviene devolverlo por consistencia con el resto de la API).
+- **Tabla sugerida** `app_feedback`: `id`, `user_id` (FK `users`), `type` (enum), `title`, `description` (text), `section` (enum), `section_other` (nullable), `diagnostics_log` (nullable, text/longtext), `app_version` (nullable), `platform` (nullable), `status` (enum: `open`/`reviewed`/`closed`, default `open` — para que el admin pueda marcarlos como gestionados), `created_at`, `updated_at`.
+- **Admin panel**: pantalla nueva (listado + filtro por `type`/`section`/`status`, detalle con el `diagnostics_log` completo) — no existe todavía ningún sitio para verlos, que es justo el problema que este endpoint resuelve para el administrador.
+
 ---
 
 ## Prioridad media

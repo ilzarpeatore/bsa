@@ -50,6 +50,7 @@ const AboutUsScreen = React.lazy(() => import('@pages/migrated/about_us_screen')
 const ActivityTrackerScreen = React.lazy(() => import('@pages/migrated/activity_tracker_screen'));
 const AddPostScreen = React.lazy(() => import('@pages/migrated/add_post_screen'));
 const AddShoppingListScreen = React.lazy(() => import('@pages/migrated/add_shopping_list_screen'));
+const AppFeedbackScreen = React.lazy(() => import('@pages/migrated/app_feedback_screen'));
 const AppearanceScreen = React.lazy(() => import('@pages/migrated/appearance_screen'));
 const BlogDetailScreen = React.lazy(() => import('@pages/migrated/blog_detail_screen'));
 const BlogScreen = React.lazy(() => import('@pages/migrated/blog_screen'));
@@ -259,6 +260,7 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedActivityTracker" component={ActivityTrackerScreen} />
       <MStack.Screen name="MigratedAddPost" component={AddPostScreen} />
       <MStack.Screen name="MigratedAddShoppingList" component={AddShoppingListScreen} />
+      <MStack.Screen name="MigratedAppFeedback" component={AppFeedbackScreen} />
       <MStack.Screen name="MigratedAppearance" component={AppearanceScreen} />
       <MStack.Screen name="MigratedBlogDetail" component={BlogDetailScreen} />
       <MStack.Screen name="MigratedBlog" component={BlogScreen} />

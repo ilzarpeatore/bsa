@@ -3,23 +3,23 @@ import { Ionicons } from '@expo/vector-icons';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
-// Configuración central de contacto y enlaces externos del menú de
-// Ajustes ("Recursos", "Valora en la tienda", redes sociales). Pedido
-// explícito: dejar los botones ya construidos y funcionando aunque la
-// configuración real (email de soporte, ficha publicada en las tiendas,
-// handles de redes sociales) todavía no exista -- cuando exista, solo hay
-// que rellenar estas constantes, sin tocar ningún componente.
+// Configuración central de enlaces externos del menú de Ajustes ("Valora
+// en la tienda", redes sociales). Pedido explícito: dejar los botones ya
+// construidos y funcionando aunque la configuración real (ficha publicada
+// en las tiendas, handles de redes sociales) todavía no exista -- cuando
+// exista, solo hay que rellenar estas constantes, sin tocar ningún
+// componente.
 //
 // Mientras un valor esté vacío/false, la acción que depende de él avisa
-// que aún no está configurado en vez de abrir un enlace roto (mailto sin
-// destinatario, deep link a una ficha de tienda que no existe, icono de
-// red social sin URL real) -- mismo criterio ya aplicado en toda la sesión
-// (ver about_us_screen.tsx como ejemplo de lo contrario: placeholders sin
-// terminar que sí llegaron a producción).
-
-// Email real donde deben llegar "Solicitar una función" / "Informar de un
-// error". Rellenar cuando exista un buzón de soporte de verdad.
-export const SUPPORT_EMAIL = '';
+// que aún no está configurado en vez de abrir un enlace roto (deep link a
+// una ficha de tienda que no existe, icono de red social sin URL real) --
+// mismo criterio ya aplicado en toda la sesión (ver about_us_screen.tsx
+// como ejemplo de lo contrario: placeholders sin terminar que sí llegaron
+// a producción).
+//
+// "Solicitar una función" / "Informar de un error" NO usan este archivo --
+// son un formulario real (MigratedAppFeedback, api/appFeedback.ts) que
+// guarda en el backend, no un mailto.
 
 // ID numérico de App Store (el de la URL pública de la ficha, no el
 // bundle identifier de app.json) y si la ficha de Google Play ya está
