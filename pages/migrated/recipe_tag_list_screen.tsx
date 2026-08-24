@@ -35,10 +35,22 @@ interface TagCategory {
 // de agrupación (solo id/title/slug/imagen) — "esta screen es una locura"
 // venía de eso: 40-60 chips sueltos en un único wrap. Para organizarla por
 // secciones sin depender de un campo que la API no expone, clasificamos cada
-// tag por palabras clave en su título (tipo de receta, cocina/país, duración,
-// dieta) y agrupamos lo que no encaja en "Otros". Es una heurística, no un
-// contrato con el backend: si algún día `recipetag-list` expone una
-// categoría real, esto se puede sustituir por ese campo directamente.
+// tag por palabras clave en su título y agrupamos lo que no encaja en
+// "Otros". Es una heurística, no un contrato con el backend -- ver
+// docs/PENDIENTE_BACKEND_ADMIN.md para la propuesta real de un campo de
+// grupo en `recipe_tags` que sustituya esto por datos reales.
+//
+// Taxonomía rediseñada (pedido explícito, 2026-08-24: "organiza todas las
+// categorías" -- duración, países, tipo de dieta, recetas de comunidades de
+// España, y por tipo de objetivo). `classifyTag` recorre este array EN
+// ORDEN y devuelve el primer match, así que el orden importa: las 3
+// categorías de objetivo y "Comunidades de España" van ANTES que "Países"/
+// "Tipo de dieta" a propósito -- son más específicas (ej. "cocina andaluza"
+// debe caer en Comunidades de España, no en el "espanol[ao]" genérico de
+// Países; "alto en proteina" es más objetivo de entrenamiento que dieta en
+// sí). Antes "alto en proteina"/"proteica"/"hipocalorica"/"light" vivían en
+// "Tipo de dieta" -- se mueven a las categorías de objetivo, que son un
+// encaje semántico más preciso para esos términos.
 const CATEGORY_DEFS: { key: string; label: string; icon: string; keywords: RegExp }[] = [
   {
     key: 'duration',
@@ -47,18 +59,48 @@ const CATEGORY_DEFS: { key: string; label: string; icon: string; keywords: RegEx
     keywords: /\b(\d+\s*-?\s*(min|mins|minutos)|rapid[ao]s?|express|menos de)\b/,
   },
   {
-    key: 'cuisine',
-    label: 'Cocina y países',
+    key: 'fatLoss',
+    label: 'Pérdida de grasa',
+    icon: 'flame-outline',
+    keywords:
+      /\b(perdida de grasa|quema\s?-?grasas?|definicion|deficit calorico|baj[ao] en calorias|hipocalor[ií]c[ao]|adelgaz\w*|light)\b/,
+  },
+  {
+    key: 'muscleGain',
+    label: 'Subida de masa muscular',
+    icon: 'barbell-outline',
+    keywords: /\b(masa muscular|volumen|ganancia muscular|alt[ao] en proteina|proteic[ao]|hipertrofia|bulking)\b/,
+  },
+  {
+    key: 'performance',
+    label: 'Rendimiento deportivo',
+    icon: 'flash-outline',
+    keywords:
+      /\b(rendimiento deportivo|pre\s?-?entreno|post\s?-?entreno|recuperacion muscular|resistencia|hidratacion|electrolitos|energia)\b/,
+  },
+  {
+    key: 'spainRegional',
+    label: 'Recetas de comunidades de España',
+    icon: 'location-outline',
+    keywords:
+      /\b(andaluz[ao]s?|catalan[ao]?s?|catalu[nñ]a|galleg[ao]s?|galicia|vasc[ao]s?|euskadi|valencian[ao]s?|canari[ao]s?|asturian[ao]s?|asturias|murcian[ao]s?|riojan[ao]s?|aragones[ao]?s?|extreme[nñ][ao]s?|castellan[ao]s?|manchega?s?|madrile[nñ][ao]s?|balear(es)?|cantabr[ao]s?|navarr[ao]s?|cordobes[ao]?s?|sevillan[ao]s?)\b/,
+  },
+  {
+    key: 'country',
+    label: 'Países',
     icon: 'earth-outline',
     keywords:
-      /\b(mexican[ao]|italian[ao]|espanol[ao]|francesa|frances|japonesa|japones|china|china|india|tailandesa|tailandes|mediterranea|mediterraneo|asiatica|asiatico|american[ao]|griega|griego|coreana|coreano|vietnamita|marroqui|peruana|peruano|argentina|argentino|brasilena|brasileno|alemana|aleman|turca|turco|libanesa|libanes|hindu|arabe|latina|latino|oriental|caribena|caribeno)\b/,
+      /\b(mexican[ao]|italian[ao]|espanol[ao]|francesa|frances|japonesa|japones|china|india|tailandesa|tailandes|mediterranea|mediterraneo|asiatica|asiatico|american[ao]|griega|griego|coreana|coreano|vietnamita|marroqui|peruana|peruano|argentina|argentino|brasilena|brasileno|alemana|aleman|turca|turco|libanesa|libanes|hindu|arabe|latina|latino|oriental|caribena|caribeno)\b/,
   },
   {
     key: 'diet',
     label: 'Tipo de dieta',
     icon: 'leaf-outline',
-    keywords:
-      /\b(vegan[ao]|vegetarian[ao]|sin gluten|sin lactosa|keto|cetogenic[ao]|paleo|bajo en carb|alto en proteina|sin azucar|light|fitness|hipocalorica|proteica)\b/,
+    // Bug real corregido de paso (preexistente, misma línea): "bajo en carb"
+    // con \b de cierre nunca hacía match contra "carbohidratos" (el \b exige
+    // fin de palabra justo tras "carb", que en "carbohidratos" sigue en
+    // mitad de palabra) -- \w* al final, mismo patrón que "adelgaz\w*".
+    keywords: /\b(vegan[ao]|vegetarian[ao]|sin gluten|sin lactosa|keto|cetogenic[ao]|paleo|baj[ao] en carb\w*|sin azucar|fitness)\b/,
   },
   {
     key: 'mealType',

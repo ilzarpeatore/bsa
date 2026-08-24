@@ -2024,3 +2024,32 @@ Reportado: la búsqueda de recetas mostraba un máximo de 10 resultados, sin for
 - Efecto colateral necesario: la barra de búsqueda se sacó del `ScrollView` del feed a una posición fija siempre visible (antes vivía dentro de ese scroll) — necesario porque ahora, en modo búsqueda, el scroll lo lleva un `FlatList` totalmente distinto del `ScrollView` del feed (no pueden anidarse dos scrolls verticales sin conflicto de gestos), así que la barra ya no puede vivir dentro de ninguno de los dos. Se le añadió su propio `marginHorizontal`/`marginTop` (antes los heredaba del padding del `ScrollView` que la contenía).
 
 Verificado: `eslint` limpio (0 errores; los 4 warnings —`fetchFeed()`/`setSearchResults([])` en efectos, comillas sin escapar en "Sin resultados"— ya existían antes de este cambio, ninguno nuevo). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión (proceso relanzado limpio, cubre este archivo). **Pendiente de verificación visual en dispositivo real** — confirmar que el scroll infinito carga bien y que la barra de búsqueda fija no introduce ningún salto visual al cambiar entre modo feed y modo búsqueda.
+
+### Reorganización de categorías en MigratedRecipeTagList (`recipe_tag_list_screen.tsx`)
+
+Pedido explícito: "está todo muy desorganizado" — la pantalla ya tenía una clasificación heurística por palabras clave desde una sesión anterior (4 categorías: Duración, Cocina y países, Tipo de dieta, Tipo de receta, + "Otros"), pero no cubría la taxonomía real que el usuario quiere: Duración, Países, Tipo de dieta, Recetas de comunidades de España, y por tipo de objetivo (Pérdida de grasa / Subida de masa muscular / Rendimiento deportivo).
+
+**Investigación primero:** `recipetag-list` (backend) devuelve los tags completamente planos — `{id, title, slug, status, recipe_tag_image}`, sin ningún campo de grupo/categoría real. La clasificación por palabras clave en el título (`classifyTag`/`CATEGORY_DEFS`) es la única vía posible sin tocar backend — se documenta el pendiente real en `docs/PENDIENTE_BACKEND_ADMIN.md` #11 (campo de grupo o tabla `recipe_tag_groups` en `recipe_tags`), tal como se pidió explícitamente.
+
+**Rediseño de `CATEGORY_DEFS`** (`classifyTag` recorre el array EN ORDEN y devuelve el primer match, así que el orden es semánticamente importante):
+
+1. Duración (sin cambios)
+2. Pérdida de grasa — nueva: "pérdida de grasa", "quema-grasa(s)", "definición", "déficit calórico", "bajo/baja en calorías", "hipocalórico/a", "adelgaz-", "light"
+3. Subida de masa muscular — nueva: "masa muscular", "volumen", "ganancia muscular", "alto/alta en proteína", "proteico/a", "hipertrofia", "bulking"
+4. Rendimiento deportivo — nueva: "rendimiento deportivo", "pre/post-entreno", "recuperación muscular", "resistencia", "hidratación", "electrolitos", "energía"
+5. Recetas de comunidades de España — nueva: adjetivos regionales (andaluza, catalana, gallega, vasca, valenciana, canaria, asturiana, murciana, riojana, aragonesa, extremeña, castellana, manchega, madrileña, balear, cántabra, navarra, cordobesa, sevillana...)
+6. Países — renombrada de "Cocina y países" (mismo regex de gentilicios internacionales, ya existente)
+7. Tipo de dieta — recortada: "alto en proteína"/"proteica"/"hipocalórica"/"light" se sacaron de aquí (encajan mejor semánticamente en las categorías de objetivo de arriba)
+8. Tipo de receta (sin cambios, mealType)
+9. Otros (fallback, sin cambios)
+
+Comunidades de España va ANTES que Países a propósito (más específico: "cocina andaluza" debe caer en Comunidades, no en el "espanol[ao]" genérico de Países).
+
+**2 bugs reales corregidos de paso, detectados al escribir un script de verificación con casos de prueba reales** (no eran el pedido, pero estaban en las mismas líneas tocadas):
+
+- Concordancia de género: "bajo en calorías"/"alto en proteína" no hacían match contra "**baja** en calorías"/"**alta** en proteína" (frecuente en español, ya que el adjetivo concuerda con el sustantivo de la receta — "ensalada baja" vs "plato bajo"). Corregido a `baj[ao]`/`alt[ao]`.
+- "bajo en carb" (con `\b` de cierre del grupo completo) nunca hacía match contra "carbohidratos" — el `\b` exige fin de palabra justo tras "carb", que en "carbohidratos" sigue en mitad de palabra. Corregido a `baj[ao] en carb\w*` (mismo patrón que ya usa `adelgaz\w*`).
+
+Verificado con un script Node de prueba (13 títulos de ejemplo cubriendo las 8 categorías + fallback) contra la lógica de clasificación extraída — todos clasifican donde se esperaba tras los 2 fixes de regex. `eslint` limpio (0 errores, mismos 3 warnings preexistentes sin relación). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión.
+
+**Pendiente real (documentado en `docs/PENDIENTE_BACKEND_ADMIN.md` #11):** esto sigue siendo una heurística de texto, no un dato real del backend — un tag mal titulado (ej. "Andalucía" sin el adjetivo "andaluza") no clasificará donde debería. La solución real es un campo de grupo/categoría en `recipe_tags` que el backend/admin puedan asignar de verdad.
