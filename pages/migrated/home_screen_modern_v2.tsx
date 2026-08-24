@@ -533,6 +533,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         setMotivationalPhrase(phraseRes.value.data?.data?.text ?? null);
       }
 
+      // Sesiones completadas -- se necesita ANTES del bloque de calendarRes
+      // (ver más abajo) porque "Cumplimiento semanal" tiene que comprobar si
+      // el entrenamiento de cada día se completó de verdad, no solo si
+      // había uno asignado. Se reutiliza el mismo Set para
+      // setCompletedAssignmentIds() más abajo, sin recalcularlo dos veces.
+      const completedSessions: CompletedSessionItem[] = completedRes.status === 'fulfilled' ? (completedRes.value.data?.data ?? []) : [];
+      const completedAssignmentIdSet = new Set(
+        completedSessions.filter((s) => s.program_day_assignment_id != null).map((s) => s.program_day_assignment_id as number)
+      );
+
       if (calendarRes.status === 'fulfilled') {
         const calData: any = calendarRes.value.data.data;
         const days = calData?.days ?? [];
@@ -550,7 +560,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           d.setDate(monday.getDate() + i);
           const dateStr = d.toISOString().split('T')[0];
           const dayData: any = daysByDate.get(dateStr);
-          weekBools.push(!!(dayData?.workouts && dayData.workouts.length > 0));
+          // Bug real (reportado con captura, 2026-08-24): antes marcaba el
+          // día como cumplido con solo tener un workout ASIGNADO ese día
+          // (dayData.workouts.length > 0), sin comprobar si el cliente lo
+          // completó de verdad -- por eso "Cumplimiento semanal" podía
+          // mostrar 7 de 7 con entrenamientos sin hacer. Ahora exige que al
+          // menos uno de los workouts asignados ese día esté en
+          // completedAssignmentIdSet (mismas sesiones completadas que ya
+          // usa "Mi plan de hoy" para distinguir tarjeta completada/pendiente).
+          const dayCompleted = !!dayData?.workouts?.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
+          weekBools.push(dayCompleted);
         }
         setWeeklyWorkouts(weekBools);
       } else {
@@ -582,10 +601,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       }
 
       if (completedRes.status === 'fulfilled') {
-        const sessions: CompletedSessionItem[] = completedRes.value.data?.data ?? [];
-        setCompletedAssignmentIds(
-          new Set(sessions.filter((s) => s.program_day_assignment_id != null).map((s) => s.program_day_assignment_id as number))
-        );
+        setCompletedAssignmentIds(completedAssignmentIdSet);
       }
 
       if (readinessRes.status === 'fulfilled') {
