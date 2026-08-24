@@ -1526,8 +1526,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   MigratedAppearance (pedido explícito, captura de referencia
                   de Bevel: "Aspecto" con tarjetas de vista previa) -- tener
                   las dos formas de cambiar el mismo ajuste en el mismo menú
-                  habría sido redundante. */}
-              <Text style={styles.menuSectionLabel}>Apariencia</Text>
+                  habría sido redundante. Sección renombrada de "Apariencia" a
+                  "General" (mismo nombre que la referencia) al añadir aquí
+                  también la fila de Notificaciones -- ya no es solo aspecto. */}
+              <Text style={styles.menuSectionLabel}>General</Text>
               <Box style={styles.menuCard}>
                 <Pressable onPress={() => navigateFromMenu('MigratedAppearance')}>
                   <HStack className="items-center px-4 py-3">
@@ -1538,6 +1540,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                         {themePreference === 'auto' ? 'Automático' : themePreference === 'light' ? 'Leve' : 'Oscuro'}
                       </Text>
                     </VStack>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                {/* MigratedNotificationSettings (no MigratedNotification, que
+                    es el buzón de notificaciones ya recibidas) -- pedido
+                    explícito, captura de referencia: switch que refleja el
+                    permiso real del sistema, ver notification_settings_screen.tsx. */}
+                <Pressable onPress={() => navigateFromMenu('MigratedNotificationSettings')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="notifications-outline" size={18} color={C.warning60} bg={C.warning10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Notificaciones</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
                 </Pressable>

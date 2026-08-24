@@ -81,6 +81,7 @@ const MealsWaterReminderScreen = React.lazy(() => import('@pages/migrated/meals_
 const MuscleProgressScreen = React.lazy(() => import('@pages/migrated/muscle_progress_screen'));
 const MyProgramCalendarScreen = React.lazy(() => import('@pages/migrated/my_program_calendar_screen'));
 const NotificationScreen = React.lazy(() => import('@pages/migrated/notification_screen'));
+const NotificationSettingsScreen = React.lazy(() => import('@pages/migrated/notification_settings_screen'));
 const OnboardingScreen = React.lazy(() => import('@pages/migrated/onboarding_screen'));
 const OnboardingV2Screen = React.lazy(() => import('@pages/migrated/onboarding_v2/onboarding_v2_screen'));
 const OtherUserProfileScreen = React.lazy(() => import('@pages/migrated/other_user_profile_screen'));
@@ -287,6 +288,11 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedMuscleProgress" component={MuscleProgressScreen} />
       <MStack.Screen name="MigratedMyProgramCalendar" component={MyProgramCalendarScreen} />
       <MStack.Screen name="MigratedNotification" component={NotificationScreen} />
+      {/* Distinto de MigratedNotification de arriba (esa es el buzón/feed de
+          notificaciones ya recibidas, notification_screen.tsx) -- esta es el
+          ajuste de permiso de notificaciones push, pedido explícito con
+          captura de referencia (Bevel). */}
+      <MStack.Screen name="MigratedNotificationSettings" component={NotificationSettingsScreen} />
       <MStack.Screen name="MigratedOnboarding" component={OnboardingScreen} />
       <MStack.Screen name="MigratedOtherUserProfile" component={OtherUserProfileScreen} />
       <MStack.Screen name="MigratedPlan" component={PlanScreen} />
