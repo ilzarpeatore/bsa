@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 import Animated, {
   useAnimatedScrollHandler,
   useAnimatedProps,
@@ -46,6 +47,7 @@ import { AvatarMem } from '@components/Avatar';
 import { FONT } from './theme';
 import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
+import { useAppReload } from '@store/AppReloadContext';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -222,6 +224,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // resuelto (no el scrollY crudo) y solo avisar a React cuando cambia de
   // lado, para no cruzar al hilo de JS en cada frame de scroll.
   const { reportScrollY } = useTabBarScroll();
+  const { reloadApp } = useAppReload();
   useAnimatedReaction(
     () => scrollY.value > 8,
     (collapsed, prevCollapsed) => {
@@ -475,6 +478,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuItemSubtext: { fontSize: r(12), color: C.textSecondary, marginTop: r(1) },
     menuLogoutBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(20) },
     menuLogoutText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.destructive },
+    menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
+    menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
+    menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
   }), [sc, r, C, winH, insets.bottom, heroGradient]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
@@ -1578,6 +1584,65 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
                 </Pressable>
+              </Box>
+
+              {/* Aviso legal (pedido explícito, captura de referencia) --
+                  ambas pantallas ya existían y ya funcionaban (usadas en el
+                  flujo de registro/onboarding), solo no estaban enlazadas
+                  todavía desde Ajustes. */}
+              <Text style={styles.menuSectionLabel}>Aviso legal</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedTermsAndConditions')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="document-text-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Términos del servicio</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={() => navigateFromMenu('MigratedPrivacyPolicy')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="shield-checkmark-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Política de privacidad</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+              </Box>
+
+              {/* "Borrar caché y recargar todos los datos" -- remonta el
+                  NavigationContainer entero (ver AppReloadContext.tsx), no
+                  vacía AsyncStorage (perdería sesión de entrenamiento en
+                  curso / borrador de onboarding / recordatorios locales sin
+                  backend). Confirmación primero porque descarta cualquier
+                  estado en memoria de las pantallas montadas. */}
+              <Pressable
+                style={styles.menuActionBtn}
+                onPress={() =>
+                  Alert.alert(
+                    'Recargar todos los datos',
+                    'Se recargará toda la app desde cero. Cualquier cambio sin guardar en la pantalla actual se perderá.',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Recargar', style: 'destructive', onPress: () => { setShowMenu(false); reloadApp(); } },
+                    ]
+                  )
+                }
+              >
+                <Text style={styles.menuActionBtnText}>Borrar caché y recargar todos los datos</Text>
+              </Pressable>
+
+              {/* Logo + versión real (Constants.expoConfig), no hardcodeada --
+                  el resto de filas de la captura de referencia (Solicitar
+                  función / Informar de error / Valorar en la tienda /
+                  Enviar registros / Habilitar diagnósticos / redes sociales)
+                  se dejan fuera a propósito: necesitan un email de soporte,
+                  ficha real en la tienda, o un sistema de logs/diagnósticos
+                  que hoy no existen en el proyecto -- ver nota en
+                  docs/TAREAS.md de esta sesión en vez de enlazar a algo que
+                  no funciona. */}
+              <Box className="items-center" style={{ marginTop: r(24), marginBottom: r(8) }}>
+                <ExpoImage source={require('../../assets/applogo.png')} style={{ width: r(32), height: r(32), borderRadius: r(8) }} contentFit="cover" />
+                <Text style={styles.menuFooterText}>BeFit {Constants.expoConfig?.version ?? ''}</Text>
               </Box>
 
               <Pressable style={styles.menuLogoutBtn} onPress={handleLogout}>

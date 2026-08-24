@@ -26,6 +26,7 @@ import NavigationTab from "@components/NavigationTab";
 import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
 import { TabBarScrollProvider } from "@store/TabBarScrollContext";
 import { AppColorModeProvider } from "@helper/useAppColorMode";
+import { AppReloadProvider, useAppReload } from "@store/AppReloadContext";
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -435,6 +436,24 @@ function RootNavigator() {
   );
 }
 
+// Extraído del return de App() para poder leer useAppReload() -- "Borrar
+// caché y recargar todos los datos" (Ajustes, ver store/AppReloadContext.tsx)
+// remonta SOLO este NavigationContainer (key={reloadKey}), no AuthProvider
+// ni TutorialProvider por encima -- recargar datos no debe cerrar sesión.
+function AppNavigationContainer({ navigationRef, onReady }: { navigationRef: any; onReady: () => void }) {
+  const { reloadKey } = useAppReload();
+  return (
+    <NavigationContainer
+      key={reloadKey}
+      ref={navigationRef}
+      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
+      onReady={onReady}
+    >
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
+
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
@@ -510,24 +529,23 @@ export default function App() {
           {/* Cerca de la raíz (no solo alrededor de Home v2) para que
               cualquier pantalla que consuma useAppColorMode() -- hoy Home v2
               y MigratedAppearance -- comparta el mismo estado real, ver
-              helper/useAppColorMode.ts. */}
-          <AppColorModeProvider>
-            <AuthProvider>
-              <TutorialProvider navigationRef={screenReviewNavigationRef}>
-                <NavigationContainer
-                  ref={screenReviewNavigationRef}
-                  theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
-                  onReady={onLayoutRootView}
-                >
-                  <RootNavigator />
-                </NavigationContainer>
-                <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
-                <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
-                <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
-                <TutorialOverlay />
-              </TutorialProvider>
-            </AuthProvider>
-          </AppColorModeProvider>
+              helper/useAppColorMode.ts. AppReloadProvider por fuera de
+              AuthProvider/TutorialProvider a propósito -- "recargar todos
+              los datos" (Ajustes) solo debe remontar el NavigationContainer
+              de abajo (AppNavigationContainer), nunca cerrar la sesión. */}
+          <AppReloadProvider>
+            <AppColorModeProvider>
+              <AuthProvider>
+                <TutorialProvider navigationRef={screenReviewNavigationRef}>
+                  <AppNavigationContainer navigationRef={screenReviewNavigationRef} onReady={onLayoutRootView} />
+                  <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
+                  <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
+                  <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
+                  <TutorialOverlay />
+                </TutorialProvider>
+              </AuthProvider>
+            </AppColorModeProvider>
+          </AppReloadProvider>
         </SafeAreaProvider>
       </GluestackUIProvider>
     </GestureHandlerRootView>
