@@ -35,6 +35,15 @@ const MAX_BODY_MAP_HEIGHT = 660;
 // disponible, porque el toggle se apila ENCIMA del SVG dentro del mismo
 // contenedor centrado, no al lado.
 const BODY_MAP_TOGGLE_HEIGHT = 56;
+// Bug real corregido (reportado con captura, 2026-08-24): el padding interno
+// del toggle (4px, en MuscleBodyMap.tsx -- compartido con otras pantallas,
+// no se toca aquí) es casi imperceptible por sí solo. Como el Box de abajo
+// centra su contenido (justify-content:center) y bodyMapHeight se calcula
+// para aprovechar casi TODO el alto disponible, el grupo toggle+SVG queda
+// prácticamente pegado al techo del Box -- se ve el botón "Frontal" sin
+// apenas margen superior. Se reserva este hueco extra restándolo también del
+// alto disponible, así el centrado deja aire real por encima del toggle.
+const TOGGLE_TOP_BREATHING_ROOM = 16;
 
 export default function ViewBodyPartScreen(props: any) {
   const [searchText, setSearchText] = useState('');
@@ -45,7 +54,7 @@ export default function ViewBodyPartScreen(props: any) {
   }, []);
   const bodyMapHeight =
     mapAreaHeight > 0
-      ? Math.min(MAX_BODY_MAP_HEIGHT, Math.max(200, mapAreaHeight - BODY_MAP_TOGGLE_HEIGHT))
+      ? Math.min(MAX_BODY_MAP_HEIGHT, Math.max(200, mapAreaHeight - BODY_MAP_TOGGLE_HEIGHT - TOGGLE_TOP_BREATHING_ROOM))
       : MAX_BODY_MAP_HEIGHT;
 
   const goToExercises = (bodyPartId: number) => {

@@ -2000,3 +2000,13 @@ Reportado con captura: el header fijo (tarjeta de objetivo kcal/macros + selecto
 - Efecto colateral de limpieza: las clases `mx-4`/`px-4` de cada bloque del header (que daban su propio margen horizontal cuando vivían fuera del scroll) se quitaron — ahora todo el contenido, header incluido, se alinea con el único `paddingHorizontal:16` del `contentContainerStyle`, igual que ya hacían las filas de la lista.
 
 Verificado: `eslint` limpio (0 errores, mismos 2 warnings preexistentes sin relación). `tsc --noEmit -p .` corriendo en background junto con el resto de cambios de la sesión. **Pendiente de verificación visual en dispositivo real** (sin MCP de control de dispositivo en esta sesión) — confirmar en vivo que el umbral de colapso (`HEADER_HEIGHT_ESTIMATE=260`) se siente natural y que la barra compacta no tapa contenido al aparecer.
+
+### Margen superior del toggle Frontal/Trasera en MigratedViewBodyPart (`view_body_part_screen.tsx`)
+
+Reportado con captura: el botón "Frontal" del toggle interno de `MuscleBodyMap` se veía prácticamente pegado al borde superior de su contenedor, sin margen visible arriba (sí lo había, más generoso, alrededor/debajo).
+
+**Causa:** el padding interno del toggle (4px, definido en `MuscleBodyMap.tsx` — componente compartido con otras pantallas: heatmap post-entreno, progreso muscular semanal/mensual — no tocado aquí a propósito) es casi imperceptible por sí solo. El `Box` que envuelve `MuscleBodyMap` en esta pantalla centra su contenido (`justify-content:center`) y `bodyMapHeight` ya se calculaba para aprovechar prácticamente TODO el alto disponible (pedido explícito de una sesión anterior: "hazlo más grande") — dejando el grupo toggle+SVG pegado al techo del contenedor centrado, sin margen real por encima del toggle.
+
+**Fix, scoped a este archivo (sin tocar el componente compartido):** nueva constante `TOGGLE_TOP_BREATHING_ROOM = 16`, restada también del alto disponible al calcular `bodyMapHeight` (junto a `BODY_MAP_TOGGLE_HEIGHT`, ya existente) — libera un hueco extra que el centrado del `Box` reparte, dando aire real por encima del toggle sin reducir perceptiblemente el tamaño del mapa muscular.
+
+Verificado: `eslint` limpio (0 errores, 0 warnings). `tsc --noEmit -p .` — se detectó que el proceso en background de la sesión llevaba corriendo desde ANTES de varios commits posteriores (compliance semanal, glass effect, header colapsable de assigned-meals, y este fix), por lo que sus resultados no reflejarían esos archivos con fiabilidad; se mató y se relanzó un `tsc` limpio que cubre el estado actual completo del repo. **Pendiente de verificación visual en dispositivo real.**
