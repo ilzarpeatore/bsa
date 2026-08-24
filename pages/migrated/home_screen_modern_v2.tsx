@@ -8,6 +8,8 @@ import { Platform ,
   Modal,
   Alert,
   Switch,
+  Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
@@ -17,6 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Constants from 'expo-constants';
 import Animated, {
   useAnimatedScrollHandler,
   useAnimatedProps,
@@ -46,6 +49,9 @@ import { AvatarMem } from '@components/Avatar';
 import { FONT } from './theme';
 import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
+import { useAppReload } from '@store/AppReloadContext';
+import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
+import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -56,6 +62,8 @@ import { pickWorkoutFallbackImage } from './workoutViewShared';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { habitsApi, Habit } from '../../api/habits';
+import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
+import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
 import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
 import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
@@ -96,6 +104,22 @@ function greetingForHour(hour: number): string {
   return 'Buenas noches';
 }
 
+// Recovery del hero -- estimación 100% cliente a partir del chequeo
+// subjetivo diario que el cliente ya rellena (daily_readiness_checks, mismo
+// dato que consume workout_preview_screen.tsx). NO es el `combined_score`
+// real que calcula `ReadinessCalculationService` en el backend (ese cruza
+// esto con HRV/sueño objetivo de wearable vía `readiness_scores`, y hoy no
+// hay endpoint que lo exponga al cliente) -- es una media simple de las 4
+// respuestas normalizadas a 0-100, pensada como aproximación honesta
+// mientras no exista ese endpoint, no como sustituto exacto del score real.
+function computeRecoveryScore(v: ReadinessValues): number {
+  const sleep = ((v.sleep_quality - 1) / 4) * 100; // 1-5, mayor = mejor
+  const energy = ((v.energy_level - 1) / 4) * 100; // 1-5, mayor = mejor
+  const soreness = ((10 - v.soreness_level) / 9) * 100; // 1-10, invertido (mayor = peor)
+  const stress = ((5 - v.stress_level) / 4) * 100; // 1-5, invertido (mayor = peor)
+  return Math.round((sleep + energy + soreness + stress) / 4);
+}
+
 // Fondo real del hero (sustituye al LinearGradient plano) -- 3 fotos fijas
 // del cliente, elegidas por hora local del dispositivo. Mismo criterio que
 // greetingForHour: no hace falta posición solar real, basta con franjas
@@ -106,12 +130,46 @@ const HERO_IMAGES = {
   night: require('../../assets/hero-night.jpg'),
 };
 
-function getHeroImageForHour(hour: number) {
-  if (hour >= 5 && hour < 8) return HERO_IMAGES.sunriseSunset; // amanecer
-  if (hour >= 8 && hour < 19) return HERO_IMAGES.day;
-  if (hour >= 19 && hour < 21) return HERO_IMAGES.sunriseSunset; // atardecer
-  return HERO_IMAGES.night;
+type HeroMood = keyof typeof HERO_IMAGES;
+
+function getHeroMoodForHour(hour: number): HeroMood {
+  if (hour >= 5 && hour < 8) return 'sunriseSunset'; // amanecer
+  if (hour >= 8 && hour < 19) return 'day';
+  if (hour >= 19 && hour < 21) return 'sunriseSunset'; // atardecer
+  return 'night';
 }
+
+// Degradados por mood -- antes eran un único marrón cálido fijo
+// (rgba(20,11,6,...)) reutilizado para las 3 fotos, así que desentonaba con
+// el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya
+// oscura de por sí). Cada mood tiene su propio tono: cálido dorado para
+// amanecer/atardecer, azul frío para día, casi negro/navy para noche.
+// `seam` mantiene el criterio ya establecido (revisión 2026-08-20): el
+// último color SIEMPRE es C.bg, nunca alpha 0, para que la transición acabe
+// en el color de fondo real de la app en vez de un lavado sucio.
+const HERO_GRADIENTS: Record<
+  HeroMood,
+  { scrim: [string, string]; close: [string, string]; darken: string; seam: (bg: string) => [string, string, string, string] }
+> = {
+  sunriseSunset: {
+    scrim: ['rgba(40,20,8,0.22)', 'rgba(28,13,5,0.52)'],
+    close: ['rgba(40,18,6,0)', 'rgba(30,14,6,0.68)'],
+    darken: '#2B1608',
+    seam: (bg) => ['rgba(30,14,6,0.68)', 'rgba(30,14,6,0.42)', 'rgba(30,14,6,0.16)', bg],
+  },
+  day: {
+    scrim: ['rgba(10,22,38,0.18)', 'rgba(8,16,30,0.48)'],
+    close: ['rgba(8,16,30,0)', 'rgba(10,20,34,0.62)'],
+    darken: '#0E1B2E',
+    seam: (bg) => ['rgba(10,20,34,0.62)', 'rgba(10,20,34,0.38)', 'rgba(10,20,34,0.14)', bg],
+  },
+  night: {
+    scrim: ['rgba(0,4,12,0.3)', 'rgba(0,3,9,0.6)'],
+    close: ['rgba(0,3,9,0)', 'rgba(2,4,10,0.7)'],
+    darken: '#04070D',
+    seam: (bg) => ['rgba(2,4,10,0.7)', 'rgba(2,4,10,0.44)', 'rgba(2,4,10,0.16)', bg],
+  },
+};
 
 // Imagen de recurso: todavía no existe `image_url` en el backend (pendiente,
 // ver docs/TAREAS.md), así que mientras tanto se previsualiza con una foto
@@ -148,7 +206,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // helper/useAppColorMode.ts) -- "C" queda con el mismo nombre que el
   // import estático de siempre para no reescribir los ~85 usos C.xxx de
   // este fichero; sigue el modo salvo que el usuario lo fije a mano.
-  const { preference: themePreference, setPreference: setThemePreference, colors: C } = useAppColorMode();
+  const { preference: themePreference, colors: C } = useAppColorMode();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -170,6 +228,56 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // resuelto (no el scrollY crudo) y solo avisar a React cuando cambia de
   // lado, para no cruzar al hilo de JS en cada frame de scroll.
   const { reportScrollY } = useTabBarScroll();
+  const { reloadApp } = useAppReload();
+
+  // "Habilitar diagnósticos" (Ajustes, pedido explícito) -- refleja el
+  // flag real guardado en AsyncStorage vía helper/logger.ts, no un estado
+  // local suelto (mismo motivo que el switch de notificaciones: si se
+  // inicializa en false a ciegas, un usuario que ya lo activó antes vería
+  // el switch "apagado" hasta tocarlo, desincronizado del buffer real que
+  // sí está activo).
+  const [diagnosticsOn, setDiagnosticsOnState] = useState(false);
+  useEffect(() => {
+    loadDiagnosticsEnabled().then(setDiagnosticsOnState);
+  }, []);
+  const handleToggleDiagnostics = useCallback((value: boolean) => {
+    setDiagnosticsOnState(value);
+    setDiagnosticsEnabled(value);
+  }, []);
+  const handleRateApp = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      if (!APP_STORE_ID) {
+        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en la App Store.');
+        return;
+      }
+      Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`);
+    } else {
+      if (!PLAY_STORE_PUBLISHED) {
+        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en Google Play.');
+        return;
+      }
+      const pkg = Constants.expoConfig?.android?.package;
+      Linking.openURL(`market://details?id=${pkg}`).catch(() =>
+        Linking.openURL(`https://play.google.com/store/apps/details?id=${pkg}`)
+      );
+    }
+  }, []);
+  const handleSendLogs = useCallback(async () => {
+    const report = getDiagnosticsReportText();
+    if (!report) {
+      Alert.alert(
+        'No hay registros que enviar',
+        'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.'
+      );
+      return;
+    }
+    const header = `BeFit ${Constants.expoConfig?.version ?? ''} · ${Platform.OS}\n\n`;
+    try {
+      await Share.share({ message: header + report });
+    } catch {
+      // Usuario canceló el share sheet -- no hace falta feedback.
+    }
+  }, []);
   useAnimatedReaction(
     () => scrollY.value > 8,
     (collapsed, prevCollapsed) => {
@@ -207,6 +315,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const sc = useMemo(() => Math.min(winW / FIGMA_W, winH / FIGMA_H), [winW, winH]);
   const r = useCallback((n: number) => Math.round(n * sc), [sc]);
   const insets = useSafeAreaInsets();
+
+  // Mood del hero (amanecer/atardecer, día o noche) por hora local -- se
+  // recalcula por render (barato, solo lee la hora actual) y sirve tanto
+  // para elegir la foto de fondo como su paleta de degradado a juego (ver
+  // HERO_GRADIENTS más abajo).
+  const heroMood = getHeroMoodForHour(new Date().getHours());
+  const heroGradient = HERO_GRADIENTS[heroMood];
   const [showMenu, setShowMenu] = useState(false);
   const [appleHealthOn, setAppleHealthOn] = useState(true);
   const [smartWatchOn, setSmartWatchOn] = useState(false);
@@ -240,12 +355,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // resumen (mismo patrón que MigratedMyProgramCalendar::goToWorkout), no el
   // preview de la plantilla — de ahí este set de assignment_id completados.
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
+  // Recovery real (opción 1 + 3 del hueco Recovery/Strain del hero, ver
+  // computeRecoveryScore arriba): `readinessToday` es null mientras no se
+  // resuelve la petición (evita el parpadeo de mostrar el CTA un instante
+  // antes de saber si ya se rellenó hoy). `showReadinessSheet` abre el
+  // formulario opcional (ReadinessCheckSheet) al tocar el anillo cuando
+  // todavía no hay chequeo de hoy.
+  const [readinessToday, setReadinessToday] = useState<ReadinessTodayResponse['data'] | null>(null);
+  const [showReadinessSheet, setShowReadinessSheet] = useState(false);
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
     // Con foto real de fondo (amanecer/atardecer, día o noche, ver
-    // getHeroImageForHour) + scrim oscuro -- antes era un LinearGradient
+    // getHeroMoodForHour) + scrim oscuro -- antes era un LinearGradient
     // plano; el texto blanco de encima sigue necesitando fondo oscuro real,
     // ahora lo da el scrim. Sin border-radius inferior a propósito (revisión
     // 2026-08-19): el bloque superior se funde con "Mi plan de hoy" mediante
@@ -255,15 +378,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // poco más vertical") -- más foto real antes de que empiece el
     // degradado de cierre, no solo un recorrido de gradiente más largo.
     // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
-    // ocupe todo el tamaño de la screen según entras") -- antes la altura del
-    // Box salía solo del contenido (padding + hijos), así que la foto
-    // terminaba mucho antes del final de la pantalla. Con el 100% del alto,
-    // el contenido real (anillos/frase/banner/tarjetas Agua-Actividad) se
-    // quedaba anclado arriba dejando un margen muerto enorme debajo (pedido
-    // explícito de corregirlo) -- reducido a un 64% del alto de pantalla,
-    // que sigue dando una foto grande pero sin ese hueco vacío.
-    heroHeader: { height: winH * 0.64, paddingBottom: r(48), paddingHorizontal: r(20), overflow: 'hidden' as const },
-    heroDarkenLayer: { backgroundColor: '#1A100A' },
+    // ocupe todo el tamaño de la screen según entras") -- con el 100% de
+    // winH crudo el contenido se quedaba anclado arriba dejando un margen
+    // muerto enorme debajo, porque winH incluye zonas que ya no son
+    // "pantalla visible" (status bar, home indicator, barra flotante de
+    // pestañas). Se probó luego un 64% fijo, pero al ser una fracción fija
+    // el hueco muerto reaparece en pantallas más altas (revisión 2026-08-24,
+    // reportado con captura). Fix real: altura = viewport visible exacto
+    // (winH menos el inset inferior seguro menos la barra flotante), así la
+    // foto llena TODO lo que se ve al entrar en cualquier tamaño de
+    // pantalla, sin cálculo de porcentaje de por medio.
+    heroHeader: {
+      height: Math.max(r(360), winH - insets.bottom - TAB_BAR_CLEARANCE),
+      paddingBottom: r(48),
+      paddingHorizontal: r(20),
+      overflow: 'hidden' as const,
+    },
+    heroDarkenLayer: { backgroundColor: heroGradient.darken },
     heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
     // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
@@ -287,6 +418,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     ringValue: { fontSize: r(26), lineHeight: r(32), fontFamily: FONT.extraBold, color: '#FFFFFF' },
     ringLabel: { fontSize: r(10), lineHeight: r(14), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.65)', letterSpacing: 0.5, marginTop: r(2) },
     ringSubLabel: { fontSize: r(9), lineHeight: r(13), color: 'rgba(255,255,255,0.5)' },
+    readinessCtaHint: { fontSize: r(11), color: 'rgba(255,255,255,0.6)', textAlign: 'center' as const, marginTop: r(-8) },
     // Degradado de transición entre el bloque superior y "Mi plan de hoy" —
     // sustituye el borde redondeado que había antes (petición 2026-08-19).
     // Revisión 2026-08-20: el degradado quedaba "cutre" (salto duro de solo 2
@@ -399,17 +531,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuItemSubtext: { fontSize: r(12), color: C.textSecondary, marginTop: r(1) },
     menuLogoutBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(20) },
     menuLogoutText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.destructive },
-    themeOptionBtn: {
-      flex: 1,
-      paddingVertical: r(9),
-      borderRadius: r(10),
-      alignItems: 'center' as const,
-      backgroundColor: C.gray70,
-    },
-    themeOptionBtnActive: { backgroundColor: C.orange },
-    themeOptionText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary },
-    themeOptionTextActive: { color: '#FFFFFF' },
-  }), [sc, r, C, winH]);
+    menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
+    menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
+    menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
+  }), [sc, r, C, winH, insets.bottom, heroGradient]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -422,7 +547,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
 
-      const [dashRes, calendarRes, dietRes, blogRes, workoutTemplatesRes, resourcesRes, checkinsRes, habitsRes, phraseRes, completedRes] = await Promise.allSettled([
+      const [dashRes, calendarRes, dietRes, blogRes, workoutTemplatesRes, resourcesRes, checkinsRes, habitsRes, phraseRes, completedRes, readinessRes] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         workoutHistoryApi.getMyCalendar(currentMonth, currentYear),
         dietApi.getDailyPlan(todayStr),
@@ -433,6 +558,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         habitsApi.getMyList(7),
         motivationalPhraseApi.getPhrase(),
         workoutHistoryApi.getMyCompletedSessions(),
+        readinessApi.getToday(),
       ]);
 
       const errors: string[] = [];
@@ -456,6 +582,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         setMotivationalPhrase(phraseRes.value.data?.data?.text ?? null);
       }
 
+      // Sesiones completadas -- se necesita ANTES del bloque de calendarRes
+      // (ver más abajo) porque "Cumplimiento semanal" tiene que comprobar si
+      // el entrenamiento de cada día se completó de verdad, no solo si
+      // había uno asignado. Se reutiliza el mismo Set para
+      // setCompletedAssignmentIds() más abajo, sin recalcularlo dos veces.
+      const completedSessions: CompletedSessionItem[] = completedRes.status === 'fulfilled' ? (completedRes.value.data?.data ?? []) : [];
+      const completedAssignmentIdSet = new Set(
+        completedSessions.filter((s) => s.program_day_assignment_id != null).map((s) => s.program_day_assignment_id as number)
+      );
+
       if (calendarRes.status === 'fulfilled') {
         const calData: any = calendarRes.value.data.data;
         const days = calData?.days ?? [];
@@ -473,7 +609,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           d.setDate(monday.getDate() + i);
           const dateStr = d.toISOString().split('T')[0];
           const dayData: any = daysByDate.get(dateStr);
-          weekBools.push(!!(dayData?.workouts && dayData.workouts.length > 0));
+          // Bug real (reportado con captura, 2026-08-24): antes marcaba el
+          // día como cumplido con solo tener un workout ASIGNADO ese día
+          // (dayData.workouts.length > 0), sin comprobar si el cliente lo
+          // completó de verdad -- por eso "Cumplimiento semanal" podía
+          // mostrar 7 de 7 con entrenamientos sin hacer. Ahora exige que al
+          // menos uno de los workouts asignados ese día esté en
+          // completedAssignmentIdSet (mismas sesiones completadas que ya
+          // usa "Mi plan de hoy" para distinguir tarjeta completada/pendiente).
+          const dayCompleted = !!dayData?.workouts?.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
+          weekBools.push(dayCompleted);
         }
         setWeeklyWorkouts(weekBools);
       } else {
@@ -505,10 +650,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       }
 
       if (completedRes.status === 'fulfilled') {
-        const sessions: CompletedSessionItem[] = completedRes.value.data?.data ?? [];
-        setCompletedAssignmentIds(
-          new Set(sessions.filter((s) => s.program_day_assignment_id != null).map((s) => s.program_day_assignment_id as number))
-        );
+        setCompletedAssignmentIds(completedAssignmentIdSet);
+      }
+
+      if (readinessRes.status === 'fulfilled') {
+        setReadinessToday(readinessRes.value.data.data);
       }
 
       if (errors.length > 0) {
@@ -588,9 +734,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     ]);
   };
 
-  const navigateFromMenu = (routeName: string) => {
+  const navigateFromMenu = (routeName: string, params?: object) => {
     setShowMenu(false);
-    navigation?.navigate(routeName);
+    navigation?.navigate(routeName, params);
   };
 
   // "Mi plan de hoy" — fusiona check-ins/formularios pendientes (obligaciones
@@ -692,6 +838,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const activityKcal = stepsKcal + workoutKcal;
   const activityGoalKcal = steps?.goal ? Math.round(steps.goal * KCAL_PER_STEP) : 0;
 
+  // Recovery del anillo del hero -- null mientras no se resuelve la petición
+  // (evita parpadeo del CTA), número real una vez que hay chequeo de hoy.
+  const recoveryScore = readinessToday?.today ? computeRecoveryScore(readinessToday.today) : null;
+  const recoveryColor = recoveryScore == null ? '#FFFFFF' : recoveryScore >= 70 ? C.success : recoveryScore >= 40 ? C.warning : C.destructive;
+  const readinessCtaVisible = readinessToday != null && !readinessToday.submitted_today;
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       {/* Barra fija con efecto glass (calendario / saludo / notificaciones /
@@ -748,15 +900,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* Foto real de fondo (amanecer/atardecer, día o noche según la
               hora) en vez del degradado plano anterior. */}
           <ExpoImage
-            source={getHeroImageForHour(new Date().getHours())}
+            source={HERO_IMAGES[heroMood]}
             contentFit="cover"
             style={StyleSheet.absoluteFill}
           />
           {/* Scrim oscuro sobre la foto -- el texto/iconos en blanco de la
               cabecera necesitan contraste real, la foto sola (sobre todo
-              día/amanecer, cielo muy claro) no lo da. */}
+              día/amanecer, cielo muy claro) no lo da. Color a juego con el
+              mood de la foto (ver HERO_GRADIENTS) -- antes era un negro
+              plano fijo para las 3 fotos, por lo que no seguía la tonalidad
+              real de cada una (cálida en amanecer/atardecer, fría en día,
+              casi negra ya en noche). */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.55)']}
+            colors={heroGradient.scrim}
             style={StyleSheet.absoluteFill}
           />
           {/* Glass-effect progresivo (estilo KOTCHA): el fondo del hero se
@@ -779,29 +935,52 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* Degradado de cierre, fijo (no animado): sin él, el límite
               inferior de la foto contra el resto del contenido se nota como
               un corte -- este remate suaviza esa transición siempre, esté o
-              no en marcha el efecto de scroll. */}
+              no en marcha el efecto de scroll. Color a juego con el mood de
+              la foto, mismo criterio que el scrim de arriba. */}
           <LinearGradient
-            colors={['rgba(20,11,6,0)', 'rgba(20,11,6,0.65)']}
+            colors={heroGradient.close}
             style={styles.heroCloseGradient}
             pointerEvents="none"
           />
 
-          {/* Anillos Recovery/Strain — placeholder "-%" sin datos reales
-              (dependen de la integración de salud, fase futura, ver sección 3
-              del encargo). Mismo AnimatedRing que ya usa Nutrición más abajo. */}
-          <HStack style={styles.ringsRow}>
-            <VStack style={styles.ringSide}>
-              <Text style={styles.ringValue}>-%</Text>
-              <Text style={styles.ringLabel}>RECOVERY</Text>
-            </VStack>
-            <AnimatedRing size={r(120)} strokeWidth={r(9)} percent={0} color="rgba(255,255,255,0.85)" trackColor="rgba(255,255,255,0.18)" duration={0}>
-              <Icon name="fitness-outline" size={26} color="rgba(255,255,255,0.6)" />
-            </AnimatedRing>
-            <VStack style={[styles.ringSide, { alignItems: 'flex-end' as const }]}>
-              <Text style={styles.ringValue}>-%</Text>
-              <Text style={styles.ringLabel}>STRAIN</Text>
-            </VStack>
-          </HStack>
+          {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin
+              fuente de datos real todavía (necesitaría el ACWR que ya
+              calcula el backend en `readiness_scores`, no expuesto al
+              cliente aún). Recovery ya no es placeholder: si el cliente
+              rellenó su chequeo diario hoy, se muestra la estimación real
+              (computeRecoveryScore); si no, el anillo es un CTA tocable que
+              abre ReadinessCheckSheet (opción 3 del hueco Recovery/Strain
+              del hero). Mientras `readinessToday` no resuelve, se mantiene
+              el placeholder de siempre para no parpadear un CTA de más. */}
+          <Pressable
+            disabled={!readinessCtaVisible}
+            onPress={() => setShowReadinessSheet(true)}
+            style={({ pressed }) => [pressed && readinessCtaVisible && { opacity: 0.75 }]}
+          >
+            <HStack style={styles.ringsRow}>
+              <VStack style={styles.ringSide}>
+                <Text style={[styles.ringValue, recoveryScore != null && { color: recoveryColor }]}>
+                  {recoveryScore != null ? `${recoveryScore}%` : '-%'}
+                </Text>
+                <Text style={styles.ringLabel}>RECOVERY</Text>
+              </VStack>
+              <AnimatedRing
+                size={r(120)}
+                strokeWidth={r(9)}
+                percent={recoveryScore ?? 0}
+                color={recoveryScore != null ? recoveryColor : 'rgba(255,255,255,0.85)'}
+                trackColor="rgba(255,255,255,0.18)"
+                duration={0}
+              >
+                <Icon name={readinessCtaVisible ? 'add-circle-outline' : 'fitness-outline'} size={26} color="rgba(255,255,255,0.6)" />
+              </AnimatedRing>
+              <VStack style={[styles.ringSide, { alignItems: 'flex-end' as const }]}>
+                <Text style={styles.ringValue}>-%</Text>
+                <Text style={styles.ringLabel}>STRAIN</Text>
+              </VStack>
+            </HStack>
+            {readinessCtaVisible && <Text style={styles.readinessCtaHint}>Toca para registrar cómo llegas hoy</Text>}
+          </Pressable>
 
           {/* Frase contextual (motivational-phrase, ver sección 4) */}
           {motivationalPhrase && <Text style={styles.heroPhrase}>{motivationalPhrase}</Text>}
@@ -904,9 +1083,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             fondo claro dejaba un lavado grisáceo/sucio en vez de una
             transición limpia -- pedido explícito de que la imagen "termine
             con un degradado hacia el color de fondo del resto de la
-            pantalla", literal. */}
+            pantalla", literal. Revisión 2026-08-24: el tono ya no es un
+            marrón fijo para las 3 fotos -- sigue el mismo mood (heroGradient)
+            que el scrim y el heroCloseGradient de arriba, para que las 3
+            franjas horarias se lean como una sola transición coherente en
+            vez de un remate genérico desconectado de la foto real. */}
         <LinearGradient
-          colors={['rgba(20,11,6,0.65)', 'rgba(20,11,6,0.4)', 'rgba(20,11,6,0.15)', C.bg]}
+          colors={heroGradient.seam(C.bg)}
           locations={[0, 0.3, 0.6, 1]}
           style={styles.seamGradient}
         />
@@ -1316,6 +1499,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         <Box style={{ height: TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
 
+      {/* Chequeo diario opcional (ver nota en el anillo Recovery más arriba)
+          -- al guardar, se refleja al instante en el anillo sin esperar a un
+          refetch completo de fetchData(). */}
+      <ReadinessCheckSheet
+        visible={showReadinessSheet}
+        onClose={() => setShowReadinessSheet(false)}
+        onSubmitted={(values) => setReadinessToday({ required: readinessToday?.required ?? false, submitted_today: true, today: values })}
+      />
+
       {/* Menú de usuario (perfil, favoritos, ajustes, salud, comunidad, logout).
           Rediseño 2026-08-23 (pedido explícito, capturas de referencia de la
           propia Bevel real): en vez de una lista plana con divisores finos,
@@ -1336,7 +1528,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             <ScrollView style={styles.menuScroll} contentContainerStyle={{ paddingBottom: r(24) }} showsVerticalScrollIndicator={false}>
               <Text style={styles.menuSectionLabel}>Cuenta</Text>
               <Box style={styles.menuCard}>
-                <Pressable onPress={() => navigateFromMenu('MigratedProfile')}>
+                {/* MigratedProfileModal (no MigratedProfile) -- misma screen,
+                    registrada aparte en App.tsx con presentation:'modal' para
+                    que abrirla desde aquí se sienta como un diálogo, sin
+                    duplicar el contenido de profile_screen.tsx. */}
+                <Pressable onPress={() => navigateFromMenu('MigratedProfileModal')}>
                   <HStack space="md" className="items-center px-4 py-3">
                     <AvatarMem uri={user?.profile_image} name={user?.display_name || displayName} size={40} />
                     <VStack className="flex-1">
@@ -1384,26 +1580,40 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue
                   la hora del dispositivo (isNightHour en theme.ts), el usuario
                   puede fijarlo a Claro/Oscuro y eso manda hasta que vuelva a
-                  elegir Auto. Ver helper/useAppColorMode.ts. */}
-              <Text style={styles.menuSectionLabel}>Apariencia</Text>
-              <Box style={[styles.menuCard, { padding: r(14) }]}>
-                <HStack className="items-center" style={{ marginBottom: r(12) }}>
-                  <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                  <Text style={styles.menuItemText}>Tema</Text>
-                </HStack>
-                <HStack space="xs">
-                  {(['auto', 'light', 'dark'] as const).map((option) => (
-                    <Pressable
-                      key={option}
-                      style={[styles.themeOptionBtn, themePreference === option && styles.themeOptionBtnActive]}
-                      onPress={() => setThemePreference(option)}
-                    >
-                      <Text style={[styles.themeOptionText, themePreference === option && styles.themeOptionTextActive]}>
-                        {option === 'auto' ? 'Automático' : option === 'light' ? 'Claro' : 'Oscuro'}
+                  elegir Auto. Ver helper/useAppColorMode.ts. El selector
+                  inline de 3 botones se sustituye por una fila que lleva a
+                  MigratedAppearance (pedido explícito, captura de referencia
+                  de Bevel: "Aspecto" con tarjetas de vista previa) -- tener
+                  las dos formas de cambiar el mismo ajuste en el mismo menú
+                  habría sido redundante. Sección renombrada de "Apariencia" a
+                  "General" (mismo nombre que la referencia) al añadir aquí
+                  también la fila de Notificaciones -- ya no es solo aspecto. */}
+              <Text style={styles.menuSectionLabel}>General</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedAppearance')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <VStack className="flex-1">
+                      <Text style={styles.menuItemText}>Aspecto</Text>
+                      <Text style={styles.menuItemSubtext}>
+                        {themePreference === 'auto' ? 'Automático' : themePreference === 'light' ? 'Leve' : 'Oscuro'}
                       </Text>
-                    </Pressable>
-                  ))}
-                </HStack>
+                    </VStack>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                {/* MigratedNotificationSettings (no MigratedNotification, que
+                    es el buzón de notificaciones ya recibidas) -- pedido
+                    explícito, captura de referencia: switch que refleja el
+                    permiso real del sistema, ver notification_settings_screen.tsx. */}
+                <Pressable onPress={() => navigateFromMenu('MigratedNotificationSettings')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="notifications-outline" size={18} color={C.warning60} bg={C.warning10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Notificaciones</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
               </Box>
 
               <Text style={styles.menuSectionLabel}>Más</Text>
@@ -1427,6 +1637,137 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
                 </Pressable>
+              </Box>
+
+              {/* "Recursos" (pedido explícito, captura de referencia). Las 2
+                  primeras filas abren MigratedAppFeedback -- formulario real
+                  que guarda en el backend (mismo mecanismo que
+                  ScreenReviewFab/"Revisar pantalla": v1/app-feedback,
+                  visible después desde el admin panel, ver
+                  docs/PENDIENTE_BACKEND_ADMIN.md -- el endpoint todavía no
+                  existe, pero el formulario y la llamada sí son reales). La
+                  3ª depende de configuración que hoy está vacía en
+                  constants/appLinks.ts (ID de App Store, publicación en
+                  Play Store) -- con eso vacío, avisa que aún no está
+                  disponible en vez de abrir un deep link a una ficha
+                  inexistente. */}
+              <Text style={styles.menuSectionLabel}>Recursos</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'feature_request' })}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="bulb-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Solicitar una función</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'bug_report' })}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="bug-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Informar de un error</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={handleRateApp}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="star-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Valora BeFit en la tienda</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+              </Box>
+
+              {/* Aviso legal (pedido explícito, captura de referencia) --
+                  ambas pantallas ya existían y ya funcionaban (usadas en el
+                  flujo de registro/onboarding), solo no estaban enlazadas
+                  todavía desde Ajustes. */}
+              <Text style={styles.menuSectionLabel}>Aviso legal</Text>
+              <Box style={styles.menuCard}>
+                <Pressable onPress={() => navigateFromMenu('MigratedTermsAndConditions')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="document-text-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Términos del servicio</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider className="ml-4" />
+                <Pressable onPress={() => navigateFromMenu('MigratedPrivacyPolicy')}>
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="shield-checkmark-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Política de privacidad</Text>
+                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+              </Box>
+
+              {/* "Borrar caché y recargar todos los datos" -- remonta el
+                  NavigationContainer entero (ver AppReloadContext.tsx), no
+                  vacía AsyncStorage (perdería sesión de entrenamiento en
+                  curso / borrador de onboarding / recordatorios locales sin
+                  backend). Confirmación primero porque descarta cualquier
+                  estado en memoria de las pantallas montadas. */}
+              <Pressable
+                style={styles.menuActionBtn}
+                onPress={() =>
+                  Alert.alert(
+                    'Recargar todos los datos',
+                    'Se recargará toda la app desde cero. Cualquier cambio sin guardar en la pantalla actual se perderá.',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Recargar', style: 'destructive', onPress: () => { setShowMenu(false); reloadApp(); } },
+                    ]
+                  )
+                }
+              >
+                <Text style={styles.menuActionBtnText}>Borrar caché y recargar todos los datos</Text>
+              </Pressable>
+
+              {/* "Habilitar diagnósticos" (pedido explícito) -- sin SDK de
+                  crash-reporting instalado, el switch activa/desactiva un
+                  buffer real en memoria de los propios logs de la app (ver
+                  helper/logger.ts), no un flag decorativo. Fila con Switch,
+                  no un botón de tap: es un ajuste persistente (igual que
+                  Apple Health/Smart Watch arriba), no una acción puntual. */}
+              <Text style={styles.menuSectionLabel}>Diagnóstico</Text>
+              <Box style={styles.menuCard}>
+                <HStack className="items-center px-4 py-3">
+                  <AppIcon name="pulse-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                  <VStack className="flex-1" style={{ marginRight: r(12) }}>
+                    <Text style={styles.menuItemText}>Habilitar diagnósticos</Text>
+                    <Text style={styles.menuItemSubtext}>Guarda un registro local que puedes enviar al desarrollador</Text>
+                  </VStack>
+                  <Switch
+                    value={diagnosticsOn}
+                    onValueChange={handleToggleDiagnostics}
+                    trackColor={{ false: C.gray70, true: C.primary }}
+                    thumbColor={C.white}
+                  />
+                </HStack>
+              </Box>
+              <Pressable style={styles.menuActionBtn} onPress={handleSendLogs}>
+                <Text style={styles.menuActionBtnText}>Enviar registros al desarrollador</Text>
+              </Pressable>
+
+              {/* Redes sociales (pedido explícito) -- constants/appLinks.ts
+                  no tiene handles reales todavía (SOCIAL_LINKS vacío), así
+                  que esta fila no se renderiza hasta que se rellenen: un
+                  icono que no lleva a ninguna URL real sería el mismo
+                  problema que ya tenía about_us_screen.tsx. */}
+              {SOCIAL_LINKS.length > 0 && (
+                <HStack className="justify-center" space="lg" style={{ marginTop: r(20) }}>
+                  {SOCIAL_LINKS.map((s) => (
+                    <Pressable key={s.name} onPress={() => Linking.openURL(s.url)}>
+                      <AppIcon name={s.icon} size={20} color={C.textSecondary} bg={C.gray70} containerSize={r(40)} />
+                    </Pressable>
+                  ))}
+                </HStack>
+              )}
+
+              {/* Logo + versión real (Constants.expoConfig), no hardcodeada. */}
+              <Box className="items-center" style={{ marginTop: r(24), marginBottom: r(8) }}>
+                <ExpoImage source={require('../../assets/applogo.png')} style={{ width: r(32), height: r(32), borderRadius: r(8) }} contentFit="cover" />
+                <Text style={styles.menuFooterText}>BeFit {Constants.expoConfig?.version ?? ''}</Text>
               </Box>
 
               <Pressable style={styles.menuLogoutBtn} onPress={handleLogout}>

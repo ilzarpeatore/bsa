@@ -1935,3 +1935,242 @@ Traducciones, texto/números cortados (causa raíz: fuente Gilroy Bold/ExtraBold
 ### Verificación final de la sesión
 
 `eslint` y `tsc --noEmit` limpios (0 errores) sobre todo el repo fusionado tras cada ronda. Build IPA Release relanzado tras esta ronda de fixes; ver historial de runs en GitHub Actions del repo `ilzarpeatore/bsa` para el resultado.
+
+## Sesión 2026-08-24 — Fix hero de HomeModernV2 (altura no adaptativa + degradado desentonado)
+
+Reportado con captura real de dispositivo: debajo de la foto de cabecera de `home_screen_modern_v2.tsx` aparecía un hueco gris muerto grande antes de "Reto para empezar".
+
+**Causa raíz:** `heroHeader` usaba `height: winH * 0.64` — una fracción **fija** del alto de pantalla, elegida ad-hoc en la revisión 2026-08-22 (antes se había probado `height: winH` a secas, que dejaba un margen muerto aún mayor porque `winH` crudo incluye zonas que ya no son pantalla realmente visible: status bar, home indicator, barra flotante de pestañas). Al ser una fracción fija en vez de un cálculo del viewport real, el hueco muerto reaparece en pantallas con más alto disponible que el dispositivo de prueba original.
+
+**Fix:** `heroHeader.height` ahora es el viewport visible exacto: `winH - insets.bottom - TAB_BAR_CLEARANCE` (con un suelo `r(360)` para no colapsar en casos extremos) — la foto llena exactamente lo que se ve al entrar, sin porcentaje mágico, adaptado a cualquier tamaño de pantalla.
+
+**Segundo bug, mismo reporte:** el scrim superior, el degradado de cierre (`heroCloseGradient`) y el degradado de costura hacia el fondo (`seamGradient`) usaban un único marrón cálido fijo (`rgba(20,11,6,...)`) para las 3 fotos del hero (`getHeroImageForHour` — amanecer/atardecer, día, noche), así que desentonaba con el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya oscura de por sí). Se introdujo `HERO_GRADIENTS`, una paleta por mood (`HeroMood` = `sunriseSunset | day | night`, ahora seleccionado con `getHeroMoodForHour`, refactor de la antigua `getHeroImageForHour`) con tono propio para las 3 capas de degradado: dorado cálido para amanecer/atardecer, azul frío para día, casi negro/navy para noche. Se mantiene el criterio ya establecido en la revisión 2026-08-20 (`seamGradient` siempre termina en `C.bg` opaco, nunca en alpha 0, para no dejar un lavado sucio sobre el fondo claro).
+
+Verificado: `eslint` limpio (0 errores, mismos 3 warnings preexistentes no relacionados). `tsc --noEmit -p .` lanzado en background (10-20 min); si aparece algún error nuevo fuera de los 62 conocidos y no bloqueantes de `theme.ts`, se corrige en un commit de seguimiento.
+
+### Recovery real en el hero de HomeModernV2 (dato de cliente, sin esperar backend)
+
+Mismo hueco reportado (anillos Recovery/Strain siempre en placeholder "-%") — el usuario pidió aplicar dos de las opciones propuestas: (1) usar un dato ya real que existe hoy sin tocar backend, (3) convertir el hueco en un CTA cuando falta ese dato, en vez de dejarlo vacío.
+
+**Hallazgo clave (investigación antes de tocar código):** el backend ya tiene un motor completo de readiness (`docs/Motor_Auto_Regulacion_Carga_Instalacion.md`, Fase 4) que calcula diariamente `readiness_scores.combined_score`/`band` (cruzando HRV/sueño de wearable con el cuestionario subjetivo) y `acwr` (Acute:Chronic Workload Ratio — el "Strain" real) — pero **no existe ningún endpoint GET que lo exponga al cliente** (solo `POST /health-data-points/sync`). Esa es la opción 2 (completa), pendiente de un endpoint nuevo — se documenta abajo en `docs/PENDIENTE_BACKEND_ADMIN.md`. Mientras tanto, el cuestionario subjetivo diario (`daily_readiness_checks`, expuesto ya en `api/readiness.ts::getToday()`/`submit()`) sí es 100% real y ya se rellena por los clientes antes de cada entrenamiento (gate en `workout_preview_screen.tsx`) — es la fuente que se aprovecha aquí.
+
+**Implementado en `pages/migrated/home_screen_modern_v2.tsx`:**
+
+- `computeRecoveryScore()` (nueva, module-scope): media de las 4 respuestas del chequeo diario (sueño, agujetas, energía, estrés) normalizadas a 0-100 — documentado explícitamente en el propio código que es una **estimación cliente**, no el `combined_score` real del backend (ese cruza además HRV/sueño objetivo), para que no se confunda con el score de la Fase 4 el día que el endpoint exista.
+- `fetchData()` ahora incluye `readinessApi.getToday()` en el mismo `Promise.allSettled` que ya usa el resto del dashboard.
+- Anillo Recovery: si `submitted_today` es true, muestra el % real (coloreado verde/ámbar/rojo por umbral — `C.success`/`C.warning`/`C.destructive`); si no, el anillo entero es un `Pressable` (icono cambia a "+", hint "Toca para registrar cómo llegas hoy" debajo) que abre el formulario. Mientras la petición no resuelve, se mantiene el placeholder de siempre (evita parpadeo).
+- Strain se deja sin tocar (`-%`) — no hay ninguna fuente de dato client-side real para ACWR, sigue dependiendo de la opción 2.
+
+**Nuevo `components/ReadinessCheckSheet.tsx`:** versión descartable/opcional (bottom sheet, `SimpleBottomSheet`) del mismo cuestionario de 4 preguntas que `workout_preview_screen.tsx` ya usa como gate obligatorio de pantalla completa — deliberadamente **no** se reutilizó ese componente (es privado al archivo, asume pantalla completa y respuesta obligatoria); se replicó siguiendo el patrón ya establecido de `PainReportSheet.tsx` (mismo `SimpleBottomSheet`, misma estructura de header/scroll/footer) en vez de forzar una abstracción compartida entre un gate obligatorio y una acción voluntaria. Al guardar, `onSubmitted` actualiza el estado de Home al instante (sin esperar un refetch completo) para que el anillo refleje el nuevo % de inmediato.
+
+Verificado: `eslint` limpio (0 errores; los 2 warnings nuevos —`set-state-in-effect` del reset al reabrir el sheet, y `catch (e)` sin usar— son el mismo patrón ya aceptado en `PainReportSheet.tsx`, no algo nuevo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`).
+
+### ✅ Bug real: "Cumplimiento semanal" marcaba días como hechos sin estar completados
+
+Reportado con captura: la tarjeta "Cumplimiento semanal" del Home mostraba 7 de 7 días con check aunque los entrenamientos de esos días no se hubieran completado de verdad.
+
+**Causa raíz confirmada** en `home_screen_modern_v2.tsx::fetchData()`: el array `weeklyWorkouts` (que alimenta directamente `<WeekComplianceRow completedDays={weeklyWorkouts}>`) se calculaba con `!!(dayData?.workouts && dayData.workouts.length > 0)` — es decir, marcaba un día como cumplido con solo tener **un workout asignado ese día** (`CalendarMonthWorkout` de `workoutHistoryApi.getMyCalendar`, que solo trae `{assignment_id, id, title}`, sin ningún campo de estado). Nunca comprobaba si el cliente había completado la sesión.
+
+**Fix:** se adelanta el cálculo del `Set` de `program_day_assignment_id` completados (antes solo se construía dentro del bloque de `completedRes`, más abajo — se movió arriba y se reutiliza en ambos sitios, sin recalcularlo dos veces) y cada día de la semana ahora exige `dayData.workouts.some(w => completedAssignmentIdSet.has(w.assignment_id))` — la misma fuente de verdad (`workoutHistoryApi.getMyCompletedSessions()`) que ya usa "Mi plan de hoy" para distinguir una tarjeta completada de una pendiente. Días de descanso (sin workout asignado) siguen sin check, igual que antes — el fix solo corrige el caso "asignado pero no completado", que antes se contaba como hecho.
+
+Verificado: `eslint` limpio (0 errores, mismos warnings preexistentes). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`).
+
+### Efecto glass real en el calendario y el contador de kcal de MigratedPlan (`plan_screen.tsx`)
+
+Pedido con captura: la barra de días de la semana y la tarjeta compacta de Kcal/Proteína/Carbos/Grasas (versión que aparece al hacer scroll, `showCompactSummary`) se veían totalmente planas, sin ningún indicio visual de "glass".
+
+**Causa:** ambas secciones ya tenían soporte de `GlassView` (expo-glass-effect) condicionado a `hasGlass = isGlassEffectAPIAvailable()` — pero esa API solo renderiza el material Liquid Glass real en **iOS 26+ compilado con Xcode 26+**; en cualquier otro caso (la inmensa mayoría de dispositivos reales, incluido el de la captura) `GlassView` cae a una `<View>` normal sin ningún blur/translucidez. El fondo de reserva para ese caso (`weekdayPicker: {backgroundColor: C.surface}`, sólido) no daba ninguna pista visual de "glass" — de ahí el reporte.
+
+**Fix, sin tocar la rama real de Liquid Glass (que ya funcionaba bien cuando está disponible):**
+
+- `weekdayPicker` (barra de días): fondo de reserva cambiado de `C.surface` sólido a `rgba(255,255,255,0.8)` translúcido — mismo 80% de opacidad que ya usa el design system para `Card variant="glass"` (`bg-card/80`, ver `components/ui/card`), para que ambas secciones lean como el mismo lenguaje visual. Se añade un hairline `C.border` en el borde inferior (mismo criterio que un toolbar real de iOS con glass) para separar la barra del contenido que hace scroll debajo, en ambas ramas.
+- Tarjeta compacta de Kcal (`compactBar`): `Card variant="ghost"` → `variant="glass"` — activa el wiring de `GlassView`+fallback translúcido que el componente `Card` ya trae de fábrica (opt-in, documentado explícitamente en el propio componente como "todavía no visto en dispositivo real" — esta es su primera activación real en una pantalla). Cambio de una sola prop, sin estilos nuevos: `Card` ya resuelve el wrapper `overflow:hidden`/`borderRadius` necesario para que `GlassView` no se vea con esquinas cuadradas (mismo patrón documentado en `WorkoutMinimizedBar.tsx`/`SimpleBottomSheet.tsx`).
+
+Verificado: `eslint` limpio (0 errores, mismos warnings preexistentes, ninguno nuevo en las líneas tocadas). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`). **Pendiente de verificación visual en dispositivo real** (esta sesión no tiene MCP de control de dispositivo disponible) — confirmar que la translucidez se ve bien tanto en el fallback (Android/iOS<26) como, si hay algún dispositivo con Liquid Glass real disponible, en la rama `hasGlass`.
+
+### Header colapsable en MigratedAssignedMeals (`assigned_meals_screen.tsx`)
+
+Reportado con captura: el header fijo (tarjeta de objetivo kcal/macros + selector de día + tabs de tipo de comida) vivía **fuera** del `ScrollView`, ocupando espacio permanente en pantalla. Como resultado, a la lista de opciones asignadas le quedaba muy poco alto visible y las últimas opciones quedaban tapadas/inalcanzables (el `paddingBottom:24` del `ScrollView` tampoco daba margen suficiente para que la última fila superase del todo el FAB flotante de `ScreenReviewFab`, visible en la captura).
+
+**Fix — mismo patrón ya usado en `plan_screen.tsx` (`GRAPH_CARD_HEIGHT`/`showCompactSummary`), adaptado:**
+
+- El header completo (tarjeta de objetivo, tarjeta de "seleccionadas" condicional, selector de día, tabs de tipo de comida) se movió **dentro** del `ScrollView` (ahora `Animated.ScrollView`) — deja de reservar espacio fijo y se desplaza con el resto del contenido, liberando mucho más alto visible para la lista.
+- Barra compacta nueva, fija encima del `ScrollView`, que aparece solo cuando el scroll supera `HEADER_HEIGHT_ESTIMATE * 0.3` (mismo ratio 30% que `plan_screen.tsx`, mismo criterio de estimación fija en vez de medición real vía `onLayout`) — muestra el resumen "🔥 objetivo kcal | día seleccionado | tipo de comida activo". Tocar la barra hace `scrollTo({y:0})`, devolviendo el header completo a la vista (la reexpansión pedida — "al pulsar... se vuelve a desplegar la sección al completo").
+- `contentContainerStyle.paddingBottom` del scroll subido de `24` a `40` como margen extra de seguridad para que la última opción de la lista no quede pegada/tapada por overlays flotantes.
+- Efecto colateral de limpieza: las clases `mx-4`/`px-4` de cada bloque del header (que daban su propio margen horizontal cuando vivían fuera del scroll) se quitaron — ahora todo el contenido, header incluido, se alinea con el único `paddingHorizontal:16` del `contentContainerStyle`, igual que ya hacían las filas de la lista.
+
+Verificado: `eslint` limpio (0 errores, mismos 2 warnings preexistentes sin relación). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`). **Pendiente de verificación visual en dispositivo real** (sin MCP de control de dispositivo en esta sesión) — confirmar en vivo que el umbral de colapso (`HEADER_HEIGHT_ESTIMATE=260`) se siente natural y que la barra compacta no tapa contenido al aparecer.
+
+### Margen superior del toggle Frontal/Trasera en MigratedViewBodyPart (`view_body_part_screen.tsx`)
+
+Reportado con captura: el botón "Frontal" del toggle interno de `MuscleBodyMap` se veía prácticamente pegado al borde superior de su contenedor, sin margen visible arriba (sí lo había, más generoso, alrededor/debajo).
+
+**Causa:** el padding interno del toggle (4px, definido en `MuscleBodyMap.tsx` — componente compartido con otras pantallas: heatmap post-entreno, progreso muscular semanal/mensual — no tocado aquí a propósito) es casi imperceptible por sí solo. El `Box` que envuelve `MuscleBodyMap` en esta pantalla centra su contenido (`justify-content:center`) y `bodyMapHeight` ya se calculaba para aprovechar prácticamente TODO el alto disponible (pedido explícito de una sesión anterior: "hazlo más grande") — dejando el grupo toggle+SVG pegado al techo del contenedor centrado, sin margen real por encima del toggle.
+
+**Fix, scoped a este archivo (sin tocar el componente compartido):** nueva constante `TOGGLE_TOP_BREATHING_ROOM = 16`, restada también del alto disponible al calcular `bodyMapHeight` (junto a `BODY_MAP_TOGGLE_HEIGHT`, ya existente) — libera un hueco extra que el centrado del `Box` reparte, dando aire real por encima del toggle sin reducir perceptiblemente el tamaño del mapa muscular.
+
+Verificado: `eslint` limpio (0 errores, 0 warnings). `tsc --noEmit -p .` — se detectó que el proceso en background de la sesión llevaba corriendo desde ANTES de varios commits posteriores (compliance semanal, glass effect, header colapsable de assigned-meals, y este fix), por lo que sus resultados no reflejarían esos archivos con fiabilidad; se mató y se relanzó un `tsc` limpio que cubre el estado actual completo del repo — terminó limpio, 0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`. **Pendiente de verificación visual en dispositivo real.**
+
+### Scroll infinito en la búsqueda de MigratedRecipeMain (`recipe_main_screen.tsx`)
+
+Reportado: la búsqueda de recetas mostraba un máximo de 10 resultados, sin forma de ver más aunque el catálogo tuviera más coincidencias.
+
+**Causa raíz:** `recipesApi.getFilteredList({ title: query, page: 1 })` no pasaba `per_page` — el backend cae a su default (10) — y nunca se pedía ninguna página siguiente; no había ningún mecanismo de paginación en la búsqueda.
+
+**Fix — mismo patrón ya usado y verificado en `plan_screen.tsx`** (buscador de "Añadir comida" del modal, `searchPageRef`/`searchIsLastPageRef`/`onEndReached`):
+
+- `searchRecipes(query, page)` (nueva función, sustituye el `fetch` inline del `useEffect`) pide `per_page: 20` y añade (`page > 1`) o reemplaza (`page === 1`) los resultados; `searchIsLastPageRef` se marca con `page >= pagination.totalPages` de la respuesta, para dejar de pedir más en cuanto se llega al final.
+- Los resultados de búsqueda pasan de un `HStack` con `flexWrap` (dentro del `ScrollView` general de la pantalla) a un `FlatList` con `numColumns={2}` y `onEndReached`/`onEndReachedThreshold={0.4}` — un `ScrollView` no tiene forma nativa de disparar "cargar más" al llegar al final, hacía falta el `FlatList` para el scroll infinito real (mismo motivo por el que `plan_screen.tsx` ya usa `FlatList` para esto).
+- Efecto colateral necesario: la barra de búsqueda se sacó del `ScrollView` del feed a una posición fija siempre visible (antes vivía dentro de ese scroll) — necesario porque ahora, en modo búsqueda, el scroll lo lleva un `FlatList` totalmente distinto del `ScrollView` del feed (no pueden anidarse dos scrolls verticales sin conflicto de gestos), así que la barra ya no puede vivir dentro de ninguno de los dos. Se le añadió su propio `marginHorizontal`/`marginTop` (antes los heredaba del padding del `ScrollView` que la contenía).
+
+Verificado: `eslint` limpio (0 errores; los 4 warnings —`fetchFeed()`/`setSearchResults([])` en efectos, comillas sin escapar en "Sin resultados"— ya existían antes de este cambio, ninguno nuevo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`). **Pendiente de verificación visual en dispositivo real** — confirmar que el scroll infinito carga bien y que la barra de búsqueda fija no introduce ningún salto visual al cambiar entre modo feed y modo búsqueda.
+
+### Reorganización de categorías en MigratedRecipeTagList (`recipe_tag_list_screen.tsx`)
+
+Pedido explícito: "está todo muy desorganizado" — la pantalla ya tenía una clasificación heurística por palabras clave desde una sesión anterior (4 categorías: Duración, Cocina y países, Tipo de dieta, Tipo de receta, + "Otros"), pero no cubría la taxonomía real que el usuario quiere: Duración, Países, Tipo de dieta, Recetas de comunidades de España, y por tipo de objetivo (Pérdida de grasa / Subida de masa muscular / Rendimiento deportivo).
+
+**Investigación primero:** `recipetag-list` (backend) devuelve los tags completamente planos — `{id, title, slug, status, recipe_tag_image}`, sin ningún campo de grupo/categoría real. La clasificación por palabras clave en el título (`classifyTag`/`CATEGORY_DEFS`) es la única vía posible sin tocar backend — se documenta el pendiente real en `docs/PENDIENTE_BACKEND_ADMIN.md` #11 (campo de grupo o tabla `recipe_tag_groups` en `recipe_tags`), tal como se pidió explícitamente.
+
+**Rediseño de `CATEGORY_DEFS`** (`classifyTag` recorre el array EN ORDEN y devuelve el primer match, así que el orden es semánticamente importante):
+
+1. Duración (sin cambios)
+2. Pérdida de grasa — nueva: "pérdida de grasa", "quema-grasa(s)", "definición", "déficit calórico", "bajo/baja en calorías", "hipocalórico/a", "adelgaz-", "light"
+3. Subida de masa muscular — nueva: "masa muscular", "volumen", "ganancia muscular", "alto/alta en proteína", "proteico/a", "hipertrofia", "bulking"
+4. Rendimiento deportivo — nueva: "rendimiento deportivo", "pre/post-entreno", "recuperación muscular", "resistencia", "hidratación", "electrolitos", "energía"
+5. Recetas de comunidades de España — nueva: adjetivos regionales (andaluza, catalana, gallega, vasca, valenciana, canaria, asturiana, murciana, riojana, aragonesa, extremeña, castellana, manchega, madrileña, balear, cántabra, navarra, cordobesa, sevillana...)
+6. Países — renombrada de "Cocina y países" (mismo regex de gentilicios internacionales, ya existente)
+7. Tipo de dieta — recortada: "alto en proteína"/"proteica"/"hipocalórica"/"light" se sacaron de aquí (encajan mejor semánticamente en las categorías de objetivo de arriba)
+8. Tipo de receta (sin cambios, mealType)
+9. Otros (fallback, sin cambios)
+
+Comunidades de España va ANTES que Países a propósito (más específico: "cocina andaluza" debe caer en Comunidades, no en el "espanol[ao]" genérico de Países).
+
+**2 bugs reales corregidos de paso, detectados al escribir un script de verificación con casos de prueba reales** (no eran el pedido, pero estaban en las mismas líneas tocadas):
+
+- Concordancia de género: "bajo en calorías"/"alto en proteína" no hacían match contra "**baja** en calorías"/"**alta** en proteína" (frecuente en español, ya que el adjetivo concuerda con el sustantivo de la receta — "ensalada baja" vs "plato bajo"). Corregido a `baj[ao]`/`alt[ao]`.
+- "bajo en carb" (con `\b` de cierre del grupo completo) nunca hacía match contra "carbohidratos" — el `\b` exige fin de palabra justo tras "carb", que en "carbohidratos" sigue en mitad de palabra. Corregido a `baj[ao] en carb\w*` (mismo patrón que ya usa `adelgaz\w*`).
+
+Verificado con un script Node de prueba (13 títulos de ejemplo cubriendo las 8 categorías + fallback) contra la lógica de clasificación extraída — todos clasifican donde se esperaba tras los 2 fixes de regex. `eslint` limpio (0 errores, mismos 3 warnings preexistentes sin relación). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`).
+
+**Pendiente real (documentado en `docs/PENDIENTE_BACKEND_ADMIN.md` #11):** esto sigue siendo una heurística de texto, no un dato real del backend — un tag mal titulado (ej. "Andalucía" sin el adjetivo "andaluza") no clasificará donde debería. La solución real es un campo de grupo/categoría en `recipe_tags` que el backend/admin puedan asignar de verdad.
+
+### 3 fixes en `NavigationTab.tsx` (barra flotante): línea blanca, apertura manual al colapsar, fondo del "+" más oscuro
+
+Reportados con 2 capturas en la misma sesión de feedback.
+
+**1. Línea blanca al desplegar (bug real, no diseño):** `navigationglow` — una línea de 1px `rgba(255,255,255,0.5)` pegada al borde superior de la barra — solo se renderizaba dentro de la fila EXPANDIDA (`navigationOuterRow`, la que tiene 4 pestañas + "+"), nunca en la fila colapsada (`navigationOuterRowCollapsed`, solo el icono activo + "+") — de ahí que solo apareciera "cuando está abierto". No estaba documentada como decisión de diseño deliberada en ningún comentario cercano, y el pedido explícito es quitarla — eliminada del JSX y su estilo (huérfano tras quitar el único `<View>` que lo usaba).
+
+**2. Tocar el icono colapsado reabre la barra, se vuelve a colapsar con el siguiente scroll real:** antes la fila colapsada (círculo con el icono de la pestaña activa) era un `View` sin `onPress` — no había forma de volver a ver las 4 pestañas + "+" salvo scrolleando de vuelta arriba del todo. Ahora es un `Pressable` que llama a `expandFromCollapsed()`.
+
+- **Por qué no basta con `setCollapsed(false)` del contexto ya existente:** `collapsed` es un booleano COMPARTIDO por las 4 pantallas raíz de pestaña vía `store/TabBarScrollContext.tsx`. Dos de ellas (Home, Plan) solo llaman a `reportScrollY` en los CRUCES del umbral de scroll (`useAnimatedReaction`, por rendimiento — evita cruzar al hilo JS en cada frame). Si el override manual escribiera directamente sobre `collapsed`, en esas 2 pantallas seguir scrolleando en el mismo sentido sin volver a cruzar el umbral nunca volvería a avisar, y la barra se quedaría abierta a la fuerza indefinidamente.
+- **Fix:** `forceExpanded` es un estado local de `NavigationTab.tsx`, puramente visual (`isVisuallyCollapsed = collapsed && !forceExpanded`), que NO toca el `collapsed` del contexto. Para saber cuándo cancelarlo, `TabBarScrollContext.tsx` gana un `getScrollTick()` — un contador respaldado por un `ref` (no `useState` a propósito: dos de las 4 pantallas, Hábitos y Mi programa, llaman a `reportScrollY` en CADA tick de scroll sin gating; si el contador fuera estado reactivo, forzaría un re-render de `NavigationTab` en cada tick de scroll de esas 2 pantallas aunque nadie esté usando la apertura manual) que sube en cada `reportScrollY`, cambie o no `collapsed` de valor. Mientras `forceExpanded` está activo, un `setInterval` ligero (150ms, se limpia solo, corre SOLO durante ese override) compara `getScrollTick()` contra el valor que tenía al forzar la apertura — en cuanto difiere, cancela el override y la barra vuelve a su estado real basado en scroll.
+
+**3. Fondo del menú "+" más oscuro:** `modalBackdrop` de `rgba(0,0,0,0.2)` a `rgba(0,0,0,0.4)` (pedido explícito: "oscurece un poco el fondo del menú +").
+
+Verificado: `eslint` limpio (0 errores; 15 warnings vs. 14 en el baseline sin tocar el archivo — el único nuevo es `setForceExpanded(false)` en el mismo efecto que ya tenía `setCollapsed(false)`, mismo patrón `set-state-in-effect` ya tolerado en todo el repo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`, ninguno en `NavigationTab.tsx`/`TabBarScrollContext.tsx`). **Pendiente de verificación visual en dispositivo real** — confirmar que el intervalo de 150ms recolapsa la barra con la sensación correcta al volver a scrollear en Hábitos/Mi programa/Home/Plan.
+
+### Rediseño de tarjetas en MigratedEditProfile y MigratedChangePwd (badge de icono por fila)
+
+Pedido explícito con 2 capturas de referencia: la pantalla "Ajustes" de Bevel (menú general de la app, no algo que exista hoy en esta app) — tarjetas blancas agrupadas con etiqueta de sección encima, cada fila con un badge cuadrado de color + icono a la izquierda. Aclarado con el usuario que el pedido real era **solo el lenguaje visual** (tarjetas blancas + badges de color por fila), no llevarse el contenido literal de "Ajustes" (Bevel Pro, Cuenta, Notificaciones...) a `edit_profile_screen.tsx`, que es un formulario de datos personales sin relación con esa pantalla.
+
+**Causa del look "plano" anterior:** en ambos archivos, `card.backgroundColor` era `C.gray80` (`#E5E5EA`), prácticamente el mismo tono que el fondo de la pantalla (`C.bg`, `#EBEBF0`) — la tarjeta apenas se distinguía del fondo, muy lejos del blanco limpio de la referencia.
+
+**`edit_profile_screen.tsx`:**
+
+- `card` → `C.surface` (blanco real).
+- Campos divididos en 2 tarjetas con etiqueta de sección encima (mismo patrón que "General"/"Datos" de la referencia): "Datos personales" (nombre, apellidos, email, teléfono) y "Datos físicos" (sexo, edad, peso, altura).
+- Cada fila gana un `AppIcon` (componente ya existente en el proyecto, mismo patrón de badge que ya usa Home — no se creó ninguno nuevo) a la izquierda: nombre/apellidos azul, email morado, teléfono verde, sexo rosa, edad naranja, peso rojo, altura teal.
+- Sin chevron de navegación (a diferencia de la referencia): estas filas se editan in-situ, no llevan a otra pantalla.
+- Efecto colateral necesario: `genderBtn`/`unitBtn` (botones de sexo y de unidad kg/lbs, feet/cm) usaban `backgroundColor: C.surface` (blanco) para contrastar contra la tarjeta gris de antes — con la tarjeta ya blanca, quedaban invisibles. Cambiados a `C.gray10`.
+
+**`change_pwd_screen.tsx`:** mismo patrón aplicado — tarjeta blanca única con etiqueta "Contraseña" encima, badge por fila: contraseña actual (candado, rojo), contraseña nueva (llave, azul), confirmar contraseña (escudo, verde).
+
+Verificado: `eslint` limpio (0 errores en ambos archivos; los 2 warnings de `edit_profile_screen.tsx` —`init` accedido antes de declararse— ya existían antes de este cambio, sin relación). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`, ninguno en `edit_profile_screen.tsx`/`change_pwd_screen.tsx`).
+
+### MigratedProfile como diálogo desde el icono de ajustes de Home v2, sin duplicar la screen
+
+Pregunta explícita del usuario: ¿es más fácil un diálogo aparte que copie el contenido de `profile_screen.tsx`, o que la propia screen se abra como modal? Se recomendó y se implementó una tercera vía — la solución estándar de React Navigation para "misma pantalla, a veces push normal, a veces modal": **registrar la misma screen dos veces** en el `MStack.Navigator` de `App.tsx`, bajo dos nombres de ruta distintos, sin duplicar ni una línea de `profile_screen.tsx`.
+
+- `App.tsx`: nuevo `<MStack.Screen name="MigratedProfileModal" component={ProfileScreenMigrated} options={{presentation:'modal'}} />`, justo al lado del `MigratedProfile` normal ya existente — mismo componente, la única diferencia es esa opción de presentación (soportada de forma nativa por `@react-navigation/stack`, ya en uso en todo el proyecto).
+- `home_screen_modern_v2.tsx`: la fila "Perfil" del menú "Ajustes" (`navigateFromMenu('MigratedProfile')`) pasa a navegar a `'MigratedProfileModal'` — es el único punto de entrada que cambia. Cualquier otro sitio del código que navegue a `'MigratedProfile'` (búsqueda: solo esta era la referencia real) sigue exactamente igual.
+- `profile_screen.tsx`: `const isModal = props.route?.name === 'MigratedProfileModal'` — la screen no tiene ningún header/botón de volver propio (nunca lo tuvo; en push normal se apoya en el gesto nativo de "volver" de iOS/Android). Se añade una X de cerrar (`props.navigation.goBack()`) SOLO cuando `isModal` es true, junto al título "Perfil" — en navegación normal el render es idéntico al de siempre (pedido explícito: "si se entra a MigratedProfile.tsx desde otra screen o menú se vea como una screen normal").
+
+Verificado: `eslint` limpio (0 errores en los 3 archivos tocados; los warnings preexistentes en `App.tsx`/`home_screen_modern_v2.tsx` no cambian, `profile_screen.tsx` sale sin ningún warning). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`, ninguno en `App.tsx`/`home_screen_modern_v2.tsx`/`profile_screen.tsx`). **Pendiente de verificación visual en dispositivo real** — confirmar que la transición modal (desliza desde abajo, estilo iOS) se ve bien y que la X cierra correctamente sin dejar el stack en un estado raro.
+
+### Nueva pantalla "Aspecto" (`MigratedAppearance`) + `useAppColorMode` pasa de hook a Context
+
+Pedido explícito con 2 capturas de referencia (Bevel): pantalla "Aspecto" con tarjetas de vista previa en miniatura (Sistema/Leve/Oscuro, con borde negro en la seleccionada) en vez de un simple selector de texto.
+
+**Alcance deliberadamente recortado:** la referencia tiene 4 secciones (tema de la app, tema del fondo de iOS, tema de los widgets, tema de icono de aplicación) — solo se construye la primera. Las otras 3 son ajustes de sistema operativo (fondo de pantalla real de iOS) o requieren capacidades nativas que este proyecto no tiene (widgets de verdad con WidgetKit, iconos alternativos empaquetados al compilar) — construir esas tarjetas sin nada real detrás habría sido UI que no hace nada al tocarla. Documentado aquí en vez de simulado.
+
+**Bug real evitado antes de que existiera** (detectado al diseñar, no reportado con captura): `useAppColorMode` era un hook con `useState` propio, pensado para un único consumidor (Home v2). Con `MigratedAppearance` como segundo consumidor real, cada pantalla habría tenido su PROPIA instancia de estado — cambiar el tema en Aspecto no se habría reflejado en Home hasta remontar (un stack navigator no remonta la pantalla de abajo al volver con `goBack()`, se queda montada debajo). Se convirtió `helper/useAppColorMode.ts` de hook-con-estado a Context (`AppColorModeProvider`, montado cerca de la raíz en `App.tsx`, envolviendo `AuthProvider`) — mismo patrón ya usado en `store/TabBarScrollContext.tsx` para el mismo tipo de problema. El nombre del hook (`useAppColorMode()`) no cambia, así que Home v2 no necesitó tocar su lógica, solo se le quitó `setThemePreference` (ya no la usa, el selector inline se sustituye por una fila que navega a la nueva pantalla).
+
+**`appearance_screen.tsx` (nueva):** `ScreenHeader` + una tarjeta blanca con 3 celdas (Automático/Leve/Oscuro), cada una con una vista previa en miniatura (rectángulo con 3 puntos de color imitando los anillos de la referencia, fondo claro/oscuro/mitad-y-mitad según la opción) y borde negro en la seleccionada — mismo lenguaje visual que la referencia. Un texto aclara que "Automático" sigue la hora del dispositivo, no el ajuste de tema del sistema operativo de iOS (para no prometer un comportamiento que este `auto` no tiene). La propia pantalla usa los `colors` dinámicos del contexto (no el `C` estático), para que "Aspecto" también responda al tema en vivo.
+
+**Menú de Ajustes de Home v2:** la sección "Apariencia" pasa de un selector inline de 3 botones a una fila de navegación (icono + "Aspecto" + subtítulo con la opción actual + chevron) hacia `MigratedAppearance` — mantener las dos formas de cambiar el mismo ajuste en el mismo menú habría sido redundante.
+
+Corregido de paso un lint real (no reportado, detectado al ejecutar `eslint`): la función que construye los estilos dependientes del tema se llamó primero `useStyle` — ESLint la trata como hook por el nombre y bloquea llamarla dentro de un `useMemo` (`react-hooks/rules-of-hooks`), aunque no sea un hook de verdad. Renombrada a `createStyles`.
+
+Verificado: `eslint` limpio (0 errores en los 4 archivos). `tsc --noEmit -p .` — el primer proceso llevaba corriendo desde ANTES de la siguiente feature de esta misma sesión (Notificaciones, ver más abajo); se mató y se relanzó limpio junto con esos cambios. **Pendiente de verificación visual en dispositivo real** — confirmar que el cambio de tema en Aspecto se refleja en Home al volver, y que las 3 vistas previa en miniatura se leen bien.
+
+### Nueva pantalla "Notificaciones" (`MigratedNotificationSettings`) — permiso real, no un flag propio
+
+Pedido explícito con 2 capturas de referencia (Bevel): fila "Notificaciones" en Ajustes → pantalla con un único switch "Permitir notificaciones".
+
+**Investigación primero:** ya existía infraestructura real de notificaciones push locales (`helper/reminderNotifications.ts`, `ensureNotificationPermissionsAsync()`, ya usada por los recordatorios de agua/comidas/personalizados) — no hacía falta construir nada desde cero, solo una UI que la exponga. Importante: `MigratedNotification` (ruta ya existente) es el buzón/feed de notificaciones YA RECIBIDAS (`notification_screen.tsx`, `notificationsApi`) — un concepto totalmente distinto pese al mismo nombre visible "Notificaciones". La nueva ruta se llama `MigratedNotificationSettings` para no colisionar.
+
+**Decisión de diseño deliberada (el switch NO es un flag local):** ninguna app puede revocar el permiso de notificaciones push del sistema operativo de forma programática una vez concedido (ni iOS ni Android lo permiten) — así que en vez de simular un toggle bidireccional con un booleano propio (que se desincronizaría del permiso real la primera vez que el usuario lo cambiara desde Ajustes del sistema), el switch de `notification_settings_screen.tsx` **refleja el estado real** (`Notifications.getPermissionsAsync()`, se refresca también al recuperar el foco vía `AppState`). Activar cuando no está concedido pide el permiso de verdad (`ensureNotificationPermissionsAsync()`); tanto desactivar estando ya concedido como reactivar tras haberlo denegado antes abren los Ajustes del sistema (único sitio real donde se puede cambiar en esos 2 casos), con un `Alert` explicando por qué. Mismo patrón ("permission mirror") que usa prácticamente cualquier app real para este control — no es una limitación de esta implementación, es cómo funciona el permiso a nivel de SO.
+
+**Menú de Ajustes de Home v2:** la fila se añade dentro de la misma tarjeta que "Aspecto" (sección renombrada de "Apariencia" a "General", mismo nombre que la referencia, ya que ahora agrupa más de un ajuste).
+
+Verificado: `eslint` limpio (0 errores en los 3 archivos; el único warning nuevo —`set-state-in-effect` al refrescar el estado del permiso— es el mismo patrón ya tolerado en todo el repo, no algo nuevo). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`, ninguno en los archivos de Aspecto ni de Notificaciones). **Pendiente de verificación visual en dispositivo real** — confirmar el flujo de permisos real en iOS/Android (pedir, denegar, abrir Ajustes, volver y que el switch se sincronice solo).
+
+### Menú de Ajustes de Home v2 — "Aviso legal", "Borrar caché y recargar todos los datos", logo + versión real. 5 filas de la referencia deliberadamente NO añadidas
+
+Pedido explícito con captura de referencia (Bevel): sección "Aviso legal" (Términos del servicio / Política de privacidad), 3 botones sueltos (Solicitar una función / Informar de un error / Valora Bevel en App Store — en tarjeta separada en la captura pero se agrupan como "Recursos"), 3 botones más (Borrar caché y recargar todos los datos / Enviar registros al desarrollador / Habilitar diagnósticos), fila de iconos de redes sociales, y logo + número de versión al pie.
+
+**Construido (todo real, nada simulado):**
+
+- **"Aviso legal"**: tarjeta con 2 filas navegando a `MigratedTermsAndConditions` y `MigratedPrivacyPolicy` — ambas pantallas ya existían (se usan en el flujo de registro/onboarding) y solo no estaban enlazadas desde Ajustes.
+- **"Borrar caché y recargar todos los datos"**: botón con confirmación (`Alert.alert`, evita descartar por accidente cualquier estado en pantalla) que remonta el `NavigationContainer` entero. Nuevo `store/AppReloadContext.tsx` (`AppReloadProvider`/`useAppReload`, patrón Context ya usado 2 veces antes esta sesión para estado cruzado entre pantallas) expone un `reloadKey` que se pasa como `key` al `NavigationContainer` en `App.tsx` (nuevo componente interno `AppNavigationContainer`, extraído para poder leer el contexto). Cada pantalla montada vuelve a ejecutar su fetch inicial desde cero — que es el efecto real de "recargar todos los datos" en una app sin capa de caché centralizada (cada pantalla gestiona su propio `useState`/`useEffect`, no hay nada tipo React Query que invalidar). `AppReloadProvider` se monta FUERA de `AuthProvider`/`TutorialProvider` a propósito: recargar nunca debe cerrar la sesión.
+  - **Deliberadamente NO se implementó como `AsyncStorage.clear()`** (que es lo que "borrar caché" sugiere literalmente): auditoría completa de claves de `AsyncStorage` en el repo encontró varias con datos reales irrecuperables si se borran — sesión de entrenamiento en curso (`workout_session_screen.tsx`), borrador de respuestas de onboarding v2, recordatorios personalizados locales sin backend todavía (`helper/customRemindersStorage.ts`, ver `PENDIENTE_BACKEND_ADMIN.md` #7). Vaciar eso desde un botón de "limpiar caché" sería un bug real disfrazado de feature, no una limpieza.
+- **Logo + versión**: `assets/applogo.png` + `Constants.expoConfig?.version` (expo-constants) — versión real leída de `app.json` (`1.2.0`), no un número hardcodeado a mano que se desincronizaría en la siguiente release.
+
+**Deliberadamente NO añadido (5 elementos de la captura) — necesitan información o infraestructura real que hoy no existe en el proyecto:**
+
+- **"Solicitar una función" / "Informar de un error"**: normalmente abren el cliente de correo con un email de soporte predefinido (`expo-mail-composer` no está instalado, y no hay ningún email de soporte configurado en `app.json` ni en el backend). `pages/migrated/about_us_screen.tsx` ya tiene este mismo problema sin resolver — es una plantilla sin terminar con placeholders literales (`'TODO: Replace with...'`, `contact@example.com`, enlaces a `facebook.com` genéricos, marca "MightyFitness") que confirma que replicar el patrón "botón con destino falso" ya causó un bug real antes en este repo. No se repite aquí.
+- **"Valora Bevel en App Store"**: la app no tiene ficha pública todavía — `app.json` no define `ios.appStoreId`, y `expo-store-review` no está instalado. Un botón que no puede enlazar a ningún sitio.
+- **"Enviar registros al desarrollador"**: `helper/logger.ts` es un passthrough puro a `console.log/warn/error`, no hay ningún sistema de buffer/persistencia de logs que recolectar y enviar. No hay nada real que "enviar".
+- **"Habilitar diagnósticos"**: no hay SDK de analytics/crash-reporting instalado (`@sentry/react-native` no está en `package.json`) — un switch que no controla nada.
+- **Fila de iconos de redes sociales**: no hay handles reales de Instagram/X/Reddit/YouTube/Facebook para este proyecto — mismo problema que los enlaces rotos de `about_us_screen.tsx`.
+
+Igual que con las 3 secciones recortadas de "Aspecto" y las filas de "Recursos" pendientes de `image_url`: la decisión es no construir el control si no hay nada real detrás, y dejarlo documentado aquí en vez de enlazar a algo roto. Si el usuario aporta un email de soporte real, el ID de App Store cuando exista, o los handles de redes sociales, estos 5 elementos son triviales de añadir (misma estructura de fila/botón ya usada para "Aviso legal").
+
+Verificado: `eslint` limpio (0 errores en `App.tsx`, `pages/migrated/home_screen_modern_v2.tsx` y `store/AppReloadContext.tsx`; los 3 warnings en `home_screen_modern_v2.tsx` son preexistentes y no relacionados). `tsc --noEmit -p .` verificado limpio (0 errores en todo el proyecto, incluyendo los 62 de `theme.ts` — build completamente verde en este momento). **Pendiente de verificación visual en dispositivo real** — confirmar que "Borrar caché y recargar todos los datos" remonta la navegación sin dejar al usuario en una pantalla rota, y que el `Alert` de confirmación se ve bien.
+
+### Los 5 elementos recortados arriba, añadidos igualmente (pedido explícito: "aunque quede pendiente terminar su configuración")
+
+En vez de dejarlos fuera, se construyen los 5 con su lógica real completa, pero con el dato externo que les falta centralizado en una constante en vez de hardcodeado o simulado — así cada uno funciona de verdad en cuanto se rellena esa constante, sin tocar ningún componente, y mientras esté vacía la app avisa que no está configurado en lugar de fingir que el botón hace algo.
+
+**`constants/appLinks.ts` (nuevo):** `SUPPORT_EMAIL`, `APP_STORE_ID`, `PLAY_STORE_PUBLISHED`, `SOCIAL_LINKS` — las 4 piezas de configuración externa, todas vacías/`false` hoy, cada una con un comentario explicando qué valor real necesita. Ver `docs/PENDIENTE_BACKEND_ADMIN.md` (sección nueva "Configuración pendiente — datos externos, no backend/admin").
+
+- **"Solicitar una función" / "Informar de un error"** (tarjeta "Recursos"): `Linking.openURL('mailto:' + SUPPORT_EMAIL + ...)` con el asunto ya puesto. Si `SUPPORT_EMAIL` está vacío (hoy), un `Alert` avisa que no hay email de soporte configurado en vez de abrir un mailto sin destinatario.
+- **"Valora BeFit en la tienda"** (misma tarjeta "Recursos", nombre sin la marca "Bevel" de la referencia): en iOS abre `itms-apps://itunes.apple.com/app/id{APP_STORE_ID}?action=write-review` solo si `APP_STORE_ID` está relleno; en Android abre `market://details?id={package}` (el `package` ya sale de `app.json` vía `Constants.expoConfig`, no hace falta duplicarlo) solo si `PLAY_STORE_PUBLISHED` es `true`, con fallback a la URL web si el esquema `market://` falla. Sin esos valores, un `Alert` avisa que la ficha todavía no existe — evita mandar al usuario a una tienda sin nada que mostrar.
+- **"Enviar registros al desarrollador" + "Habilitar diagnósticos"**: estos 2 SÍ quedan 100% funcionales sin ninguna configuración externa pendiente. `helper/logger.ts` gana un buffer en memoria (últimas 300 entradas) de los propios `logger.debug/info/warn/error` que ya se usan en toda la app — incluyendo los niveles que en producción no llegaban a la consola. El switch "Habilitar diagnósticos" (persistido en `AsyncStorage`, mismo patrón que la preferencia de tema) activa/desactiva ese buffer; "Enviar registros al desarrollador" lo exporta con `Share.share()` (API nativa de React Native, sin dependencia nueva) a la app que elija el usuario (Mail, WhatsApp, etc.). Si nunca se activó el diagnóstico, el buffer está vacío y el botón lo dice en vez de mandar un reporte en blanco — no hace falta ningún SDK de crash-reporting de terceros para que esto sea real. "Habilitar diagnósticos" se construye como fila con `Switch` (ajuste persistente, tarjeta "Diagnóstico") en vez de botón de tap, igual que Apple Health/Smart Watch arriba en el mismo menú — un booleano es un switch, no una acción puntual.
+- **Fila de redes sociales**: se construye el render completo (`SOCIAL_LINKS.map(...)`, cada icono abre `Linking.openURL(s.url)`), pero la fila entera solo se muestra si `SOCIAL_LINKS.length > 0` — con el array vacío (hoy) no aparece nada, en vez de mostrar iconos que no llevan a ningún sitio real (el mismo problema que ya tiene `about_us_screen.tsx`, usado de precedente para no repetirlo).
+
+Verificado: `eslint` limpio (0 errores en `pages/migrated/home_screen_modern_v2.tsx`, `helper/logger.ts` y `constants/appLinks.ts`; mismos 3 warnings preexistentes de siempre en `home_screen_modern_v2.tsx`). `tsc --noEmit -p .` verificado limpio (0 errores en todo el proyecto — build completamente verde, incluidos los nombres de icono de Ionicons usados en las filas nuevas, que están tipados contra `Ionicons.glyphMap`). **Pendiente de verificación visual en dispositivo real** — confirmar que `Share.share()` abre el selector nativo con el texto del reporte, y que los `Alert` de "aún no configurado" se leen bien.
+
+### "Solicitar función" / "Informar de error" pasan de mailto a un formulario real conectado al backend/admin panel
+
+Pedido explícito: en vez del `mailto:` genérico añadido en la tarea anterior, una pantalla propia con Título / Descripción / Sección relacionada (Entrenamiento, Nutrición, Hábitos, Métricas, Otro a describir) que guarde en el backend para poder verse desde el admin panel — "al igual que Revisar pantalla envía los logs a la VPS".
+
+**Mismo mecanismo que la herramienta de revisión de pantallas, no uno nuevo:** `ScreenReviewFab` (el FAB "Revisar pantalla" usado para las 200+ pantallas migradas) ya prueba que este patrón funciona end-to-end — guarda en `v1/screen-review-mark` y se consulta después desde el admin panel. `app_feedback_screen.tsx` (nueva) + `api/appFeedback.ts` (nuevo) replican exactamente ese patrón para feedback de producto: `POST v1/app-feedback` con `{ type, title, description, section, section_other?, diagnostics_log?, app_version, platform }`.
+
+**"Enviando los logs" de verdad, no solo la analogía:** si "Habilitar diagnósticos" (tarea anterior, mismo día) está activo, el formulario adjunta automáticamente `getDiagnosticsReportText()` — el buffer real de la app en ese momento — como `diagnostics_log`. Esto conecta las dos tareas de hoy: el switch de diagnóstico que antes solo servía para "Enviar registros al desarrollador" ahora también enriquece un informe de error con contexto real de qué estaba pasando en la app, sin que el usuario tenga que hacer nada aparte de haberlo activado antes.
+
+**El endpoint todavía no existe en el backend** (a diferencia de `screen-review-mark`, que sí existe) — el formulario y la llamada son 100% reales y completos en el cliente, pero hasta que `POST v1/app-feedback` exista, enviar falla con un `Alert` de error normal (mismo patrón de cualquier otro formulario de la app ante un fallo del backend, no un envío simulado que finge éxito). Contrato completo (payload JSON, tabla SQL sugerida `app_feedback` con columna `status` para que el admin los gestione, nota de pantalla nueva en el admin panel) documentado en `docs/PENDIENTE_BACKEND_ADMIN.md` (sección 5, prioridad alta — bloquea una UI ya visible).
+
+**Detalles de construcción:** `navigateFromMenu()` en `home_screen_modern_v2.tsx` gana un segundo parámetro opcional (`params`) para poder pasar `{ type: 'feature_request' | 'bug_report' }` a la misma pantalla — una sola screen para los 2 casos (título, placeholders y texto del botón cambian según `type`), en vez de duplicar el formulario. Selector de sección como chips (mismo lenguaje visual que las tarjetas de "Aspecto": borde/relleno resaltado en la opción activa). `SUPPORT_EMAIL` se elimina de `constants/appLinks.ts` — ya no lo usa nada, estas 2 filas dejaron de depender de un email de soporte.
+
+Verificado: `eslint` limpio (0 errores en `pages/migrated/app_feedback_screen.tsx`, `api/appFeedback.ts`, `pages/migrated/home_screen_modern_v2.tsx`, `constants/appLinks.ts` y `App.tsx`; mismos warnings preexistentes de siempre, ninguno nuevo). `tsc --noEmit -p .` verificado limpio (0 errores en todo el proyecto). **Pendiente de verificación visual en dispositivo real** — confirmar que los chips de sección se leen bien y que el teclado no tapa el textarea de descripción al escribir.

@@ -79,15 +79,48 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
   // a desplegado en cuanto cambia la pestaña activa (si no, se arrastraría
   // el estado plegado de la pestaña anterior al entrar en una nueva que
   // todavía no se ha scrolleado).
-  const { collapsed, setCollapsed } = useTabBarScroll();
+  const { collapsed, setCollapsed, getScrollTick } = useTabBarScroll();
   const collapseAnim = useRef(new Animated.Value(0)).current;
 
+  // Tocar el icono de la barra plegada la vuelve a desplegar (pedido
+  // explícito: "como hace el menú +") sin depender del scroll -- pero tiene
+  // que volver a plegarse en cuanto haya scroll real de nuevo, no quedarse
+  // así para siempre. `forceExpanded` es un override puramente visual, no
+  // toca el `collapsed` real del contexto (si lo hiciera, en pantallas que
+  // solo reportan scroll en los cruces de umbral -- Home, Plan -- seguir
+  // scrolleando en el mismo sentido nunca volvería a avisar, y la barra se
+  // quedaría abierta a la fuerza). Se cancela con un intervalo ligero que
+  // solo corre MIENTRAS el override está activo (comparando getScrollTick()
+  // contra el valor que tenía al forzar la apertura) -- no un efecto atado
+  // al contador directamente, porque ese contador es un ref por diseño (ver
+  // TabBarScrollContext.tsx): no dispara re-render por sí solo, así que hay
+  // que consultarlo activamente, no se puede "escuchar".
+  const [forceExpanded, setForceExpanded] = useState(false);
+  const scrollTickAtExpandRef = useRef(0);
+  const isVisuallyCollapsed = collapsed && !forceExpanded;
+
   useEffect(() => {
-    Animated.timing(collapseAnim, { toValue: collapsed ? 1 : 0, duration: 220, useNativeDriver: true }).start();
-  }, [collapsed, collapseAnim]);
+    if (!forceExpanded) return;
+    const interval = setInterval(() => {
+      if (getScrollTick() !== scrollTickAtExpandRef.current) {
+        setForceExpanded(false);
+      }
+    }, 150);
+    return () => clearInterval(interval);
+  }, [forceExpanded, getScrollTick]);
+
+  const expandFromCollapsed = () => {
+    scrollTickAtExpandRef.current = getScrollTick();
+    setForceExpanded(true);
+  };
+
+  useEffect(() => {
+    Animated.timing(collapseAnim, { toValue: isVisuallyCollapsed ? 1 : 0, duration: 220, useNativeDriver: true }).start();
+  }, [isVisuallyCollapsed, collapseAnim]);
 
   useEffect(() => {
     setCollapsed(false);
+    setForceExpanded(false);
   }, [state.index, setCollapsed]);
 
   const openMenu = () => {
@@ -125,7 +158,7 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
         {/* Fila completa (4 pestañas + "+") -- visible solo arriba del todo,
             se pliega en cuanto se hace scroll (ver useTabBarScroll). */}
         <Animated.View
-          pointerEvents={collapsed ? "none" : "auto"}
+          pointerEvents={isVisuallyCollapsed ? "none" : "auto"}
           style={[
             styles.navigationOuterRow,
             { opacity: collapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) },
@@ -150,7 +183,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                   oscuros siempre leen bien pase lo que pase detrás. */}
               <View style={[StyleSheet.absoluteFill, styles.navigationTint]} />
             </View>
-            <View style={styles.navigationglow} />
             {/*navigation icons start*/}
             {state.routes.map((route) => {
               const { options } = descriptors[route.key];
@@ -213,16 +245,25 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
             juntos a la izquierda, con toda la fila vacía a la derecha --
             reportado con captura). */}
         <Animated.View
-          pointerEvents={collapsed ? "auto" : "none"}
+          pointerEvents={isVisuallyCollapsed ? "auto" : "none"}
           style={[styles.navigationOuterRow, styles.navigationOuterRowCollapsed, { opacity: collapseAnim }]}
         >
-          <View style={styles.collapsedCircle}>
+          {/* Tocar el icono plegado vuelve a desplegar la barra completa
+              (pedido explícito: "como hace el menú +"), sin esperar a que el
+              scroll suba de nuevo -- ver forceExpanded/expandFromCollapsed
+              más arriba para cuándo se vuelve a plegar sola. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mostrar barra de navegación"
+            style={({ pressed }) => [styles.collapsedCircle, pressed && { opacity: 0.85 }]}
+            onPress={expandFromCollapsed}
+          >
             <View style={styles.navigationGlassClip}>
               <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
               <View style={[StyleSheet.absoluteFill, styles.navigationTint]} />
             </View>
             <Icon name={focusedOptions.icon} size={22} color="#1C1C1E" />
-          </View>
+          </Pressable>
           {renderPlusButton()}
         </Animated.View>
       </View>
@@ -372,16 +413,10 @@ function useStyle() {
     navigationTint: {
       backgroundColor: "rgba(255,255,255,0.85)",
     },
+    // Subido de 0.2 a 0.4 (pedido explícito: "oscurece un poco el fondo del
+    // menú +") -- mismo backdrop que ya se usaba, solo más oscuro.
     modalBackdrop: {
-      backgroundColor: "rgba(0,0,0,0.2)",
-    },
-    navigationglow: {
-      position: "absolute",
-      top: 0,
-      left: '14@ratio',
-      right: '14@ratio',
-      height: '1@ratio',
-      backgroundColor: "rgba(255,255,255,0.5)",
+      backgroundColor: "rgba(0,0,0,0.4)",
     },
     navigationbtn: {
       width: '58@ratio',

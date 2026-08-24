@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { Alert } from 'react-native';
 import { Image } from 'expo-image';
+import Animated, {
+  useAnimatedRef,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from 'react-native-reanimated';
+import { runOnJS } from 'react-native-worklets';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -39,6 +46,13 @@ const MEAL_TYPES: { key: MealType; label: string }[] = [
   { key: 'snacks', label: 'Snacks' },
 ];
 
+// Umbral de colapso del header (mismo criterio que GRAPH_CARD_HEIGHT en
+// plan_screen.tsx) -- estimación del alto del header completo (tarjeta de
+// objetivo + selector de día + tabs de tipo de comida), no una medición real
+// vía onLayout. El header colapsa al superar el 30% de esta altura, mismo
+// ratio que ya usa plan_screen.tsx para su propia barra compacta.
+const HEADER_HEIGHT_ESTIMATE = 260;
+
 function isMealType(value: unknown): value is MealType {
   return value === 'breakfast' || value === 'lunch' || value === 'dinner' || value === 'snacks';
 }
@@ -69,6 +83,31 @@ export default function AssignedMealsScreen(props: any) {
   const [dailyPlanId, setDailyPlanId] = useState<number | null>(null);
   const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
   const [isBulkAdding, setIsBulkAdding] = useState(false);
+
+  // Header colapsable al hacer scroll (pedido explícito, reportado con
+  // captura: el header fijo -- tarjeta de objetivo + selector de día + tabs
+  // de tipo de comida -- ocupaba tanto espacio permanente que a la lista de
+  // opciones le quedaba muy poco alto visible y las últimas opciones no
+  // llegaban a verse del todo). Mismo patrón ya usado en plan_screen.tsx
+  // (GRAPH_CARD_HEIGHT/showCompactSummary): el header pasa a vivir DENTRO
+  // del ScrollView (se desplaza como el resto del contenido en vez de
+  // reservar espacio fijo) y una barra compacta aparece fija encima al
+  // superar el umbral de scroll, con el resumen "objetivo kcal | día | tipo
+  // de comida". Tocarla desplaza el scroll de vuelta al principio -- el
+  // header completo "se despliega" porque vuelve a estar a la vista.
+  const [showCompactSummary, setShowCompactSummary] = useState(false);
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  useAnimatedReaction(
+    () => scrollY.value > HEADER_HEIGHT_ESTIMATE * 0.3,
+    (show, prevShow) => {
+      if (show !== prevShow) runOnJS(setShowCompactSummary)(show);
+    }
+  );
+  const expandHeader = () => scrollRef.current?.scrollTo({ y: 0, animated: true });
 
   useEffect(() => {
     let ignore = false;
@@ -209,8 +248,45 @@ export default function AssignedMealsScreen(props: any) {
         </Box>
       ) : (
         <>
+          {/* Barra compacta -- fija encima del ScrollView, solo mientras el
+              header completo (tarjeta de objetivo + selector de día + tabs,
+              ahora dentro del ScrollView) está scrolleado fuera de la vista.
+              Tocarla vuelve a scrollear al principio, "desplegando" el
+              header de nuevo. */}
+          {showCompactSummary && (
+            <Pressable
+              onPress={expandHeader}
+              className="bg-background"
+              style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}
+            >
+              <HStack className="items-center justify-between px-4">
+                {!isDietMode ? (
+                  <HStack space="xs" className="items-center">
+                    <Icon name="flame-outline" size={16} color={C.orange} />
+                    <Text weight="bold" size="sm">{goal?.kcal ?? 0} kcal</Text>
+                  </HStack>
+                ) : (
+                  <Box />
+                )}
+                <Text weight="semibold" size="sm">{selectedDayLabel()}</Text>
+                <HStack space="xs" className="items-center">
+                  <Text weight="semibold" size="sm" style={{ color: C.orange }}>
+                    {MEAL_TYPES.find((m) => m.key === activeTab)?.label}
+                  </Text>
+                  <Icon name="chevron-down" size={16} color={C.gray40} />
+                </HStack>
+              </HStack>
+            </Pressable>
+          )}
+
+          <Animated.ScrollView
+            ref={scrollRef}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+          >
           {!isDietMode && (
-            <Card variant="ghost" className="mx-4" style={{ marginTop: 16, marginBottom: 12 }}>
+            <Card variant="ghost" style={{ marginTop: 16, marginBottom: 12 }}>
               <HStack space="sm" className="items-center justify-center">
                 <Icon name="flame-outline" size={22} color={C.orange} />
                 <Text weight="extrabold" size="xl">{goal?.kcal ?? 0}</Text>
@@ -236,7 +312,6 @@ export default function AssignedMealsScreen(props: any) {
           {!isDietMode && selectedIds.size > 0 && (
             <Card
               variant="ghost"
-              className="mx-4"
               style={{ marginBottom: 12, borderWidth: 1.5, borderColor: kcalStatusColor }}
             >
               <Text weight="extrabold" size="lg">
@@ -270,14 +345,14 @@ export default function AssignedMealsScreen(props: any) {
               arriba, así que este bloque pasa a ser el primero tras
               ScreenHeader y necesita su propio marginTop (en el otro modo ya
               lo da el marginBottom de esa tarjeta). */}
-          <Box className="px-4" style={{ marginTop: isDietMode ? 16 : 0, marginBottom: 16 }}>
+          <Box style={{ marginTop: isDietMode ? 16 : 0, marginBottom: 16 }}>
             <Text size="xs" weight="semibold" muted style={{ marginBottom: 8 }}>
               Añadir a tu plan del día
             </Text>
             <DaySelectorStrip days={upcomingDays} selectedDate={selectedDate} onSelect={setSelectedDate} />
           </Box>
 
-          <HStack space="sm" className="px-4" style={{ marginBottom: 12 }}>
+          <HStack space="sm" style={{ marginBottom: 12 }}>
             {MEAL_TYPES.map(({ key, label }) => (
               <Pressable
                 key={key}
@@ -295,7 +370,6 @@ export default function AssignedMealsScreen(props: any) {
             ))}
           </HStack>
 
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
             {activeRecipes.length === 0 ? (
               <Box className="items-center" style={{ paddingVertical: 60 }}>
                 <Icon name="restaurant-outline" size={40} color={C.gray30} />
@@ -361,7 +435,7 @@ export default function AssignedMealsScreen(props: any) {
                 </Box>
               ))
             )}
-          </ScrollView>
+          </Animated.ScrollView>
         </>
       )}
     </SafeAreaView>

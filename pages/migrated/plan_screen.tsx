@@ -622,7 +622,10 @@ export default function PlanScreen(props: any) {
         weekdayPickerContent
       )}
       {showCompactSummary && (
-        <Card variant="ghost" className="flex-row justify-between" style={s.compactBar}>
+        // variant="glass" (opt-in del design system, ver components/ui/card)
+        // en vez de "ghost" -- misma barra glass del calendario justo
+        // encima, en vez del bloque plano opaco que había antes.
+        <Card variant="glass" className="flex-row justify-between" style={s.compactBar}>
           {renderCompactStat('Kcal', `${kcalCurrent}/${kcalTarget}`, kcalProgress)}
           {renderCompactStat('Proteína', `${proteinCurrent}/${proteinTarget}g`, proteinProgress)}
           {renderCompactStat('Carbos', `${carbsCurrent}/${carbsTarget}g`, carbsProgress)}
@@ -735,7 +738,25 @@ export default function PlanScreen(props: any) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   clearBtn: { padding: 4 },
-  weekdayPicker: { alignItems: 'center', backgroundColor: C.surface, paddingTop: 10, paddingBottom: 10 },
+  // Fondo de reserva translúcido (no C.surface sólido) para Android/iOS<26,
+  // donde GlassView (expo-glass-effect) cae a una <View> normal sin ningún
+  // material -- con fondo opaco no había NINGÚN indicio visual de "glass" en
+  // la inmensa mayoría de dispositivos reales (pedido explícito, 2026-08-24:
+  // "dale un efecto glass", reportado con captura de un fondo totalmente
+  // plano). Mismo 80% de opacidad que usa el design system para
+  // `Card variant="glass"` (`bg-card/80`, ver components/ui/card), para que
+  // ambas secciones lean como el mismo lenguaje visual. Hairline + C.border
+  // (mismo criterio que un toolbar de iOS con glass real) separa la barra
+  // del contenido que hace scroll debajo, en las dos ramas (con o sin
+  // Liquid Glass real).
+  weekdayPicker: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
   // Con GlassView real (iOS 26+) el material translucido ya aporta el fondo:
   // quitamos el backgroundColor solido para que se vea el efecto glass.
   weekdayPickerGlass: { backgroundColor: 'transparent' },

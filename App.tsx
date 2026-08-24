@@ -25,6 +25,8 @@ import "@helper/reminderNotifications";
 import NavigationTab from "@components/NavigationTab";
 import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
 import { TabBarScrollProvider } from "@store/TabBarScrollContext";
+import { AppColorModeProvider } from "@helper/useAppColorMode";
+import { AppReloadProvider, useAppReload } from "@store/AppReloadContext";
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -48,6 +50,8 @@ const AboutUsScreen = React.lazy(() => import('@pages/migrated/about_us_screen')
 const ActivityTrackerScreen = React.lazy(() => import('@pages/migrated/activity_tracker_screen'));
 const AddPostScreen = React.lazy(() => import('@pages/migrated/add_post_screen'));
 const AddShoppingListScreen = React.lazy(() => import('@pages/migrated/add_shopping_list_screen'));
+const AppFeedbackScreen = React.lazy(() => import('@pages/migrated/app_feedback_screen'));
+const AppearanceScreen = React.lazy(() => import('@pages/migrated/appearance_screen'));
 const BlogDetailScreen = React.lazy(() => import('@pages/migrated/blog_detail_screen'));
 const BlogScreen = React.lazy(() => import('@pages/migrated/blog_screen'));
 const BodyMetricsScreen = React.lazy(() => import('@pages/migrated/body_metrics_screen'));
@@ -79,6 +83,7 @@ const MealsWaterReminderScreen = React.lazy(() => import('@pages/migrated/meals_
 const MuscleProgressScreen = React.lazy(() => import('@pages/migrated/muscle_progress_screen'));
 const MyProgramCalendarScreen = React.lazy(() => import('@pages/migrated/my_program_calendar_screen'));
 const NotificationScreen = React.lazy(() => import('@pages/migrated/notification_screen'));
+const NotificationSettingsScreen = React.lazy(() => import('@pages/migrated/notification_settings_screen'));
 const OnboardingScreen = React.lazy(() => import('@pages/migrated/onboarding_screen'));
 const OnboardingV2Screen = React.lazy(() => import('@pages/migrated/onboarding_v2/onboarding_v2_screen'));
 const OtherUserProfileScreen = React.lazy(() => import('@pages/migrated/other_user_profile_screen'));
@@ -255,6 +260,8 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedActivityTracker" component={ActivityTrackerScreen} />
       <MStack.Screen name="MigratedAddPost" component={AddPostScreen} />
       <MStack.Screen name="MigratedAddShoppingList" component={AddShoppingListScreen} />
+      <MStack.Screen name="MigratedAppFeedback" component={AppFeedbackScreen} />
+      <MStack.Screen name="MigratedAppearance" component={AppearanceScreen} />
       <MStack.Screen name="MigratedBlogDetail" component={BlogDetailScreen} />
       <MStack.Screen name="MigratedBlog" component={BlogScreen} />
       <MStack.Screen name="MigratedBodyMetrics" component={BodyMetricsScreen} />
@@ -284,12 +291,30 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedMuscleProgress" component={MuscleProgressScreen} />
       <MStack.Screen name="MigratedMyProgramCalendar" component={MyProgramCalendarScreen} />
       <MStack.Screen name="MigratedNotification" component={NotificationScreen} />
+      {/* Distinto de MigratedNotification de arriba (esa es el buzón/feed de
+          notificaciones ya recibidas, notification_screen.tsx) -- esta es el
+          ajuste de permiso de notificaciones push, pedido explícito con
+          captura de referencia (Bevel). */}
+      <MStack.Screen name="MigratedNotificationSettings" component={NotificationSettingsScreen} />
       <MStack.Screen name="MigratedOnboarding" component={OnboardingScreen} />
       <MStack.Screen name="MigratedOtherUserProfile" component={OtherUserProfileScreen} />
       <MStack.Screen name="MigratedPlan" component={PlanScreen} />
       <MStack.Screen name="MigratedPostDetails" component={PostDetailsScreen} />
       <MStack.Screen name="MigratedPrivacyPolicy" component={PrivacyPolicyScreen} />
       <MStack.Screen name="MigratedProfile" component={ProfileScreenMigrated as any} />
+      {/* Misma screen que MigratedProfile de arriba, registrada una segunda vez
+          bajo otro nombre de ruta con presentation:'modal' -- pedido
+          explícito: el icono de ajustes de Home v2 debe abrir Perfil como un
+          diálogo (desliza desde abajo, X para cerrar), pero entrar desde
+          cualquier otro sitio (navegación normal a "MigratedProfile") tiene
+          que verse exactamente igual que siempre. Cero contenido duplicado:
+          es el mismo componente, la screen sabe si está en modo modal
+          comprobando `route.name` (ver profile_screen.tsx). */}
+      <MStack.Screen
+        name="MigratedProfileModal"
+        component={ProfileScreenMigrated as any}
+        options={{ presentation: 'modal' }}
+      />
       <MStack.Screen name="MigratedProgress" component={ProgressScreen} />
       <MStack.Screen name="MigratedStatistics" component={StatisticsScreen} />
       <MStack.Screen name="MigratedStatisticsMuscles" component={StatisticsMuscleDistributionScreen} />
@@ -413,6 +438,24 @@ function RootNavigator() {
   );
 }
 
+// Extraído del return de App() para poder leer useAppReload() -- "Borrar
+// caché y recargar todos los datos" (Ajustes, ver store/AppReloadContext.tsx)
+// remonta SOLO este NavigationContainer (key={reloadKey}), no AuthProvider
+// ni TutorialProvider por encima -- recargar datos no debe cerrar sesión.
+function AppNavigationContainer({ navigationRef, onReady }: { navigationRef: any; onReady: () => void }) {
+  const { reloadKey } = useAppReload();
+  return (
+    <NavigationContainer
+      key={reloadKey}
+      ref={navigationRef}
+      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
+      onReady={onReady}
+    >
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
+
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
@@ -485,21 +528,26 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GluestackUIProvider mode="light">
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <AuthProvider>
-            <TutorialProvider navigationRef={screenReviewNavigationRef}>
-              <NavigationContainer
-                ref={screenReviewNavigationRef}
-                theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
-                onReady={onLayoutRootView}
-              >
-                <RootNavigator />
-              </NavigationContainer>
-              <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
-              <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
-              <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
-              <TutorialOverlay />
-            </TutorialProvider>
-          </AuthProvider>
+          {/* Cerca de la raíz (no solo alrededor de Home v2) para que
+              cualquier pantalla que consuma useAppColorMode() -- hoy Home v2
+              y MigratedAppearance -- comparta el mismo estado real, ver
+              helper/useAppColorMode.ts. AppReloadProvider por fuera de
+              AuthProvider/TutorialProvider a propósito -- "recargar todos
+              los datos" (Ajustes) solo debe remontar el NavigationContainer
+              de abajo (AppNavigationContainer), nunca cerrar la sesión. */}
+          <AppReloadProvider>
+            <AppColorModeProvider>
+              <AuthProvider>
+                <TutorialProvider navigationRef={screenReviewNavigationRef}>
+                  <AppNavigationContainer navigationRef={screenReviewNavigationRef} onReady={onLayoutRootView} />
+                  <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
+                  <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
+                  <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
+                  <TutorialOverlay />
+                </TutorialProvider>
+              </AuthProvider>
+            </AppColorModeProvider>
+          </AppReloadProvider>
         </SafeAreaProvider>
       </GluestackUIProvider>
     </GestureHandlerRootView>

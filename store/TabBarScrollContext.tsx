@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 
 // Colapsar la barra de pestañas flotante al hacer scroll (pedido explícito,
 // captura de referencia): la barra completa (4 pestañas + "+") solo se ve
@@ -20,18 +20,38 @@ interface TabBarScrollContextValue {
   collapsed: boolean;
   setCollapsed: (value: boolean) => void;
   reportScrollY: (y: number) => void;
+  // Sube en CADA reportScrollY, aunque `collapsed` no cambie de valor --
+  // pedido explícito: si el usuario fuerza la barra abierta tocando el
+  // icono plegado, tiene que volver a plegarse en cuanto haya scroll real
+  // de nuevo, no solo cuando `collapsed` cruce su umbral (si ya estaba
+  // colapsado y sigue scrolleando en el mismo sentido, `collapsed` nunca
+  // vuelve a cambiar de valor). Deliberadamente un `ref` leído bajo demanda
+  // (no `useState`): algunas pantallas (Hábitos, Mi programa) llaman
+  // reportScrollY() en cada tick de scroll sin gating -- si esto fuera
+  // estado reactivo, forzaría un re-render de NavigationTab en cada tick
+  // aunque nadie esté usando la apertura manual. NavigationTab solo lo
+  // consulta con un intervalo ligero, y solo mientras esa apertura manual
+  // está activa (ver expandFromCollapsed ahí).
+  getScrollTick: () => number;
 }
 
 const TabBarScrollContext = createContext<TabBarScrollContextValue | null>(null);
 
 export function TabBarScrollProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const scrollTickRef = useRef(0);
 
   const reportScrollY = useCallback((y: number) => {
     setCollapsed(y > TAB_BAR_COLLAPSE_THRESHOLD);
+    scrollTickRef.current += 1;
   }, []);
 
-  const value = useMemo(() => ({ collapsed, setCollapsed, reportScrollY }), [collapsed, reportScrollY]);
+  const getScrollTick = useCallback(() => scrollTickRef.current, []);
+
+  const value = useMemo(
+    () => ({ collapsed, setCollapsed, reportScrollY, getScrollTick }),
+    [collapsed, reportScrollY, getScrollTick]
+  );
 
   return <TabBarScrollContext.Provider value={value}>{children}</TabBarScrollContext.Provider>;
 }
@@ -43,6 +63,7 @@ const NOOP_VALUE: TabBarScrollContextValue = {
   collapsed: false,
   setCollapsed: () => {},
   reportScrollY: () => {},
+  getScrollTick: () => 0,
 };
 
 export function useTabBarScroll(): TabBarScrollContextValue {

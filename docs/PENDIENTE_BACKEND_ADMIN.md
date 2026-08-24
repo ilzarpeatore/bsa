@@ -37,6 +37,29 @@ Pedido para que el tutorial guiado ("Registra tu primera serie") funcione desde 
 - UI de admin para subir/asignar la imagen al crear/editar un recurso.
 - En cuanto exista, `resourceImageSource()` la usa automáticamente y la app deja de pedir fotos de LoremFlickr — no hace falta tocar más el cliente.
 
+### 5. "Solicitar función" / "Informar de error" — formulario real, falta el endpoint (2026-08-24)
+
+`app_feedback_screen.tsx` (Ajustes → Recursos) ya es un formulario completo y funcional en el cliente — título, descripción, sección relacionada (Entrenamiento/Nutrición/Hábitos/Métricas/Otro), y adjunta el buffer de diagnóstico local si "Habilitar diagnósticos" está activo (`helper/logger.ts::getDiagnosticsReportText()`). Llama a `appFeedbackApi.submit()` (`api/appFeedback.ts`) contra `POST v1/app-feedback`, que todavía no existe — hasta que exista, enviar el formulario falla con el mismo `Alert` de error que cualquier otro formulario de la app cuando el backend responde mal (no es un bug, es el endpoint que falta).
+
+Mismo mecanismo ya usado por la herramienta temporal `ScreenReviewFab`/"Revisar pantalla" (`api/screenReview.ts` → `v1/screen-review-mark`, que sí existe en el backend y sí se ve desde el admin panel) — aplicado aquí a feedback de producto en vez de a la revisión de las 200+ pantallas migradas.
+
+- **`POST v1/app-feedback`** — payload:
+  ```json
+  {
+    "type": "feature_request | bug_report",
+    "title": "string, máx 100 caracteres",
+    "description": "string",
+    "section": "workout | nutrition | habits | metrics | other",
+    "section_other": "string opcional, solo si section = other",
+    "diagnostics_log": "string opcional, texto plano multilinea",
+    "app_version": "string opcional, ej. 1.2.0",
+    "platform": "ios | android"
+  }
+  ```
+  Guardar también `user_id` (del token autenticado) y `created_at`. Respuesta: `{ data: { id, ...mismos campos, created_at } }` (el cliente hoy no lee el body de la respuesta, pero conviene devolverlo por consistencia con el resto de la API).
+- **Tabla sugerida** `app_feedback`: `id`, `user_id` (FK `users`), `type` (enum), `title`, `description` (text), `section` (enum), `section_other` (nullable), `diagnostics_log` (nullable, text/longtext), `app_version` (nullable), `platform` (nullable), `status` (enum: `open`/`reviewed`/`closed`, default `open` — para que el admin pueda marcarlos como gestionados), `created_at`, `updated_at`.
+- **Admin panel**: pantalla nueva (listado + filtro por `type`/`section`/`status`, detalle con el `diagnostics_log` completo) — no existe todavía ningún sitio para verlos, que es justo el problema que este endpoint resuelve para el administrador.
+
 ---
 
 ## Prioridad media
@@ -61,6 +84,20 @@ No existe ningún endpoint de "cerrar sesión de entrenamiento" accesible para u
 
 No existe ningún módulo de video en `routes/api.php`. Pendiente decidir si se construye ese backend (subida/streaming) o se elimina esta sección de la app.
 
+### 10. Endpoint GET para `readiness_scores` (Recovery/Strain reales del hero de Home)
+
+El motor de readiness de Fase 4 (`app/Services/ReadinessCalculationService.php`, ver `docs/Motor_Auto_Regulacion_Carga_Instalacion.md` §8) ya calcula cada día en `readiness_scores` un `combined_score`/`band` (cruza HRV/sueño de wearable con el cuestionario subjetivo) y un `acwr` (Acute:Chronic Workload Ratio, carga de entrenamiento) — pero **no existe ningún endpoint que lo exponga al cliente**, solo `POST /health-data-points/sync` (ingesta) y los de `adaptive-week-plans`. Falta un `GET /v1/readiness-scores/today` (o similar) que devuelva `{ combined_score, band, acwr, hrv_z_score, sueno_z_score, subjetivo_score, calculated_at }` del registro más reciente del cliente.
+
+**Por qué importa ahora mismo:** el hero de Home (`home_screen_modern_v2.tsx`) tiene dos anillos "Recovery"/"Strain" que hasta 2026-08-24 eran placeholder fijo ("-%"). Recovery ya se rellenó con una estimación 100% cliente (`computeRecoveryScore()`, media del cuestionario subjetivo diario, ver `docs/TAREAS.md` sesión 2026-08-24) mientras este endpoint no exista — pero es una aproximación deliberadamente más pobre que el `combined_score` real (no incorpora HRV/sueño objetivo). Strain sigue sin ningún dato, ni siquiera aproximado, porque ACWR necesita historial de carga de entrenamiento que hoy solo vive calculado en el backend. En cuanto este endpoint exista, sustituir `computeRecoveryScore()` por el dato real y conectar Strain al `acwr`.
+
+### 11. Categorización real de `recipe_tags` (hoy es una heurística por texto en el cliente)
+
+`recipetag-list` devuelve las etiquetas de receta **completamente planas** — solo `{id, title, slug, status, recipe_tag_image}`, sin ningún campo de agrupación/categoría. La pantalla `MigratedRecipeTagList` (`pages/migrated/recipe_tag_list_screen.tsx`) llegó a tener 40-60 chips sueltos en un único wrap, ilegible ("esta screen es una locura"), así que se agrupan client-side por **coincidencia de palabras clave en el título** (`CATEGORY_DEFS`, rediseñado 2026-08-24 en 8 categorías: Duración, Pérdida de grasa, Subida de masa muscular, Rendimiento deportivo, Recetas de comunidades de España, Países, Tipo de dieta, Tipo de receta, más "Otros" de cierre). **Es una heurística de texto, no un contrato con el backend** — cualquier tag cuyo título no contenga ninguna de las palabras clave cae en "Otros", y el resultado depende por completo de cómo el equipo de contenido haya titulado cada tag (ej. una etiqueta literal "Andalucía" sin adjetivo "andaluza" no clasificaría en Comunidades de España con el regex actual).
+
+**Lo que se necesita para hacerlo bien de verdad:** añadir un campo de grupo/categoría real a `recipe_tags` — lo más simple, una columna `group` (enum o string corto: `duration | fat_loss | muscle_gain | performance | spain_regional | country | diet | meal_type | other`) que el admin pueda fijar al crear/editar cada tag; lo más flexible, una tabla `recipe_tag_groups` (`id`, `key`, `label`, `icon`, `sort_order`) + FK `recipe_tags.recipe_tag_group_id`, para poder añadir/renombrar grupos desde el admin sin desplegar la app. `recipetag-list` debería devolver ese grupo (o anidar ya la respuesta por grupo) para que el cliente deje de adivinar por texto.
+
+**Mismo problema, alcance más amplio (no verificado en esta sesión, mencionar por si aplica):** `recipe_category` (el concepto separado de "categorías" que usa `MigratedRecipeCategoryList`, `RecipeCategory` en `api/recipes.ts`) podría tener la misma limitación de lista plana sin agrupación — no se investigó a fondo porque no era el pedido de esta sesión (solo `MigratedRecipeTagList`), pero si se aborda el backend de tags, vale la pena revisar si categorías tiene el mismo hueco.
+
 ---
 
 ## Pagos — checkout externo (no es trabajo de este backend/admin, pero es el bloqueante real)
@@ -81,6 +118,17 @@ La compra **dentro de la app se eliminó por completo** (cumplimiento de políti
 - **Catálogo de `Diets`**: solo 1 fila real ("test"). Si se quiere publicar contenido real ahí, hay que crearlo desde el admin.
 - **Recetas**: de 5276, 297 quedaron marcadas `inactive` por estar vacías (76 sin ingredientes ni pasos, 221 con pasos pero sin ingredientes); otras 22 tienen ingredientes pero macros en 0; más ampliamente, 429 tienen `protein` en 0/null. Ninguna de las 5276 recetas tiene foto real subida (100% placeholder) — diferido explícitamente, decidir entre subida manual desde el admin o una integración por lote (revisar licencias de imágenes antes).
 - **Blog**: bibliografía real vacía en los 4 posts existentes — el acordeón ya está construido en la app, solo falta que el coach la rellene desde el admin.
+
+## Configuración pendiente — datos externos, no backend/admin (2026-08-24)
+
+El menú de Ajustes (`home_screen_modern_v2.tsx`) tiene 3 filas construidas y funcionando en cuanto se rellene una constante en `constants/appLinks.ts` — ningún endpoint ni tabla nueva, solo valores que hoy están vacíos a propósito (mientras estén vacíos, la app avisa "aún no configurado" en vez de abrir un enlace roto):
+
+- **`SUPPORT_EMAIL`** — email real de soporte. Alimenta "Solicitar una función" e "Informar de un error" (abren un `mailto:` con el asunto ya puesto).
+- **`APP_STORE_ID`** — ID numérico de la ficha de App Store (el de la URL pública, no el bundle identifier). Alimenta "Valora BeFit en la tienda" en iOS.
+- **`PLAY_STORE_PUBLISHED`** — pasar a `true` cuando la ficha de Google Play esté publicada (el `package` ya se lee de `app.json`, no hace falta duplicarlo). Alimenta la misma fila en Android.
+- **`SOCIAL_LINKS`** — array de `{ name, icon, url }`, uno por red social real (Instagram/X/etc.). Vacío = la fila de iconos no se muestra en absoluto.
+
+"Enviar registros al desarrollador" y "Habilitar diagnósticos" ya son 100% funcionales sin configuración externa — no dependen de este archivo (ver `helper/logger.ts`: buffer local en memoria + `Share.share()`, sin SDK de terceros).
 
 ## Bloqueantes de infraestructura (no son "implementar", pero condicionan features reales)
 
