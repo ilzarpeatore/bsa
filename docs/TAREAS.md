@@ -2085,4 +2085,4 @@ Pedido explícito con 2 capturas de referencia: la pantalla "Ajustes" de Bevel (
 
 **`change_pwd_screen.tsx`:** mismo patrón aplicado — tarjeta blanca única con etiqueta "Contraseña" encima, badge por fila: contraseña actual (candado, rojo), contraseña nueva (llave, azul), confirmar contraseña (escudo, verde).
 
-Verificado: `eslint` limpio (0 errores en ambos archivos; los 2 warnings de `edit_profile_screen.tsx` —`init` accedido antes de declararse— ya existían antes de este cambio, sin relación). `tsc --noEmit -p .` corriendo en background.
+Verificado: `eslint` limpio (0 errores en ambos archivos; los 2 warnings de `edit_profile_screen.tsx` —`init` accedido antes de declararse— ya existían antes de este cambio, sin relación). `tsc --noEmit -p .` verificado limpio (0 errores fuera de los 62 ya conocidos y no bloqueantes de `theme.ts`, ninguno en `edit_profile_screen.tsx`/`change_pwd_screen.tsx`).
