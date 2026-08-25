@@ -2175,6 +2175,19 @@ Pedido explícito: en vez del `mailto:` genérico añadido en la tarea anterior,
 
 Verificado: `eslint` limpio (0 errores en `pages/migrated/app_feedback_screen.tsx`, `api/appFeedback.ts`, `pages/migrated/home_screen_modern_v2.tsx`, `constants/appLinks.ts` y `App.tsx`; mismos warnings preexistentes de siempre, ninguno nuevo). `tsc --noEmit -p .` verificado limpio (0 errores en todo el proyecto). **Pendiente de verificación visual en dispositivo real** — confirmar que los chips de sección se leen bien y que el teclado no tapa el textarea de descripción al escribir.
 
+### ⚠️ Incidente real: build de IPA en `Debug` crashea al abrir ("No script URL provided") — el workflow no lo detecta
+
+Tras mergear esta sesión a `master`, se lanzó `.github/workflows/ios-build.yml` con los inputs **por defecto** del propio workflow (`ios_path: "."`, `configuration: "Debug"`). El job terminó en verde (`conclusion: success`, run 45, `befit-20260824-2239`) y generó un `.ipa` — pero al instalarlo y abrirlo en un iPhone real, crashea inmediatamente con `No script URL provided. Make sure the packager is running or you have embedded a JS bundle in your application bundle.` (`unsanitizedScriptURLString = (null)`).
+
+**Causa real:** el build phase "Bundle React Native code and images" (`ios/befit.xcodeproj/project.pbxproj`) tiene `if [[ "$CONFIGURATION" = *Debug* ]]; then export SKIP_BUNDLING=1; fi` — con `Debug`, el paso que empaqueta el JS y lo mete dentro del `.ipa` se salta por completo. La app queda esperando conectarse a un Metro packager (que no existe fuera de una sesión de desarrollo), de ahí el crash. `xcodebuild`/el export del IPA no fallan por esto — el workflow no tiene forma de detectar que falta el bundle, así que un build en `Debug` siempre "sale bien" en CI aunque el `.ipa` resultante no sirva para nada fuera de Metro.
+
+**Corregido relanzando el mismo commit con `configuration: "Release"`** (run 46, `befit-20260824-2239-release`) — con `Release`, `SKIP_BUNDLING` nunca se activa y el bundle sí se embebe.
+
+**Para que esto no se repita**, documentado en 2 sitios nuevos:
+
+- `docs/BUILD_IPA.md` (nuevo) — checklist completo de inputs correctos para este repo (`ios_path: "ios"` también es obligatorio, el default `"."` tampoco sirve porque el proyecto nativo vive en `ios/`) y la explicación completa de por qué `Debug` rompe la app.
+- `CLAUDE.md` (nuevo, raíz del repo) — nota corta que se carga automáticamente en cualquier sesión futura de Claude Code en este repo, señalando el bloqueante y remitiendo a `docs/BUILD_IPA.md` antes de lanzar cualquier build.
+
 ### Ajuste de neutros de `theme.ts` (bg/surface/texto) a partir de 2 capturas de referencia — claro y oscuro
 
 Pedido explícito: "estos son los colores que quiero usar tanto en modo claro como oscuro", con 2 capturas (una app de referencia, claro y oscuro del mismo screen). En vez de estimar los valores a ojo, se extrajeron por **muestreo real de píxel** (script Python/Pillow: recorte de una zona plana + color dominante del recorte, no un solo píxel al azar que pudiera caer en un borde con anti-aliasing) — mismo nivel de rigor que el contraste WCAG calculado en la auditoría del día anterior, no una aproximación visual.
