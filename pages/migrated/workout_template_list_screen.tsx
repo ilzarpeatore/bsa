@@ -8,7 +8,7 @@ import { Heading } from '@components/ui/heading';
 import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { workoutTemplateApi, WorkoutTemplateListItem } from '../../api/workoutTemplate';
 import { pickWorkoutFallbackImage } from './workoutViewShared';
 
@@ -20,6 +20,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // o completos) lo decide el backend en workout-template-detail, esto solo pinta
 // el estado para que el cliente sepa qué puede abrir libremente.
 export default function WorkoutTemplateListScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [items, setItems] = useState<WorkoutTemplateListItem[]>([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);

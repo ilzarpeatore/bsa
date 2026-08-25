@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Box } from '@components/ui/box';
@@ -9,7 +9,8 @@ import { Pressable } from '@components/ui/pressable';
 import { Textarea, TextareaInput } from '@components/ui/textarea';
 import { Modal, ModalBackdrop, ModalContent } from '@components/ui/modal';
 import { isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { C, FONT } from '../pages/migrated/theme';
+import { FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { screenReviewApi, ScreenReviewStatus, ScreenReviewMark } from '../api/screenReview';
 
 // Herramienta TEMPORAL de desarrollo pedida para revisar las 200+ pantallas
@@ -25,13 +26,19 @@ interface Props {
 
 type Step = 'menu' | 'note' | 'saved';
 
-const STATUS_META: Record<ScreenReviewStatus, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  delete: { label: 'Marcar para borrar', icon: 'trash-outline', color: C.destructive60 },
-  done: { label: 'Marcar como terminada', icon: 'checkmark-circle-outline', color: C.success60 },
-  confused: { label: 'No entiendo esta pantalla', icon: 'help-circle-outline', color: C.warning60 },
-};
+function buildStatusMeta(
+  C: ReturnType<typeof useAppColorMode>['colors']
+): Record<ScreenReviewStatus, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> {
+  return {
+    delete: { label: 'Marcar para borrar', icon: 'trash-outline', color: C.destructive60 },
+    done: { label: 'Marcar como terminada', icon: 'checkmark-circle-outline', color: C.success60 },
+    confused: { label: 'No entiendo esta pantalla', icon: 'help-circle-outline', color: C.warning60 },
+  };
+}
 
 export default function ScreenReviewFab({ navigationRef }: Props) {
+  const { colors: C } = useAppColorMode();
+  const STATUS_META = useMemo(() => buildStatusMeta(C), [C]);
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState<Step>('menu');
   const [pendingStatus, setPendingStatus] = useState<ScreenReviewStatus | null>(null);

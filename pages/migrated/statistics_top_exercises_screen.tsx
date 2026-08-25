@@ -10,7 +10,7 @@ import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 import { exerciseStatsApi, TopExerciseItem } from '../../api/exerciseStats';
@@ -35,6 +35,7 @@ const RANGE_OPTIONS: RangeOption[] = [
 ];
 
 function TopExerciseRow({ item, rank, onPress }: { item: TopExerciseItem; rank: number; onPress: () => void }) {
+  const { colors: C } = useAppColorMode();
   return (
     <Pressable className="flex-row items-center" style={{ padding: 12, gap: 12 }} onPress={onPress}>
       <Text weight="bold" size="sm" muted style={{ width: 20, textAlign: 'center' }}>{rank}</Text>
@@ -60,6 +61,7 @@ function TopExerciseRow({ item, rank, onPress }: { item: TopExerciseItem; rank: 
 
 export default function StatisticsTopExercisesScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [range, setRange] = useState(RANGE_OPTIONS[0]);
   const [items, setItems] = useState<TopExerciseItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);

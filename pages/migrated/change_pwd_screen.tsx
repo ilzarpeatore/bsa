@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ScrollView, Alert, Keyboard, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
@@ -12,19 +12,21 @@ import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import AppIcon from '@components/AppIcon';
 import { authApi } from '@api/auth';
-import { C, FONT } from './theme';
-
-// Mismo rediseño que edit_profile_screen.tsx (pedido explícito: "el mismo
-// diseño de interfaz que le diste a EditProfile"): badge de icono de color
-// por fila (AppIcon), tarjeta blanca de verdad con etiqueta de sección
-// encima, en vez de una tarjeta gris con filas de solo texto.
-const FIELD_ICON = {
-  old: { icon: 'lock-closed-outline' as const, color: C.destructive },
-  new: { icon: 'key-outline' as const, color: C.blue },
-  confirm: { icon: 'shield-checkmark-outline' as const, color: C.success },
-};
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 export default function ChangePwdScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
+  // Mismo rediseño que edit_profile_screen.tsx (pedido explícito: "el mismo
+  // diseño de interfaz que le diste a EditProfile"): badge de icono de color
+  // por fila (AppIcon), tarjeta blanca de verdad con etiqueta de sección
+  // encima, en vez de una tarjeta gris con filas de solo texto.
+  const FIELD_ICON = {
+    old: { icon: 'lock-closed-outline' as const, color: C.destructive },
+    new: { icon: 'key-outline' as const, color: C.blue },
+    confirm: { icon: 'shield-checkmark-outline' as const, color: C.success },
+  };
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -192,38 +194,40 @@ export default function ChangePwdScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
-  // Tarjeta blanca de verdad (antes C.gray80, mismo tono que el fondo de la
-  // pantalla) -- mismo fix que edit_profile_screen.tsx.
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-  },
-  sectionLabel: {
-    fontFamily: FONT.semiBold,
-    fontSize: 13,
-    color: C.textSecondary,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  row: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  label: {
-    fontFamily: FONT.medium,
-    fontSize: 13,
-    color: C.textSecondary,
-    marginBottom: 4,
-  },
-  input: {
-    borderWidth: 0,
-    height: 26,
-    backgroundColor: 'transparent',
-  },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    // Tarjeta blanca de verdad (antes C.gray80, mismo tono que el fondo de la
+    // pantalla) -- mismo fix que edit_profile_screen.tsx.
+    card: {
+      backgroundColor: C.surface,
+      borderRadius: 16,
+    },
+    sectionLabel: {
+      fontFamily: FONT.semiBold,
+      fontSize: 13,
+      color: C.textSecondary,
+      marginBottom: 8,
+      marginLeft: 4,
+    },
+    row: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    label: {
+      fontFamily: FONT.medium,
+      fontSize: 13,
+      color: C.textSecondary,
+      marginBottom: 4,
+    },
+    input: {
+      borderWidth: 0,
+      height: 26,
+      backgroundColor: 'transparent',
+    },
+  });
+}

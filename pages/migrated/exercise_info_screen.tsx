@@ -18,7 +18,8 @@ import { Spinner } from '@components/ui/spinner';
 import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { Divider } from '@components/ui/divider';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 import { ExerciseMediaHeaderMem, ExerciseHeaderFloatingIcons, HEADER_HEIGHT_RATIO } from '../../components/ExerciseMediaHeader';
 import { MuscleIsolateIconMem } from '../../components/MuscleIsolateIcon';
 import { AnalysisHistoryCardMem } from '../../components/AnalysisHistoryCard';
@@ -40,17 +41,6 @@ const EXCLUDED_METRIC_KEYS = ['set_number', 'tempo', 'descanso'];
 // session.sets.length en vez de bestValueForMetric().
 const SERIES_METRIC_KEY = 'series';
 
-const METRIC_META: Record<string, { label: string; unit: string; color: string }> = {
-  series: { label: 'Series', unit: '', color: C.gray50 },
-  carga: { label: 'Carga', unit: 'kg', color: C.orange },
-  reps: { label: 'Repeticiones', unit: '', color: C.blue60 },
-  rir: { label: 'RIR', unit: '', color: C.purple60 },
-  rpe: { label: 'RPE', unit: '', color: C.destructive60 },
-  tiempo: { label: 'Tiempo', unit: 's', color: C.success60 },
-};
-function metricMeta(key: string) {
-  return METRIC_META[key] ?? { label: key.charAt(0).toUpperCase() + key.slice(1), unit: '', color: C.textSecondary };
-}
 function bestValueForMetric(session: ExerciseAnalysisSession, key: string): number | null {
   const nums = session.sets.reduce<number[]>((acc, s) => {
     const n = Number(s[key]);
@@ -86,6 +76,8 @@ interface Props {
 }
 
 export default function ExerciseInfoScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const { navigation, route } = props;
   const exerciseId: number | undefined = route?.params?.id ?? route?.params?.mExerciseId;
 
@@ -343,6 +335,8 @@ function MuscleTab({
   primary: ExerciseDetailData['muscle']['primary'];
   secondary: ExerciseDetailData['muscle']['secondary'];
 }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <Box>
       {primary ? (
@@ -370,6 +364,8 @@ function MuscleTab({
 }
 
 function MuscleRow({ name }: { name: string }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <HStack className="items-center py-2.5">
       <Box style={styles.muscleIconWrap}>
@@ -391,6 +387,8 @@ function InstructionsTab({
   tipsExpanded: boolean;
   onToggleTips: () => void;
 }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   return (
     <Box>
       {steps.length === 0 ? (
@@ -435,6 +433,8 @@ function InstructionsTab({
 }
 
 function EquipmentTab({ equipment }: { equipment: ExerciseDetailData['equipment'] }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   if (!equipment) {
     return <Text style={styles.emptyText}>Este ejercicio no requiere equipamiento.</Text>;
   }
@@ -453,6 +453,20 @@ function EquipmentTab({ equipment }: { equipment: ExerciseDetailData['equipment'
 }
 
 function ProgressChartSection({ sessions }: { sessions: ExerciseAnalysisSession[] }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+  const METRIC_META: Record<string, { label: string; unit: string; color: string }> = useMemo(() => ({
+    series: { label: 'Series', unit: '', color: C.gray50 },
+    carga: { label: 'Carga', unit: 'kg', color: C.orange },
+    reps: { label: 'Repeticiones', unit: '', color: C.blue60 },
+    rir: { label: 'RIR', unit: '', color: C.purple60 },
+    rpe: { label: 'RPE', unit: '', color: C.destructive60 },
+    tiempo: { label: 'Tiempo', unit: 's', color: C.success60 },
+  }), [C]);
+  const metricMeta = useCallback(
+    (key: string) => METRIC_META[key] ?? { label: key.charAt(0).toUpperCase() + key.slice(1), unit: '', color: C.textSecondary },
+    [METRIC_META, C]
+  );
   // El backend devuelve las sesiones mas recientes primero (una fila por dia,
   // "el log mas reciente de cada dia" = estado final de esa sesion) —
   // invertimos para pintar la grafica en orden cronologico (izq = antiguo).
@@ -590,6 +604,8 @@ function AnalysisTab({
   data: ExerciseAnalysisData | null;
   onRetry: () => void;
 }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   if (loading) {
     return (
       <Box style={{ paddingVertical: 30 }}>
@@ -613,7 +629,8 @@ function AnalysisTab({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   panel: {
@@ -827,4 +844,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: C.white,
   },
-});
+  });
+}

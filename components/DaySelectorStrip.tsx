@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { C, FONT } from '../pages/migrated/theme';
+import { FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 export interface DaySelectorItem {
   /** YYYY-MM-DD */
@@ -20,6 +21,8 @@ interface DaySelectorStripProps {
 }
 
 export default function DaySelectorStrip({ days, selectedDate, onSelect }: DaySelectorStripProps) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   return (
     <View style={s.row}>
       {days.map((d) => {
@@ -47,7 +50,8 @@ export default function DaySelectorStrip({ days, selectedDate, onSelect }: DaySe
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   item: { alignItems: 'center', width: 44 },
   letter: { fontFamily: FONT.medium, fontSize: 12, color: C.textSecondary, marginBottom: 6 },
@@ -69,4 +73,5 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedNumber: { fontFamily: FONT.bold, fontSize: 15, color: '#FFFFFF' },
-});
+  });
+}

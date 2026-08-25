@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, GestureResponderEvent } from 'react-native';
 import Svg, { Line, Path, Circle } from 'react-native-svg';
-import { C, FONT } from '../pages/migrated/theme';
+import { FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 export interface MetricSeries {
   key: string;
@@ -60,6 +61,8 @@ function buildSmoothPath(points: { x: number; y: number }[], smoothing = 0.18): 
 }
 
 export default function MetricLineChart({ series, pointCount, width = 320, height = 180, unit, pointLabels }: MetricLineChartProps) {
+  const { colors: C } = useAppColorMode();
+  const tooltipStyles = useMemo(() => createTooltipStyles(C), [C]);
   const [selected, setSelected] = useState<number | null>(null);
 
   if (pointCount < 2) {
@@ -151,16 +154,18 @@ export default function MetricLineChart({ series, pointCount, width = 320, heigh
   );
 }
 
-const tooltipStyles = StyleSheet.create({
-  bubble: {
-    position: 'absolute',
-    minWidth: 84,
-    backgroundColor: C.accentBlack,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: 'center',
-  },
-  value: { fontFamily: FONT.bold, fontSize: 13, color: '#FFFFFF' },
-  label: { fontFamily: FONT.regular, fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
-});
+function createTooltipStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    bubble: {
+      position: 'absolute',
+      minWidth: 84,
+      backgroundColor: C.accentBlack,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      alignItems: 'center',
+    },
+    value: { fontFamily: FONT.bold, fontSize: 13, color: '#FFFFFF' },
+    label: { fontFamily: FONT.regular, fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
+  });
+}

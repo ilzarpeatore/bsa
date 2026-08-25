@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, ScrollView, TextInput, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -13,7 +13,8 @@ import { VStack } from '@components/ui/vstack';
 import { Divider } from '@components/ui/divider';
 import { Button, ButtonText } from '@components/ui/button';
 import ScreenHeader from '@components/ScreenHeader';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 import { blogApi, BlogListItem, BlogCategory } from '../../api/blog';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 
@@ -41,6 +42,8 @@ const truncateText = (text: string, maxWords: number = 15): string => {
 };
 
 export default function BlogScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles_local = useMemo(() => createStyles(C), [C]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [sections, setSections] = useState<{ category: BlogCategory; posts: BlogListItem[] }[]>([]);
@@ -383,7 +386,8 @@ export default function BlogScreen({ navigation }: any) {
   );
 }
 
-const styles_local = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontFamily: FONT.bold, color: C.white },
@@ -437,4 +441,5 @@ const styles_local = StyleSheet.create({
   blogExcerpt: { fontSize: 12, fontFamily: FONT.regular, color: C.gray40, lineHeight: 18 },
   emptyText: { fontSize: 15, fontFamily: FONT.medium, color: C.gray40 },
   loadingWrap: { paddingVertical: 60, alignItems: 'center' },
-});
+  });
+}

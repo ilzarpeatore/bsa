@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet, TextInput, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@store/AuthContext";
 import { authApi } from "@api/auth";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const GENEROS = ["Masculino", "Femenino", "Otro", "Prefiero no decir"];
 
@@ -18,6 +19,8 @@ const GENDER_KEY_MAP: Record<string, string> = {
 
 export default function ProfileSetupFormScreen({ navigation }: any) {
   const { state, updateUser } = useAuth();
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   const [nombre, setNombre] = useState("");
   const [apellidos, setApellidos] = useState("");
   const [genero, setGenero] = useState("");
@@ -228,26 +231,28 @@ export default function ProfileSetupFormScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  title: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, marginBottom: 20, textAlign: "center" },
-  sectionLabel: { fontSize: 14, fontFamily: FONT.bold, marginBottom: 12 },
-  field: { marginBottom: 14 },
-  label: { fontSize: 13, fontFamily: FONT.semiBold, marginBottom: 6 },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, backgroundColor: C.surface },
-  pickerInput: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  dropdown: { backgroundColor: C.surface, borderRadius: 10, marginTop: 4, overflow: "hidden" },
-  dropdownItem: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1 },
-  dropdownText: { fontSize: 14 },
-  row: { flexDirection: "row" },
-  tagInputRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  addTagBtn: { width: 44, height: 44, borderRadius: 10, justifyContent: "center", alignItems: "center" },
-  tagsContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  tag: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 },
-  tagText: { fontSize: 13, fontFamily: FONT.medium },
-  textArea: { height: 100, paddingTop: 12 },
-  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.surface },
-  continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center" },
-  continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    scrollContent: { padding: 20, paddingBottom: 100 },
+    title: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, marginBottom: 20, textAlign: "center" },
+    sectionLabel: { fontSize: 14, fontFamily: FONT.bold, marginBottom: 12 },
+    field: { marginBottom: 14 },
+    label: { fontSize: 13, fontFamily: FONT.semiBold, marginBottom: 6 },
+    input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, backgroundColor: C.surface },
+    pickerInput: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    dropdown: { backgroundColor: C.surface, borderRadius: 10, marginTop: 4, overflow: "hidden" },
+    dropdownItem: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1 },
+    dropdownText: { fontSize: 14 },
+    row: { flexDirection: "row" },
+    tagInputRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+    addTagBtn: { width: 44, height: 44, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+    tagsContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+    tag: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 },
+    tagText: { fontSize: 13, fontFamily: FONT.medium },
+    textArea: { height: 100, paddingTop: 12 },
+    bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.surface },
+    continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center" },
+    continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
+  });
+}

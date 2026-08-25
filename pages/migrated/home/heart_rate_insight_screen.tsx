@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { C, FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
+import { FONT } from "../theme";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const TREND = [65, 70, 72, 68, 75, 72, 70];
@@ -29,7 +29,8 @@ const RECOMMENDATIONS = [
 ];
 
 export default function HeartRateInsightScreen({ navigation }: any) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   return (
     <View style={styles.root}>
@@ -115,8 +116,8 @@ export default function HeartRateInsightScreen({ navigation }: any) {
   );
 }
 
-function useStyle() {
-  return useResponsiveStyleSheet({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     header: {
       flexDirection: "row",

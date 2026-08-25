@@ -12,7 +12,7 @@ import { Card } from '@components/ui/card';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import { useTutorial } from '@store/TutorialContext';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import {
   checkinsApi,
   CheckInForm,
@@ -36,6 +36,7 @@ function ChoiceRow({
   onChange: (v: number) => void;
   icon?: boolean;
 }) {
+  const { colors: C } = useAppColorMode();
   return (
     <Box className="flex-row flex-wrap gap-2">
       {Array.from({ length: count }, (_, i) => i + 1).map((n) => {
@@ -68,6 +69,7 @@ function QuestionCard({
   value: AnswerValue | undefined;
   onChange: (v: AnswerValue) => void;
 }) {
+  const { colors: C } = useAppColorMode();
   const unsupported = UNSUPPORTED_QUESTION_TYPES.includes(question.type);
 
   return (
@@ -191,6 +193,7 @@ interface Props {
 }
 
 export default function CheckInFillScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
   const { navigation, route } = props;
   const insets = useSafeAreaInsets();
   const formAssignmentId: number | undefined = route?.params?.formAssignmentId;

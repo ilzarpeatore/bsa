@@ -14,7 +14,8 @@ import { Badge, BadgeText } from '@components/ui/badge';
 import { Button, ButtonText } from '@components/ui/button';
 import { Modal, ModalBackdrop, ModalContent } from '@components/ui/modal';
 import { isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { C, FONT, SHADOW } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT, SHADOW } from './theme';
 import { habitsApi, Habit, HabitLogEntry, HABIT_HISTORY_DAYS } from '../../api/habits';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import { habitProgressRatio, habitCellColor } from '../../constants/habitColor';
@@ -82,6 +83,8 @@ interface DayCellProps {
 }
 
 function DayCell({ date, fillColor, isCompleted, future, size, onPress, showLabel }: DayCellProps) {
+  const { colors: C } = useAppColorMode();
+  const cellStyles = useMemo(() => createCellStyles(C), [C]);
   return (
     <Pressable
       disabled={future}
@@ -102,12 +105,14 @@ function DayCell({ date, fillColor, isCompleted, future, size, onPress, showLabe
   );
 }
 
-const cellStyles = StyleSheet.create({
-  cell: { alignItems: 'center', justifyContent: 'center' },
-  cellFuture: { opacity: 0.35 },
-  cellLabel: { fontFamily: FONT.medium, color: C.textSecondary },
-  cellLabelDone: { color: 'rgba(255,255,255,0.01)' },
-});
+function createCellStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    cell: { alignItems: 'center', justifyContent: 'center' },
+    cellFuture: { opacity: 0.35 },
+    cellLabel: { fontFamily: FONT.medium, color: C.textSecondary },
+    cellLabelDone: { color: 'rgba(255,255,255,0.01)' },
+  });
+}
 
 interface Props {
   navigation?: any;
@@ -115,6 +120,9 @@ interface Props {
 }
 
 export default function HabitDetailScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+  const cellStyles = useMemo(() => createCellStyles(C), [C]);
   const { navigation, route } = props;
   const habitId: number | undefined = route?.params?.habitId;
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
@@ -531,7 +539,8 @@ export default function HabitDetailScreen(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
@@ -614,4 +623,5 @@ const styles = StyleSheet.create({
   modalSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.accentBlack },
   modalCancelText: { fontFamily: FONT.semiBold, fontSize: 14, color: C.textPrimary },
   modalSaveText: { fontFamily: FONT.bold, fontSize: 14, color: '#FFFFFF' },
-});
+  });
+}

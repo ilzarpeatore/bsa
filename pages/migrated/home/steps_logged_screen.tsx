@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 export default function StepsLoggedScreen({ navigation }: any) {
-
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   const handleBack = () => {
     navigation.popToTop();
@@ -33,7 +35,8 @@ export default function StepsLoggedScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -84,4 +87,5 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: C.white,
   },
-});
+  });
+}

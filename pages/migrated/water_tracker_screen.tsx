@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AnimatedRing from '@components/AnimatedRing';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 type WaterChartFilter = 'week' | 'month' | 'year' | 'every';
 
@@ -16,13 +17,16 @@ const FILTER_LABELS: Record<WaterChartFilter, string> = {
   every: 'Todo',
 };
 
-const roundBtn = (icon: string, onPress: () => void) => (
-  <Pressable style={({ pressed }) => [styles.roundBtn, pressed && { opacity: 0.2 }]} onPress={onPress}>
-    <Ionicons name={icon as any} size={24} color={C.blue} />
-  </Pressable>
-);
-
 export default function WaterTrackerScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+  // Dentro del componente (no a nivel de módulo) para poder capturar `C` y
+  // `styles` -- ambos dependen del tema en vivo.
+  const roundBtn = (icon: string, onPress: () => void) => (
+    <Pressable style={({ pressed }) => [styles.roundBtn, pressed && { opacity: 0.2 }]} onPress={onPress}>
+      <Ionicons name={icon as any} size={24} color={C.blue} />
+    </Pressable>
+  );
   const [logValue, setLogValue] = useState(0);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalText, setGoalText] = useState('');
@@ -230,7 +234,8 @@ export default function WaterTrackerScreen(props: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
@@ -423,4 +428,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
-});
+  });
+}

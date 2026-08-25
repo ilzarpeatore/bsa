@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
 import { ensureNotificationPermissionsAsync } from "@helper/reminderNotifications";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 export default function NotificationsScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   const [requesting, setRequesting] = useState(false);
 
   const handleActivate = async () => {
@@ -67,21 +70,23 @@ export default function NotificationsScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  content: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30 },
-  iconContainer: { width: 120, height: 120, borderRadius: 60, justifyContent: "center", alignItems: "center", marginBottom: 24 },
-  title: { fontSize: 28, lineHeight: 34, fontFamily: FONT.bold, marginBottom: 12, textAlign: "center" },
-  subtitle: { fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 30 },
-  previewCard: { backgroundColor: C.surface, borderRadius: 16, padding: 16, width: "100%", marginBottom: 20 },
-  previewHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  previewAppName: { fontSize: 13, fontFamily: FONT.semiBold },
-  previewTitle: { fontSize: 15, fontFamily: FONT.bold, marginBottom: 4 },
-  previewBody: { fontSize: 13, marginBottom: 4 },
-  previewTime: { fontSize: 11 },
-  bottomBar: { padding: 20, paddingBottom: 30 },
-  activateBtn: { flexDirection: "row", paddingVertical: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 },
-  activateBtnText: { fontSize: 16, fontFamily: FONT.bold, color: C.white },
-  skipBtn: { paddingVertical: 14, alignItems: "center" },
-  skipBtnText: { fontSize: 15, fontFamily: FONT.semiBold },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    content: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30 },
+    iconContainer: { width: 120, height: 120, borderRadius: 60, justifyContent: "center", alignItems: "center", marginBottom: 24 },
+    title: { fontSize: 28, lineHeight: 34, fontFamily: FONT.bold, marginBottom: 12, textAlign: "center" },
+    subtitle: { fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 30 },
+    previewCard: { backgroundColor: C.surface, borderRadius: 16, padding: 16, width: "100%", marginBottom: 20 },
+    previewHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+    previewAppName: { fontSize: 13, fontFamily: FONT.semiBold },
+    previewTitle: { fontSize: 15, fontFamily: FONT.bold, marginBottom: 4 },
+    previewBody: { fontSize: 13, marginBottom: 4 },
+    previewTime: { fontSize: 11 },
+    bottomBar: { padding: 20, paddingBottom: 30 },
+    activateBtn: { flexDirection: "row", paddingVertical: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 },
+    activateBtnText: { fontSize: 16, fontFamily: FONT.bold, color: C.white },
+    skipBtn: { paddingVertical: 14, alignItems: "center" },
+    skipBtnText: { fontSize: 15, fontFamily: FONT.semiBold },
+  });
+}

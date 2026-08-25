@@ -17,7 +17,8 @@ import { Divider } from '@components/ui/divider';
 import AppIcon from '@components/AppIcon';
 import AnimatedRing from '@components/AnimatedRing';
 import { AvatarMem } from '@components/Avatar';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { dashboardApi } from '../../api/dashboard';
 import { workoutHistoryApi } from '../../api/workoutHistory';
 import { dietApi } from '../../api/diet';
@@ -46,6 +47,7 @@ export default function HomeScreenModern(props: HomeScreenModernProps) {
   const { navigation } = props;
   const { state, logout } = useAuth();
   const user = state.user;
+  const { colors: C } = useAppColorMode();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -134,7 +136,7 @@ export default function HomeScreenModern(props: HomeScreenModernProps) {
     menuCloseBtn: { width: r(32), height: r(32), borderRadius: r(16), backgroundColor: C.surfaceLight, alignItems: 'center' as const, justifyContent: 'center' as const },
     menuItemText: { flex: 1, fontSize: r(15), fontFamily: FONT.semiBold, color: C.white },
     menuItemTextDanger: { color: C.destructive },
-  }), [sc, r]);
+  }), [sc, r, C]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {

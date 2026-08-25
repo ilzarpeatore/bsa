@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const WEEKLY_DATA = [
   { day: "Mon", steps: 6200 },
@@ -22,6 +23,8 @@ const BEST_DAY = 12450;
 const AVERAGE = 7542;
 
 export default function StepsInsightScreen() {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   const weeklyPercentage = Math.round((AVERAGE / GOAL) * 100);
 
@@ -104,7 +107,8 @@ export default function StepsInsightScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -235,4 +239,5 @@ const styles = StyleSheet.create({
     color: C.gray,
     marginTop: 4,
   },
-});
+  });
+}

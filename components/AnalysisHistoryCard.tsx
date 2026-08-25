@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C, FONT } from '../pages/migrated/theme';
+import { FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { ExerciseAnalysisSession } from '../api/exerciseInfo';
 
 interface Props {
@@ -19,6 +20,9 @@ function formatDate(dateStr: string): string {
 }
 
 function AnalysisHistoryCard({ session }: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+
   const columns = useMemo(() => {
     const keys = new Set<string>();
     session.sets.forEach((set) => {
@@ -98,7 +102,8 @@ function AnalysisHistoryCard({ session }: Props) {
 
 export const AnalysisHistoryCardMem = React.memo(AnalysisHistoryCard);
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   card: {
     backgroundColor: C.surfaceLight,
     borderRadius: 14,
@@ -162,4 +167,5 @@ const styles = StyleSheet.create({
   trophyIcon: { marginTop: -1 },
   metricCol: { flex: 1 },
   cellPr: { fontFamily: FONT.bold, color: C.warning40 },
-});
+  });
+}

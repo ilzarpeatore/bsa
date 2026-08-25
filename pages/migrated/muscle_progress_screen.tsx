@@ -7,7 +7,7 @@ import { Heading } from '@components/ui/heading';
 import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { muscleVolumeApi, MuscleVolumeData } from '../../api/muscleVolume';
 
@@ -43,6 +43,7 @@ function MuscleVolumeBar({ item, maxVolume }: { item: MuscleVolumeGroup; maxVolu
 
 export default function MuscleProgressScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [range, setRange] = useState<RangeKey>('week');
   const [data, setData] = useState<MuscleVolumeData>(EMPTY);
   const [isLoading, setIsLoading] = useState(false);

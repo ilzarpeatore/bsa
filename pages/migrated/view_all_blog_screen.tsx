@@ -10,7 +10,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Input, InputField, InputSlot } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { blogApi, BlogListItem, BlogCategory } from '../../api/blog';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import logger from '@helper/logger';
@@ -46,6 +46,7 @@ const formatDate = (dateStr: string): string => {
 };
 
 export default function ViewAllBlogScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
   const { categoryTitle, categoryId } = route?.params || {};
 
   const [categories, setCategories] = useState<BlogCategory[]>([]);

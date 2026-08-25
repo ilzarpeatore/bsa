@@ -14,7 +14,8 @@ import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@components/ui/icon";
 import { Text } from "@components/ui/text";
-import { C, FONT } from "../pages/migrated/theme";
+import { FONT } from "../pages/migrated/theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 import { useTabBarScroll } from "@store/TabBarScrollContext";
 
 // Espacio que las pantallas RAÍZ de una pestaña (las únicas que muestran
@@ -64,7 +65,8 @@ const QUICK_ACTIONS: QuickAction[] = [
  * central "+" que abre un submenu de accesos rápidos.
  */
 export default function NavigationTab({ state, descriptors, navigation }: BottomTabBarProps) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useStyle(C);
   const safearea = useSafeAreaInsets();
   /* top bar options */
   const focusedOptions = descriptors[state.routes[state.index].key].options as NavigationTabOptionsInterface;
@@ -313,7 +315,7 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                       navigation.navigate("PlanDiarioTab", { screen: action.route, params: action.params });
                     }}
                   >
-                    <View style={styles.quickMenuIconWrap}>
+                    <View style={[styles.quickMenuIconWrap, { backgroundColor: `${C.orange}1F` }]}>
                       <Icon name={action.icon} size={22} color={C.orange} />
                     </View>
                     <Text style={styles.quickMenuLabel} numberOfLines={1}>{action.label}</Text>
@@ -331,7 +333,7 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
  * style
  * * note : stylesheet is converted to responsiveStyleSheet because we need to use responsive ratio . if you don't want to use resposive ratio you can use the normal stylesheet version
  */
-function useStyle() {
+function useStyle(C: ReturnType<typeof useAppColorMode>['colors']) {
   const styles = useResponsiveStyleSheet({
     navigationOuter: {
       position: "absolute",
@@ -479,11 +481,18 @@ function useStyle() {
       gap: '8@ratio',
       paddingVertical: '12@ratio',
     },
+    // backgroundColor NO vive aqui -- useResponsiveStyleSheet memoiza el
+    // StyleSheet.create() resultante solo por `scale` (ver
+    // helper/responsiveStyleSheet.tsx), no por los valores de este objeto
+    // (que en cualquier pantalla que lo usa se recrea en cada render de
+    // todos modos). Si el color dependiente de C fuera parte de este objeto,
+    // un cambio de tema claro/oscuro no lo actualizaria hasta que `scale`
+    // cambiase (p.ej. al rotar) -- se aplica en su lugar como override
+    // inline en el JSX, que si se reevalua en cada render.
     quickMenuIconWrap: {
       width: '52@ratio',
       height: '52@ratio',
       borderRadius: '26@ratio',
-      backgroundColor: `${C.orange}1F`,
       alignItems: "center",
       justifyContent: "center",
     },

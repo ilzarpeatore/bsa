@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 import { stepsApi } from "@api/steps";
 
 export default function StepGoalScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [goal, setGoal] = useState(10000);
@@ -115,7 +118,8 @@ export default function StepGoalScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -257,4 +261,5 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: C.white,
   },
-});
+  });
+}

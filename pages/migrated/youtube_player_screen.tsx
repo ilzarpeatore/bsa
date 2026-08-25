@@ -6,7 +6,7 @@ import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 function extractYoutubeVideoId(url: string): string | null {
   const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -27,6 +27,7 @@ interface YoutubePlayerScreenProps {
 }
 
 export default function YoutubePlayerScreen(props: YoutubePlayerScreenProps) {
+  const { colors: C } = useAppColorMode();
   const { url, img, autoPlay = false, hideControl = false } = props.route?.params || {};
 
   const [videoId, setVideoId] = useState<string>('');

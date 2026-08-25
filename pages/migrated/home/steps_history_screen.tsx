@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 interface StepEntry {
   id: string;
@@ -44,6 +45,8 @@ function getIntensityColor(intensity: string) {
 }
 
 export default function StepsHistoryScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   const [filter, setFilter] = useState("All");
   const [data, setData] = useState(INITIAL_DATA);
@@ -139,7 +142,8 @@ export default function StepsHistoryScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -222,4 +226,5 @@ const styles = StyleSheet.create({
     color: C.gray,
     marginTop: 2,
   },
-});
+  });
+}

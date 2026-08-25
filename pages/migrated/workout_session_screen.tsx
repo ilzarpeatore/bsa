@@ -25,7 +25,8 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { Divider } from '@components/ui/divider';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { ExerciseThumbMem } from '../../components/ExerciseThumb';
 import { ConfirmDialogMem } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
@@ -197,6 +198,7 @@ function parseRestSeconds(raw?: string): number | null {
 
 export default function WorkoutSessionScreen(props: Props) {
   const { navigation, route } = props;
+  const { colors: C } = useAppColorMode();
   const { state } = useAuth();
   const { reportAction } = useTutorial();
   const insets = useSafeAreaInsets();

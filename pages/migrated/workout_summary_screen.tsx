@@ -24,7 +24,8 @@ import { Card as GluestackCard } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
-import { C, FONT, SHADOW } from './theme';
+import { FONT, SHADOW } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import { muscleVolumeApi, MuscleVolumeSet } from '../../api/muscleVolume';
@@ -98,22 +99,28 @@ const SHARE_ICONS: { key: string; icon: keyof typeof Ionicons.glyphMap; label: s
 ];
 
 const Card = React.forwardRef<React.ComponentRef<typeof Box>, { children: React.ReactNode; footerCentered?: boolean }>(
-  ({ children, footerCentered }, ref) => (
-    <GluestackCard ref={ref} collapsable={false} variant="elevated" className="flex-1 rounded-lg">
-      <Box style={s.cardBody}>{children}</Box>
-      <HStack
-        space={footerCentered ? 'sm' : undefined}
-        className={footerCentered ? 'items-center justify-center' : 'items-center justify-between'}
-        style={{ marginTop: 12 }}
-      >
-        <Image source={require('@assets/logo.png')} style={s.cardFooterLogo} resizeMode="contain" />
-        <Text style={s.cardFooterHandle}>@bestronger</Text>
-      </HStack>
-    </GluestackCard>
-  )
+  ({ children, footerCentered }, ref) => {
+    const { colors: C } = useAppColorMode();
+    const s = useMemo(() => createStyles(C), [C]);
+    return (
+      <GluestackCard ref={ref} collapsable={false} variant="elevated" className="flex-1 rounded-lg">
+        <Box style={s.cardBody}>{children}</Box>
+        <HStack
+          space={footerCentered ? 'sm' : undefined}
+          className={footerCentered ? 'items-center justify-center' : 'items-center justify-between'}
+          style={{ marginTop: 12 }}
+        >
+          <Image source={require('@assets/logo.png')} style={s.cardFooterLogo} resizeMode="contain" />
+          <Text style={s.cardFooterHandle}>@bestronger</Text>
+        </HStack>
+      </GluestackCard>
+    );
+  }
 );
 
 function StatCol({ label, value }: { label: string; value: string }) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   return (
     <Box style={s.statCol}>
       <Text style={s.statColValue}>{value}</Text>
@@ -123,6 +130,8 @@ function StatCol({ label, value }: { label: string; value: string }) {
 }
 
 function GridCell({ value, label }: { value: string; label: string }) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   return (
     <Box style={s.gridCell}>
       <Text style={s.gridValue}>{value}</Text>
@@ -132,6 +141,8 @@ function GridCell({ value, label }: { value: string; label: string }) {
 }
 
 function CondensedStat({ value, label }: { value: string; label: string }) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   return (
     <Box style={s.condensedStat}>
       <Text style={s.condensedValue}>{value}</Text>
@@ -141,6 +152,8 @@ function CondensedStat({ value, label }: { value: string; label: string }) {
 }
 
 function ExerciseRow({ item }: { item: ExerciseSummaryItem }) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   return (
     <HStack className="items-center" style={{ marginBottom: 14 }}>
       <Text style={s.exerciseSets}>{item.sets}x</Text>
@@ -153,6 +166,8 @@ function ExerciseRow({ item }: { item: ExerciseSummaryItem }) {
 
 export default function WorkoutSummaryScreen(props: Props) {
   const { navigation, route } = props;
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   const {
     mTitle,
     durationSeconds = 0,
@@ -317,7 +332,7 @@ export default function WorkoutSummaryScreen(props: Props) {
       if (mapLoading) return <Spinner size="small" color={C.textSecondary} />;
       return <MuscleBodyMap data={muscleVolume} height={height} showToggle={false} forcedView={forcedView} />;
     },
-    [mapLoading, muscleVolume]
+    [mapLoading, muscleVolume, C]
   );
 
   const renderPage = useCallback((index: number) => {
@@ -420,7 +435,7 @@ export default function WorkoutSummaryScreen(props: Props) {
           </Box>
         );
     }
-  }, [volumeKg, funFact, durationSeconds, completedSets, exerciseCount, exercisesSummary, mTitle, topMuscles, renderMap]);
+  }, [volumeKg, funFact, durationSeconds, completedSets, exerciseCount, exercisesSummary, mTitle, topMuscles, renderMap, s]);
 
   const renderPagerItem = useCallback(
     ({ item }: { item: number }) => (
@@ -502,7 +517,8 @@ export default function WorkoutSummaryScreen(props: Props) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   confettiBadge: {
     width: 56,
@@ -576,4 +592,5 @@ const s = StyleSheet.create({
   // Pantalla 6 — heatmap completo
   heatmapCol: { alignItems: 'center' },
   topMusclesText: { fontFamily: FONT.regular, fontSize: 12, color: C.textSecondary, textAlign: 'center', marginTop: 12 },
-});
+  });
+}

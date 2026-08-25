@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { C, FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
+import { FONT } from "../theme";
 
 const PERIODS = ["1d", "1w", "1m", "1y"];
 
@@ -15,18 +15,19 @@ const RECENT = [
   { time: "Yesterday 6:10 PM", bpm: 72, status: "normal" },
 ];
 
-function statusColor(s: string) {
-  if (s === "high") return C.warning40;
-  if (s === "low") return C.blue50;
-  return C.success50;
-}
-
 const CHART_DATA = [65, 70, 72, 68, 75, 72, 70, 68, 74, 72, 76, 72, 70, 68];
 const MAX_CHART = Math.max(...CHART_DATA);
 
 export default function HeartRateScreen({ navigation }: any) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [period, setPeriod] = useState("1d");
+
+  const statusColor = (s: string) => {
+    if (s === "high") return C.warning40;
+    if (s === "low") return C.blue50;
+    return C.success50;
+  };
 
   return (
     <View style={styles.root}>
@@ -161,8 +162,8 @@ export default function HeartRateScreen({ navigation }: any) {
   );
 }
 
-function useStyle() {
-  return useResponsiveStyleSheet({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     content: { padding: 20, paddingBottom: 40 },
     header: {

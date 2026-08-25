@@ -6,7 +6,8 @@ import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { profileApi } from '@api/profile';
 import { useAuth } from '@store/AuthContext';
 import { scheduleMealReminders } from '@helper/reminderNotifications';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 interface TimeObj {
   hour: number;
@@ -50,6 +51,7 @@ function pickTime(current: TimeObj, onSelected: (t: TimeObj) => void) {
 export default function MealsRemindersScreen(props: MealsRemindersScreenProps) {
   const { navigation } = props;
   const { state } = useAuth();
+  const { colors: C } = useAppColorMode();
 
   const [breakfastEnabled, setBreakfastEnabled] = useState(true);
   const [snacksEnabled, setSnacksEnabled] = useState(true);

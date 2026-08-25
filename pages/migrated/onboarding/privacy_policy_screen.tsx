@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const SECTIONS = [
   { title: "RecopilaciÃ³n de datos", text: "Recopilamos informaciÃ³n personal como nombre, edad, peso, altura y datos de salud para personalizar tu experiencia fitness. TambiÃ©n recopilamos datos de uso de la aplicaciÃ³n para mejorar nuestros servicios." },
@@ -14,6 +15,8 @@ const SECTIONS = [
 ];
 
 export default function PrivacyPolicyScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const canContinue = acceptedPrivacy && acceptedTerms;
@@ -73,19 +76,21 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  headerIcon: { alignSelf: "center", marginBottom: 12 },
-  title: { fontSize: 22, fontFamily: FONT.bold, marginBottom: 20, textAlign: "center" },
-  section: { backgroundColor: C.surface, borderRadius: 12, padding: 16, marginBottom: 12 },
-  sectionTitle: { fontSize: 15, fontFamily: FONT.bold, marginBottom: 6 },
-  sectionText: { fontSize: 13, lineHeight: 20 },
-  checkboxes: { marginTop: 8 },
-  checkRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, justifyContent: "center", alignItems: "center" },
-  checkLabel: { fontSize: 14, flex: 1 },
-  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.surface },
-  continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center" },
-  continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    scrollContent: { padding: 20, paddingBottom: 100 },
+    headerIcon: { alignSelf: "center", marginBottom: 12 },
+    title: { fontSize: 22, fontFamily: FONT.bold, marginBottom: 20, textAlign: "center" },
+    section: { backgroundColor: C.surface, borderRadius: 12, padding: 16, marginBottom: 12 },
+    sectionTitle: { fontSize: 15, fontFamily: FONT.bold, marginBottom: 6 },
+    sectionText: { fontSize: 13, lineHeight: 20 },
+    checkboxes: { marginTop: 8 },
+    checkRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+    checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, justifyContent: "center", alignItems: "center" },
+    checkLabel: { fontSize: 14, flex: 1 },
+    bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.surface },
+    continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center" },
+    continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
+  });
+}

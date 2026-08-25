@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { KeyboardAvoidingView, Keyboard, Platform, View } from 'react-native';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@components/ui/actionsheet';
 import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { C } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface SimpleBottomSheetProps {
   visible: boolean;
@@ -33,6 +33,7 @@ interface SimpleBottomSheetProps {
 // fondo real (Liquid Glass o C.surface de reserva) lo pone el GlassView de
 // dentro, que también lleva el radio/padding que antes tenía este nodo.
 export default function SimpleBottomSheet({ visible, onClose, children }: SimpleBottomSheetProps) {
+  const { colors: C } = useAppColorMode();
   const keyboardVisibleRef = useRef(false);
   // Solo iOS 26+ real (dispositivo + compilado con Xcode 26+) renderiza el
   // material Liquid Glass de verdad — en cualquier otro caso GlassView cae a

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Box } from "@components/ui/box";
@@ -8,11 +8,13 @@ import { Icon } from "@components/ui/icon";
 import { Card } from "@components/ui/card";
 import { HStack } from "@components/ui/hstack";
 import { VStack } from "@components/ui/vstack";
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-const METRIC_DATA: Record<string, any> = {
+function buildMetricData(C: ReturnType<typeof useAppColorMode>["colors"]): Record<string, any> {
+  return {
   heart_rate: {
     label: "Frecuencia cardíaca",
     icon: "heart",
@@ -109,9 +111,12 @@ const METRIC_DATA: Record<string, any> = {
       "Vigila la ingesta de micronutrientes",
     ],
   },
-};
+  };
+}
 
 function CircularProgress({ score }: { score: number }) {
+  const { colors: C } = useAppColorMode();
+  const cpStyles = useMemo(() => createCpStyles(C), [C]);
   const size = 120;
   const stroke = 8;
   const radius = (size - stroke) / 2;
@@ -154,15 +159,19 @@ function CircularProgress({ score }: { score: number }) {
   );
 }
 
-const cpStyles = StyleSheet.create({
+function createCpStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
   wrapper: { alignItems: "center", justifyContent: "center" },
   circle: { position: "absolute" },
   label: { alignItems: "center" },
   score: { fontSize: 32, lineHeight: 38, fontFamily: FONT.bold, color: C.white },
   of: { fontSize: 14, fontFamily: FONT.regular, color: C.gray50 },
-});
+  });
+}
 
 export default function HealthMetricInsightScreen({ route }: any) {
+  const { colors: C } = useAppColorMode();
+  const METRIC_DATA = useMemo(() => buildMetricData(C), [C]);
   const metricType = route?.params?.metricType || "heart_rate";
   const data = METRIC_DATA[metricType] || METRIC_DATA.heart_rate;
 

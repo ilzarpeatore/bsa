@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 export const HEADER_HEIGHT_RATIO = 0.45;
 
@@ -28,6 +28,8 @@ interface Props {
  * incluso cuando la media ya se desplazó fuera de la vista.
  */
 function ExerciseMediaHeader({ headerHeight, thumbnailUrl, onPlayPress }: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const media = thumbnailUrl ? (
     <Image source={{ uri: thumbnailUrl }} style={styles.image} contentFit="cover" />
   ) : (
@@ -68,6 +70,8 @@ export function ExerciseHeaderFloatingIcons({ onBack, isFavourite, onToggleFavou
   // Island; en iPhone 14 Pro+/15/16 el inset real de status bar es mayor,
   // así que los botones flotantes quedaban demasiado arriba, pegados o
   // tapados por la isla.
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const top = insets.top + 8;
   return (
@@ -88,7 +92,8 @@ export function ExerciseHeaderFloatingIcons({ onBack, isFavourite, onToggleFavou
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   wrap: {
     width: '100%',
     overflow: 'hidden',
@@ -137,4 +142,5 @@ const styles = StyleSheet.create({
   favBtn: {
     right: 16,
   },
-});
+  });
+}

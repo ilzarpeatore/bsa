@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const METRICS = [
   { label: "Active Minutes", value: "45", icon: "timer-outline" },
@@ -12,6 +13,8 @@ const METRICS = [
 ];
 
 export default function StepsDetailsScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
 
   return (
@@ -58,7 +61,8 @@ export default function StepsDetailsScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -157,4 +161,5 @@ const styles = StyleSheet.create({
     fontFamily: FONT.bold,
     color: C.white,
   },
-});
+  });
+}

@@ -10,7 +10,7 @@ import { Icon } from '@components/ui/icon';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import { useTutorial } from '@store/TutorialContext';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { habitsApi, HabitTemplate, HabitFrequency } from '../../api/habits';
 import { HABIT_ICON_KEYS, habitIoniconFor } from '../../constants/habitIcons';
 
@@ -30,10 +30,10 @@ interface Props {
 // detectada, este ErrorBoundary evita que un throw en el árbol de esta
 // pantalla tumbe la app entera; en su lugar degrada a un mensaje con salida.
 class HabitAddErrorBoundary extends React.Component<
-  { navigation?: any; children: React.ReactNode },
+  { navigation?: any; colors: ReturnType<typeof useAppColorMode>['colors']; children: React.ReactNode },
   { hasError: boolean }
 > {
-  constructor(props: { navigation?: any; children: React.ReactNode }) {
+  constructor(props: { navigation?: any; colors: ReturnType<typeof useAppColorMode>['colors']; children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -45,6 +45,7 @@ class HabitAddErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.hasError) {
+      const C = this.props.colors;
       return (
         <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
           <ScreenHeader title="Añadir hábito" onBack={() => this.props.navigation?.goBack()} />
@@ -65,6 +66,7 @@ class HabitAddErrorBoundary extends React.Component<
 }
 
 function HabitAddScreenInner(props: Props) {
+  const { colors: C } = useAppColorMode();
   const { navigation } = props;
   const [tab, setTab] = useState<'library' | 'create'>('library');
 
@@ -147,7 +149,7 @@ function HabitAddScreenInner(props: Props) {
         </Pressable>
       </Box>
     ),
-    [adopt, adoptingId]
+    [adopt, adoptingId, C]
   );
 
   const submitPersonal = async () => {
@@ -306,8 +308,9 @@ function HabitAddScreenInner(props: Props) {
 }
 
 export default function HabitAddScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
   return (
-    <HabitAddErrorBoundary navigation={props.navigation}>
+    <HabitAddErrorBoundary navigation={props.navigation} colors={C}>
       <HabitAddScreenInner {...props} />
     </HabitAddErrorBoundary>
   );

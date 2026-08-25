@@ -12,7 +12,7 @@ import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import { useTutorial } from '@store/TutorialContext';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { habitsApi, Habit, HabitSourceType } from '../../api/habits';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '../../components/WeekComplianceRow';
@@ -22,16 +22,6 @@ const SOURCE_LABEL: Record<HabitSourceType, string> = {
   coach_assigned: 'De tu coach',
   library: 'Biblioteca',
   personal: 'Personal',
-};
-const SOURCE_COLOR: Record<HabitSourceType, string> = {
-  coach_assigned: C.purple60,
-  library: C.blue60,
-  personal: C.warning60,
-};
-const SOURCE_BG: Record<HabitSourceType, string> = {
-  coach_assigned: C.purple5,
-  library: C.blue5,
-  personal: C.warning5,
 };
 
 // Fecha local (YYYY-MM-DD) sin pasar por UTC — ver comentario homologo en
@@ -58,6 +48,17 @@ interface Props {
 const isGoalHabit = (habit: Habit) => habit.target_value != null && Number(habit.target_value) > 0;
 
 export default function HabitsListScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
+  const SOURCE_COLOR: Record<HabitSourceType, string> = {
+    coach_assigned: C.purple60,
+    library: C.blue60,
+    personal: C.warning60,
+  };
+  const SOURCE_BG: Record<HabitSourceType, string> = {
+    coach_assigned: C.purple5,
+    library: C.blue5,
+    personal: C.warning5,
+  };
   const { navigation } = props;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);

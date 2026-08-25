@@ -12,7 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import ScreenHeader from '@components/ScreenHeader';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 interface GoalCardProps {
   title: string;
@@ -49,6 +50,7 @@ const equipmentData = [
 
 export default function MainGoalScreen(props: MainGoalScreenProps) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [selectedScreen, setSelectedScreen] = useState(0);
   const [selectedGoalIndex, setSelectedGoalIndex] = useState(0);
   const [selectedExperienceIndex, setSelectedExperienceIndex] = useState(0);

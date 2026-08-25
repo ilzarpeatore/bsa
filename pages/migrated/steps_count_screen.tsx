@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AnimatedRing from '@components/AnimatedRing';
 import ScreenHeader from '@components/ScreenHeader';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -12,6 +13,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_FILTERS = ['Diario', 'Semanal', 'Mensual'];
 
 export default function StepsCountScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [editingGoal, setEditingGoal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [steps, setSteps] = useState(0);
@@ -169,7 +172,8 @@ export default function StepsCountScreen(props: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   appBar: {
     flexDirection: 'row',
@@ -226,4 +230,5 @@ const styles = StyleSheet.create({
   filterTextActive: { color: C.textPrimary, fontFamily: FONT.semiBold },
   chartPlaceholder: { height: 200, justifyContent: 'center', alignItems: 'center' },
   chartPlaceholderText: { color: C.gray30, fontSize: 14 },
-});
+  });
+}

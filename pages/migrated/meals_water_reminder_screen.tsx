@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 interface MealsWaterReminderScreenProps {
   navigation?: any;
@@ -12,6 +13,7 @@ interface MealsWaterReminderScreenProps {
 
 export default function MealsWaterReminderScreen(props: MealsWaterReminderScreenProps) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
 
   const styles = useResponsiveStyleSheet({
     container: { flex: 1, backgroundColor: C.bg },

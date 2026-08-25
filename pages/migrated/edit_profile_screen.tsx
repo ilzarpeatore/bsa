@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,23 +16,8 @@ import ScreenHeader from '@components/ScreenHeader';
 import AppIcon from '@components/AppIcon';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
-import { C, FONT } from './theme';
-
-// Color/icono por campo, reutilizando AppIcon (mismo patrón de badge
-// cuadrado redondeado + icono ya usado en Home) -- pedido explícito, misma
-// captura de referencia que la pantalla "Ajustes" de Bevel: filas agrupadas
-// en tarjetas blancas con un badge de color por fila en vez de la lista
-// plana de antes. Aquí no hay chevron de navegación (a diferencia de la
-// referencia) porque cada fila se edita in-situ, no lleva a otra pantalla.
-const FIELD_ICON = {
-  name: { icon: 'person-outline' as const, color: C.blue },
-  email: { icon: 'mail-outline' as const, color: C.purple60 },
-  phone: { icon: 'call-outline' as const, color: C.success },
-  gender: { icon: 'male-female-outline' as const, color: C.pink },
-  age: { icon: 'calendar-outline' as const, color: C.warning },
-  weight: { icon: 'barbell-outline' as const, color: C.destructive },
-  height: { icon: 'resize-outline' as const, color: '#14B8A6' },
-};
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -77,6 +62,24 @@ function buildProfileFormData(payload: Record<string, any>, imageUri: string) {
 }
 
 export default function EditProfileScreen(props: EditProfileScreenProps) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
+
+  // Color/icono por campo, reutilizando AppIcon (mismo patrón de badge
+  // cuadrado redondeado + icono ya usado en Home) -- pedido explícito, misma
+  // captura de referencia que la pantalla "Ajustes" de Bevel: filas agrupadas
+  // en tarjetas blancas con un badge de color por fila en vez de la lista
+  // plana de antes. Aquí no hay chevron de navegación (a diferencia de la
+  // referencia) porque cada fila se edita in-situ, no lleva a otra pantalla.
+  const FIELD_ICON = {
+    name: { icon: 'person-outline' as const, color: C.blue },
+    email: { icon: 'mail-outline' as const, color: C.purple60 },
+    phone: { icon: 'call-outline' as const, color: C.success },
+    gender: { icon: 'male-female-outline' as const, color: C.pink },
+    age: { icon: 'calendar-outline' as const, color: C.warning },
+    weight: { icon: 'barbell-outline' as const, color: C.destructive },
+    height: { icon: 'resize-outline' as const, color: '#14B8A6' },
+  };
 
   const { updateUser, state } = useAuth();
   const [fName, setFName] = useState('');
@@ -512,7 +515,8 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   );
 }
 
-const localStyles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   scrollContent: {
     paddingTop: 24,
     paddingHorizontal: 20,
@@ -629,4 +633,5 @@ const localStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+  });
+}

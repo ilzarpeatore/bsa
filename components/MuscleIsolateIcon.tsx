@@ -4,10 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { FRONT_MUSCLES, BACK_MUSCLES, MUSCLE_MAP, ViewSide, MuscleDef } from '../constants/bodyMusclesPaths';
 import { bodyMusclesIdsFor, bodyMusclesIdsForBodyPartId } from '../constants/bodyMusclesMap';
-import { C } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 const CONTEXT_FILL = '#E4E4E7';
-const DEFAULT_COLOR = C.orange;
 
 /**
  * Extrae el bounding box aproximado de un `d` de path SVG sin depender de
@@ -143,7 +142,9 @@ interface Props {
   style?: any;
 }
 
-function MuscleIsolateIcon({ bodyPartId, muscleName, size = 44, color = DEFAULT_COLOR, style }: Props) {
+function MuscleIsolateIcon({ bodyPartId, muscleName, size = 44, color, style }: Props) {
+  const { colors: C } = useAppColorMode();
+  const resolvedColor = color ?? C.orange;
   const resolved = useMemo(() => {
     const rawIds = muscleName
       ? bodyMusclesIdsFor(muscleName)
@@ -167,7 +168,7 @@ function MuscleIsolateIcon({ bodyPartId, muscleName, size = 44, color = DEFAULT_
     <View style={[{ width: size, height: size, overflow: 'hidden' }, style]}>
       <Svg width={size} height={size} viewBox={resolved.viewBox}>
         {muscles.map((m) => (
-          <Path key={m.id} d={m.path} fill={resolved.idsInView.has(m.id) ? color : CONTEXT_FILL} />
+          <Path key={m.id} d={m.path} fill={resolved.idsInView.has(m.id) ? resolvedColor : CONTEXT_FILL} />
         ))}
       </Svg>
     </View>

@@ -11,7 +11,7 @@ import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import DaySelectorStrip, { DaySelectorItem } from '../../components/DaySelectorStrip';
@@ -45,6 +45,7 @@ const onHelp = () =>
 
 export default function StatisticsBodyDistributionScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [weekAnchor, setWeekAnchor] = useState(new Date());
   const weekDays = useMemo(() => buildWeekRange(weekAnchor), [weekAnchor]);
   const todayISO = useMemo(() => toLocalISODate(new Date()), []);

@@ -3,11 +3,12 @@
 // Gluestack — recrear un sparkline desde cero sería trabajo repetido. El
 // layout de card sí debe reconstruirse con el nuevo componente Card de
 // Fase 1 cuando se retome.
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Polyline, Circle } from "react-native-svg";
-import { C, RADIUS, SPACING, SHADOW } from "@pages/migrated/theme";
+import { RADIUS, SPACING, SHADOW } from "@pages/migrated/theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 export type TrendStatus = "success" | "warning" | "danger" | "neutral";
 
@@ -21,12 +22,14 @@ interface Props {
   onPress?: () => void;
 }
 
-const STATUS_COLOR: Record<TrendStatus, string> = {
-  success: C.statusSuccess,
-  warning: C.statusWarning,
-  danger: C.statusDanger,
-  neutral: C.textSecondary,
-};
+function buildStatusColor(C: ReturnType<typeof useAppColorMode>['colors']): Record<TrendStatus, string> {
+  return {
+    success: C.statusSuccess,
+    warning: C.statusWarning,
+    danger: C.statusDanger,
+    neutral: C.textSecondary,
+  };
+}
 
 const SPARK_WIDTH = 150;
 const SPARK_HEIGHT = 50;
@@ -70,6 +73,9 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 // sección 2.4): icono + nombre, valor grande, indicador de estado, mini
 // gráfico. Sin datos → EmptyStateCard, no esta.
 export default function TrendCard({ icon, label, value, statusText, status = "neutral", data = [], onPress }: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+  const STATUS_COLOR = useMemo(() => buildStatusColor(C), [C]);
   const color = STATUS_COLOR[status];
   const Wrapper = onPress ? Pressable : View;
 
@@ -104,7 +110,8 @@ export default function TrendCard({ icon, label, value, statusText, status = "ne
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -144,4 +151,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-});
+  });
+}

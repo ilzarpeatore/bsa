@@ -8,7 +8,8 @@ import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
-import { C, FONT, SHADOW } from './theme';
+import { FONT, SHADOW } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import SimpleBottomSheet from '@components/SimpleBottomSheet';
 import MetricLineChart from '@components/MetricLineChart';
 import {
@@ -33,6 +34,7 @@ function todayISO(): string {
 }
 
 export default function BodyMetricsScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const initialType: string | undefined = props.route?.params?.metricType;
   const [types, setTypes] = useState<BodyMetricTypeDef[]>([]);
   const [chartData, setChartData] = useState<BodyMetricChartData>({});

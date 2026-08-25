@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Modal, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +6,8 @@ import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { profileApi } from '@api/profile';
 import { useAuth } from '@store/AuthContext';
 import { scheduleWaterReminders } from '@helper/reminderNotifications';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 function formatTime(hour: number, minute: number) {
   const h = hour.toString().padStart(2, '0');
@@ -16,24 +17,27 @@ function formatTime(hour: number, minute: number) {
   return `${h12}:${m} ${period}`;
 }
 
-const renderRow = (title: string, value: string, onPress?: () => void) => (
-  <Pressable
-    style={({ pressed }) => [styles.row, !!onPress && pressed && { opacity: 0.2 }]}
-    onPress={onPress}
-    disabled={!onPress}
-  >
-    <Text style={styles.rowTitle}>{title}</Text>
-    <View style={styles.rowTrailing}>
-      <Text style={styles.rowValue}>{value}</Text>
-      <Ionicons name="chevron-forward" size={20} color={C.gray30} />
-    </View>
-  </Pressable>
-);
-
 // Fuera del componente para no reconstruir el array en cada render del picker.
 const EVERY_HOURS_OPTIONS = Array.from({ length: 24 }, (_, i) => i + 1);
 
 export default function WaterRemindersScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+  // Dentro del componente (no a nivel de módulo) para poder capturar `C` y
+  // `styles` -- ambos dependen del tema en vivo.
+  const renderRow = (title: string, value: string, onPress?: () => void) => (
+    <Pressable
+      style={({ pressed }) => [styles.row, !!onPress && pressed && { opacity: 0.2 }]}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <Text style={styles.rowTitle}>{title}</Text>
+      <View style={styles.rowTrailing}>
+        <Text style={styles.rowValue}>{value}</Text>
+        <Ionicons name="chevron-forward" size={20} color={C.gray30} />
+      </View>
+    </Pressable>
+  );
   const { state } = useAuth();
   const [enabled, setEnabled] = useState(true);
   const [everyHours, setEveryHours] = useState(1);
@@ -300,7 +304,8 @@ export default function WaterRemindersScreen(props: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
@@ -436,4 +441,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: C.white,
   },
-});
+  });
+}

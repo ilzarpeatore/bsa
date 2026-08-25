@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 export default function ProfileSetupIntroScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   return (
     <SafeAreaView style={localStyles.container}>
       <View style={localStyles.content}>
@@ -70,21 +73,23 @@ export default function ProfileSetupIntroScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  content: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30 },
-  iconContainer: { width: 120, height: 120, borderRadius: 60, justifyContent: "center", alignItems: "center", marginBottom: 24 },
-  title: { fontSize: 28, lineHeight: 34, fontFamily: FONT.bold, marginBottom: 12, textAlign: "center" },
-  subtitle: { fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 32 },
-  featureList: { width: "100%", gap: 16 },
-  featureRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  featureIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
-  featureContent: { flex: 1 },
-  featureTitle: { fontSize: 14, fontFamily: FONT.bold, marginBottom: 2 },
-  featureDesc: { fontSize: 12 },
-  bottomBar: { padding: 20, paddingBottom: 30 },
-  startBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center", marginBottom: 12 },
-  startBtnText: { fontSize: 16, fontFamily: FONT.bold },
-  helpLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 8 },
-  helpText: { fontSize: 14 },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    content: { flex: 1, justifyContent: "center", alignItems: "center", padding: 30 },
+    iconContainer: { width: 120, height: 120, borderRadius: 60, justifyContent: "center", alignItems: "center", marginBottom: 24 },
+    title: { fontSize: 28, lineHeight: 34, fontFamily: FONT.bold, marginBottom: 12, textAlign: "center" },
+    subtitle: { fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 32 },
+    featureList: { width: "100%", gap: 16 },
+    featureRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+    featureIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
+    featureContent: { flex: 1 },
+    featureTitle: { fontSize: 14, fontFamily: FONT.bold, marginBottom: 2 },
+    featureDesc: { fontSize: 12 },
+    bottomBar: { padding: 20, paddingBottom: 30 },
+    startBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center", marginBottom: 12 },
+    startBtnText: { fontSize: 16, fontFamily: FONT.bold },
+    helpLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 8 },
+    helpText: { fontSize: 14 },
+  });
+}

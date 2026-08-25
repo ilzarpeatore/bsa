@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Box } from "@components/ui/box";
@@ -9,18 +9,20 @@ import { Icon } from "@components/ui/icon";
 import { Card } from "@components/ui/card";
 import { HStack } from "@components/ui/hstack";
 import { VStack } from "@components/ui/vstack";
-import { C } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
-const METRICS = [
-  { id: "heart_rate", name: "Heart Rate", value: "72", unit: "bpm", status: "Normal", statusColor: C.success50, icon: "heart", iconBg: C.destructive5, iconColor: C.destructive50, chart: [65, 68, 72, 70, 74, 72] },
-  { id: "steps", name: "Steps", value: "1,258", unit: "left", status: "1,225 left", statusColor: C.warning40, icon: "footsteps", iconBg: C.brand5, iconColor: C.brand50, chart: [200, 450, 680, 890, 1050, 1258] },
-  { id: "weight", name: "Weight", value: "70", unit: "kg", status: "Stable", statusColor: C.success50, icon: "scale-outline", iconBg: C.blue5, iconColor: C.blue50, chart: [71, 70.5, 70.2, 70, 70, 70] },
-  { id: "hydration", name: "Hydration", value: "2.1", unit: "L", status: "Good", statusColor: C.success50, icon: "water", iconBg: C.blue5, iconColor: C.blue50, chart: [0.5, 1.0, 1.4, 1.7, 1.9, 2.1] },
-  { id: "blood_pressure", name: "Blood Pressure", value: "128/80", unit: "mmHg", status: "Normal", statusColor: C.success50, icon: "pulse", iconBg: C.destructive5, iconColor: C.destructive50, chart: [130, 128, 126, 128, 127, 128] },
-  { id: "sleep", name: "Sleep", value: "7h 30m", unit: "", status: "Good", statusColor: C.success50, icon: "moon", iconBg: C.purple5, iconColor: C.purple50, chart: [6.5, 7.0, 7.5, 7.2, 7.8, 7.5] },
-  { id: "nutrition", name: "Nutrition", value: "1,850", unit: "kcal", status: "On Track", statusColor: C.brand50, icon: "restaurant", iconBg: C.brand5, iconColor: C.brand50, chart: [1600, 1750, 1800, 1850, 1820, 1850] },
-  { id: "mood", name: "Mood", value: "Good", unit: "", status: "Stable", statusColor: C.success50, icon: "happy", iconBg: C.warning5, iconColor: C.warning40, chart: [3, 3, 4, 4, 4, 4] },
-];
+function buildMetrics(C: ReturnType<typeof useAppColorMode>["colors"]) {
+  return [
+    { id: "heart_rate", name: "Heart Rate", value: "72", unit: "bpm", status: "Normal", statusColor: C.success50, icon: "heart", iconBg: C.destructive5, iconColor: C.destructive50, chart: [65, 68, 72, 70, 74, 72] },
+    { id: "steps", name: "Steps", value: "1,258", unit: "left", status: "1,225 left", statusColor: C.warning40, icon: "footsteps", iconBg: C.brand5, iconColor: C.brand50, chart: [200, 450, 680, 890, 1050, 1258] },
+    { id: "weight", name: "Weight", value: "70", unit: "kg", status: "Stable", statusColor: C.success50, icon: "scale-outline", iconBg: C.blue5, iconColor: C.blue50, chart: [71, 70.5, 70.2, 70, 70, 70] },
+    { id: "hydration", name: "Hydration", value: "2.1", unit: "L", status: "Good", statusColor: C.success50, icon: "water", iconBg: C.blue5, iconColor: C.blue50, chart: [0.5, 1.0, 1.4, 1.7, 1.9, 2.1] },
+    { id: "blood_pressure", name: "Blood Pressure", value: "128/80", unit: "mmHg", status: "Normal", statusColor: C.success50, icon: "pulse", iconBg: C.destructive5, iconColor: C.destructive50, chart: [130, 128, 126, 128, 127, 128] },
+    { id: "sleep", name: "Sleep", value: "7h 30m", unit: "", status: "Good", statusColor: C.success50, icon: "moon", iconBg: C.purple5, iconColor: C.purple50, chart: [6.5, 7.0, 7.5, 7.2, 7.8, 7.5] },
+    { id: "nutrition", name: "Nutrition", value: "1,850", unit: "kcal", status: "On Track", statusColor: C.brand50, icon: "restaurant", iconBg: C.brand5, iconColor: C.brand50, chart: [1600, 1750, 1800, 1850, 1820, 1850] },
+    { id: "mood", name: "Mood", value: "Good", unit: "", status: "Stable", statusColor: C.success50, icon: "happy", iconBg: C.warning5, iconColor: C.warning40, chart: [3, 3, 4, 4, 4, 4] },
+  ];
+}
 
 function MiniChart({ data, color }: { data: number[]; color: string }) {
   const max = Math.max(...data);
@@ -55,6 +57,8 @@ const miniStyles = StyleSheet.create({
 });
 
 export default function FitnessMetricsScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const METRICS = useMemo(() => buildMetrics(C), [C]);
   const handlePress = (metric: (typeof METRICS)[number]) => {
     navigation.navigate("MigratedHealthMetricInsight", { metricType: metric.id });
   };

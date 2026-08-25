@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C, FONT } from '../pages/migrated/theme';
+import { FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import SimpleBottomSheet from './SimpleBottomSheet';
 import {
   painReportsApi,
@@ -61,6 +62,8 @@ export default function PainReportSheet({
   exerciseId,
   exerciseTitle,
 }: PainReportSheetProps) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   const [tipo, setTipo] = useState<PainReportTipo | null>(null);
   const [locationChip, setLocationChip] = useState<string | null>(null);
   const [customLocation, setCustomLocation] = useState('');
@@ -249,7 +252,8 @@ export default function PainReportSheet({
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.gray60, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
   headerRow: {
     flexDirection: 'row',
@@ -323,4 +327,5 @@ const s = StyleSheet.create({
   },
   submitBtnDisabled: { opacity: 0.35 },
   submitBtnText: { fontFamily: FONT.bold, fontSize: 14, color: '#FFFFFF', letterSpacing: 0.5 },
-});
+  });
+}

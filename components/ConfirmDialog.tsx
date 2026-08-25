@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C, FONT, SHADOW } from '../pages/migrated/theme';
+import { FONT, SHADOW } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface Props {
   visible: boolean;
@@ -35,6 +36,8 @@ function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const resolvedIconColor = iconColor ?? (destructive ? C.destructive50 : C.textPrimary);
   const resolvedIconBg = iconBg ?? (destructive ? C.destructive5 : C.gray5);
 
@@ -75,7 +78,8 @@ function ConfirmDialog({
 export const ConfirmDialogMem = React.memo(ConfirmDialog);
 export default ConfirmDialog;
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -149,4 +153,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
   },
-});
+  });
+}
