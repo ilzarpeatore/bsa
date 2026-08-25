@@ -105,7 +105,7 @@ export const C = {
   // Acento neutro para CTAs principales tipo Bevel (botones "Continuar",
   // "Guardar") — negro casi puro, no el brand50/60 morado de la app.
   accentBlack: "#000000",
-} as const;
+};
 
 // Variante oscura de C, mismas claves exactas (Home v2, 2026-08-21 —
 // arranque de modo oscuro automático por hora, ver useAppColorMode). Los

@@ -65,11 +65,13 @@ function ScaleRow({
   value,
   onChange,
   labels,
+  rs,
 }: {
   count: number;
   value: number | null;
   onChange: (v: number) => void;
   labels?: string[];
+  rs: ReturnType<typeof createReadinessStyles>;
 }) {
   return (
     <HStack space="sm" className="items-center flex-wrap" style={{ marginTop: 12 }}>
@@ -131,23 +133,23 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
 
         <Card variant="elevated" style={{ marginBottom: 14 }}>
           <Text style={rs.question}>Valora tu descanso nocturno</Text>
-          <ScaleRow count={5} value={sleepQuality} onChange={setSleepQuality} labels={SLEEP_LABELS} />
+          <ScaleRow count={5} value={sleepQuality} onChange={setSleepQuality} labels={SLEEP_LABELS} rs={rs} />
         </Card>
 
         <Card variant="elevated" style={{ marginBottom: 14 }}>
           <Text style={rs.question}>Nivel de agujetas</Text>
           <Text style={rs.questionHint}>1 = ninguna · 10 = muy intensas</Text>
-          <ScaleRow count={10} value={sorenessLevel} onChange={setSorenessLevel} />
+          <ScaleRow count={10} value={sorenessLevel} onChange={setSorenessLevel} rs={rs} />
         </Card>
 
         <Card variant="elevated" style={{ marginBottom: 14 }}>
           <Text style={rs.question}>Nivel de energía</Text>
-          <ScaleRow count={5} value={energyLevel} onChange={setEnergyLevel} labels={ENERGY_LABELS} />
+          <ScaleRow count={5} value={energyLevel} onChange={setEnergyLevel} labels={ENERGY_LABELS} rs={rs} />
         </Card>
 
         <Card variant="elevated" style={{ marginBottom: 14 }}>
           <Text style={rs.question}>Nivel de estrés mental</Text>
-          <ScaleRow count={5} value={stressLevel} onChange={setStressLevel} labels={STRESS_LABELS} />
+          <ScaleRow count={5} value={stressLevel} onChange={setStressLevel} labels={STRESS_LABELS} rs={rs} />
         </Card>
       </ScrollView>
 

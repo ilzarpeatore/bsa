@@ -16,7 +16,7 @@ import {
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { exercisesApi, EXERCISE_TYPES } from '../../api/exercises';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 
@@ -70,6 +70,7 @@ async function getLevelListApi(page: number): Promise<ApiResponse<LevelModel>> {
 }
 
 export default function SearchScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   // Cuando se llega desde ViewBodyPart/ViewEquipment/ViewLevel (esta pantalla
   // sustituye a exercise_list_screen.tsx en todos sus llamadores), viene con
   // un filtro ya elegido — se aplica directo en vez del "Todos" por defecto.
@@ -368,7 +369,7 @@ export default function SearchScreen(props: any) {
         <Text weight="medium" className="flex-1 text-foreground" style={{ marginLeft: 12 }}>{item.title}</Text>
       </Pressable>
     ),
-    [props.navigation]
+    [props.navigation, C]
   );
 
   const bottomSheetOptions: (EquipmentModel | LevelModel | { id: string; title: string })[] =

@@ -8,7 +8,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Input, InputField, InputSlot } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 
 type Tab = 'mine' | 'shared';
@@ -34,13 +34,6 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   doc: 'reader-outline',
 };
 
-const TYPE_COLOR: Record<string, string> = {
-  article: C.blue60,
-  video: C.warning60,
-  link: C.purple60,
-  doc: C.success60,
-};
-
 const TYPE_LABEL: Record<string, string> = {
   article: 'Artículo',
   video: 'Vídeo',
@@ -62,6 +55,13 @@ interface Props {
 }
 
 export default function ResourcesListScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
+  const TYPE_COLOR: Record<string, string> = {
+    article: C.blue60,
+    video: C.warning60,
+    link: C.purple60,
+    doc: C.success60,
+  };
   const { navigation } = props;
   const [activeTab, setActiveTab] = useState<Tab>('mine');
   const [isLoading, setIsLoading] = useState(true);

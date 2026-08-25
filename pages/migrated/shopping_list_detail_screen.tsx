@@ -17,11 +17,12 @@ import {
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { shoppingApi, ShoppingListDetail, ShoppingListItemDetail, MeasurementUnit } from '@api/shopping';
 import logger from '@helper/logger';
 
 export default function ShoppingListDetailScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const shoppingListId = props.route?.params?.shoppingListId ?? 0;
   const [isLoading, setIsLoading] = useState(true);
   const [detailData, setDetailData] = useState<ShoppingListDetail | null>(null);
@@ -261,6 +262,7 @@ function AddItemSheet({
   shoppingListId: number;
   onAdded: () => void;
 }) {
+  const { colors: C } = useAppColorMode();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const unitsRef = useRef<MeasurementUnit[]>([]);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { StyleSheet, ScrollView, TextInput, Dimensions, FlatList } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,8 @@ import { Button } from '@components/ui/button';
 import { Badge, BadgeText } from '@components/ui/badge';
 import ScreenHeader from '@components/ScreenHeader';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { recipesApi, RecipeListItem } from '../../api/recipes';
 import logger from '@helper/logger';
 
@@ -67,6 +68,8 @@ function mapRecipe(r: RecipeListItem): RecipeCardItem {
 }
 
 export default function RecipeMainScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   const [featuredRecipes, setFeaturedRecipes] = useState<RecipeCardItem[]>([]);
   const [mealSections, setMealSections] = useState<Record<string, RecipeCardItem[]>>({});
   const [isFeedLoading, setIsFeedLoading] = useState(false);
@@ -367,7 +370,8 @@ export default function RecipeMainScreen(props: any) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { padding: 16, paddingBottom: 32 },
   searchWrap: {
@@ -450,7 +454,8 @@ const s = StyleSheet.create({
   recipeTitle: { fontSize: 14, color: C.textPrimary, marginTop: 8 },
   recipeMetaRow: { marginTop: 4 },
   recipeMeta: { fontSize: 12, color: C.textSecondary },
-});
+  });
+}
 
 function useStyle() {
   return useResponsiveStyleSheet({

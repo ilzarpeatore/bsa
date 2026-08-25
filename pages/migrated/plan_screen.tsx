@@ -26,7 +26,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
 import { recipesApi, RecipeListItem } from '../../api/recipes';
 import logger from '@helper/logger';
@@ -97,17 +98,19 @@ function formatWeekday(d: Date): string {
   return days[(d.getDay() + 6) % 7];
 }
 
-const renderCompactStat = (label: string, value: string, progress: number) => (
-  <VStack style={s.compactStat}>
-    <Text style={s.compactStatLabel}>{label}</Text>
-    <Text style={s.compactStatValue}>{value}</Text>
-    <Box style={s.compactProgressBar}>
-      <Box style={[s.compactProgressFill, { width: `${progress * 100}%` }]} />
-    </Box>
-  </VStack>
-);
-
 export default function PlanScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
+
+  const renderCompactStat = (label: string, value: string, progress: number) => (
+    <VStack style={s.compactStat}>
+      <Text style={s.compactStatLabel}>{label}</Text>
+      <Text style={s.compactStatValue}>{value}</Text>
+      <Box style={s.compactProgressBar}>
+        <Box style={[s.compactProgressFill, { width: `${progress * 100}%` }]} />
+      </Box>
+    </VStack>
+  );
 
   const { reportAction } = useTutorial();
   const [kcalTarget, setKcalTarget] = useState(1331);
@@ -735,7 +738,8 @@ export default function PlanScreen(props: any) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   clearBtn: { padding: 4 },
   // Fondo de reserva translúcido (no C.surface sólido) para Android/iOS<26,
@@ -824,4 +828,5 @@ const s = StyleSheet.create({
   searchResultTitle: { fontSize: 14, fontFamily: FONT.semiBold, color: C.white },
   searchResultMeta: { fontSize: 12, fontFamily: FONT.regular, color: C.gray50, marginTop: 2 },
   searchLoadingMoreSpinner: { marginVertical: 16 },
-});
+  });
+}

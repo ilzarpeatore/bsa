@@ -58,6 +58,7 @@ function isMealType(value: unknown): value is MealType {
 }
 
 export default function AssignedMealsScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const dietId: number | undefined = props.route?.params?.dietId;
   const dietTitle: string | undefined = props.route?.params?.dietTitle;
   const isDietMode = !!dietId;

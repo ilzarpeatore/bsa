@@ -8,7 +8,7 @@ import { Button, ButtonText } from '@components/ui/button';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem } from '../../api/resources';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -41,7 +41,11 @@ const renderYouTubeEmbeds = (html: string): string => {
   );
 };
 
-const WRAPPER_HTML = `<!DOCTYPE html>
+// Antes una constante de módulo (WRAPPER_HTML) que capturaba `C` estático en
+// el momento de cargar el módulo -- convertido a función para que el HTML
+// generado use siempre los colores del tema actual (claro/oscuro).
+function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): string {
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -66,6 +70,7 @@ const WRAPPER_HTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
 
 // Recursos subidos como archivo HTML completo (con su propio <html>/<head>/<style>)
 // en vez de un fragmento: se sirven tal cual, sin envolverlos en WRAPPER_HTML
@@ -105,6 +110,7 @@ interface Props {
 }
 
 export default function ResourceDetailScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
   const { navigation, route } = props;
   const resourceId: number | undefined = route?.params?.resourceId;
   const fallbackTitle: string | undefined = route?.params?.title;
@@ -188,7 +194,7 @@ export default function ResourceDetailScreen(props: Props) {
                   const sanitized = sanitizeHtml(resource.content);
                   return isFullDocument(sanitized)
                     ? injectResizeScript(renderYouTubeEmbeds(sanitized))
-                    : WRAPPER_HTML.replace('__CONTENT__', renderYouTubeEmbeds(sanitized));
+                    : buildWrapperHtml(C).replace('__CONTENT__', renderYouTubeEmbeds(sanitized));
                 })(),
               }}
               style={{ width: '100%', height: webViewHeight }}

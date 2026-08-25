@@ -3,7 +3,8 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions } from "react
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { C, FONT } from "./theme";
+import { FONT } from "./theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 import { useAuth } from "../../store/AuthContext";
 
@@ -24,7 +25,8 @@ const PAGES = [
 ];
 
 export default function OnboardingScreen({ navigation }: any) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useStyle(C);
   const { completeOnboarding } = useAuth();
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -107,7 +109,7 @@ export default function OnboardingScreen({ navigation }: any) {
   );
 }
 
-function useStyle() {
+function useStyle(C: ReturnType<typeof useAppColorMode>['colors']) {
   return useResponsiveStyleSheet({
     root: { flex: 1, backgroundColor: C.bg },
     skipRow: { alignItems: "flex-end", paddingHorizontal: 20, paddingTop: 8, minHeight: 40 },

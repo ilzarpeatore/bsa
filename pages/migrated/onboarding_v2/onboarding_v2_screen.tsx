@@ -21,7 +21,8 @@ import OptionCards from '../../../components/onboarding_v2/OptionCards';
 import ScaleSelector from '../../../components/onboarding_v2/ScaleSelector';
 import RulerPicker from '../../../components/onboarding_v2/RulerPicker';
 import NumberWheelPicker from '../../../components/onboarding_v2/NumberWheelPicker';
-import { C, FONT } from '../theme';
+import { FONT } from '../theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 // Motor genérico del nuevo onboarding (4 etapas, ver docs/ONBOARDING_V2.md):
 // UNA sola screen recorre `ONBOARDING_QUESTIONS` con un índice interno (no
@@ -44,6 +45,8 @@ function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): b
 }
 
 export default function OnboardingV2Screen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const { state } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -245,6 +248,8 @@ export default function OnboardingV2Screen({ navigation }: any) {
               setWeightUnit={setWeightUnit}
               defaultFirstName={state.user?.first_name}
               defaultLastName={state.user?.last_name}
+              styles={styles}
+              C={C}
             />
           </View>
         </ScrollView>
@@ -274,6 +279,8 @@ function QuestionInput({
   setWeightUnit,
   defaultFirstName,
   defaultLastName,
+  styles,
+  C,
 }: {
   question: OnboardingQuestion;
   answers: OnboardingAnswers;
@@ -284,6 +291,8 @@ function QuestionInput({
   setWeightUnit: (u: 'kg' | 'lbs') => void;
   defaultFirstName?: string;
   defaultLastName?: string;
+  styles: ReturnType<typeof createStyles>;
+  C: ReturnType<typeof useAppColorMode>['colors'];
 }) {
   if (question.type === 'name') {
     const value = (answers.name as { first_name: string; last_name: string } | undefined) ?? {
@@ -442,7 +451,8 @@ function QuestionInput({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
@@ -478,4 +488,5 @@ const styles = StyleSheet.create({
   nameRowLast: { borderBottomWidth: 0 },
   nameLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary, marginBottom: 4 },
   nameInput: { borderWidth: 0, height: 26, backgroundColor: 'transparent' },
-});
+  });
+}

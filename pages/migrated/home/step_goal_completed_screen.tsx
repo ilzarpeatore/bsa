@@ -196,7 +196,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       backgroundColor: C.bg,
     },
     confettiContainer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       overflow: "hidden",
     },
     content: {

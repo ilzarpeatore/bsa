@@ -18,11 +18,12 @@ import {
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { shoppingApi, ShoppingListItem } from '@api/shopping';
 import logger from '@helper/logger';
 
 export default function ShoppingListScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [shoppingLists, setShoppingLists] = useState<ShoppingListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showGenerateSheet, setShowGenerateSheet] = useState(false);
