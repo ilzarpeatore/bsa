@@ -8,18 +8,24 @@
 // marca en gris claro (#E5E5EA) para mantener el patrón relleno claro +
 // texto oscuro. El fondo NO es blanco puro para que las tarjetas blancas
 // sigan destacando (jerarquía visual).
+// Ajuste de neutros (2026-08-25, pedido explícito con 2 capturas de
+// referencia): bg/surface/textPrimary/textSecondary re-muestreados por
+// píxel (no a ojo) de las capturas de referencia. `border` NO se tocó --
+// las capturas no muestran ningún trazo de borde visible entre tarjetas
+// (se separan por espacio + sombra), así que se mantiene el valor anterior
+// en vez de inventar uno sin evidencia.
 export const C = {
-  bg: "#EBEBF0",
+  bg: "#F4F4F7",
   surface: "#FFFFFF",
   surfaceLight: "#FFFFFF",
   border: "#E5E5EA",
-  white: "#000000",
+  white: "#262729",
   gray5: "#F7F7F7",
   gray10: "#E5E5EA",
   gray20: "#D1D1D6",
   gray30: "#AEAEB2",
   gray40: "#8A8A90",
-  gray50: "#6B6B70",
+  gray50: "#8B8C8E",
   gray60: "#3A3A3C",
   gray70: "#E5E5EA",
   gray80: "#E5E5EA",
@@ -64,14 +70,14 @@ export const C = {
   blue30: "#66B2FF",
   red: "#FF3B30",
   pink: "#FB558B",
-  textWhite: "#000000",
-  textPrimary: "#000000",
-  textSecondary: "#6B6B70",
+  textWhite: "#262729",
+  textPrimary: "#262729",
+  textSecondary: "#8B8C8E",
   textTertiary: "#AEAEB2",
   primary: "#E5E5EA",
   primaryLight: "rgba(0,0,0,0.15)",
-  gray: "#6B6B70",
-  text: "#000000",
+  gray: "#8B8C8E",
+  text: "#262729",
   card: "#FFFFFF",
   textMuted: "#AEAEB2",
 
@@ -97,18 +103,25 @@ export const C = {
 // pensados para funcionar sobre fondo claro u oscuro sin retocar el tono.
 // Solo cambia la jerarquía de fondo/superficie/texto/grises, que sí es
 // específica de cada modo.
+// Ajuste de neutros (2026-08-25, pedido explícito con 2 capturas de
+// referencia, modo oscuro): bg/surface/textPrimary/textSecondary
+// re-muestreados por píxel de la captura oscura de referencia -- notablemente
+// MÁS CLARO que el negro casi puro anterior (#0B0B0D), un gris carbón
+// elevado en vez de negro OLED. `border` no se tocó (misma razón que en C:
+// sin trazo de borde visible en la captura, las tarjetas se separan por
+// espacio, no por borde).
 export const C_DARK: typeof C = {
-  bg: "#0B0B0D",
-  surface: "#1C1C1E",
-  surfaceLight: "#242426",
+  bg: "#242529",
+  surface: "#2E3037",
+  surfaceLight: "#363840",
   border: "#3A3A3C",
-  white: "#FFFFFF",
+  white: "#FAFAFA",
   gray5: "#242426",
   gray10: "#3A3A3C",
   gray20: "#48484A",
   gray30: "#636366",
   gray40: "#8A8A8E",
-  gray50: "#AEAEB2",
+  gray50: "#818287",
   gray60: "#C7C7CC",
   gray70: "#3A3A3C",
   gray80: "#3A3A3C",
@@ -153,15 +166,15 @@ export const C_DARK: typeof C = {
   blue30: "#003166",
   red: "#FF453A",
   pink: "#FB558B",
-  textWhite: "#FFFFFF",
-  textPrimary: "#F2F2F7",
-  textSecondary: "#AEAEB2",
+  textWhite: "#FAFAFA",
+  textPrimary: "#FAFAFA",
+  textSecondary: "#818287",
   textTertiary: "#8A8A8E",
   primary: "#3A3A3C",
   primaryLight: "rgba(255,255,255,0.15)",
-  gray: "#AEAEB2",
-  text: "#F2F2F7",
-  card: "#1C1C1E",
+  gray: "#818287",
+  text: "#FAFAFA",
+  card: "#2E3037",
   textMuted: "#8A8A8E",
   statusSuccess: "#34C759",
   statusWarning: "#FF9F0A",
