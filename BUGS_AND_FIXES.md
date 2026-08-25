@@ -8,12 +8,12 @@ Este documento se creó retroactivamente (2026-08-25) para dejar constancia de t
 
 ## Estado actual
 
-**Bugs detectados:** 19
-**Solucionados:** 12
+**Bugs detectados:** 24
+**Solucionados:** 13
 **Pendientes:** 0
 **En progreso:** 0
-**Necesitan verificación:** 7
-**No reproducibles:** 0
+**Necesitan verificación:** 10
+**No reproducibles:** 1
 
 ### 🔵 Bugs que requieren verificación (pendiente de prueba real en app)
 
@@ -24,6 +24,13 @@ Este documento se creó retroactivamente (2026-08-25) para dejar constancia de t
 - BUG-017 — Paleta oscura de `global.css` desincronizada de `theme.ts`
 - BUG-018 — `blog_detail_screen.tsx` con HTML de WebView estático
 - BUG-019 — Pestañas de `diet_detail_screen.tsx` con fondo blanco fijo
+- BUG-020 — Ternario roto sin efecto en el título de `main_goal_screen.tsx`
+- BUG-021 — Tarjeta casi invisible en `onboarding_v2_screen.tsx`
+- BUG-023 — `LoadingSkeleton.tsx` con color de fondo del tema oscuro antiguo
+
+### ⚫ Bugs cerrados / no reproducibles
+
+- BUG-024 — Icono "eliminar" inconsistente (revisado: no era una inconsistencia real)
 
 ### 🟢 Bugs solucionados (verificados por análisis estático — tsc/eslint/cálculo WCAG)
 
@@ -39,34 +46,40 @@ Este documento se creó retroactivamente (2026-08-25) para dejar constancia de t
 - BUG-010 — Error de tipos en `theme.ts` (`C_DARK`)
 - BUG-011 — Contraste WCAG de `completedBadgeText` insuficiente
 - BUG-014 — Pérdida silenciosa de datos en `onboarding_v2_screen.tsx`
+- BUG-022 — Texto corrupto (mojibake) visible al usuario
 
-**Nota importante sobre "verificado":** los 12 bugs marcados 🟢 se consideran solucionados porque su verificación es determinística y no depende de una interfaz renderizada: errores de compilación (`tsc --noEmit -p .` limpio), variables indefinidas (grep + lectura de código), o contraste WCAG (fórmula de luminancia relativa W3C, un cálculo matemático, no una apreciación visual). Los 7 bugs marcados 🔵 son cambios de comportamiento/color que sí dependen de cómo se renderiza la app en un dispositivo/simulador real — no se han podido verificar visualmente en este entorno (sin simulador disponible) y quedan pendientes de la **prueba final real** acordada con el usuario.
+**Nota importante sobre "verificado":** los 13 bugs marcados 🟢 se consideran solucionados porque su verificación es determinística y no depende de una interfaz renderizada: errores de compilación (`tsc --noEmit -p .` limpio), variables indefinidas (grep + lectura de código), contraste WCAG (fórmula de luminancia relativa W3C, un cálculo matemático), o texto corrupto (grep de las secuencias exactas antes/después). Los 10 bugs marcados 🔵 son cambios de comportamiento/color que sí dependen de cómo se renderiza la app en un dispositivo/simulador real — no se han podido verificar visualmente en este entorno (sin simulador disponible) y quedan pendientes de la **prueba final real** acordada con el usuario. El bug marcado ⚫ (BUG-024) se revisó y se determinó que no era una inconsistencia real, sin necesidad de cambio de código.
 
 ---
 
 ## Resumen
 
-| ID      | Problema                                                                     | Categoría     | Severidad  | Estado                   |
-| ------- | ---------------------------------------------------------------------------- | ------------- | ---------- | ------------------------ |
-| BUG-001 | Contraste WCAG de `textTertiary` insuficiente (2.21:1)                       | Accesibilidad | 🟠 Alto    | 🟢 Solucionado           |
-| BUG-002 | `AppIcon.tsx` revertido a color estático por un agente                       | React Native  | 🟠 Alto    | 🟢 Solucionado           |
-| BUG-003 | Error de sintaxis rompía la compilación de todo el proyecto                  | React Native  | 🔴 Crítico | 🟢 Solucionado           |
-| BUG-004 | Crash al abrir `diet_detail_screen.tsx`                                      | Funcional     | 🔴 Crítico | 🟢 Solucionado           |
-| BUG-005 | Crash al abrir `set_reminder_screen.tsx`                                     | Funcional     | 🔴 Crítico | 🟢 Solucionado           |
-| BUG-006 | Color de fondo congelado en icono de `NavigationTab.tsx`                     | UI            | 🟡 Medio   | 🟢 Solucionado           |
-| BUG-007 | Crash al abrir `assigned_meals_screen.tsx`                                   | Técnico       | 🔴 Crítico | 🟢 Solucionado           |
-| BUG-008 | Error de compilación en `step_goal_completed_screen.tsx`                     | React Native  | 🔴 Crítico | 🟢 Solucionado           |
-| BUG-009 | Crash al abrir el chequeo diario de `workout_preview_screen.tsx`             | Técnico       | 🔴 Crítico | 🟢 Solucionado           |
-| BUG-010 | Error de tipos entre `C` y `C_DARK` en `theme.ts`                            | Técnico       | 🟠 Alto    | 🟢 Solucionado           |
-| BUG-011 | Contraste WCAG de `completedBadgeText` insuficiente (2.22:1)                 | Accesibilidad | 🟡 Medio   | 🟢 Solucionado           |
-| BUG-012 | Botón "FINALIZAR ENTRENAMIENTO" sin tamaño explícito                         | UI            | 🟠 Alto    | 🔵 Necesita verificación |
-| BUG-013 | Botones del calendario con radio fuera de la escala de diseño                | UI            | 🟢 Bajo    | 🔵 Necesita verificación |
-| BUG-014 | Pérdida silenciosa de respuestas de onboarding si falla el envío             | Funcional     | 🟠 Alto    | 🟢 Solucionado           |
-| BUG-015 | Colores dinámicos no se refrescan en pantallas con `useResponsiveStyleSheet` | React Native  | 🟠 Alto    | 🔵 Necesita verificación |
-| BUG-016 | `GluestackUIProvider` fijo en modo claro — modo oscuro incompleto            | UI            | 🔴 Crítico | 🔵 Necesita verificación |
-| BUG-017 | Paleta oscura de `global.css` no coincide con `theme.ts`                     | UI            | 🟡 Medio   | 🔵 Necesita verificación |
-| BUG-018 | Contenido HTML de `blog_detail_screen.tsx` no sigue el tema                  | Funcional     | 🟡 Medio   | 🔵 Necesita verificación |
-| BUG-019 | Pestañas de `diet_detail_screen.tsx` con fondo blanco fijo                   | UI            | 🟢 Bajo    | 🔵 Necesita verificación |
+| ID      | Problema                                                                     | Categoría     | Severidad  | Estado                       |
+| ------- | ---------------------------------------------------------------------------- | ------------- | ---------- | ---------------------------- |
+| BUG-001 | Contraste WCAG de `textTertiary` insuficiente (2.21:1)                       | Accesibilidad | 🟠 Alto    | 🟢 Solucionado               |
+| BUG-002 | `AppIcon.tsx` revertido a color estático por un agente                       | React Native  | 🟠 Alto    | 🟢 Solucionado               |
+| BUG-003 | Error de sintaxis rompía la compilación de todo el proyecto                  | React Native  | 🔴 Crítico | 🟢 Solucionado               |
+| BUG-004 | Crash al abrir `diet_detail_screen.tsx`                                      | Funcional     | 🔴 Crítico | 🟢 Solucionado               |
+| BUG-005 | Crash al abrir `set_reminder_screen.tsx`                                     | Funcional     | 🔴 Crítico | 🟢 Solucionado               |
+| BUG-006 | Color de fondo congelado en icono de `NavigationTab.tsx`                     | UI            | 🟡 Medio   | 🟢 Solucionado               |
+| BUG-007 | Crash al abrir `assigned_meals_screen.tsx`                                   | Técnico       | 🔴 Crítico | 🟢 Solucionado               |
+| BUG-008 | Error de compilación en `step_goal_completed_screen.tsx`                     | React Native  | 🔴 Crítico | 🟢 Solucionado               |
+| BUG-009 | Crash al abrir el chequeo diario de `workout_preview_screen.tsx`             | Técnico       | 🔴 Crítico | 🟢 Solucionado               |
+| BUG-010 | Error de tipos entre `C` y `C_DARK` en `theme.ts`                            | Técnico       | 🟠 Alto    | 🟢 Solucionado               |
+| BUG-011 | Contraste WCAG de `completedBadgeText` insuficiente (2.22:1)                 | Accesibilidad | 🟡 Medio   | 🟢 Solucionado               |
+| BUG-012 | Botón "FINALIZAR ENTRENAMIENTO" sin tamaño explícito                         | UI            | 🟠 Alto    | 🔵 Necesita verificación     |
+| BUG-013 | Botones del calendario con radio fuera de la escala de diseño                | UI            | 🟢 Bajo    | 🔵 Necesita verificación     |
+| BUG-014 | Pérdida silenciosa de respuestas de onboarding si falla el envío             | Funcional     | 🟠 Alto    | 🟢 Solucionado               |
+| BUG-015 | Colores dinámicos no se refrescan en pantallas con `useResponsiveStyleSheet` | React Native  | 🟠 Alto    | 🔵 Necesita verificación     |
+| BUG-016 | `GluestackUIProvider` fijo en modo claro — modo oscuro incompleto            | UI            | 🔴 Crítico | 🔵 Necesita verificación     |
+| BUG-017 | Paleta oscura de `global.css` no coincide con `theme.ts`                     | UI            | 🟡 Medio   | 🔵 Necesita verificación     |
+| BUG-018 | Contenido HTML de `blog_detail_screen.tsx` no sigue el tema                  | Funcional     | 🟡 Medio   | 🔵 Necesita verificación     |
+| BUG-019 | Pestañas de `diet_detail_screen.tsx` con fondo blanco fijo                   | UI            | 🟢 Bajo    | 🔵 Necesita verificación     |
+| BUG-020 | Ternario roto sin efecto en el título de `main_goal_screen.tsx`              | UX            | 🟡 Medio   | 🔵 Necesita verificación     |
+| BUG-021 | Tarjeta casi invisible en `onboarding_v2_screen.tsx` (`C.gray80`)            | UI            | 🟡 Medio   | 🔵 Necesita verificación     |
+| BUG-022 | Texto corrupto (mojibake) visible al usuario                                 | Datos         | 🟡 Medio   | 🟢 Solucionado               |
+| BUG-023 | `LoadingSkeleton.tsx` con color de fondo del tema oscuro antiguo             | UI            | 🟡 Medio   | 🔵 Necesita verificación     |
+| BUG-024 | Icono "eliminar" inconsistente (revisado: no era real)                       | UI            | 🟢 Bajo    | ⚫ Cerrado / No reproducible |
 
 ---
 
@@ -301,6 +314,10 @@ Mismo chequeo automatizado que BUG-004 + `tsc --noEmit -p .` limpio.
 
 **Resultado:** 🟢 Correcto
 
+## Notas (2026-08-25)
+
+`set_reminder_screen.tsx` fue una de las 30 pantallas retiradas más adelante en esta misma sesión (ver "Nota — Retirada de 30 pantallas obsoletas" al final del documento). Se mantiene esta entrada como registro histórico del bug real que existió y se corrigió mientras el archivo estuvo vivo.
+
 ---
 
 # BUG-006 — Color de fondo congelado en icono de `NavigationTab.tsx`
@@ -439,6 +456,10 @@ Revertido a `StyleSheet.absoluteFill`.
 ## Verificación
 
 `npx tsc --noEmit -p .` limpio tras el fix. Confirmado por `git log -p --follow` que el valor original (pre-migración) era `absoluteFill`.
+
+## Notas (2026-08-25)
+
+`home/step_goal_completed_screen.tsx` fue una de las 30 pantallas retiradas más adelante en esta misma sesión (ver "Nota — Retirada de 30 pantallas obsoletas" al final del documento). Se mantiene esta entrada como registro histórico del bug real que existió y se corrigió mientras el archivo estuvo vivo.
 
 **Resultado:** 🟢 Correcto
 
@@ -660,7 +681,7 @@ Radio alineado a la escala `RADIUS` del design system.
 
 ## Solución aplicada
 
-Cambiado `borderRadius: 10` por `borderRadius: RADIUS.sm` (12px), e importado `RADIUS` desde `theme.ts`.
+Fix inicial: cambiado `borderRadius: 10` por `borderRadius: RADIUS.sm` (12px). **Actualizado en IMP-004** (`IMPROVEMENTS.md`): al revisar este mismo botón para esa mejora se comprobó que ya usaba el componente `Button` compartido (no `StyleSheet` puro como decía la auditoría original), así que se sustituyó el `borderRadius`/padding a mano por las props propias del componente (`size="sm" radius="pill"`), dejando en el `style` solo el color de fondo (`C.orange`, que no tiene variante equivalente en el componente).
 
 ## Archivos afectados
 
@@ -668,13 +689,13 @@ Cambiado `borderRadius: 10` por `borderRadius: RADIUS.sm` (12px), e importado `R
 
 ## Verificación
 
-Confirmado por lectura de código el cambio de valor. Diferencia visual muy sutil (10px vs 12px) — **pendiente confirmación visual** en la prueba final, aunque el impacto esperado es mínimo.
+Confirmado por lectura de código el cambio de valor y, tras IMP-004, el uso de las props del componente. `tsc --noEmit -p .`/`eslint --quiet` limpios. **Pendiente confirmación visual** en la prueba final.
 
 **Resultado:** 🔵 Pendiente de confirmación visual
 
 ## Notas
 
-La auditoría original también recomendaba migrar estos 2 botones al componente `Button` compartido en vez de solo tokenizar el radio — no se hizo en este pase por ser un cambio de mayor alcance no pedido explícitamente; queda como mejora en `IMPROVEMENTS.md`.
+La auditoría original también recomendaba migrar estos 2 botones al componente `Button` compartido en vez de solo tokenizar el radio — implementado en IMP-004 (`IMPROVEMENTS.md`), a petición explícita del usuario antes de pasar a Fase 2.
 
 ---
 
@@ -950,3 +971,217 @@ Cambiado `className="rounded-full bg-white p-1"` por `className="rounded-full p-
 `eslint --quiet` limpio. Revisados también otros usos de colores literales no-token detectados en la misma pasada (`bg-black/50`, `bg-black/60` en `add_post_screen.tsx`/`recipe_main_screen.tsx`) — confirmados como scrims/overlays intencionales sobre fotos, correctos tal cual, sin necesidad de cambio. **No verificado visualmente** — pendiente de la prueba final.
 
 **Resultado:** 🔵 Pendiente de confirmación visual
+
+---
+
+# BUG-020 — Ternario roto sin efecto en el título de `main_goal_screen.tsx`
+
+**Estado:** 🔵 Necesita verificación
+**Severidad:** 🟡 Medio
+**Categoría:** UX
+**Fase:** Pre-Fase 2 — Cierre de "quick wins" de la auditoría
+
+## Problema
+
+El título de cada tarjeta de objetivo (`renderGoalCard`) usaba `{ color: isSelected ? C.white : C.white }` — ambas ramas del ternario son idénticas, así que el color del título nunca cambiaba al seleccionar/deseleccionar, pese a que el icono de la misma tarjeta (`isSelected ? C.orange : C.gray40`) y la descripción (`goalDesc`/`goalDescSelected`) sí lo hacían correctamente.
+
+## Cómo reproducirlo
+
+1. Abrir la pantalla de selección de objetivo principal (`MigratedMainGoal`).
+2. Tocar distintas tarjetas de objetivo para seleccionarlas/deseleccionarlas.
+3. Observar que el icono y la descripción cambian de color al seleccionar, pero el título de la tarjeta se queda siempre igual.
+
+## Comportamiento actual
+
+El título no da ninguna señal visual de selección — solo el icono y la descripción lo hacen, dejando una jerarquía de feedback incompleta/inconsistente dentro de la misma tarjeta.
+
+## Comportamiento esperado
+
+El título debería diferenciarse visualmente igual que el resto de la tarjeta al seleccionarse (más prominente/blanco si está seleccionada, más apagado si no).
+
+## Causa
+
+Ternario mal escrito — probablemente un error de copia/pega donde la rama `false` debía apuntar a otro color y se dejó igual a la rama `true`. Detectado originalmente en `docs/AUDITORIA_UIUX_2026-08-24.md` (sección "Quick wins") y nunca corregido hasta ahora.
+
+## Solución aplicada
+
+Cambiado a `{ color: isSelected ? C.white : C.textSecondary }`, siguiendo el mismo patrón claro/apagado que ya usa `goalDesc`/`goalDescSelected` en el mismo archivo.
+
+## Archivos afectados
+
+- `pages/migrated/main_goal_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. **Pendiente confirmación visual** — comprobar en la prueba final que el título realmente cambia de color al seleccionar una tarjeta.
+
+**Resultado:** 🔵 Pendiente de confirmación visual
+
+---
+
+# BUG-021 — Tarjeta casi invisible en `onboarding_v2_screen.tsx`
+
+**Estado:** 🔵 Necesita verificación
+**Severidad:** 🟡 Medio
+**Categoría:** UI
+**Fase:** Pre-Fase 2 — Cierre de "quick wins" de la auditoría
+
+## Problema
+
+`nameCard` (tarjeta que envuelve los campos de nombre/apellidos en la etapa de datos personales del onboarding v2) usaba `backgroundColor: C.gray80` — un alias del mismo valor que `C.border`/`C.bg` (`#E5E5EA` en claro), casi indistinguible del fondo de la pantalla.
+
+## Cómo reproducirlo
+
+1. Abrir el flujo de onboarding v2 hasta la pregunta de nombre/apellidos.
+2. Observar que la tarjeta que envuelve los campos apenas se distingue del fondo de la pantalla — no se percibe como una tarjeta elevada.
+
+## Comportamiento actual
+
+Tarjeta casi invisible sobre el fondo, sin la separación visual esperada de una superficie elevada.
+
+## Comportamiento esperado
+
+La tarjeta debe distinguirse claramente del fondo, como el resto de tarjetas de la app.
+
+## Causa
+
+Uso de `C.gray80` (uno de los 5 alias duplicados de `accent`, ver IMP-003 en `IMPROVEMENTS.md`) para lo que debía ser una superficie de tarjeta real. Mismo bug de clase ya detectado y corregido antes en `edit_profile_screen.tsx` (que ahora usa `C.surface`), pero nunca replicado aquí. Documentado en `docs/AUDITORIA_UIUX_2026-08-24.md` (sección "Quick wins") y nunca corregido hasta ahora.
+
+## Solución aplicada
+
+Cambiado `backgroundColor: C.gray80` por `backgroundColor: C.surface` (blanco real en claro, superficie elevada en oscuro), igual que `edit_profile_screen.tsx`.
+
+## Archivos afectados
+
+- `pages/migrated/onboarding_v2/onboarding_v2_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. **Pendiente confirmación visual** — comprobar en la prueba final que la tarjeta ahora se distingue del fondo en ambos temas.
+
+**Resultado:** 🔵 Pendiente de confirmación visual
+
+---
+
+# BUG-022 — Texto corrupto (mojibake) visible al usuario
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** Datos
+**Fase:** Fase 2 — investigación previa a Visual System
+
+## Problema
+
+Varios archivos tenían texto codificado dos veces (UTF-8 guardado en algún momento de su historia como si fuera Latin-1/Windows-1252, y vuelto a guardar como UTF-8) — visible al usuario como secuencias como `Â¿`/`Ã©` en vez de `¿`/`é`. Confirmado con `git show` contra commits muy anteriores a esta sesión: el bug ya existía antes de toda la migración a modo oscuro, no fue introducido por ningún agente de este proyecto.
+
+## Cómo reproducirlo
+
+Antes del fix: abrir la pantalla de gestión de métricas de salud y pulsar eliminar sobre una métrica → el diálogo mostraba `"Â¿Eliminar esta mÃ©trica?"` en vez de `"¿Eliminar esta métrica?"`.
+
+## Comportamiento actual (antes del fix)
+
+Texto con caracteres corruptos visible directamente en `Alert.alert` y textos de la interfaz.
+
+## Comportamiento esperado
+
+Texto en español correctamente acentuado.
+
+## Causa
+
+Corrupción de codificación (mojibake) preexistente, de origen no determinado (probablemente una herramienta o copia/pega que interpretó bytes UTF-8 como Windows-1252 en algún punto de la historia del archivo, antes de esta sesión).
+
+## Solución aplicada
+
+Investigación inicial encontró 9 archivos afectados (52 apariciones de 8 secuencias corruptas distintas). **8 de esos 9 archivos formaban parte del lote de 30 pantallas retiradas en esta misma sesión** (todo el onboarding v1 + varias pantallas de steps) — se fueron con el borrado, sin necesidad de arreglarlas antes. Solo quedó vivo `pages/migrated/home/manage_health_metrics_screen.tsx` (4 apariciones, incluyendo una variante más compleja de doble-corrupción en `"Ã‰xito"` que reveló que la codificación real de origen era Windows-1252, no Latin-1 puro — confirmado descifrando los bytes exactos del archivo). Corregidas las 3 líneas afectadas con reemplazo literal dirigido (no conversión de archivo completo, ya que el archivo mezcla texto ya-correcto con texto corrupto).
+
+## Archivos afectados
+
+- `pages/migrated/home/manage_health_metrics_screen.tsx`
+- (8 archivos adicionales quedaron sin efecto al ser retirados en el mismo commit — ver nota de cierre de pantallas al final de este documento)
+
+## Verificación
+
+`grep` de las secuencias corruptas en el archivo antes/después: 4 → 0. `eslint --quiet` limpio.
+
+**Resultado:** 🟢 Correcto
+
+---
+
+# BUG-023 — `LoadingSkeleton.tsx` con color de fondo del tema oscuro antiguo
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** UI
+**Fase:** Fase 2 — investigación previa a Visual System
+
+## Problema
+
+`components/LoadingSkeleton.tsx` tenía `backgroundColor: "#1E1B3A"` (azul/morado oscuro, resto de un tema oscuro anterior a la paleta clara actual) hardcodeado, sin usar `useAppColorMode`.
+
+## Cómo reproducirlo
+
+1. Abrir `pages/DietList.tsx` o `pages/DietDashboard.tsx` (usan `LoadingSkeletonMem` de verdad, líneas 273 y 109/111 respectivamente) mientras cargan datos.
+2. Observar que el "shimmer" de carga se renderiza como un bloque casi negro/morado en vez de un gris claro tipo shimmer.
+
+## Comportamiento actual
+
+Bloque oscuro roto visualmente contra el resto de la UI clara.
+
+## Comportamiento esperado
+
+Gris claro apropiado para un efecto de shimmer sobre fondo claro (y oscuro, si el modo oscuro llega también a esas 2 pantallas en el futuro).
+
+## Causa
+
+Color hardcodeado nunca actualizado cuando el resto de la app migró de tema oscuro a la paleta clara actual (ni, más tarde, a colores dinámicos).
+
+## Solución aplicada
+
+Añadido `useAppColorMode()`, color de fondo cambiado a `C.gray20`. De paso, `useStyle` recibe `C` como parámetro y se pasa `[C]` como `extraDeps` a `useResponsiveStyleSheet` (mismo patrón que BUG-015) para que el color reaccione correctamente a un futuro cambio de tema.
+
+## Archivos afectados
+
+- `components/LoadingSkeleton.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. **Pendiente confirmación visual** — no se ha podido ver renderizado en este entorno.
+
+**Resultado:** 🔵 Pendiente de confirmación visual
+
+---
+
+# BUG-024 — Icono "eliminar" inconsistente (`close-circle` vs `trash-outline`) — cerrado, no reproducible
+
+**Estado:** ⚫ Cerrado / No reproducible
+**Severidad:** 🟢 Bajo
+**Categoría:** UI
+**Fase:** Fase 2 — investigación previa a Visual System
+
+## Problema (tal como se reportó inicialmente)
+
+Un agente de investigación señaló `close-circle` en `add_post_screen.tsx` (quitar una imagen adjunta antes de publicar) y `onboarding/profile_setup_form_screen.tsx` (quitar un tag de alergia) como una inconsistencia frente a los 6 archivos que usan `trash-outline` para "eliminar".
+
+## Por qué se cierra sin cambio de código
+
+Al revisar el contexto real de `add_post_screen.tsx` (el único de los 2 archivos que sobrevive — el otro se retiró con el onboarding v1), `close-circle` está aplicado como una insignia "×" en la esquina de una miniatura de imagen **todavía no guardada** (seleccionada para el post, pendiente de publicar) — el patrón estándar de UI para "descartar de la selección", no para "eliminar un elemento ya guardado" (que es lo que representa `trash-outline` en los 6 archivos donde sí se usa, todas filas de listas persistidas). Son dos momentos distintos del ciclo de vida del dato, no la misma acción con dos iconos — forzar `trash-outline` aquí habría sido una regresión visual, no una mejora de consistencia. Documentado con nombre en `constants/icons.ts` (`ACTION_ICONS.delete` vs `ACTION_ICONS.dismiss`) para que futuro código no repita la confusión en sentido contrario.
+
+## Archivos revisados
+
+- `pages/migrated/add_post_screen.tsx` (revisado, sin cambio)
+- `constants/icons.ts` (nuevo, documenta la distinción)
+
+## Notas
+
+Ejemplo de por qué "no crear bugs artificiales" importa: un hallazgo de un agente de investigación no se traduce automáticamente en un fix — aquí, aplicarlo tal cual habría sido el error.
+
+---
+
+## Nota — Retirada de 30 pantallas obsoletas (2026-08-25)
+
+No es un bug, se documenta aquí por contexto (varias entradas de este documento hacen referencia a ella). El usuario confirmó que 30 pantallas de `pages/migrated` quedan retiradas: todo el flujo de onboarding v1 (reemplazado por completo por onboarding v2) y varias pantallas de tracking (steps, heart rate, water/meals reminders, activity sleep monitoring, splash). Antes de borrar se verificó cada ruta contra `App.tsx` y contra referencias cruzadas en todo el repo, encontrando 3 dependencias de código vivo que NO debían borrarse:
+
+- `assessment_result_screen.tsx` — sigue siendo la pantalla de resultado final de onboarding v2 (`onboarding_v2_screen.tsx` navega ahí).
+- `water_tracker_screen.tsx` / `activity_tracker_screen.tsx` — siguen siendo destino de 2 botones "+" en la Home real (`home_screen_modern_v2.tsx`).
+
+Sí se borró `log_steps_form_screen.tsx`, quitando también la opción "Entrada manual" en `home/link_device_choice_screen.tsx` que la abría (única referencia externa real). Verificado con grep de cada uno de los 30 nombres de ruta en todo el repo tras el borrado: 0 referencias colgantes. `App.tsx` y `pages/ScreenExplorer.tsx` actualizados para no registrar ni listar las rutas borradas.

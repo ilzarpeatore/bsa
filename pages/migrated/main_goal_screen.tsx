@@ -111,7 +111,7 @@ export default function MainGoalScreen(props: MainGoalScreenProps) {
         <View style={styles.goalIconBox}>
           <Ionicons name={item.icon} size={28} color={isSelected ? C.orange : C.gray40} />
         </View>
-        <Text style={[styles.goalTitle, { color: isSelected ? C.white : C.white }]}>{item.title}</Text>
+        <Text style={[styles.goalTitle, { color: isSelected ? C.white : C.textSecondary }]}>{item.title}</Text>
       </View>
       <Text style={[styles.goalDesc, isSelected && styles.goalDescSelected]}>{item.description}</Text>
     </Pressable>

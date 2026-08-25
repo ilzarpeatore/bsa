@@ -177,7 +177,7 @@ export default function ChangePwdScreen({ navigation }: any) {
         )}
 
         {/* Submit */}
-        <Button onPress={changePwd} className="w-full" style={{ marginTop: 24 }}>
+        <Button size="lg" radius="pill" onPress={changePwd} className="w-full" style={{ marginTop: 24 }}>
           <ButtonText>Guardar</ButtonText>
         </Button>
       </ScrollView>

@@ -118,7 +118,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     justifyContent: "space-between",
     minHeight: 120,
     backgroundColor: C.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     padding: SPACING.cardPadding,
     ...SHADOW.card,
   },

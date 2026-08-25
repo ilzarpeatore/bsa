@@ -17,7 +17,7 @@ import AppIcon from '@components/AppIcon';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
 import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from './theme';
+import { FONT, RADIUS } from './theme';
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -559,7 +559,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   // que las tarjetas "General"/"Datos" de la referencia.
   card: {
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
   },
   // Etiqueta gris encima de cada tarjeta (mismo patrón que "General"/"Datos"
   // en la referencia) -- agrupa los campos en 2 tarjetas en vez de una sola

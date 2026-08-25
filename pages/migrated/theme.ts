@@ -30,6 +30,13 @@ export const C = {
   surface: "#FFFFFF",
   surfaceLight: "#FFFFFF",
   border: "#E5E5EA",
+  // Nombre canónico del gris de acento (Fase 1, auditoría UI/UX
+  // 2026-08-24, sección 2): `gray70`/`gray80`/`brand50`/`brand60`/`primary`
+  // valían los 5 literalmente el mismo hex sin ninguna señal de cuál usar
+  // -- usar `accent` en código nuevo. Los otros 5 se mantienen como alias
+  // de compatibilidad (@deprecated, mismo valor) para no romper las
+  // pantallas existentes que ya los referencian.
+  accent: "#E5E5EA",
   white: "#262729",
   gray5: "#F7F7F7",
   gray10: "#E5E5EA",
@@ -38,12 +45,16 @@ export const C = {
   gray40: "#8A8A90",
   gray50: "#8B8C8E",
   gray60: "#3A3A3C",
+  /** @deprecated Usa `accent` — mismo valor, nombre no canónico. */
   gray70: "#E5E5EA",
+  /** @deprecated Usa `accent` — mismo valor, nombre no canónico. */
   gray80: "#E5E5EA",
   brand5: "rgba(0,0,0,0.08)",
   brand10: "rgba(0,0,0,0.15)",
   brand20: "rgba(0,0,0,0.25)",
+  /** @deprecated Usa `accent` — mismo valor, nombre no canónico. */
   brand50: "#E5E5EA",
+  /** @deprecated Usa `accent` — mismo valor, nombre no canónico. */
   brand60: "#E5E5EA",
   success: "#34C759",
   success5: "rgba(52,199,89,0.1)",
@@ -85,6 +96,7 @@ export const C = {
   textPrimary: "#262729",
   textSecondary: "#8B8C8E",
   textTertiary: "#8E8E93",
+  /** @deprecated Usa `accent` — mismo valor, nombre no canónico. */
   primary: "#E5E5EA",
   primaryLight: "rgba(0,0,0,0.15)",
   gray: "#8B8C8E",
@@ -126,6 +138,7 @@ export const C_DARK: typeof C = {
   surface: "#2E3037",
   surfaceLight: "#363840",
   border: "#3A3A3C",
+  accent: "#3A3A3C",
   white: "#FAFAFA",
   gray5: "#242426",
   gray10: "#3A3A3C",
@@ -221,16 +234,35 @@ export const GRADIENT = {
 };
 
 // Tokens de espaciado y forma (sección 0.2 del Encargo 2).
+// Escala ampliada (Fase 2 — Visual System, docs/AUDITORIA_UIUX_2026-08-24.md
+// sección 13): xs/md se AÑADEN, sm/lg/pill CAMBIAN de valor respecto a la
+// escala anterior (antes sm:12,md:20,lg:28 -- ahora sm:12,md:16,lg:20,xl:28).
+// El único consumidor real de antes (components/TrendCard.tsx, RADIUS.md)
+// se migró a RADIUS.lg en el mismo cambio para conservar su mismo radio
+// renderizado (20px, sin cambio visual) -- revisar cualquier otro futuro
+// uso de RADIUS.md/lg contra esta tabla, no contra la escala vieja.
 export const RADIUS = {
+  xs: 8,
   sm: 12,
-  md: 20,
-  lg: 28,
+  md: 16,
+  lg: 20,
+  xl: 28,
   pill: 999,
 } as const;
 
+// Escala genérica de 8 pasos (Fase 2, sección 13 de la auditoría) + 2 alias
+// de intención que se mantienen por claridad semántica.
 export const SPACING = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+  huge: 40,
   cardPadding: 20,
-  screenPadding: 16,
+  screenPadding: 20,
   gapBetweenCards: 12,
   gapBetweenSections: 28,
 } as const;
@@ -247,7 +279,10 @@ export const SHADOW = {
 
 // Tipografía estimada (sección 0.3 del Encargo 2).
 export const TYPE = {
-  screenTitle: { fontSize: 32, fontWeight: "700" as const },
+  // 32 no se usaba en ningún lado salvo este propio token (verificado); 28
+  // sí aparece de forma natural en el código real -- se alinea el token al
+  // uso existente en vez de al revés (Fase 2, sección 13 de la auditoría).
+  screenTitle: { fontSize: 28, fontWeight: "700" as const },
   sectionTitle: { fontSize: 22, fontWeight: "700" as const },
   cardTitle: { fontSize: 17, fontWeight: "600" as const },
   bodyText: { fontSize: 15, fontWeight: "400" as const },

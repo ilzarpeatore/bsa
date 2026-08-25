@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 interface Props {
   width?: string | number;
@@ -15,7 +16,8 @@ interface Props {
 }
 
 function LoadingSkeleton({ width, height, borderRadius }: Props) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useStyle(C);
   const pulse = useSharedValue(0.3);
 
   useEffect(() => {
@@ -43,13 +45,16 @@ function LoadingSkeleton({ width, height, borderRadius }: Props) {
 
 export const LoadingSkeletonMem = React.memo(LoadingSkeleton);
 
-function useStyle() {
-  return useResponsiveStyleSheet({
-    skeleton: {
-      width: "100%",
-      height: "20@ratio",
-      backgroundColor: "#1E1B3A",
-      borderRadius: "8@ratio",
+function useStyle(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return useResponsiveStyleSheet(
+    {
+      skeleton: {
+        width: "100%",
+        height: "20@ratio",
+        backgroundColor: C.gray20,
+        borderRadius: "8@ratio",
+      },
     },
-  });
+    [C]
+  );
 }

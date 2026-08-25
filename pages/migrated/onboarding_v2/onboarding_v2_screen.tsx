@@ -490,7 +490,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginBottom: 20,
   },
   nameAvatarText: { fontFamily: FONT.extraBold, fontSize: 26, color: '#FFFFFF' },
-  nameCard: { backgroundColor: C.gray80, borderRadius: 16 },
+  // C.gray80 (alias deprecado de `accent`, casi idéntico a C.bg/border) dejaba
+  // esta tarjeta prácticamente invisible sobre el fondo -- mismo bug ya
+  // corregido antes en edit_profile_screen.tsx, que usa C.surface.
+  nameCard: { backgroundColor: C.surface, borderRadius: 16 },
   nameRow: {
     paddingHorizontal: 16,
     paddingVertical: 14,

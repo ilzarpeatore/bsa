@@ -27,7 +27,7 @@ const INITIAL_METRICS: Metric[] = [
 ];
 
 function handleSave() {
-  Alert.alert("Ã‰xito", "MÃ©tricas guardadas correctamente");
+  Alert.alert("Éxito", "Métricas guardadas correctamente");
 }
 
 export default function ManageHealthMetricsScreen({ navigation }: any) {
@@ -36,7 +36,7 @@ export default function ManageHealthMetricsScreen({ navigation }: any) {
   const [metrics, setMetrics] = useState<Metric[]>(INITIAL_METRICS);
 
   const handleDelete = (id: string) => {
-    Alert.alert("Eliminar", "Â¿Eliminar esta mÃ©trica?", [
+    Alert.alert("Eliminar", "¿Eliminar esta métrica?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
@@ -63,7 +63,7 @@ export default function ManageHealthMetricsScreen({ navigation }: any) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <Heading size="lg" style={{ marginBottom: 24 }}>Gestionar mÃ©tricas</Heading>
+        <Heading size="lg" style={{ marginBottom: 24 }}>Gestionar métricas</Heading>
 
         {metrics.map((metric, index) => (
           <Box

@@ -20,7 +20,7 @@ import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
-import { FONT, RADIUS } from './theme';
+import { FONT } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { adaptiveWeekPlansApi } from '../../api/adaptiveWeekPlans';
@@ -1077,6 +1077,8 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             {selectedDates.size} día{selectedDates.size !== 1 ? 's' : ''} seleccionado{selectedDates.size !== 1 ? 's' : ''}
           </Text>
           <Button
+            size="sm"
+            radius="pill"
             style={[styles.unavailableSubmitBtn, submittingSelection && { opacity: 0.6 }] as any}
             onPress={submitUnavailableSelection}
             disabled={submittingSelection}
@@ -1096,6 +1098,8 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             {pendingMoves.size} cambio{pendingMoves.size !== 1 ? 's' : ''} de día
           </Text>
           <Button
+            size="sm"
+            radius="pill"
             style={[styles.unavailableSubmitBtn, submittingReorder && { opacity: 0.6 }] as any}
             onPress={submitReorder}
             disabled={submittingReorder}
@@ -1328,11 +1332,13 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.bg,
   },
   unavailableBarText: { fontFamily: FONT.medium, fontSize: 14, color: C.textPrimary },
+  // Solo el color de fondo -- padding/radio ahora los da el propio
+  // componente Button (size="sm" + radius="pill") en vez de reimplementarlos
+  // a mano. `C.orange` no es uno de los variants del componente (default/
+  // destructive/outline/secondary/ghost/link), así que sigue haciendo falta
+  // este override -- lo que se elimina es la duplicación de padding/radio.
   unavailableSubmitBtn: {
     backgroundColor: C.orange,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: RADIUS.sm,
   },
   unavailableSubmitText: { fontFamily: FONT.semiBold, fontSize: 14, color: '#FFFFFF' },
   });
