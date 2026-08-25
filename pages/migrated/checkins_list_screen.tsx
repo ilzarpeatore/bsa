@@ -8,7 +8,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { VStack } from '@components/ui/vstack';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { readinessApi } from '../../api/readiness';
 import logger from '@helper/logger';
@@ -51,6 +51,7 @@ function computeNextDueLabel(a: CheckInAssignment): string | null {
 
 export default function CheckInsListScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [items, setItems] = useState<CheckInAssignment[]>([]);

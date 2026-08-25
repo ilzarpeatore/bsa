@@ -8,7 +8,7 @@ import { Heading } from '@components/ui/heading';
 import { Pressable } from '@components/ui/pressable';
 import AppIcon from '@components/AppIcon';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 async function launchUrl(url: string) {
   const supported = await Linking.canOpenURL(url);
@@ -18,6 +18,7 @@ async function launchUrl(url: string) {
 }
 
 export default function AboutUsScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
       <ScreenHeader title="About Us" onBack={() => navigation.goBack()} />

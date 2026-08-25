@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,8 @@ import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Badge, BadgeText } from '@components/ui/badge';
 import { Divider } from '@components/ui/divider';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { dietApi } from '../../api/diet';
 import { recipesApi, RecipeStep, RecipeIngredient } from '../../api/recipes';
 import logger from '@helper/logger';
@@ -52,15 +53,16 @@ interface DietDetailScreenProps {
   };
 }
 
-const getVitamins = (icon: string, title: string, subTitle: string) => (
-  <VStack className="items-center flex-1">
-    <Icon name={icon as any} size={26} color={C.textPrimary} />
-    <Text style={localStyles.vitaminTitle}>{title}</Text>
-    <Text style={localStyles.vitaminSubtitle}>{subTitle}</Text>
-  </VStack>
-);
-
 export default function DietDetailScreen(props: DietDetailScreenProps) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
+  const getVitamins = (icon: string, title: string, subTitle: string) => (
+    <VStack className="items-center flex-1">
+      <Icon name={icon as any} size={26} color={C.textPrimary} />
+      <Text style={localStyles.vitaminTitle}>{title}</Text>
+      <Text style={localStyles.vitaminSubtitle}>{subTitle}</Text>
+    </VStack>
+  );
   const dietModel = props.route.params?.dietModel ?? {};
   const fallbackId = props.route.params?.id;
   const recipeId = props.route.params?.recipeId;
@@ -362,7 +364,8 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
   );
 }
 
-const localStyles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   // Antes 'rgba(0,0,0,0.45)': pensado para una presentación modal transparente
   // que esta pantalla nunca tuvo (se registra como push normal en App.tsx),
   // así que se veía como un velo negro translúcido sobre toda la pantalla.
@@ -492,4 +495,5 @@ const localStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+  });
+}

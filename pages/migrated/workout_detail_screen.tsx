@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   ScrollView, Dimensions,
@@ -16,7 +16,8 @@ import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Divider } from '@components/ui/divider';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { workoutsApi } from '../../api/workouts';
 import { pickWorkoutFallbackImage } from './workoutViewShared';
 
@@ -52,13 +53,6 @@ interface WorkoutDetailData {
   [key: string]: any;
 }
 
-const renderDataItem = (img: string, title: string, value: string) => (
-  <Box style={styles.dataItem}>
-    <Text style={styles.dataTitle}>{title}</Text>
-    <Text style={styles.dataValue}>{value}</Text>
-  </Box>
-);
-
 const renderSets = (exercise: DayExerciseModel) => {
   const sets: string[] = [];
   if (exercise.exercise?.type === 'sets' && exercise.exercise?.sets?.length) {
@@ -74,6 +68,8 @@ const renderSets = (exercise: DayExerciseModel) => {
 };
 
 export default function WorkoutDetailScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const heroButtonTop = insets.top + 8;
   const workoutId = props.route?.params?.id;
@@ -166,6 +162,13 @@ export default function WorkoutDetailScreen(props: any) {
     setIsLoading(true);
     getDayExerciseData(workoutDayList[index]?.id);
   };
+
+  const renderDataItem = (img: string, title: string, value: string) => (
+    <Box style={styles.dataItem}>
+      <Text style={styles.dataTitle}>{title}</Text>
+      <Text style={styles.dataValue}>{value}</Text>
+    </Box>
+  );
 
   const renderExerciseItem = (item: DayExerciseModel) => {
     const sets = renderSets(item);
@@ -335,7 +338,8 @@ export default function WorkoutDetailScreen(props: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   emptyContainer: {
     flex: 1,
@@ -496,4 +500,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-});
+  });
+}

@@ -12,7 +12,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Ionicons } from '@expo/vector-icons';
 import AppIcon from '@components/AppIcon';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { useAuth } from '../../store/AuthContext';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { workoutHistoryApi } from '../../api/workoutHistory';
@@ -43,7 +43,7 @@ interface MenuSection {
 // agrupan por sección (tarjeta blanca + etiqueta gris encima, como el
 // "Ajustes" real de Bevel) y cada fila lleva su icono en un cuadrado de
 // color, no un icono plano suelto.
-function buildMenuSections(isSocial: boolean): MenuSection[] {
+function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMode>['colors']): MenuSection[] {
   return [
     {
       label: 'Cuenta',
@@ -88,6 +88,7 @@ function initialsFor(name: string): string {
 }
 
 export default function ProfileScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const { state, logout } = useAuth();
   const user = state.user;
 
@@ -95,7 +96,7 @@ export default function ProfileScreen(props: any) {
   const userEmail = user?.email || '';
   const profileImage = user?.profile_image || '';
   const isSocial = user?.login_type != null;
-  const menuSections = buildMenuSections(isSocial)
+  const menuSections = buildMenuSections(isSocial, C)
     .map((section) => ({ ...section, items: section.items.filter((item) => item.visible !== false) }))
     .filter((section) => section.items.length > 0);
 

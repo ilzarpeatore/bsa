@@ -11,7 +11,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PickedPostMedia } from '../../api/posts';
 import logger from '@helper/logger';
 
@@ -27,6 +27,7 @@ function assetToPickedMedia(asset: ImagePicker.ImagePickerAsset): PickedPostMedi
 }
 
 export default function AddPostScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
   const flow = route?.params?.flow;
   const postData = route?.params?.postData;
 

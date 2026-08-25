@@ -21,7 +21,8 @@ import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { adaptiveWeekPlansApi } from '../../api/adaptiveWeekPlans';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
@@ -216,6 +217,8 @@ function chunkIntoWeeks<T>(days: T[]): T[][] {
 
 export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenProps) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const today = toDateOnly(new Date());
   const todayKey = toDateKey(today);
   const { reportScrollY } = useTabBarScroll();
@@ -1110,7 +1113,8 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   headerRow: {
     flexDirection: 'row',
@@ -1332,4 +1336,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   unavailableSubmitText: { fontFamily: FONT.semiBold, fontSize: 14, color: '#FFFFFF' },
-});
+  });
+}

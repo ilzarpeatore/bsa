@@ -11,7 +11,7 @@ import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import RadarChart from '../../components/RadarChart';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import { MACRO_MUSCLE_GROUPS, MacroMuscleGroup, macroGroupFor } from '../../constants/bodyMusclesMap';
@@ -66,6 +66,7 @@ function macroValues(data: MuscleVolumeGroup[]): Record<MacroMuscleGroup, number
 }
 
 function DeltaText({ current, previous, format }: { current: number; previous: number; format: (n: number) => string }) {
+  const { colors: C } = useAppColorMode();
   const delta = current - previous;
   if (previous === 0 && current === 0) {
     return (
@@ -90,6 +91,7 @@ function DeltaText({ current, previous, format }: { current: number; previous: n
 
 export default function StatisticsMuscleDistributionScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [range, setRange] = useState(RANGE_OPTIONS[1]);
   const [currentVolume, setCurrentVolume] = useState<MuscleVolumeGroup[]>([]);
   const [previousVolume, setPreviousVolume] = useState<MuscleVolumeGroup[]>([]);

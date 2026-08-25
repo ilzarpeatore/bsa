@@ -1,51 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-function StatCard({ icon, iconColor, value, label, target, progress, bgColor }: any) {
+function StatCard({ icon, iconColor, value, label, target, progress, bgColor, styles }: any) {
   return (
-    <View style={styles_local.statCard}>
-      <View style={[styles_local.statIconWrap, { backgroundColor: bgColor }]}>
+    <View style={styles.statCard}>
+      <View style={[styles.statIconWrap, { backgroundColor: bgColor }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>
-      <Text style={styles_local.statValue}>{value}</Text>
-      <Text style={styles_local.statLabel}>{label}</Text>
-      <View style={styles_local.progressTrack}>
-        <View style={[styles_local.progressFill, { width: `${progress * 100}%`, backgroundColor: iconColor }]} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: iconColor }]} />
       </View>
-      <Text style={styles_local.statGoal}>Goal: {target}</Text>
+      <Text style={styles.statGoal}>Goal: {target}</Text>
     </View>
   );
 }
 
-function ActivityListItem({ icon, iconBgColor, iconColor, title, subtitle, time, value }: any) {
+function ActivityListItem({ icon, iconBgColor, iconColor, title, subtitle, time, value, styles }: any) {
   return (
-    <View style={styles_local.activityItem}>
-      <View style={[styles_local.activityIconWrap, { backgroundColor: iconBgColor }]}>
+    <View style={styles.activityItem}>
+      <View style={[styles.activityIconWrap, { backgroundColor: iconBgColor }]}>
         <Ionicons name={icon} size={22} color={iconColor} />
       </View>
-      <View style={styles_local.activityInfo}>
-        <Text style={styles_local.activityTitle}>{title}</Text>
-        <Text style={styles_local.activitySubtitle}>{subtitle}</Text>
-        <Text style={styles_local.activityTime}>{time}</Text>
+      <View style={styles.activityInfo}>
+        <Text style={styles.activityTitle}>{title}</Text>
+        <Text style={styles.activitySubtitle}>{subtitle}</Text>
+        <Text style={styles.activityTime}>{time}</Text>
       </View>
-      {value ? <Text style={styles_local.activityValue}>{value}</Text> : null}
+      {value ? <Text style={styles.activityValue}>{value}</Text> : null}
     </View>
   );
 }
 
-function Bar({ day, heightFactor, isHighlighted = false }: any) {
+function Bar({ day, heightFactor, isHighlighted = false, styles, C }: any) {
   return (
-    <View style={styles_local.barCol}>
+    <View style={styles.barCol}>
       <View
         style={[
-          styles_local.bar,
+          styles.bar,
           {
             height: 140 * heightFactor,
             backgroundColor: isHighlighted ? C.orange : 'rgba(255, 152, 0, 0.35)',
@@ -53,7 +54,7 @@ function Bar({ day, heightFactor, isHighlighted = false }: any) {
           },
         ]}
       />
-      <Text style={styles_local.barLabel}>{day}</Text>
+      <Text style={styles.barLabel}>{day}</Text>
     </View>
   );
 }
@@ -61,41 +62,43 @@ function Bar({ day, heightFactor, isHighlighted = false }: any) {
 const ACTIVITY_PERIODS = ['Today', 'Week', 'Month', 'Year'];
 
 export default function ActivityTrackerScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [selectedPeriod, setSelectedPeriod] = useState('Today');
   const periods = ACTIVITY_PERIODS;
 
   return (
-    <SafeAreaView style={styles_local.container} edges={['top']}>
-      <View style={styles_local.header}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
         <Pressable
           onPress={() => navigation.goBack()}
-          style={({ pressed }) => [styles_local.backBtn, pressed && { opacity: 0.2 }]}
+          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.2 }]}
         >
           <Ionicons name="chevron-back" size={24} color={C.white} />
         </Pressable>
-        <Text style={styles_local.headerTitle}>Activity Tracker</Text>
-        <Pressable style={({ pressed }) => [styles_local.backBtn, pressed && { opacity: 0.2 }]}>
+        <Text style={styles.headerTitle}>Activity Tracker</Text>
+        <Pressable style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.2 }]}>
           <Ionicons name="options-outline" size={22} color={C.gray30} />
         </Pressable>
       </View>
 
-      <ScrollView style={styles_local.body} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Period selector */}
-        <View style={styles_local.periodWrap}>
-          <View style={styles_local.periodContainer}>
+        <View style={styles.periodWrap}>
+          <View style={styles.periodContainer}>
             {periods.map((period) => {
               const isSelected = period === selectedPeriod;
               return (
                 <Pressable
                   key={period}
                   style={({ pressed }) => [
-                    styles_local.periodBtn,
-                    isSelected && styles_local.periodBtnActive,
+                    styles.periodBtn,
+                    isSelected && styles.periodBtnActive,
                     pressed && { opacity: 0.7 },
                   ]}
                   onPress={() => setSelectedPeriod(period)}
                 >
-                  <Text style={[styles_local.periodText, isSelected && styles_local.periodTextActive]}>
+                  <Text style={[styles.periodText, isSelected && styles.periodTextActive]}>
                     {period}
                   </Text>
                 </Pressable>
@@ -105,7 +108,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
         </View>
 
         {/* Main stats */}
-        <View style={styles_local.statsRow}>
+        <View style={styles.statsRow}>
           <StatCard
             icon="walk-outline"
             iconColor={C.orange}
@@ -114,6 +117,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
             target="10,000"
             progress={0.68}
             bgColor="#431407"
+            styles={styles}
           />
           <StatCard
             icon="flame-outline"
@@ -123,6 +127,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
             target="600"
             progress={0.81}
             bgColor="#4C0519"
+            styles={styles}
           />
           <StatCard
             icon="timer-outline"
@@ -132,29 +137,30 @@ export default function ActivityTrackerScreen({ navigation }: any) {
             target="45"
             progress={0.71}
             bgColor="#172554"
+            styles={styles}
           />
         </View>
 
         {/* Weekly overview chart */}
-        <View style={styles_local.chartCard}>
-          <View style={styles_local.chartHeader}>
-            <Text style={styles_local.chartTitle}>Weekly Overview</Text>
-            <Text style={styles_local.chartSubtitle}>This Week</Text>
+        <View style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Weekly Overview</Text>
+            <Text style={styles.chartSubtitle}>This Week</Text>
           </View>
-          <View style={styles_local.barRow}>
-            <Bar day="Mon" heightFactor={0.6} />
-            <Bar day="Tue" heightFactor={0.8} />
-            <Bar day="Wed" heightFactor={0.45} />
-            <Bar day="Thu" heightFactor={0.9} isHighlighted />
-            <Bar day="Fri" heightFactor={0.7} />
-            <Bar day="Sat" heightFactor={0.5} />
-            <Bar day="Sun" heightFactor={0.35} />
+          <View style={styles.barRow}>
+            <Bar day="Mon" heightFactor={0.6} styles={styles} C={C} />
+            <Bar day="Tue" heightFactor={0.8} styles={styles} C={C} />
+            <Bar day="Wed" heightFactor={0.45} styles={styles} C={C} />
+            <Bar day="Thu" heightFactor={0.9} isHighlighted styles={styles} C={C} />
+            <Bar day="Fri" heightFactor={0.7} styles={styles} C={C} />
+            <Bar day="Sat" heightFactor={0.5} styles={styles} C={C} />
+            <Bar day="Sun" heightFactor={0.35} styles={styles} C={C} />
           </View>
         </View>
 
         {/* Today's activities */}
-        <View style={styles_local.section}>
-          <Text style={styles_local.sectionTitle}>Today's Activities</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today's Activities</Text>
           <ActivityListItem
             icon="walk-outline"
             iconBgColor="#431407"
@@ -163,6 +169,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
             subtitle="6,842 steps \u2022 5.2 km"
             time="Today, 8:30 AM"
             value="32 min"
+            styles={styles}
           />
           <ActivityListItem
             icon="barbell-outline"
@@ -172,6 +179,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
             subtitle="12 exercises completed"
             time="Today, 10:00 AM"
             value="45 min"
+            styles={styles}
           />
           <ActivityListItem
             icon="water-outline"
@@ -181,6 +189,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
             subtitle="1.5L of 2.5L goal"
             time="Throughout the day"
             value=""
+            styles={styles}
           />
         </View>
       </ScrollView>
@@ -188,7 +197,8 @@ export default function ActivityTrackerScreen({ navigation }: any) {
   );
 }
 
-const styles_local = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
@@ -261,4 +271,5 @@ const styles_local = StyleSheet.create({
   activitySubtitle: { fontSize: 12, fontFamily: FONT.regular, color: C.gray30, marginTop: 4 },
   activityTime: { fontSize: 11, fontFamily: FONT.regular, color: C.gray50, marginTop: 2 },
   activityValue: { fontSize: 14, fontFamily: FONT.semiBold, color: C.orange },
-});
+  });
+}

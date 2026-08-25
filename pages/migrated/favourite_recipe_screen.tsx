@@ -6,7 +6,7 @@ import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { recipesApi } from '../../api/recipes';
 import logger from '@helper/logger';
 
@@ -28,7 +28,7 @@ interface FavouriteRecipeScreenProps {
 }
 
 export default function FavouriteRecipeScreen(props: FavouriteRecipeScreenProps) {
-
+  const { colors: C } = useAppColorMode();
   const [recipeList, setRecipeList] = useState<RecipeItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);

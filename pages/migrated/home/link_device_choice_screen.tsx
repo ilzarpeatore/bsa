@@ -9,7 +9,7 @@ import { Pressable } from "@components/ui/pressable";
 import { Icon } from "@components/ui/icon";
 import { Spinner } from "@components/ui/spinner";
 import { isHealthAvailable, requestHealthPermissions } from "@helper/health";
-import { C } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const HEALTH_APP_NAME = Platform.OS === "ios" ? "Apple Salud" : "Health Connect";
 // HealthKit exige la capability 'com.apple.developer.healthkit', que Apple solo concede
@@ -26,6 +26,7 @@ const renderOption = (
   title: string,
   desc: string,
   onPress: () => void,
+  C: ReturnType<typeof useAppColorMode>['colors'],
   opts?: { disabled?: boolean; loading?: boolean }
 ) => (
   <Pressable
@@ -50,6 +51,7 @@ const renderOption = (
 );
 
 export default function LinkDeviceChoiceScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
   const [connecting, setConnecting] = useState(false);
 
   const handleConnectHealthApp = async () => {
@@ -103,6 +105,7 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
               HEALTH_APP_NAME,
               "Sincroniza pasos, ritmo cardíaco y más",
               handleConnectHealthApp,
+              C,
               { disabled: connecting, loading: connecting }
             )}
 
@@ -112,7 +115,8 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
             "text-foreground",
             "Wearable Device",
             "Connect via Bluetooth",
-            () => navigation.navigate("MigratedLinkDeviceList")
+            () => navigation.navigate("MigratedLinkDeviceList"),
+            C
           )}
 
           {renderOption(
@@ -121,7 +125,8 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
             "text-success-foreground",
             "Manual Entry",
             "Log steps manually",
-            () => navigation.navigate("MigratedLogStepsForm")
+            () => navigation.navigate("MigratedLogStepsForm"),
+            C
           )}
         </VStack>
 

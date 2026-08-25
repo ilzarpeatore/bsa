@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 import { blogApi, BlogListItem } from "@api/blog";
 
 const { width } = Dimensions.get("window");
 
 export default function ArticlesScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   const [articles, setArticles] = useState<BlogListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -103,7 +106,8 @@ export default function ArticlesScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { padding: 20, paddingBottom: 100 },
   title: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, marginBottom: 20, textAlign: "center" },
@@ -122,4 +126,5 @@ const localStyles = StyleSheet.create({
   bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.surface },
   continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
-});
+  });
+}

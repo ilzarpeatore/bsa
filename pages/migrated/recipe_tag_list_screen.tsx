@@ -15,7 +15,7 @@ import {
   AccordionContent,
 } from '@components/ui/accordion';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { recipesApi } from '../../api/recipes';
 
 interface RecipeTag {
@@ -141,6 +141,7 @@ function groupTags(tags: RecipeTag[]): TagCategory[] {
 }
 
 export default function RecipeTagListScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [mTagList, setMTagList] = useState<RecipeTag[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

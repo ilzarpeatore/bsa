@@ -20,7 +20,7 @@ import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
 import { buildDayRange, toLocalISODate } from '../../components/dayRange';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
 import { recipesApi } from '../../api/recipes';
 import logger from '@helper/logger';

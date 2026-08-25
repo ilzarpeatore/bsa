@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const AVATAR_STORAGE_KEY = "@befit_onboarding_avatar_icon";
 
@@ -18,6 +19,8 @@ const PRESET_AVATARS = [
 ];
 
 export default function AvatarSetupScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,7 +96,8 @@ export default function AvatarSetupScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { padding: 20, paddingBottom: 120 },
   title: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, marginBottom: 24, textAlign: "center" },
@@ -110,4 +114,5 @@ const localStyles = StyleSheet.create({
   skipBtnText: { fontSize: 16, fontFamily: FONT.semiBold },
   continueBtn: { flex: 2, paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
-});
+  });
+}

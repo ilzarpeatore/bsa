@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { FlatList, ActivityIndicator, Dimensions, TextInput, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +18,7 @@ import {
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { recipesApi } from '../../api/recipes';
 import logger from '@helper/logger';
 
@@ -76,6 +76,8 @@ interface Props {
 }
 
 export default function RecipeListScreenV2(props: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const { categoryId, tagId, mealType, title }: Props = props.route?.params ?? {};
   const [recipeList, setRecipeList] = useState<RecipeItem[]>([]);
   const [page, setPage] = useState(1);
@@ -267,7 +269,7 @@ export default function RecipeListScreenV2(props: any) {
         </HStack>
       </Pressable>
     ),
-    [props.navigation, columnWidth, handleToggleFavourite]
+    [props.navigation, columnWidth, handleToggleFavourite, C]
   );
 
   return (
@@ -455,42 +457,44 @@ export default function RecipeListScreenV2(props: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  topBar: {
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  backBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  searchWrap: {
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: C.surfaceLight,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: C.textPrimary },
-  filterBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  filterBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.orange,
-  },
-  chipsRow: { flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 16 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: C.orange,
-  },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    topBar: {
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+    },
+    backBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+    searchWrap: {
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: C.surfaceLight,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+      paddingHorizontal: 12,
+      height: 44,
+    },
+    searchInput: { flex: 1, fontSize: 14, color: C.textPrimary },
+    filterBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+    filterBadge: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.orange,
+    },
+    chipsRow: { flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 16 },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      backgroundColor: C.orange,
+    },
+  });
+}

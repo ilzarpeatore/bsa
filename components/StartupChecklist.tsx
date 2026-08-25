@@ -8,7 +8,8 @@ import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import AnimatedRing from '@components/AnimatedRing';
-import { C, FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from '../pages/migrated/theme';
 
 export interface StartupChecklistStep {
   id: string;
@@ -26,6 +27,8 @@ interface StartupChecklistProps {
 // El contenido real de los pasos y qué señal marca cada uno como "done" se
 // define más adelante — steps llega desde fuera como placeholder por ahora.
 export default function StartupChecklist({ title = 'Reto para empezar', steps }: StartupChecklistProps) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [expanded, setExpanded] = useState(false);
 
   const doneCount = useMemo(() => steps.filter((s) => s.done).length, [steps]);
@@ -108,7 +111,8 @@ export default function StartupChecklist({ title = 'Reto para empezar', steps }:
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   ringPercentText: { fontSize: 11, fontFamily: FONT.bold, color: C.textPrimary },
   ringPercentTextLg: { fontSize: 14, fontFamily: FONT.bold, color: C.textPrimary },
   title: { fontSize: 15, fontFamily: FONT.bold, color: C.textPrimary },
@@ -150,4 +154,5 @@ const styles = StyleSheet.create({
   stepLabelDone: { color: C.textSecondary },
   checkCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: C.success, alignItems: 'center', justifyContent: 'center' },
   outlineCircle: { width: 26, height: 26, borderRadius: 13, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-});
+  });
+}

@@ -9,7 +9,7 @@ import { VStack } from '@components/ui/vstack';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi } from '../../api/posts';
 import { profileApi, UserSocialStats } from '../../api/profile';
 import logger from '@helper/logger';
@@ -35,6 +35,7 @@ interface PostData {
 }
 
 export default function OtherUserProfileScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const { height: windowHeight } = useWindowDimensions();
   const userDetails: UserDetails = props.route?.params?.userDetails ?? {};
 

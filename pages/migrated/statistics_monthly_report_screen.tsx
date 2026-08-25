@@ -9,7 +9,8 @@ import { Icon } from '@components/ui/icon';
 import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { statisticsApi, PeriodStats, MonthlySessionItem, MonthlyPrEvent } from '../../api/statistics';
 import { muscleVolumeApi, MuscleVolumeGroup, MuscleVolumeByDate } from '../../api/muscleVolume';
 import { toLocalISODate } from '../../components/dayRange';
@@ -52,11 +53,13 @@ function daysInMonth(year: number, month0: number): number {
 }
 
 function DeltaText({ current, previous, format }: { current: number; previous: number; format: (n: number) => string }) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const delta = current - previous;
-  if (previous === 0 && current === 0) return <Text style={s.deltaNeutral}>—</Text>;
+  if (previous === 0 && current === 0) return <Text style={styles.deltaNeutral}>—</Text>;
   const positive = delta >= 0;
   return (
-    <Text style={positive ? s.deltaUp : s.deltaDown}>
+    <Text style={positive ? styles.deltaUp : styles.deltaDown}>
       {positive ? '↑' : '↓'} {format(Math.abs(delta))} vs mes anterior
     </Text>
   );
@@ -64,6 +67,8 @@ function DeltaText({ current, previous, format }: { current: number; previous: n
 
 export default function StatisticsMonthlyReportScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const today = useMemo(() => new Date(), []);
   const [monthAnchor, setMonthAnchor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [stats, setStats] = useState<PeriodStats>(ZERO_PERIOD);
@@ -183,23 +188,23 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
   const goNextMonth = () => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
-        <Text style={s.appBarTitle} numberOfLines={1}>
+        <Text style={styles.appBarTitle} numberOfLines={1}>
           Informe mensual
         </Text>
-        <Box style={s.iconBtn} />
+        <Box style={styles.iconBtn} />
       </HStack>
 
-      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <HStack space="lg" className="items-center justify-center" style={{ marginTop: 8, marginBottom: 8 }}>
           <Pressable onPress={goPrevMonth} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name="chevron-back" size={18} className="text-muted-foreground" />
           </Pressable>
-          <Text style={s.monthNavLabel}>
+          <Text style={styles.monthNavLabel}>
             {MONTHS_ES[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
           </Text>
           <Pressable onPress={goNextMonth} disabled={isCurrentMonth} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -214,23 +219,23 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
             {/* KPIs con comparativa vs mes anterior */}
             <HStack space="md" className="flex-wrap" style={{ marginTop: 12 }}>
               <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
-                <Text style={s.kpiLabel}>Entrenamientos</Text>
-                <Text style={s.kpiValue}>{stats.sessionsCount}</Text>
+                <Text style={styles.kpiLabel}>Entrenamientos</Text>
+                <Text style={styles.kpiValue}>{stats.sessionsCount}</Text>
                 <DeltaText current={stats.sessionsCount} previous={prevStats.sessionsCount} format={(n) => String(Math.round(n))} />
               </Card>
               <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
-                <Text style={s.kpiLabel}>Duración</Text>
-                <Text style={s.kpiValue}>{formatDuration(stats.durationSeconds)}</Text>
+                <Text style={styles.kpiLabel}>Duración</Text>
+                <Text style={styles.kpiValue}>{formatDuration(stats.durationSeconds)}</Text>
                 <DeltaText current={stats.durationSeconds} previous={prevStats.durationSeconds} format={formatDuration} />
               </Card>
               <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
-                <Text style={s.kpiLabel}>Volumen</Text>
-                <Text style={s.kpiValue}>{formatVolume(stats.volumeKg)}</Text>
+                <Text style={styles.kpiLabel}>Volumen</Text>
+                <Text style={styles.kpiValue}>{formatVolume(stats.volumeKg)}</Text>
                 <DeltaText current={stats.volumeKg} previous={prevStats.volumeKg} format={formatVolume} />
               </Card>
               <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
-                <Text style={s.kpiLabel}>Series</Text>
-                <Text style={s.kpiValue}>{totalSeries}</Text>
+                <Text style={styles.kpiLabel}>Series</Text>
+                <Text style={styles.kpiValue}>{totalSeries}</Text>
                 <DeltaText current={totalSeries} previous={prevTotalSeries} format={(n) => String(Math.round(n))} />
               </Card>
             </HStack>
@@ -238,16 +243,16 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
             {/* Desglose semanal */}
             {weeklyBreakdown.length > 0 && (
               <Card variant="elevated" style={{ marginTop: 16 }}>
-                <Text style={s.cardTitle}>Desglose semanal</Text>
+                <Text style={styles.cardTitle}>Desglose semanal</Text>
                 <HStack className="items-end justify-around" style={{ height: 120 }}>
                   {weeklyBreakdown.map((w) => {
                     const heightPct = maxWeekVolume > 0 ? Math.max(w.volume > 0 ? 6 : 2, (w.volume / maxWeekVolume) * 100) : 2;
                     return (
                       <VStack key={w.label} className="flex-1 items-center justify-end" style={{ height: '100%' }}>
                         <VStack className="flex-1 justify-end" style={{ width: 22 }}>
-                          <Box style={[s.weekBarFill, { height: `${heightPct}%` }]} />
+                          <Box style={[styles.weekBarFill, { height: `${heightPct}%` }]} />
                         </VStack>
-                        <Text style={s.weekLabel}>{w.label}</Text>
+                        <Text style={styles.weekLabel}>{w.label}</Text>
                       </VStack>
                     );
                   })}
@@ -257,15 +262,15 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
 
             {/* PRs y progreso */}
             <Card variant="elevated" style={{ marginTop: 16 }}>
-              <Text style={s.cardTitle}>Progreso y marcas</Text>
+              <Text style={styles.cardTitle}>Progreso y marcas</Text>
               <HStack space="md" style={{ marginBottom: 8 }}>
                 <Card variant="ghost" className="flex-1 items-center bg-muted rounded-2xl p-3.5">
-                  <Text style={s.progressStatValue}>{exercisesWithProgress}</Text>
-                  <Text style={s.progressStatLabel}>ejercicios con progreso</Text>
+                  <Text style={styles.progressStatValue}>{exercisesWithProgress}</Text>
+                  <Text style={styles.progressStatLabel}>ejercicios con progreso</Text>
                 </Card>
                 <Card variant="ghost" className="flex-1 items-center bg-muted rounded-2xl p-3.5">
-                  <Text style={s.progressStatValue}>{prEvents.length}</Text>
-                  <Text style={s.progressStatLabel}>marcas personales batidas</Text>
+                  <Text style={styles.progressStatValue}>{prEvents.length}</Text>
+                  <Text style={styles.progressStatLabel}>marcas personales batidas</Text>
                 </Card>
               </HStack>
               {prEvents.length > 0 && (
@@ -274,10 +279,10 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
                     <HStack key={`${p.exercise_id}-${p.record_type}`} className="items-center py-2.5" style={{ borderTopWidth: 1, borderTopColor: C.border, marginTop: 8 }}>
                       <Icon name="trophy" size={14} color={C.orange} style={{ marginRight: 8 }} />
                       <Box style={{ flex: 1 }}>
-                        <Text style={s.prTitle} numberOfLines={1}>
+                        <Text style={styles.prTitle} numberOfLines={1}>
                           {p.title}
                         </Text>
-                        <Text style={s.prSubtitle}>
+                        <Text style={styles.prSubtitle}>
                           {RECORD_TYPE_LABEL[p.record_type] || p.record_type}: {p.value} kg
                           {p.achieved_at ? ` · ${formatDate(p.achieved_at)}` : ''}
                         </Text>
@@ -286,7 +291,7 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
                   ))}
                   {prEvents.length > 4 && (
                     <Button variant="link" className="p-0" style={{ paddingTop: 12 }} onPress={() => setPrsModalVisible(true)}>
-                      <ButtonText style={s.expandBtnText}>{`Ver las ${prEvents.length}`}</ButtonText>
+                      <ButtonText style={styles.expandBtnText}>{`Ver las ${prEvents.length}`}</ButtonText>
                     </Button>
                   )}
                 </>
@@ -296,29 +301,29 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
             {/* Músculos que suben / bajan */}
             {(musclesUp.length > 0 || musclesDown.length > 0) && (
               <Card variant="elevated" style={{ marginTop: 16 }}>
-                <Text style={s.cardTitle}>Cambios de volumen por músculo</Text>
+                <Text style={styles.cardTitle}>Cambios de volumen por músculo</Text>
                 {musclesUp.length > 0 && (
-                  <Box style={s.muscleDeltaGroup}>
-                    <Text style={s.muscleDeltaGroupLabel}>Suben</Text>
+                  <Box style={styles.muscleDeltaGroup}>
+                    <Text style={styles.muscleDeltaGroupLabel}>Suben</Text>
                     {musclesUp.map((m) => (
                       <HStack key={m.group} className="items-center justify-between py-1.5">
-                        <Text style={s.muscleDeltaName} numberOfLines={1}>
+                        <Text style={styles.muscleDeltaName} numberOfLines={1}>
                           {m.group}
                         </Text>
-                        <Text style={s.deltaUp}>↑ {formatVolume(m.delta)}</Text>
+                        <Text style={styles.deltaUp}>↑ {formatVolume(m.delta)}</Text>
                       </HStack>
                     ))}
                   </Box>
                 )}
                 {musclesDown.length > 0 && (
-                  <Box style={s.muscleDeltaGroup}>
-                    <Text style={s.muscleDeltaGroupLabel}>Bajan</Text>
+                  <Box style={styles.muscleDeltaGroup}>
+                    <Text style={styles.muscleDeltaGroupLabel}>Bajan</Text>
                     {musclesDown.map((m) => (
                       <HStack key={m.group} className="items-center justify-between py-1.5">
-                        <Text style={s.muscleDeltaName} numberOfLines={1}>
+                        <Text style={styles.muscleDeltaName} numberOfLines={1}>
                           {m.group}
                         </Text>
-                        <Text style={s.deltaDown}>↓ {formatVolume(Math.abs(m.delta))}</Text>
+                        <Text style={styles.deltaDown}>↓ {formatVolume(Math.abs(m.delta))}</Text>
                       </HStack>
                     ))}
                   </Box>
@@ -328,21 +333,21 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
 
             {/* Lista de entrenamientos */}
             <Card variant="elevated" style={{ marginTop: 16 }}>
-              <Text style={s.cardTitle}>Entrenamientos del mes</Text>
+              <Text style={styles.cardTitle}>Entrenamientos del mes</Text>
               {sortedSessions.length === 0 ? (
-                <Text style={s.emptyText}>Sin entrenamientos registrados este mes.</Text>
+                <Text style={styles.emptyText}>Sin entrenamientos registrados este mes.</Text>
               ) : (
                 <>
                   {visibleSessions.map((sess) => (
                     <HStack key={sess.date} className="items-center py-2.5" style={{ borderTopWidth: 1, borderTopColor: C.border, marginTop: 8 }}>
-                      <Box style={s.sessionDateWrap}>
-                        <Text style={s.sessionDate}>{formatDate(sess.date)}</Text>
+                      <Box style={styles.sessionDateWrap}>
+                        <Text style={styles.sessionDate}>{formatDate(sess.date)}</Text>
                       </Box>
                       <Box style={{ flex: 1 }}>
-                        <Text style={s.sessionTitle} numberOfLines={1}>
+                        <Text style={styles.sessionTitle} numberOfLines={1}>
                           {sess.title}
                         </Text>
-                        <Text style={s.sessionSubtitle}>
+                        <Text style={styles.sessionSubtitle}>
                           {formatDuration(sess.duration_seconds)} · {formatVolume(sess.volume_kg)}
                         </Text>
                       </Box>
@@ -350,7 +355,7 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
                   ))}
                   {sortedSessions.length > 4 && (
                     <Button variant="link" className="p-0" style={{ paddingTop: 12 }} onPress={() => setSessionsModalVisible(true)}>
-                      <ButtonText style={s.expandBtnText}>{`Ver los ${sortedSessions.length}`}</ButtonText>
+                      <ButtonText style={styles.expandBtnText}>{`Ver los ${sortedSessions.length}`}</ButtonText>
                     </Button>
                   )}
                 </>
@@ -361,17 +366,17 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
       </ScrollView>
 
       <SimpleBottomSheet visible={prsModalVisible} onClose={() => setPrsModalVisible(false)}>
-        <Box style={s.modalHandle} />
-        <Text style={s.modalTitle}>Progreso y marcas ({prEvents.length})</Text>
-        <ScrollView style={s.modalScroll} contentContainerStyle={s.modalScrollContent}>
+        <Box style={styles.modalHandle} />
+        <Text style={styles.modalTitle}>Progreso y marcas ({prEvents.length})</Text>
+        <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
           {prEvents.map((p) => (
             <HStack key={`${p.exercise_id}-${p.record_type}`} className="items-center py-2.5" style={{ borderTopWidth: 1, borderTopColor: C.border, marginTop: 8 }}>
               <Icon name="trophy" size={14} color={C.orange} style={{ marginRight: 8 }} />
               <Box style={{ flex: 1 }}>
-                <Text style={s.prTitle} numberOfLines={1}>
+                <Text style={styles.prTitle} numberOfLines={1}>
                   {p.title}
                 </Text>
-                <Text style={s.prSubtitle}>
+                <Text style={styles.prSubtitle}>
                   {RECORD_TYPE_LABEL[p.record_type] || p.record_type}: {p.value} kg
                   {p.achieved_at ? ` · ${formatDate(p.achieved_at)}` : ''}
                 </Text>
@@ -382,19 +387,19 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
       </SimpleBottomSheet>
 
       <SimpleBottomSheet visible={sessionsModalVisible} onClose={() => setSessionsModalVisible(false)}>
-        <Box style={s.modalHandle} />
-        <Text style={s.modalTitle}>Entrenamientos del mes ({sortedSessions.length})</Text>
-        <ScrollView style={s.modalScroll} contentContainerStyle={s.modalScrollContent}>
+        <Box style={styles.modalHandle} />
+        <Text style={styles.modalTitle}>Entrenamientos del mes ({sortedSessions.length})</Text>
+        <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
           {sortedSessions.map((sess) => (
             <HStack key={sess.date} className="items-center py-2.5" style={{ borderTopWidth: 1, borderTopColor: C.border, marginTop: 8 }}>
-              <Box style={s.sessionDateWrap}>
-                <Text style={s.sessionDate}>{formatDate(sess.date)}</Text>
+              <Box style={styles.sessionDateWrap}>
+                <Text style={styles.sessionDate}>{formatDate(sess.date)}</Text>
               </Box>
               <Box style={{ flex: 1 }}>
-                <Text style={s.sessionTitle} numberOfLines={1}>
+                <Text style={styles.sessionTitle} numberOfLines={1}>
                   {sess.title}
                 </Text>
-                <Text style={s.sessionSubtitle}>
+                <Text style={styles.sessionSubtitle}>
                   {formatDuration(sess.duration_seconds)} · {formatVolume(sess.volume_kg)}
                 </Text>
               </Box>
@@ -406,7 +411,8 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
   );
 }
 
-const s = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   appBarTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontFamily: FONT.bold, color: C.textPrimary, marginHorizontal: 4 },
@@ -446,4 +452,5 @@ const s = StyleSheet.create({
   modalTitle: { fontSize: 17, fontFamily: FONT.bold, color: C.textPrimary, textAlign: 'center', marginBottom: 8, paddingHorizontal: 24 },
   modalScroll: { maxHeight: 420, paddingHorizontal: 24 },
   modalScrollContent: { paddingBottom: 24 },
-});
+  });
+}

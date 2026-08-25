@@ -9,7 +9,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PostComment } from '../../api/posts';
 import logger from '@helper/logger';
 
@@ -34,6 +34,7 @@ interface PostData {
 }
 
 export default function PostDetailsScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const postData: PostData | undefined = props.route?.params?.postData;
   const isFromLink: boolean = props.route?.params?.isFromLink ?? false;
 

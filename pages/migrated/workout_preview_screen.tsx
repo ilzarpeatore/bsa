@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -20,7 +20,8 @@ import { HStack } from '@components/ui/hstack';
 import { Divider } from '@components/ui/divider';
 import { Button, ButtonText } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
-import { C, FONT, SHADOW } from './theme';
+import { FONT, SHADOW } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { ExerciseThumbMem } from '../../components/ExerciseThumb';
 import { workoutTemplateApi } from '../../api/workoutTemplate';
 import { readinessApi, ReadinessValues } from '../../api/readiness';
@@ -87,6 +88,8 @@ function ScaleRow({
 }
 
 function ReadinessForm({ onDone }: { onDone: () => void }) {
+  const { colors: C } = useAppColorMode();
+  const rs = useMemo(() => createReadinessStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [sleepQuality, setSleepQuality] = useState<number | null>(null);
   const [sorenessLevel, setSorenessLevel] = useState<number | null>(null);
@@ -175,6 +178,8 @@ interface Props {
 }
 
 export default function WorkoutPreviewScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const { navigation, route } = props;
   const insets = useSafeAreaInsets();
   const programDayAssignmentId: number | undefined = route?.params?.programDayAssignmentId;
@@ -462,7 +467,8 @@ export default function WorkoutPreviewScreen(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontFamily: FONT.regular, fontSize: 15, color: C.textSecondary, textAlign: 'center', paddingHorizontal: 24 },
@@ -620,9 +626,11 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
     backgroundColor: C.bg,
   },
-});
+  });
+}
 
-const rs = StyleSheet.create({
+function createReadinessStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   scroll: { paddingHorizontal: 24, paddingBottom: 24 },
   badge: {
@@ -687,4 +695,5 @@ const rs = StyleSheet.create({
     fontSize: 12.5,
     color: C.textSecondary,
   },
-});
+  });
+}

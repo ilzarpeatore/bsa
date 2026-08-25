@@ -10,7 +10,7 @@ import { Heading } from '@components/ui/heading';
 import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi } from '../../api/posts';
 import logger from '@helper/logger';
 
@@ -22,6 +22,7 @@ interface PostData {
 }
 
 export default function CommunityScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [mPostList, setMPostList] = useState<PostData[]>([]);
   const pageRef = useRef(1);
   const numPageRef = useRef<number | null>(null);

@@ -3,7 +3,8 @@ import { View, StyleSheet, Pressable, Text } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FRONT_MUSCLES, BACK_MUSCLES, FRONT_VIEW_BOX, BACK_VIEW_BOX, ViewSide } from '../constants/bodyMusclesPaths';
 import { bodyMusclesIdsFor } from '../constants/bodyMusclesMap';
-import { C, FONT } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from '../pages/migrated/theme';
 
 // Mismo degradado 0-10 que usa el heatmap del admin panel (body-muscles,
 // INTENSITY_COLORS) — mantenido igual a mano para que ambas plataformas se
@@ -51,6 +52,8 @@ export default function MuscleBodyMap({
   showToggle = true,
   forcedView,
 }: MuscleBodyMapProps) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [view, setView] = useState<ViewSide>(forcedView ?? ViewSide.FRONT);
 
   const fillById = useMemo(() => {
@@ -117,18 +120,20 @@ export default function MuscleBodyMap({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { alignItems: 'center' },
-  toggleRow: {
-    flexDirection: 'row',
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 12,
-    gap: 4,
-  },
-  toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
-  toggleBtnActive: { backgroundColor: C.accentBlack },
-  toggleText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.textSecondary },
-  toggleTextActive: { color: '#FFFFFF' },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { alignItems: 'center' },
+    toggleRow: {
+      flexDirection: 'row',
+      backgroundColor: C.surface,
+      borderRadius: 12,
+      padding: 4,
+      marginBottom: 12,
+      gap: 4,
+    },
+    toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+    toggleBtnActive: { backgroundColor: C.accentBlack },
+    toggleText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.textSecondary },
+    toggleTextActive: { color: '#FFFFFF' },
+  });
+}

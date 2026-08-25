@@ -7,7 +7,7 @@ import { Heading } from "@components/ui/heading";
 import { Pressable } from "@components/ui/pressable";
 import { Icon } from "@components/ui/icon";
 import { Button, ButtonText } from "@components/ui/button";
-import { C } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 interface Metric {
   id: string;
@@ -31,6 +31,7 @@ function handleSave() {
 }
 
 export default function ManageHealthMetricsScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
 
   const [metrics, setMetrics] = useState<Metric[]>(INITIAL_METRICS);
 

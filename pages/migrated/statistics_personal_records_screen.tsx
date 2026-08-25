@@ -11,7 +11,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { Input, InputField, InputSlot } from '@components/ui/input';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { exerciseStatsApi, PersonalRecordItem } from '../../api/exerciseStats';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 
@@ -29,6 +29,7 @@ function formatDate(dateStr: string | null): string {
 }
 
 function RecordRow({ item, rank, onOpenExercise }: { item: PersonalRecordItem; rank: number; onOpenExercise: () => void }) {
+  const { colors: C } = useAppColorMode();
   return (
     <HStack className="items-center" style={{ padding: 12, gap: 12 }}>
       <Box className="items-center" style={{ width: 20 }}>
@@ -64,6 +65,7 @@ function RecordRow({ item, rank, onOpenExercise }: { item: PersonalRecordItem; r
 
 export default function StatisticsPersonalRecordsScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [items, setItems] = useState<PersonalRecordItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState('');

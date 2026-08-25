@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const SLEEP_DATA = [
   { day: "L", hours: 7 },
@@ -16,14 +17,16 @@ const SLEEP_DATA = [
 ];
 
 const TIPS = [
-  { icon: "water" as const, title: "HidrÃ¡tate", desc: "Bebe al menos 2 litros de agua al dÃ­a" },
+  { icon: "water" as const, title: "Hidrátate", desc: "Bebe al menos 2 litros de agua al día" },
   { icon: "moon" as const, title: "Duerme bien", desc: "Intenta dormir entre 7-9 horas cada noche" },
-  { icon: "nutrition" as const, title: "Come balanceado", desc: "Incluye proteÃ­nas, carbohidratos y grasas saludables" },
+  { icon: "nutrition" as const, title: "Come balanceado", desc: "Incluye proteínas, carbohidratos y grasas saludables" },
 ];
 
 const maxSleep = Math.max(...SLEEP_DATA.map((d) => d.hours));
 
 export default function HealthScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   return (
     <SafeAreaView style={localStyles.container}>
       <ScrollView contentContainerStyle={localStyles.scrollContent}>
@@ -32,7 +35,7 @@ export default function HealthScreen({ navigation }: any) {
         <View style={localStyles.card}>
           <View style={localStyles.cardHeader}>
             <Ionicons name="heart" size={20} color="#E91E63" />
-            <Text style={[localStyles.cardTitle, { color: C.white }]}>PresiÃ³n arterial</Text>
+            <Text style={[localStyles.cardTitle, { color: C.white }]}>Presión arterial</Text>
           </View>
           <View style={localStyles.gaugeContainer}>
             <View style={localStyles.gauge}>
@@ -52,7 +55,7 @@ export default function HealthScreen({ navigation }: any) {
         <View style={localStyles.card}>
           <View style={localStyles.cardHeader}>
             <Ionicons name="bed-outline" size={20} color="#7C4DFF" />
-            <Text style={[localStyles.cardTitle, { color: C.white }]}>AnÃ¡lisis del sueÃ±o</Text>
+            <Text style={[localStyles.cardTitle, { color: C.white }]}>Análisis del sueño</Text>
           </View>
           <View style={localStyles.chartContainer}>
             {SLEEP_DATA.map((item, idx) => (
@@ -97,7 +100,8 @@ export default function HealthScreen({ navigation }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { padding: 20, paddingBottom: 100 },
   title: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, marginBottom: 20, textAlign: "center" },
@@ -127,4 +131,5 @@ const localStyles = StyleSheet.create({
   bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.surface },
   continueBtn: { paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   continueBtnText: { fontSize: 16, fontFamily: FONT.bold },
-});
+  });
+}

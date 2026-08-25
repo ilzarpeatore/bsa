@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, StyleProp, ViewStyle, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, withTiming, useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import { C } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -21,12 +21,13 @@ export default function AnimatedRing({
   size = 96,
   strokeWidth = 8,
   percent,
-  color = C.orange,
-  trackColor = C.gray70,
+  color,
+  trackColor,
   duration = 900,
   children,
   style,
 }: AnimatedRingProps) {
+  const { colors: C } = useAppColorMode();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = useSharedValue(circumference);
@@ -50,7 +51,7 @@ export default function AnimatedRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={trackColor}
+          stroke={trackColor ?? C.gray70}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -58,7 +59,7 @@ export default function AnimatedRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={color}
+          stroke={color ?? C.orange}
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"

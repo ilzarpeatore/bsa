@@ -8,7 +8,8 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import { C, SHADOW } from './theme';
+import { SHADOW } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import MuscleBodyMap from '@components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import { bodyMetricsApi, BodyMetricChartData } from '../../api/bodyMetrics';
@@ -42,6 +43,7 @@ function CompositionTile({
   delta: number | null;
   onPress: () => void;
 }) {
+  const { colors: C } = useAppColorMode();
   return (
     <Pressable
       className="rounded-md bg-card"
@@ -87,6 +89,7 @@ function CompositionTile({
 }
 
 export default function ProgressScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [loading, setLoading] = useState(true);
   const [bodyMetrics, setBodyMetrics] = useState<BodyMetricChartData>({});
   const [periodStats, setPeriodStats] = useState<PeriodStats | null>(null);

@@ -1,72 +1,76 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { C, FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
+import { FONT } from "../theme";
 
-const ZONES = [
-  {
-    name: "Resting",
-    range: "50-60%",
-    bpm: "58-72 bpm",
-    color: C.success50,
-    gradient: [C.success60, C.success50],
-    desc: "Light activity, recovery zone",
-    details: [
-      "Burns primarily fat for fuel",
-      "Improves basic endurance",
-      "Ideal for recovery sessions",
-      "Can sustain for extended periods",
-    ],
-  },
-  {
-    name: "Fat Burn",
-    range: "60-70%",
-    bpm: "72-84 bpm",
-    color: C.warning40,
-    gradient: [C.warning50, C.warning40],
-    desc: "Moderate intensity, optimal fat burning",
-    details: [
-      "Optimal zone for weight management",
-      "Increases metabolic rate",
-      "Improves cardiovascular fitness",
-      "Moderate calorie burn per session",
-    ],
-  },
-  {
-    name: "Cardio",
-    range: "70-80%",
-    bpm: "84-96 bpm",
-    color: C.orange,
-    gradient: [C.orange, C.warning50],
-    desc: "High intensity, improves cardio health",
-    details: [
-      "Strengthens heart and lungs",
-      "IncreasesVO2 max",
-      "Higher calorie burn",
-      "Improve race performance",
-    ],
-  },
-  {
-    name: "Peak",
-    range: "80-90%",
-    bpm: "96-108 bpm",
-    color: C.destructive50,
-    gradient: [C.destructive60, C.destructive50],
-    desc: "Maximum effort, anaerobic zone",
-    details: [
-      "Maximum power output",
-      "Improves sprint performance",
-      "Significant calorie burn",
-      "Should be limited to short intervals",
-    ],
-  },
-];
+function getZones(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return [
+    {
+      name: "Resting",
+      range: "50-60%",
+      bpm: "58-72 bpm",
+      color: C.success50,
+      gradient: [C.success60, C.success50],
+      desc: "Light activity, recovery zone",
+      details: [
+        "Burns primarily fat for fuel",
+        "Improves basic endurance",
+        "Ideal for recovery sessions",
+        "Can sustain for extended periods",
+      ],
+    },
+    {
+      name: "Fat Burn",
+      range: "60-70%",
+      bpm: "72-84 bpm",
+      color: C.warning40,
+      gradient: [C.warning50, C.warning40],
+      desc: "Moderate intensity, optimal fat burning",
+      details: [
+        "Optimal zone for weight management",
+        "Increases metabolic rate",
+        "Improves cardiovascular fitness",
+        "Moderate calorie burn per session",
+      ],
+    },
+    {
+      name: "Cardio",
+      range: "70-80%",
+      bpm: "84-96 bpm",
+      color: C.orange,
+      gradient: [C.orange, C.warning50],
+      desc: "High intensity, improves cardio health",
+      details: [
+        "Strengthens heart and lungs",
+        "IncreasesVO2 max",
+        "Higher calorie burn",
+        "Improve race performance",
+      ],
+    },
+    {
+      name: "Peak",
+      range: "80-90%",
+      bpm: "96-108 bpm",
+      color: C.destructive50,
+      gradient: [C.destructive60, C.destructive50],
+      desc: "Maximum effort, anaerobic zone",
+      details: [
+        "Maximum power output",
+        "Improves sprint performance",
+        "Significant calorie burn",
+        "Should be limited to short intervals",
+      ],
+    },
+  ];
+}
 
 export default function HeartRateZoneScreen({ navigation }: any) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
+  const ZONES = useMemo(() => getZones(C), [C]);
   const [expanded, setExpanded] = useState<number | null>(null);
 
   return (
@@ -138,8 +142,8 @@ export default function HeartRateZoneScreen({ navigation }: any) {
   );
 }
 
-function useStyle() {
-  return useResponsiveStyleSheet({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     content: { padding: 20, paddingBottom: 40 },
     header: {

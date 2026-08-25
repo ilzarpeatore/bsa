@@ -13,7 +13,7 @@ import { Stepper } from '@components/ui/stepper';
 import { Switch } from '@components/ui/switch';
 import { Checkbox, CheckboxIndicator, CheckboxLabel } from '@components/ui/checkbox';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import logger from '@helper/logger';
 import { dietApi } from '@api/diet';
 import { shoppingApi, ShoppingMealType } from '@api/shopping';
@@ -47,6 +47,7 @@ const renderCheckboxRow = (label: string, checked: boolean, onPress: () => void,
 );
 
 export default function AddShoppingListScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
   const shoppingList = route?.params?.shoppingList;
   const isDefaultSpecificDate = route?.params?.isDefaultSpecificDate ?? true;
 

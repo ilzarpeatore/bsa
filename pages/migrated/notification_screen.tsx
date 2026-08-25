@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
 import AppIcon from '@components/AppIcon';
 import ScreenHeader from '@components/ScreenHeader';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { notificationsApi, NotificationItem } from '../../api/notifications';
 
 interface DisplayNotification {
@@ -23,18 +23,22 @@ interface DisplayNotification {
   image?: string | null;
 }
 
-const ICON_MAP: Record<string, { icon: keyof typeof Ionicons.glyphMap; bg: string; color: string }> = {
-  push_notification: { icon: 'notifications', bg: C.destructive5, color: C.orange },
-  workout_reminder: { icon: 'barbell', bg: C.destructive5, color: C.orange },
-  goal_achieved: { icon: 'trophy', bg: C.success5, color: C.success },
-  water_reminder: { icon: 'water', bg: C.blue5, color: C.blue },
-  subscription: { icon: 'star', bg: C.warning5, color: C.warning },
-};
+type IconMap = Record<string, { icon: keyof typeof Ionicons.glyphMap; bg: string; color: string }>;
 
-function mapNotification(item: NotificationItem): DisplayNotification {
+function buildIconMap(C: ReturnType<typeof useAppColorMode>['colors']): IconMap {
+  return {
+    push_notification: { icon: 'notifications', bg: C.destructive5, color: C.orange },
+    workout_reminder: { icon: 'barbell', bg: C.destructive5, color: C.orange },
+    goal_achieved: { icon: 'trophy', bg: C.success5, color: C.success },
+    water_reminder: { icon: 'water', bg: C.blue5, color: C.blue },
+    subscription: { icon: 'star', bg: C.warning5, color: C.warning },
+  };
+}
+
+function mapNotification(item: NotificationItem, iconMap: IconMap): DisplayNotification {
   const payload = item.data ?? {};
   const typeKey = payload.type ?? 'push_notification';
-  const mapped = ICON_MAP[typeKey] ?? ICON_MAP.push_notification;
+  const mapped = iconMap[typeKey] ?? iconMap.push_notification;
 
   return {
     id: item.id,
@@ -77,6 +81,8 @@ function NotificationCard({ item }: { item: DisplayNotification }) {
 }
 
 export default function NotificationScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const iconMap = useMemo(() => buildIconMap(C), [C]);
   const [notifications, setNotifications] = useState<DisplayNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +92,7 @@ export default function NotificationScreen(props: any) {
     try {
       const res = await notificationsApi.getList(p);
       const data = res.data;
-      const items = (data.notification_data ?? []).map(mapNotification);
+      const items = (data.notification_data ?? []).map((item) => mapNotification(item, iconMap));
       if (p === 1) {
         setNotifications(items);
       } else {
@@ -97,7 +103,7 @@ export default function NotificationScreen(props: any) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [iconMap]);
 
   useEffect(() => {
     loadNotifications(1);

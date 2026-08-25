@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
+import { FONT } from "../theme";
 import { stepsApi } from "@api/steps";
 
 const { width } = Dimensions.get("window");
 
-function Confetti() {
+function Confetti({ styles }: { styles: ReturnType<typeof createStyles> }) {
   const pieces = Array.from({ length: 30 }, (_, i) => ({
     id: i,
     x: Math.random() * width,
@@ -84,6 +85,8 @@ function Confetti() {
 }
 
 export default function StepGoalCompletedScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [goal, setGoal] = useState<number>(route?.params?.goal ?? 10000);
@@ -115,7 +118,7 @@ export default function StepGoalCompletedScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Confetti />
+      <Confetti styles={styles} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.trophyContainer}>
           <View style={styles.trophyCircle}>
@@ -186,142 +189,143 @@ export default function StepGoalCompletedScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  confettiContainer: {
-    ...StyleSheet.absoluteFill,
-    overflow: "hidden",
-    pointerEvents: "none",
-  },
-  content: {
-    flexGrow: 1,
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  trophyContainer: {
-    marginBottom: 24,
-  },
-  trophyCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#FFF8E1",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  congratsText: {
-    fontSize: 28,
-    lineHeight: 33,
-    fontFamily: FONT.bold,
-    color: C.text,
-    marginBottom: 8,
-  },
-  stepsText: {
-    fontSize: 16,
-    fontFamily: FONT.medium,
-    color: C.gray,
-    marginBottom: 24,
-  },
-  streakCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: C.card,
-    borderRadius: 12,
-    padding: 16,
-    gap: 10,
-    marginBottom: 32,
-  },
-  streakText: {
-    fontSize: 16,
-    fontFamily: FONT.bold,
-    color: C.text,
-  },
-  editGoalButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: C.primary,
-    marginBottom: 16,
-  },
-  editGoalText: {
-    fontSize: 14,
-    fontFamily: FONT.medium,
-    color: C.textPrimary,
-  },
-  backButton: {
-    paddingVertical: 12,
-  },
-  backButtonText: {
-    fontSize: 14,
-    fontFamily: FONT.medium,
-    color: C.gray,
-  },
-  bottomSheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: C.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  sheetHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.gray + "40",
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontFamily: FONT.bold,
-    color: C.text,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  sheetGoal: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontFamily: FONT.bold,
-    color: C.textPrimary,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  sliderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
-  },
-  sliderTrack: {
-    flex: 1,
-    height: 8,
-    backgroundColor: C.bg,
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  sliderFill: {
-    height: "100%",
-    backgroundColor: C.primary,
-    borderRadius: 4,
-  },
-  sheetConfirmBtn: {
-    backgroundColor: C.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  sheetConfirmText: {
-    fontSize: 16,
-    fontFamily: FONT.bold,
-    color: C.white,
-  },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: C.bg,
+    },
+    confettiContainer: {
+      ...StyleSheet.absoluteFillObject,
+      overflow: "hidden",
+    },
+    content: {
+      flexGrow: 1,
+      padding: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    trophyContainer: {
+      marginBottom: 24,
+    },
+    trophyCircle: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "#FFF8E1",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    congratsText: {
+      fontSize: 28,
+      lineHeight: 33,
+      fontFamily: FONT.bold,
+      color: C.text,
+      marginBottom: 8,
+    },
+    stepsText: {
+      fontSize: 16,
+      fontFamily: FONT.medium,
+      color: C.gray,
+      marginBottom: 24,
+    },
+    streakCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: C.card,
+      borderRadius: 12,
+      padding: 16,
+      gap: 10,
+      marginBottom: 32,
+    },
+    streakText: {
+      fontSize: 16,
+      fontFamily: FONT.bold,
+      color: C.text,
+    },
+    editGoalButton: {
+      paddingVertical: 12,
+      paddingHorizontal: 32,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: C.primary,
+      marginBottom: 16,
+    },
+    editGoalText: {
+      fontSize: 14,
+      fontFamily: FONT.medium,
+      color: C.textPrimary,
+    },
+    backButton: {
+      paddingVertical: 12,
+    },
+    backButtonText: {
+      fontSize: 14,
+      fontFamily: FONT.medium,
+      color: C.gray,
+    },
+    bottomSheet: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: C.card,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 24,
+      paddingBottom: 40,
+    },
+    sheetHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: C.gray + "40",
+      alignSelf: "center",
+      marginBottom: 16,
+    },
+    sheetTitle: {
+      fontSize: 18,
+      fontFamily: FONT.bold,
+      color: C.text,
+      textAlign: "center",
+      marginBottom: 16,
+    },
+    sheetGoal: {
+      fontSize: 32,
+      lineHeight: 38,
+      fontFamily: FONT.bold,
+      color: C.textPrimary,
+      textAlign: "center",
+      marginBottom: 20,
+    },
+    sliderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 20,
+    },
+    sliderTrack: {
+      flex: 1,
+      height: 8,
+      backgroundColor: C.bg,
+      borderRadius: 4,
+      overflow: "hidden",
+    },
+    sliderFill: {
+      height: "100%",
+      backgroundColor: C.primary,
+      borderRadius: 4,
+    },
+    sheetConfirmBtn: {
+      backgroundColor: C.primary,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    sheetConfirmText: {
+      fontSize: 16,
+      fontFamily: FONT.bold,
+      color: C.white,
+    },
+  });
+}

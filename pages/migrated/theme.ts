@@ -14,6 +14,17 @@
 // las capturas no muestran ningún trazo de borde visible entre tarjetas
 // (se separan por espacio + sombra), así que se mantiene el valor anterior
 // en vez de inventar uno sin evidencia.
+// Fase 1 de la auditoría UI/UX (docs/AUDITORIA_UIUX_2026-08-24.md, Top 10
+// #2, 2026-08-25): `textTertiary`/`gray30`/`textMuted` (los 3 son el mismo
+// alias documentado en docs/Paleta_Color_BeFit.md) pasan de `#AEAEB2`
+// (2.21:1 sobre blanco, falla WCAG AA) a `#8E8E93` (gris "tertiaryLabel"
+// estándar de iOS, ~3.26:1). No llega a 4.5:1 -- textSecondary tampoco lo
+// hace desde el ajuste de neutros de arriba (viene de las capturas de
+// referencia, ~3.37:1), y oscurecer textTertiary hasta 4.5 lo habría
+// dejado igual de oscuro que textSecondary, invirtiendo la jerarquía
+// (terciario debe leerse MÁS apagado que secundario, no igual). Se llevó
+// al mínimo WCAG real disponible sin romper esa jerarquía -- una mejora
+// real de 2.21→3.26, no una solución perfecta.
 export const C = {
   bg: "#F4F4F7",
   surface: "#FFFFFF",
@@ -23,7 +34,7 @@ export const C = {
   gray5: "#F7F7F7",
   gray10: "#E5E5EA",
   gray20: "#D1D1D6",
-  gray30: "#AEAEB2",
+  gray30: "#8E8E93",
   gray40: "#8A8A90",
   gray50: "#8B8C8E",
   gray60: "#3A3A3C",
@@ -73,13 +84,13 @@ export const C = {
   textWhite: "#262729",
   textPrimary: "#262729",
   textSecondary: "#8B8C8E",
-  textTertiary: "#AEAEB2",
+  textTertiary: "#8E8E93",
   primary: "#E5E5EA",
   primaryLight: "rgba(0,0,0,0.15)",
   gray: "#8B8C8E",
   text: "#262729",
   card: "#FFFFFF",
-  textMuted: "#AEAEB2",
+  textMuted: "#8E8E93",
 
   // Tokens semánticos con nombre (sección 1 del Encargo 2) — reutilizar
   // estos por significado, en vez de success/warning/destructive/blue

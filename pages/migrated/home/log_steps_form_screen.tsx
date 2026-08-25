@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { C, FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
+import { FONT } from "../theme";
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("es-ES", {
@@ -21,6 +22,8 @@ function formatDate(date: Date) {
 }
 
 export default function LogStepsFormScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
 
   const [stepCount, setStepCount] = useState(0);
   const [distance, setDistance] = useState("");
@@ -116,97 +119,99 @@ export default function LogStepsFormScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    lineHeight: 29,
-    fontFamily: FONT.bold,
-    color: C.text,
-    marginBottom: 24,
-  },
-  datePickerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: C.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    gap: 12,
-  },
-  dateText: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: FONT.medium,
-    color: C.text,
-  },
-  stepCounter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 32,
-    gap: 24,
-  },
-  stepButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: C.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stepDisplay: {
-    alignItems: "center",
-  },
-  stepCount: {
-    fontSize: 48,
-    lineHeight: 57,
-    fontFamily: FONT.bold,
-    color: C.text,
-  },
-  stepLabel: {
-    fontSize: 14,
-    color: C.gray,
-    fontFamily: FONT.medium,
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontFamily: FONT.medium,
-    color: C.gray,
-    marginBottom: 8,
-  },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: C.card,
-    borderRadius: 12,
-    padding: 16,
-    gap: 10,
-  },
-  inputText: {
-    fontSize: 16,
-    fontFamily: FONT.medium,
-    color: C.text,
-  },
-  saveButton: {
-    backgroundColor: C.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 24,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontFamily: FONT.bold,
-    color: C.white,
-  },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: C.bg,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 24,
+      lineHeight: 29,
+      fontFamily: FONT.bold,
+      color: C.text,
+      marginBottom: 24,
+    },
+    datePickerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: C.card,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 24,
+      gap: 12,
+    },
+    dateText: {
+      flex: 1,
+      fontSize: 16,
+      fontFamily: FONT.medium,
+      color: C.text,
+    },
+    stepCounter: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 32,
+      gap: 24,
+    },
+    stepButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: C.primary,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    stepDisplay: {
+      alignItems: "center",
+    },
+    stepCount: {
+      fontSize: 48,
+      lineHeight: 57,
+      fontFamily: FONT.bold,
+      color: C.text,
+    },
+    stepLabel: {
+      fontSize: 14,
+      color: C.gray,
+      fontFamily: FONT.medium,
+    },
+    fieldContainer: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontFamily: FONT.medium,
+      color: C.gray,
+      marginBottom: 8,
+    },
+    inputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: C.card,
+      borderRadius: 12,
+      padding: 16,
+      gap: 10,
+    },
+    inputText: {
+      fontSize: 16,
+      fontFamily: FONT.medium,
+      color: C.text,
+    },
+    saveButton: {
+      backgroundColor: C.primary,
+      borderRadius: 12,
+      paddingVertical: 16,
+      alignItems: "center",
+      marginTop: 24,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontFamily: FONT.bold,
+      color: C.white,
+    },
+  });
+}

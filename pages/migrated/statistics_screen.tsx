@@ -10,7 +10,8 @@ import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
-import { C, SHADOW } from './theme';
+import { SHADOW } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
@@ -79,6 +80,7 @@ const ADVANCED_ITEMS: AdvancedItem[] = [
 
 export default function StatisticsScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const days7 = useMemo(() => buildDayRange(7), []);
   const [selectedDate, setSelectedDate] = useState(days7[days7.length - 1].date);
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeGroup[]>([]);

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { scheduleCustomReminder } from '@helper/reminderNotifications';
 import { addCustomReminder } from '@helper/customRemindersStorage';
-import { C, FONT } from './theme';
+import { FONT } from './theme';
 
 interface Props {
   isDaily?: boolean;
@@ -29,6 +30,8 @@ export default function SetReminderScreen(props: any) {
   const [reminderName, setReminderName] = useState('');
   const [description, setDescription] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   const styles = useStyle();
 
   const toggleDay = (index: number) => {
@@ -209,59 +212,61 @@ export default function SetReminderScreen(props: any) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  backBtn: { width: 40, alignItems: 'center' },
-  scrollContent: { padding: 16 },
-  timePickerContainer: { alignItems: 'center', paddingVertical: 20 },
-  timeUnit: { padding: 12 },
-  timeDisplay: { flexDirection: 'row', alignItems: 'center' },
-  timeText: { fontSize: 48, lineHeight: 57, color: C.white },
-  timeSeparator: { fontSize: 48, lineHeight: 57, color: C.white, marginHorizontal: 4 },
-  ampmContainer: { marginLeft: 16, flexDirection: 'column' },
-  ampmBtn: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4 },
-  ampmBtnActive: { backgroundColor: C.brand5 },
-  ampmText: { fontSize: 14, color: C.gray40, fontWeight: '600' },
-  ampmTextActive: { color: C.white },
-  divider: { height: 1, backgroundColor: C.border, marginVertical: 16 },
-  repeatSection: { marginBottom: 24 },
-  sectionTitle: { fontSize: 20, color: C.white, marginBottom: 8 },
-  everyDayText: { fontSize: 14, marginBottom: 16 },
-  dayChips: { paddingBottom: 8 },
-  dayChip: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: `${C.brand5}20`,
-    marginRight: 12,
-  },
-  dayChipSelected: { backgroundColor: C.brand5 },
-  dayChipText: { fontSize: 16, color: C.textPrimary },
-  dayChipTextSelected: { color: C.white },
-  label: { fontSize: 14, color: C.white, marginBottom: 8 },
-  textInput: {
-    backgroundColor: C.surfaceLight,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    color: C.white,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    marginBottom: 24,
-  },
-  saveBtn: {
-    backgroundColor: C.brand5,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  saveBtnText: { fontSize: 16, color: C.white },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
+    backBtn: { width: 40, alignItems: 'center' },
+    scrollContent: { padding: 16 },
+    timePickerContainer: { alignItems: 'center', paddingVertical: 20 },
+    timeUnit: { padding: 12 },
+    timeDisplay: { flexDirection: 'row', alignItems: 'center' },
+    timeText: { fontSize: 48, lineHeight: 57, color: C.white },
+    timeSeparator: { fontSize: 48, lineHeight: 57, color: C.white, marginHorizontal: 4 },
+    ampmContainer: { marginLeft: 16, flexDirection: 'column' },
+    ampmBtn: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4 },
+    ampmBtnActive: { backgroundColor: C.brand5 },
+    ampmText: { fontSize: 14, color: C.gray40, fontWeight: '600' },
+    ampmTextActive: { color: C.white },
+    divider: { height: 1, backgroundColor: C.border, marginVertical: 16 },
+    repeatSection: { marginBottom: 24 },
+    sectionTitle: { fontSize: 20, color: C.white, marginBottom: 8 },
+    everyDayText: { fontSize: 14, marginBottom: 16 },
+    dayChips: { paddingBottom: 8 },
+    dayChip: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: `${C.brand5}20`,
+      marginRight: 12,
+    },
+    dayChipSelected: { backgroundColor: C.brand5 },
+    dayChipText: { fontSize: 16, color: C.textPrimary },
+    dayChipTextSelected: { color: C.white },
+    label: { fontSize: 14, color: C.white, marginBottom: 8 },
+    textInput: {
+      backgroundColor: C.surfaceLight,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+      color: C.white,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 15,
+      marginBottom: 24,
+    },
+    saveBtn: {
+      backgroundColor: C.brand5,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    saveBtnText: { fontSize: 16, color: C.white },
+  });
+}
 
 function useStyle() {
   return useResponsiveStyleSheet({

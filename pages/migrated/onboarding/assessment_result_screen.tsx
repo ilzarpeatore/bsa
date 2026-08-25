@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -7,7 +7,8 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import AnimatedRing from '@components/AnimatedRing';
 import { useAuth } from '@store/AuthContext';
-import { C, FONT } from '../theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from '../theme';
 
 // Screen mostrada justo al terminar las 36 preguntas del onboarding
 // (onboarding_v2_screen.tsx navega aquí con `route.params.answers` -- las
@@ -115,6 +116,8 @@ function foodImageSource(seed: number, keyword: string) {
 }
 
 export default function AssessmentResultScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
+  const localStyles = useMemo(() => createStyles(C), [C]);
   const { state, completeOnboarding } = useAuth();
   const profile = state.user?.user_profile;
   const answers: RouteAnswers = route?.params?.answers ?? {};
@@ -373,7 +376,8 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
   );
 }
 
-const localStyles = StyleSheet.create({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF3EC' },
   scrollContent: { padding: 20, paddingBottom: 110 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
@@ -444,4 +448,5 @@ const localStyles = StyleSheet.create({
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: '#FFF3EC' },
   continueBtn: { paddingVertical: 17, borderRadius: 28, alignItems: 'center', backgroundColor: C.orange },
   continueBtnText: { fontFamily: FONT.bold, fontSize: 16, color: '#FFFFFF' },
-});
+  });
+}

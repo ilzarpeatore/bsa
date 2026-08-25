@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +6,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { getCustomReminders, removeCustomReminder, CustomReminder } from '@helper/customRemindersStorage';
 import { cancelNotifications } from '@helper/reminderNotifications';
-import { C, FONT } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT } from './theme';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -26,6 +27,8 @@ function formatDays(item: CustomReminder): string {
 }
 
 export default function ReminderScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const s = useMemo(() => createStyles(C), [C]);
   const [remindList, setRemindList] = useState<CustomReminder[]>([]);
   const styles = useStyle();
 
@@ -124,39 +127,41 @@ export default function ReminderScreen(props: any) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  backBtn: { width: 40, alignItems: 'center' },
-  headerTitle: { fontSize: 18, color: C.white, flex: 1, textAlign: 'center' },
-  body: { flex: 1 },
-  mealsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    padding: 16,
-    backgroundColor: C.surfaceLight,
-    borderRadius: 12,
-  },
-  mealsTitle: { fontSize: 16, color: C.white },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyTitle: { fontSize: 18, color: C.gray30, marginTop: 16 },
-  listContent: { padding: 16 },
-  reminderCard: {
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: C.surfaceLight,
-    borderRadius: 12,
-  },
-  reminderContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  reminderTextWrap: { flex: 1, marginRight: 12 },
-  reminderTitle: { fontSize: 18, color: C.white },
-  reminderSubtitle: { fontSize: 14, color: C.gray30, marginTop: 6 },
-  deleteBtn: { padding: 4 },
-});
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.bg },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
+    backBtn: { width: 40, alignItems: 'center' },
+    headerTitle: { fontSize: 18, color: C.white, flex: 1, textAlign: 'center' },
+    body: { flex: 1 },
+    mealsCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 8,
+      padding: 16,
+      backgroundColor: C.surfaceLight,
+      borderRadius: 12,
+    },
+    mealsTitle: { fontSize: 16, color: C.white },
+    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyTitle: { fontSize: 18, color: C.gray30, marginTop: 16 },
+    listContent: { padding: 16 },
+    reminderCard: {
+      marginBottom: 16,
+      padding: 16,
+      backgroundColor: C.surfaceLight,
+      borderRadius: 12,
+    },
+    reminderContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    reminderTextWrap: { flex: 1, marginRight: 12 },
+    reminderTitle: { fontSize: 18, color: C.white },
+    reminderSubtitle: { fontSize: 14, color: C.gray30, marginTop: 6 },
+    deleteBtn: { padding: 4 },
+  });
+}
 
 function useStyle() {
   return useResponsiveStyleSheet({

@@ -9,7 +9,7 @@ import { Button } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import { muscleVolumeApi, MuscleVolumeSeriesGroup } from '../../api/muscleVolume';
 import { toLocalISODate } from '../../components/dayRange';
@@ -50,6 +50,7 @@ function macroSeriesTotals(data: MuscleVolumeSeriesGroup[]): Record<MacroMuscleG
 }
 
 function DeltaBadge({ current, previous }: { current: number; previous: number }) {
+  const { colors: C } = useAppColorMode();
   const delta = current - previous;
   if (delta === 0) {
     return (
@@ -65,6 +66,7 @@ function DeltaBadge({ current, previous }: { current: number; previous: number }
 }
 
 function MacroBar({ group, current, previous, maxValue }: { group: string; current: number; previous: number; maxValue: number }) {
+  const { colors: C } = useAppColorMode();
   const pct = maxValue > 0 ? Math.max(current > 0 ? 4 : 0, (current / maxValue) * 100) : 0;
   return (
     <HStack className="items-center" style={{ marginBottom: 16 }}>
@@ -84,6 +86,7 @@ function MacroBar({ group, current, previous, maxValue }: { group: string; curre
 
 export default function StatisticsSeriesCountScreen(props: Props) {
   const { navigation } = props;
+  const { colors: C } = useAppColorMode();
   const [range, setRange] = useState(RANGE_OPTIONS[1]);
   const [currentTotals, setCurrentTotals] = useState<Record<MacroMuscleGroup, number>>({} as any);
   const [previousTotals, setPreviousTotals] = useState<Record<MacroMuscleGroup, number>>({} as any);

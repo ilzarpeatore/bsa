@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { C, FONT } from "../theme";
+import { useAppColorMode } from "@helper/useAppColorMode";
+import { FONT } from "../theme";
 
 const FILTERS = ["All", "High", "Normal", "Low"];
 
@@ -32,14 +32,15 @@ const HISTORY: Record<string, Entry[]> = {
   ],
 };
 
-function statusColor(status: string) {
+function statusColor(status: string, C: ReturnType<typeof useAppColorMode>['colors']) {
   if (status === "high") return C.warning40;
   if (status === "low") return C.blue50;
   return C.success50;
 }
 
 export default function HeartRateHistoryScreen({ navigation }: any) {
-  const styles = useStyle();
+  const { colors: C } = useAppColorMode();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [filter, setFilter] = useState("All");
 
   const filteredHistory = Object.fromEntries(
@@ -90,7 +91,7 @@ export default function HeartRateHistoryScreen({ navigation }: any) {
                     onPress={() => navigation.navigate("MigratedHeartRateDetails")}
                   >
                     <View style={styles.entryLeft}>
-                      <View style={[styles.dot, { backgroundColor: statusColor(entry.status) }]} />
+                      <View style={[styles.dot, { backgroundColor: statusColor(entry.status, C) }]} />
                       <Text style={styles.entryTime}>{entry.time}</Text>
                     </View>
                     <Text style={styles.entryBpm}>{entry.bpm} bpm</Text>
@@ -105,8 +106,8 @@ export default function HeartRateHistoryScreen({ navigation }: any) {
   );
 }
 
-function useStyle() {
-  return useResponsiveStyleSheet({
+function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
+  return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     header: {
       flexDirection: "row",

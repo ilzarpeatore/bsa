@@ -6,7 +6,7 @@ import { Text } from '@components/ui/text';
 import { Heading } from '@components/ui/heading';
 import { Pressable } from '@components/ui/pressable';
 import { Textarea, TextareaInput } from '@components/ui/textarea';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { workoutHistoryApi } from '../../api/workoutHistory';
 
 interface Props {
@@ -23,6 +23,7 @@ const DIFFICULTY_OPTIONS: { value: number; emoji: string; label: string }[] = [
 ];
 
 export default function WorkoutFeedbackScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
   const { navigation, route } = props;
   const {
     programDayAssignmentId,
