@@ -28,7 +28,7 @@ export default function LinkDeviceListScreen({ navigation }: any) {
           className="w-10 h-10 rounded-sm bg-card border border-border items-center justify-center"
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={22} className="text-foreground" />
+          <Icon name="chevron-back" size={22} className="text-foreground" />
         </Pressable>
 
         <VStack space="xs">

@@ -88,7 +88,7 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
           className="w-10 h-10 rounded-sm bg-card border border-border items-center justify-center"
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={22} className="text-foreground" />
+          <Icon name="chevron-back" size={22} className="text-foreground" />
         </Pressable>
 
         <VStack space="xs">
@@ -116,16 +116,6 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
             "Wearable Device",
             "Connect via Bluetooth",
             () => navigation.navigate("MigratedLinkDeviceList"),
-            C
-          )}
-
-          {renderOption(
-            "create-outline",
-            "bg-success",
-            "text-success-foreground",
-            "Manual Entry",
-            "Log steps manually",
-            () => navigation.navigate("MigratedLogStepsForm"),
             C
           )}
         </VStack>
