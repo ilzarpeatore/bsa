@@ -2,7 +2,6 @@ import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Image, StatusBar } from 'react-native';
 import { FONT } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
-import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 
 export default function SplashScreen(props: any) {
   const { colors: C } = useAppColorMode();

@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AnimatedRing from '@components/AnimatedRing';
-import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { FONT } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 

@@ -24,7 +24,7 @@ export default function MealsWaterReminderScreen(props: MealsWaterReminderScreen
     rowIcon: { width: '24@ratio', alignItems: 'center', marginRight: '12@ratio' },
     rowLabel: { flex: 1, fontSize: '16@ratio', fontFamily: FONT.regular, color: C.white },
     divider: { height: 1, backgroundColor: C.border, marginHorizontal: '16@ratio' },
-  });
+  }, [C]);
 
   return (
     <SafeAreaView style={styles.container}>

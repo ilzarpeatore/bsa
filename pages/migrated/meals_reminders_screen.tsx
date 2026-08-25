@@ -79,7 +79,7 @@ export default function MealsRemindersScreen(props: MealsRemindersScreenProps) {
     saveBtn: { color: C.textPrimary, fontSize: '16@ratio', fontFamily: FONT.semiBold },
     loader: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
     topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: '16@ratio', paddingTop: '16@ratio' },
-  });
+  }, [C]);
 
   useEffect(() => {
     loadSettings();

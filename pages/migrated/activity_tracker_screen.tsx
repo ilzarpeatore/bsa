@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { FONT } from './theme';
 

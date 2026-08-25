@@ -136,5 +136,5 @@ function useStyle(C: ReturnType<typeof useAppColorMode>['colors']) {
     nextText: { fontSize: 15, fontFamily: FONT.semiBold, color: C.textPrimary, marginRight: 8 },
     startBtn: { backgroundColor: C.brand50, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 40 },
     startText: { fontSize: 16, fontFamily: FONT.bold, color: C.white },
-  });
+  }, [C]);
 }

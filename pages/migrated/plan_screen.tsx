@@ -21,7 +21,6 @@ import ScreenHeader from '@components/ScreenHeader';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import { useTutorial } from '@store/TutorialContext';
 import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';

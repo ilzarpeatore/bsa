@@ -11,19 +11,29 @@
 @layer theme {
   /* Tokens estilo Bevel (Encargo 2, 2026-07-31) - ver
      pages/migrated/theme.ts para el equivalente en JS usado por las
-     pantallas existentes (StyleSheet), estos son los mismos valores para
-     los componentes de Gluestack-UI (basados en className de NativeWind). */
+     pantallas existentes (StyleSheet). Resincronizado el 2026-08-25 para
+     que cada valor sea EXACTAMENTE el hex de `C`/`C_DARK` de theme.ts
+     (convertido a "R G B") -- antes este bloque tenía un palette propio,
+     nunca actualizado junto con los reajustes de neutros de theme.ts, así
+     que un componente Gluestack (`bg-card`, `text-foreground`...) y un
+     estilo `C.xxx` de la misma pantalla podían mostrar dos oscuros/claros
+     distintos. Mapeo: primary/-foreground=accentBlack, card/popover=surface,
+     secondary/muted/accent=gray5, *-foreground (excepto success/warning/
+     destructive/info, que llevan blanco fijo)=textPrimary, background=bg,
+     muted-foreground=textSecondary, destructive/success/warning/info=sus
+     mismos nombres en theme.ts, foreground=textPrimary, border/input=border,
+     ring=blue. */
   :root {
     --primary: 0 0 0;
     --primary-foreground: 255 255 255;
     --card: 255 255 255;
-    --secondary: 247 247 249;
-    --secondary-foreground: 28 28 30;
-    --background: 242 242 247;
+    --secondary: 247 247 247;
+    --secondary-foreground: 38 39 41;
+    --background: 244 244 247;
     --popover: 255 255 255;
-    --popover-foreground: 28 28 30;
-    --muted: 247 247 249;
-    --muted-foreground: 107 107 112;
+    --popover-foreground: 38 39 41;
+    --muted: 247 247 247;
+    --muted-foreground: 139 140 142;
     --destructive: 255 59 48;
     --destructive-foreground: 255 255 255;
     --success: 52 199 89;
@@ -32,81 +42,81 @@
     --warning-foreground: 255 255 255;
     --info: 0 122 255;
     --info-foreground: 255 255 255;
-    --foreground: 28 28 30;
+    --foreground: 38 39 41;
     --border: 229 229 234;
     --input: 229 229 234;
     --ring: 0 122 255;
-    --accent: 247 247 249;
-    --accent-foreground: 28 28 30;
+    --accent: 247 247 247;
+    --accent-foreground: 38 39 41;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --primary: 255 245 245;
-      --primary-foreground: 23 23 23;
-      --card: 23 23 23;
-      --secondary: 38 38 38;
+      --primary: 255 255 255;
+      --primary-foreground: 0 0 0;
+      --card: 46 48 55;
+      --secondary: 36 36 38;
       --secondary-foreground: 250 250 250;
-      --background: 10 10 10;
-      --popover: 23 23 23;
+      --background: 36 37 41;
+      --popover: 46 48 55;
       --popover-foreground: 250 250 250;
-      --muted: 38 38 38;
-      --muted-foreground: 161 161 161;
-      --destructive: 255 100 103;
+      --muted: 36 36 38;
+      --muted-foreground: 129 130 135;
+      --destructive: 255 69 58;
       --destructive-foreground: 255 255 255;
-      --success: 48 209 88;
+      --success: 52 199 89;
       --success-foreground: 255 255 255;
       --warning: 255 159 10;
       --warning-foreground: 255 255 255;
       --info: 10 132 255;
       --info-foreground: 255 255 255;
       --foreground: 250 250 250;
-      --border: 46 46 46;
-      --input: 46 46 46;
-      --accent: 38 38 38;
+      --border: 58 58 60;
+      --input: 58 58 60;
+      --accent: 36 36 38;
       --accent-foreground: 250 250 250;
-      --ring: 115 115 115;
+      --ring: 10 132 255;
     }
   }
 
   :root.dark {
-    --primary: 255 245 245;
-    --primary-foreground: 23 23 23;
-    --card: 23 23 23;
-    --secondary: 38 38 38;
+    --primary: 255 255 255;
+    --primary-foreground: 0 0 0;
+    --card: 46 48 55;
+    --secondary: 36 36 38;
     --secondary-foreground: 250 250 250;
-    --background: 10 10 10;
-    --popover: 23 23 23;
+    --background: 36 37 41;
+    --popover: 46 48 55;
     --popover-foreground: 250 250 250;
-    --muted: 38 38 38;
-    --muted-foreground: 161 161 161;
-    --destructive: 255 100 103;
+    --muted: 36 36 38;
+    --muted-foreground: 129 130 135;
+    --destructive: 255 69 58;
     --destructive-foreground: 255 255 255;
-    --success: 48 209 88;
+    --success: 52 199 89;
     --success-foreground: 255 255 255;
     --warning: 255 159 10;
     --warning-foreground: 255 255 255;
     --info: 10 132 255;
     --info-foreground: 255 255 255;
     --foreground: 250 250 250;
-    --border: 46 46 46;
-    --input: 46 46 46;
-    --accent: 38 38 38;
+    --border: 58 58 60;
+    --input: 58 58 60;
+    --accent: 36 36 38;
     --accent-foreground: 250 250 250;
-    --ring: 115 115 115;
+    --ring: 10 132 255;
   }
 
   :root.light {
     --primary: 0 0 0;
     --primary-foreground: 255 255 255;
     --card: 255 255 255;
-    --secondary: 247 247 249;
-    --secondary-foreground: 28 28 30;
-    --background: 242 242 247;
+    --secondary: 247 247 247;
+    --secondary-foreground: 38 39 41;
+    --background: 244 244 247;
     --popover: 255 255 255;
-    --popover-foreground: 28 28 30;
-    --muted: 247 247 249;
-    --muted-foreground: 107 107 112;
+    --popover-foreground: 38 39 41;
+    --muted: 247 247 247;
+    --muted-foreground: 139 140 142;
     --destructive: 255 59 48;
     --destructive-foreground: 255 255 255;
     --success: 52 199 89;
@@ -115,12 +125,12 @@
     --warning-foreground: 255 255 255;
     --info: 0 122 255;
     --info-foreground: 255 255 255;
-    --foreground: 28 28 30;
+    --foreground: 38 39 41;
     --border: 229 229 234;
     --input: 229 229 234;
     --ring: 0 122 255;
-    --accent: 247 247 249;
-    --accent-foreground: 28 28 30;
+    --accent: 247 247 247;
+    --accent-foreground: 38 39 41;
   }
 }
 

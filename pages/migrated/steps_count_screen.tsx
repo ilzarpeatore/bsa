@@ -6,7 +6,6 @@ import AnimatedRing from '@components/AnimatedRing';
 import ScreenHeader from '@components/ScreenHeader';
 import { FONT } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
-import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

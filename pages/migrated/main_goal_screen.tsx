@@ -76,7 +76,7 @@ export default function MainGoalScreen(props: MainGoalScreenProps) {
     sliderRecommend: { fontSize: '14@ratio', color: C.white, textAlign: 'center', marginTop: '8@ratio' },
     continueBtn: { backgroundColor: C.brand5, borderRadius: '8@ratio', paddingVertical: '15@ratio', paddingHorizontal: '85@ratio', alignSelf: 'center', marginTop: '16@ratio' },
     continueBtnText: { fontSize: '16@ratio', fontFamily: FONT.bold, color: C.white },
-  });
+  }, [C]);
 
   const getTitle = () => {
     if (selectedScreen === 0) return 'Main Goal';

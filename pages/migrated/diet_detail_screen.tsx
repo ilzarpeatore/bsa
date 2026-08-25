@@ -327,7 +327,7 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
 
           {/* Tabs: Ingredients / Instruction */}
           <Box style={localStyles.tabsRowWrap}>
-            <HStack className="rounded-full bg-white p-1">
+            <HStack className="rounded-full p-1" style={{ backgroundColor: C.surface }}>
               <Pressable
                 style={[localStyles.tabPill, select && localStyles.tabPillActive]}
                 onPress={() => setSelect(true)}

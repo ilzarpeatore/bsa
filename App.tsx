@@ -25,7 +25,7 @@ import "@helper/reminderNotifications";
 import NavigationTab from "@components/NavigationTab";
 import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
 import { TabBarScrollProvider } from "@store/TabBarScrollContext";
-import { AppColorModeProvider } from "@helper/useAppColorMode";
+import { AppColorModeProvider, useAppColorMode } from "@helper/useAppColorMode";
 import { AppReloadProvider, useAppReload } from "@store/AppReloadContext";
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
@@ -456,6 +456,20 @@ function AppNavigationContainer({ navigationRef, onReady }: { navigationRef: any
   );
 }
 
+// Puente entre AppColorModeProvider y GluestackUIProvider (2026-08-25):
+// useAppColorMode() solo es invocable dentro de la subtree de
+// AppColorModeProvider, así que GluestackUIProvider (que necesita el `mode`
+// actual para que los componentes Gluestack/NativeWind -- Box/Text/Card/
+// Button con className="bg-card" etc. -- respondan a modo oscuro) tiene que
+// vivir DENTRO de AppColorModeProvider, no envolviéndolo por fuera como
+// antes (mode="light" fijo). Ver global.css para los valores de color que
+// esto activa (resincronizados con C/C_DARK de pages/migrated/theme.ts en
+// el mismo commit).
+function GluestackModeBridge({ children }: { children: React.ReactNode }) {
+  const { mode } = useAppColorMode();
+  return <GluestackUIProvider mode={mode}>{children}</GluestackUIProvider>;
+}
+
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
@@ -526,17 +540,20 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider mode="light">
-        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          {/* Cerca de la raíz (no solo alrededor de Home v2) para que
-              cualquier pantalla que consuma useAppColorMode() -- hoy Home v2
-              y MigratedAppearance -- comparta el mismo estado real, ver
-              helper/useAppColorMode.ts. AppReloadProvider por fuera de
-              AuthProvider/TutorialProvider a propósito -- "recargar todos
-              los datos" (Ajustes) solo debe remontar el NavigationContainer
-              de abajo (AppNavigationContainer), nunca cerrar la sesión. */}
-          <AppReloadProvider>
-            <AppColorModeProvider>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        {/* Cerca de la raíz (no solo alrededor de Home v2) para que
+            cualquier pantalla que consuma useAppColorMode() -- hoy son
+            decenas, tras la migración a modo oscuro dinámico -- comparta el
+            mismo estado real, ver helper/useAppColorMode.ts. AppReloadProvider
+            por fuera de AuthProvider/TutorialProvider a propósito -- "recargar
+            todos los datos" (Ajustes) solo debe remontar el
+            NavigationContainer de abajo (AppNavigationContainer), nunca
+            cerrar la sesión. GluestackUIProvider vive DENTRO de
+            AppColorModeProvider (vía GluestackModeBridge) -- ver el
+            comentario de esa función para el porqué. */}
+        <AppReloadProvider>
+          <AppColorModeProvider>
+            <GluestackModeBridge>
               <AuthProvider>
                 <TutorialProvider navigationRef={screenReviewNavigationRef}>
                   <AppNavigationContainer navigationRef={screenReviewNavigationRef} onReady={onLayoutRootView} />
@@ -546,10 +563,10 @@ export default function App() {
                   <TutorialOverlay />
                 </TutorialProvider>
               </AuthProvider>
-            </AppColorModeProvider>
-          </AppReloadProvider>
-        </SafeAreaProvider>
-      </GluestackUIProvider>
+            </GluestackModeBridge>
+          </AppColorModeProvider>
+        </AppReloadProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

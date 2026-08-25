@@ -26,7 +26,7 @@ import {
   AccordionTitleText,
   AccordionContent,
 } from '@components/ui/accordion';
-import { C } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 import { blogApi, BlogDetailItem } from '../../api/blog';
 import logger from '@helper/logger';
 
@@ -79,13 +79,18 @@ const renderYouTubeEmbeds = (html: string): string => {
 // El texto del cuerpo (p, li) estaba hardcodeado en gris claro (#e0e0e0),
 // un resto de cuando este WebView se diseñó para fondo oscuro: sobre el bg
 // claro actual (C.surface) era casi ilegible. Corregido a C.textPrimary
-// (negro). No se engancha al modo oscuro de useAppColorMode (solo Home v2
-// lo usa por ahora, ver TAREAS.md): el resto de esta pantalla usa
-// className="bg-card"/"bg-background" de NativeWind, que no responde a
-// modo oscuro hasta que se desbloquee GluestackUIProvider mode en App.tsx
-// -- engancharlo solo aquí dejaría el texto oscuro sobre tarjetas que
-// seguirían viéndose claras, peor que no tocarlo.
-const WRAPPER_HTML = `<!DOCTYPE html>
+// (negro). Antes una constante de módulo (WRAPPER_HTML) que capturaba `C`
+// estático en el momento del import -- convertida a función (mismo patrón
+// que resource_detail_screen.tsx) para que reciba el `C` dinámico de
+// useAppColorMode() y el HTML generado siga al tema actual. Esto se dejó
+// pendiente hasta que GluestackUIProvider dejase de estar fijo en
+// mode="light" (App.tsx) -- el resto de esta pantalla usa
+// className="bg-card"/"bg-background" de NativeWind, que hasta ahora no
+// respondía a modo oscuro; con GluestackUIProvider ya dinámico (ver
+// App.tsx/GluestackModeBridge) esas clases seguirán el tema por su cuenta,
+// así que solo hacía falta dinamizar este WebView.
+function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): string {
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -135,6 +140,7 @@ const WRAPPER_HTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
 
 // Only the wrapper HTML we generate (loaded as source.html, origin "about:blank") and the
 // YouTube embed iframe it may contain should ever load in this WebView — block navigation
@@ -151,6 +157,7 @@ const onShouldStartLoadWithRequest = (request: any) => {
 };
 
 export default function BlogDetailScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
   const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   const heroScrollHandler = useAnimatedScrollHandler((event) => {
@@ -212,7 +219,7 @@ export default function BlogDetailScreen({ navigation, route }: any) {
   const getRenderedHtml = () => {
     const content = blog?.content || blog?.description || '';
     const withEmbeds = renderYouTubeEmbeds(sanitizeHtml(content));
-    return WRAPPER_HTML.replace('__CONTENT__', withEmbeds);
+    return buildWrapperHtml(C).replace('__CONTENT__', withEmbeds);
   };
 
   if (loading) {
