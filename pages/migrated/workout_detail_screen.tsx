@@ -4,22 +4,22 @@ import {
   ScrollView, Dimensions,
   StatusBar,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Divider } from '@components/ui/divider';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { workoutsApi } from '../../api/workouts';
-import { pickWorkoutFallbackImage } from './workoutViewShared';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  LinearGradient  } from 'expo-linear-gradient';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Divider  } from '@components/ui/divider';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  workoutsApi  } from '../../api/workouts';
+import {  pickWorkoutFallbackImage  } from './workoutViewShared';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -372,7 +372,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     left: 12,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -395,7 +395,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     right: 16,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',

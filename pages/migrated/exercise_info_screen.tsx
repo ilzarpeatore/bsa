@@ -8,22 +8,22 @@ import {
   UIManager,
   RefreshControl,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { Divider } from '@components/ui/divider';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from './theme';
-import { ExerciseMediaHeaderMem, ExerciseHeaderFloatingIcons, HEADER_HEIGHT_RATIO } from '../../components/ExerciseMediaHeader';
-import { MuscleIsolateIconMem } from '../../components/MuscleIsolateIcon';
-import { AnalysisHistoryCardMem } from '../../components/AnalysisHistoryCard';
-import { ErrorRetryMem } from '../../components/ErrorRetry';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  Divider  } from '@components/ui/divider';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
+import {  ExerciseMediaHeaderMem, ExerciseHeaderFloatingIcons, HEADER_HEIGHT_RATIO  } from '../../components/ExerciseMediaHeader';
+import {  MuscleIsolateIconMem  } from '../../components/MuscleIsolateIcon';
+import {  AnalysisHistoryCardMem  } from '../../components/AnalysisHistoryCard';
+import {  ErrorRetryMem  } from '../../components/ErrorRetry';
 import MetricLineChart from '../../components/MetricLineChart';
 import {
   exerciseInfoApi,
@@ -639,7 +639,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   muscleBadge: {
     backgroundColor: C.brand20,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -651,7 +651,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   popularBadge: {
     backgroundColor: C.warning10,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -737,7 +737,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   muscleIconWrap: {
     width: 64,
     height: 64,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     backgroundColor: C.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -792,7 +792,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   equipmentImage: {
     width: 96,
     height: 96,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     backgroundColor: C.surface,
   },
   equipmentImageFallback: {
@@ -817,7 +817,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   metricChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     borderWidth: 1.5,
     borderColor: C.border,
   },

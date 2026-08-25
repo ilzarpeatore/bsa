@@ -1,20 +1,19 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ScrollView, Alert, Keyboard, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Button, ButtonText } from '@components/ui/button';
-import { Input, InputField, InputSlot } from '@components/ui/input';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
+import {  ScrollView, Alert, Keyboard, StyleSheet  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Button, ButtonText  } from '@components/ui/button';
+import {  Input, InputField, InputSlot  } from '@components/ui/input';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import AppIcon from '@components/AppIcon';
-import { authApi } from '@api/auth';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from './theme';
-
+import {  authApi  } from '@api/auth';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
 export default function ChangePwdScreen({ navigation }: any) {
   const { colors: C } = useAppColorMode();
   const localStyles = useMemo(() => createStyles(C), [C]);
@@ -200,7 +199,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     // pantalla) -- mismo fix que edit_profile_screen.tsx.
     card: {
       backgroundColor: C.surface,
-      borderRadius: 16,
+      borderRadius: RADIUS.md,
     },
     sectionLabel: {
       fontFamily: FONT.semiBold,

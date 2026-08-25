@@ -1,23 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {  StyleSheet, ScrollView, Dimensions  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { runOnJS } from 'react-native-worklets';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Badge, BadgeText } from '@components/ui/badge';
-import { Divider } from '@components/ui/divider';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { dietApi } from '../../api/diet';
-import { recipesApi, RecipeStep, RecipeIngredient } from '../../api/recipes';
+import {  runOnJS  } from 'react-native-worklets';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Badge, BadgeText  } from '@components/ui/badge';
+import {  Divider  } from '@components/ui/divider';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  dietApi  } from '../../api/diet';
+import {  recipesApi, RecipeStep, RecipeIngredient  } from '../../api/recipes';
 import logger from '@helper/logger';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -393,7 +393,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   favBtnInner: {
     padding: 5,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   titleRow: {
@@ -416,7 +416,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 8,
+    borderRadius: RADIUS.xs,
     paddingHorizontal: 8,
     paddingVertical: 6,
   },

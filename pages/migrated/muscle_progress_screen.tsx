@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Heading } from '@components/ui/heading';
-import { Button } from '@components/ui/button';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  ScrollView, ActivityIndicator  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Heading  } from '@components/ui/heading';
+import {  Button  } from '@components/ui/button';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
-import { muscleVolumeApi, MuscleVolumeData } from '../../api/muscleVolume';
+import {  muscleVolumeApi, MuscleVolumeData  } from '../../api/muscleVolume';
+import {  RADIUS  } from './theme';
 
 interface Props {
   navigation?: any;
@@ -88,12 +89,12 @@ export default function MuscleProgressScreen(props: Props) {
 
       <Box
         className="flex-row self-center bg-card shadow-card"
-        style={{ borderRadius: 12, padding: 4, gap: 4, marginBottom: 12 }}
+        style={{ borderRadius: RADIUS.sm, padding: 4, gap: 4, marginBottom: 12 }}
       >
         {RANGES.map((r) => (
           <Pressable
             key={r.key}
-            style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 }}
+            style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: RADIUS.xs }}
             className={range === r.key ? 'bg-primary' : ''}
             onPress={() => setRange(r.key)}
           >

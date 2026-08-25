@@ -1,34 +1,34 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { StyleSheet, FlatList, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { Image } from 'expo-image';
+import {  StyleSheet, FlatList, Alert, Modal, TextInput, KeyboardAvoidingView, Platform  } from 'react-native';
+import {  Image  } from 'expo-image';
 import Animated, {
   useAnimatedRef,
   useAnimatedReaction,
   useAnimatedScrollHandler,
   useSharedValue,
 } from 'react-native-reanimated';
-import { runOnJS } from 'react-native-worklets';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Divider } from '@components/ui/divider';
+import {  runOnJS  } from 'react-native-worklets';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Divider  } from '@components/ui/divider';
 import ScreenHeader from '@components/ScreenHeader';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
-import { useTutorial } from '@store/TutorialContext';
-import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
-import { useTabBarScroll } from '@store/TabBarScrollContext';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
-import { recipesApi, RecipeListItem } from '../../api/recipes';
+import {  useTutorial  } from '@store/TutorialContext';
+import {  GlassView, isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
+import {  useFocusEffect  } from '@react-navigation/native';
+import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
+import {  useTabBarScroll  } from '@store/TabBarScrollContext';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  dietApi, AssignedMealsSummary, AssignedMealRecipe  } from '../../api/diet';
+import {  recipesApi, RecipeListItem  } from '../../api/recipes';
 import logger from '@helper/logger';
 
 function formatDateYMD(d: Date): string {
@@ -609,7 +609,11 @@ export default function PlanScreen(props: any) {
         title="Plan diario"
         onBack={() => props.navigation?.goBack()}
         rightAction={
-          <Pressable onPress={clearDailyPlan} style={s.clearBtn}>
+          <Pressable
+            onPress={clearDailyPlan}
+            style={s.clearBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Vaciar plan diario">
             <Icon name="trash-outline" size={20} color={C.destructive} />
           </Pressable>
         }
@@ -766,7 +770,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   weekdayPickerGlassWrap: { width: '100%' },
   weekNavBtn: { paddingHorizontal: 4, paddingVertical: 8 },
   weekStrip: { flex: 1, justifyContent: 'space-around' },
-  weekDayItem: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 6, borderRadius: 12 },
+  weekDayItem: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 6, borderRadius: RADIUS.sm },
   weekDayItemSelected: { backgroundColor: C.brand5 },
   weekDayLabel: { fontSize: 11, fontFamily: FONT.medium, color: C.gray40, marginBottom: 4 },
   weekDayLabelSelected: { color: C.white },
@@ -814,11 +818,11 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   modalCloseBtn: { padding: 4 },
   modalTitle: { fontSize: 18, fontFamily: FONT.bold, color: C.white },
   addMealTabsRow: { marginBottom: 14 },
-  addMealTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 20, backgroundColor: C.surfaceLight },
+  addMealTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: RADIUS.lg, backgroundColor: C.surfaceLight },
   addMealTabActive: { backgroundColor: C.brand50 },
   addMealTabText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.gray50 },
   addMealTabTextActive: { color: C.white },
-  searchInput: { backgroundColor: C.surfaceLight, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, fontFamily: FONT.regular, color: C.white, marginBottom: 12 },
+  searchInput: { backgroundColor: C.surfaceLight, borderRadius: RADIUS.sm, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, fontFamily: FONT.regular, color: C.white, marginBottom: 12 },
   noResultsText: { fontSize: 14, fontFamily: FONT.regular, color: C.gray50, textAlign: 'center', marginTop: 20 },
   searchResultsScroll: { flex: 1 },
   searchResultRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },

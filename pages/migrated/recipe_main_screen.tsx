@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { StyleSheet, ScrollView, TextInput, Dimensions, FlatList } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Button } from '@components/ui/button';
-import { Badge, BadgeText } from '@components/ui/badge';
+import {  StyleSheet, ScrollView, TextInput, Dimensions, FlatList  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Button  } from '@components/ui/button';
+import {  Badge, BadgeText  } from '@components/ui/badge';
 import ScreenHeader from '@components/ScreenHeader';
-import { useResponsiveStyleSheet } from '@helper/responsiveStyleSheet';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { recipesApi, RecipeListItem } from '../../api/recipes';
+import {  useResponsiveStyleSheet  } from '@helper/responsiveStyleSheet';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  recipesApi, RecipeListItem  } from '../../api/recipes';
 import logger from '@helper/logger';
 
 // Rediseño (2026-08-22): de un hub de categorías (mosaicos con la foto de la
@@ -377,7 +377,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   searchWrap: {
     alignItems: 'center',
     backgroundColor: C.surfaceLight,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: C.border,
     paddingHorizontal: 12,
@@ -439,7 +439,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   gridRow: { justifyContent: 'space-between' },
   recipeCard: { marginBottom: 16 },
   recipeImageWrap: { position: 'relative' },
-  recipeImage: { width: '100%', height: 130, borderRadius: 12 },
+  recipeImage: { width: '100%', height: 130, borderRadius: RADIUS.sm },
   favBtn: {
     position: 'absolute',
     top: 8,

@@ -9,27 +9,27 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { captureRef } from 'react-native-view-shot';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  captureRef  } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import Share from 'react-native-share';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card as GluestackCard } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Button, ButtonText } from '@components/ui/button';
-import { FONT, SHADOW } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card as GluestackCard  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Button, ButtonText  } from '@components/ui/button';
+import { FONT, SHADOW, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
-import { ViewSide } from '../../constants/bodyMusclesPaths';
-import { muscleVolumeApi, MuscleVolumeSet } from '../../api/muscleVolume';
-import { dashboardApi } from '../../api/dashboard';
+import {  ViewSide  } from '../../constants/bodyMusclesPaths';
+import {  muscleVolumeApi, MuscleVolumeSet  } from '../../api/muscleVolume';
+import {  dashboardApi  } from '../../api/dashboard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PAGE_INDEXES = [0, 1, 2, 3, 4, 5];
@@ -523,7 +523,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   confettiBadge: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: RADIUS.xl,
     backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',

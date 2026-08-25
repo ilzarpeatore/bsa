@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { StyleSheet, ScrollView, TextInput, Dimensions, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Divider } from '@components/ui/divider';
-import { Button, ButtonText } from '@components/ui/button';
+import {  StyleSheet, ScrollView, TextInput, Dimensions, Alert  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Image  } from 'expo-image';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Divider  } from '@components/ui/divider';
+import {  Button, ButtonText  } from '@components/ui/button';
 import ScreenHeader from '@components/ScreenHeader';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from './theme';
-import { blogApi, BlogListItem, BlogCategory } from '../../api/blog';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
+import {  blogApi, BlogListItem, BlogCategory  } from '../../api/blog';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 
 interface SortOption {
@@ -212,7 +212,7 @@ export default function BlogScreen({ navigation }: any) {
           <Button
             variant="ghost"
             onPress={() => navigateToViewAll()}
-            style={{ backgroundColor: C.brand5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+            style={{ backgroundColor: C.brand5, borderRadius: RADIUS.xs, paddingHorizontal: 12, paddingVertical: 6 }}
           >
             <ButtonText style={{ fontFamily: FONT.semiBold, fontSize: 13, color: C.white }}>Ver todo</ButtonText>
           </Button>
@@ -245,7 +245,7 @@ export default function BlogScreen({ navigation }: any) {
             <Button
               variant="ghost"
               onPress={() => setSortSheetVisible(true)}
-              style={{ backgroundColor: C.surfaceLight, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 }}
+              style={{ backgroundColor: C.surfaceLight, borderRadius: RADIUS.lg, paddingHorizontal: 14, paddingVertical: 8 }}
             >
               <Icon name="swap-vertical-outline" size={15} color={C.white} />
               <ButtonText numberOfLines={1} style={{ fontFamily: FONT.medium, fontSize: 13, color: C.white, maxWidth: 120 }}>
@@ -258,7 +258,7 @@ export default function BlogScreen({ navigation }: any) {
               <Button
                 variant="ghost"
                 onPress={() => setCategorySheetVisible(true)}
-                style={{ backgroundColor: C.surfaceLight, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 }}
+                style={{ backgroundColor: C.surfaceLight, borderRadius: RADIUS.lg, paddingHorizontal: 14, paddingVertical: 8 }}
               >
                 <Icon name="pricetag-outline" size={15} color={C.white} />
                 <ButtonText numberOfLines={1} style={{ fontFamily: FONT.medium, fontSize: 13, color: C.white, maxWidth: 120 }}>
@@ -410,7 +410,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   featuredCard: {
     width: SCREEN_WIDTH * 0.75,
     height: SCREEN_WIDTH * 0.45,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     overflow: 'hidden',
     marginRight: 12,
     position: 'relative',
@@ -423,7 +423,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     top: 12,
     left: 12,
     backgroundColor: C.brand5,
-    borderRadius: 8,
+    borderRadius: RADIUS.xs,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },

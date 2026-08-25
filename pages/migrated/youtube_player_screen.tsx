@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  Platform  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  WebView  } from 'react-native-webview';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  RADIUS  } from './theme';
 
 function extractYoutubeVideoId(url: string): string | null {
   const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -213,7 +214,7 @@ export default function YoutubePlayerScreen(props: YoutubePlayerScreenProps) {
           >
             <Pressable
               className="items-center justify-center"
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)' }}
+              style={{ width: 40, height: 40, borderRadius: RADIUS.lg, backgroundColor: 'rgba(0,0,0,0.5)' }}
               onPress={exitScreen}
             >
               <Icon name="close" size={25} color={'#FFFFFF'} />
@@ -221,7 +222,7 @@ export default function YoutubePlayerScreen(props: YoutubePlayerScreenProps) {
             {Platform.OS === 'android' && (
               <Pressable
                 className="items-center justify-center"
-                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)' }}
+                style={{ width: 40, height: 40, borderRadius: RADIUS.lg, backgroundColor: 'rgba(0,0,0,0.5)' }}
                 onPress={() => {
                   setVisibleOption(false);
                   // SimplePip.enterPipMode() equivalent

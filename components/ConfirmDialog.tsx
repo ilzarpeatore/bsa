@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { FONT, SHADOW } from '../pages/migrated/theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  View, Text, StyleSheet, Modal, Pressable  } from 'react-native';
+import {  Ionicons  } from '@expo/vector-icons';
+import { FONT, SHADOW, RADIUS } from '../pages/migrated/theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 
 interface Props {
   visible: boolean;
@@ -129,7 +129,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   cancelBtn: {
     flex: 1,
     paddingVertical: 13,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     backgroundColor: C.gray5,
     alignItems: 'center',
   },
@@ -141,7 +141,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   confirmBtn: {
     flex: 1,
     paddingVertical: 13,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     backgroundColor: C.accentBlack,
     alignItems: 'center',
   },

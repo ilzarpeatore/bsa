@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  View, Pressable, StyleSheet  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  RADIUS  } from '../pages/migrated/theme';
 
 export const HEADER_HEIGHT_RATIO = 0.45;
 
@@ -130,7 +131,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     position: 'absolute',
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',

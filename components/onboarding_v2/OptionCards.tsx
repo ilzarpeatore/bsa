@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { OnboardingOption } from '../../types/onboardingV2';
-import { C, FONT } from '../../pages/migrated/theme';
-
+import {  View, Text, Pressable, StyleSheet  } from 'react-native';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  OnboardingOption  } from '../../types/onboardingV2';
+import { C, FONT, RADIUS } from '../../pages/migrated/theme';
 interface Props {
   options: OnboardingOption[];
   value: string | undefined;
@@ -55,7 +54,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 16,
   },
   cardSelected: { backgroundColor: `${C.orange}26` },

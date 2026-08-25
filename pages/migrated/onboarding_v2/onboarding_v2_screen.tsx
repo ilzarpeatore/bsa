@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import {  View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet  } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Input, InputField } from '@components/ui/input';
-import { Textarea, TextareaInput } from '@components/ui/textarea';
-import { Button, ButtonText } from '@components/ui/button';
-import { Spinner } from '@components/ui/spinner';
-import { useAuth } from '@store/AuthContext';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Input, InputField  } from '@components/ui/input';
+import {  Textarea, TextareaInput  } from '@components/ui/textarea';
+import {  Button, ButtonText  } from '@components/ui/button';
+import {  Spinner  } from '@components/ui/spinner';
+import {  useAuth  } from '@store/AuthContext';
 import logger from '@helper/logger';
 import { onboardingV2Api } from '../../../api/onboardingV2';
-import { ONBOARDING_QUESTIONS } from '../../../constants/onboardingV2Questions';
+import {  ONBOARDING_QUESTIONS  } from '../../../constants/onboardingV2Questions';
 import {
   ONBOARDING_STAGES,
   OnboardingAnswers,
@@ -21,8 +21,8 @@ import OptionCards from '../../../components/onboarding_v2/OptionCards';
 import ScaleSelector from '../../../components/onboarding_v2/ScaleSelector';
 import RulerPicker from '../../../components/onboarding_v2/RulerPicker';
 import NumberWheelPicker from '../../../components/onboarding_v2/NumberWheelPicker';
-import { FONT } from '../theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from '../theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 
 // Motor genérico del nuevo onboarding (4 etapas, ver docs/ONBOARDING_V2.md):
 // UNA sola screen recorre `ONBOARDING_QUESTIONS` con un índice interno (no
@@ -474,8 +474,8 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
   bigNumber: { fontSize: 46, fontFamily: FONT.extraBold, color: C.textPrimary, marginTop: 24 },
   unitLabel: { fontSize: 13, fontFamily: FONT.medium, color: C.textSecondary },
-  unitToggle: { flexDirection: 'row', backgroundColor: C.border, borderRadius: 20, padding: 4 },
-  unitPill: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 16 },
+  unitToggle: { flexDirection: 'row', backgroundColor: C.border, borderRadius: RADIUS.lg, padding: 4 },
+  unitPill: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: RADIUS.md },
   unitPillActive: { backgroundColor: C.surface },
   unitPillText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.textSecondary },
   unitPillTextActive: { color: C.textPrimary },
@@ -493,7 +493,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   // C.gray80 (alias deprecado de `accent`, casi idéntico a C.bg/border) dejaba
   // esta tarjeta prácticamente invisible sobre el fondo -- mismo bug ya
   // corregido antes en edit_profile_screen.tsx, que usa C.surface.
-  nameCard: { backgroundColor: C.surface, borderRadius: 16 },
+  nameCard: { backgroundColor: C.surface, borderRadius: RADIUS.md },
   nameRow: {
     paddingHorizontal: 16,
     paddingVertical: 14,

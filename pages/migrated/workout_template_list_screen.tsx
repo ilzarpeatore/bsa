@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FlatList, ActivityIndicator, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Heading } from '@components/ui/heading';
-import { Button } from '@components/ui/button';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { workoutTemplateApi, WorkoutTemplateListItem } from '../../api/workoutTemplate';
-import { pickWorkoutFallbackImage } from './workoutViewShared';
+import {  FlatList, ActivityIndicator, Dimensions  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Heading  } from '@components/ui/heading';
+import {  Button  } from '@components/ui/button';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  workoutTemplateApi, WorkoutTemplateListItem  } from '../../api/workoutTemplate';
+import {  pickWorkoutFallbackImage  } from './workoutViewShared';
+import {  RADIUS  } from './theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -73,7 +74,7 @@ export default function WorkoutTemplateListScreen(props: any) {
         >
           <Image
             source={item.thumbnail ? { uri: item.thumbnail } : pickWorkoutFallbackImage(item.id)}
-            style={{ width: columnWidth, height: 140, borderRadius: 12 }}
+            style={{ width: columnWidth, height: 140, borderRadius: RADIUS.sm }}
             contentFit="cover"
           />
           {locked && (
@@ -84,7 +85,7 @@ export default function WorkoutTemplateListScreen(props: any) {
                 top: 8,
                 right: 8,
                 backgroundColor: 'rgba(0,0,0,0.6)',
-                borderRadius: 12,
+                borderRadius: RADIUS.sm,
                 paddingHorizontal: 8,
                 paddingVertical: 4,
                 gap: 4,

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { FONT } from '../pages/migrated/theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Alert  } from 'react-native';
+import {  Ionicons  } from '@expo/vector-icons';
+import { FONT, RADIUS } from '../pages/migrated/theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 import SimpleBottomSheet from './SimpleBottomSheet';
 import {
   painReportsApi,
@@ -286,7 +286,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: C.bg,
   },
   chipActive: { backgroundColor: C.accentBlack },

@@ -1,12 +1,11 @@
 import React from 'react';
-import { Dimensions, Pressable, View, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Icon } from '@components/ui/icon';
-import { useTutorial } from '@store/TutorialContext';
-import { C, FONT } from '../../pages/migrated/theme';
-
+import {  Dimensions, Pressable, View, StyleSheet  } from 'react-native';
+import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Icon  } from '@components/ui/icon';
+import {  useTutorial  } from '@store/TutorialContext';
+import { C, FONT, RADIUS } from '../../pages/migrated/theme';
 const SPOTLIGHT_PADDING = 6;
 
 // Overlay global de coach-marks -- montado una vez en App.tsx (mismo patrón
@@ -127,7 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
   },
   skipText: { fontSize: 12, fontFamily: FONT.semiBold, color: '#FFFFFF' },
   tooltip: {
@@ -135,7 +134,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 16,
   },
   banner: {
@@ -143,7 +142,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 16,
   },
   stepCounter: { fontSize: 11, fontFamily: FONT.semiBold, color: C.orange, marginBottom: 6 },

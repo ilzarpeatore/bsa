@@ -1,16 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Modal, Pressable as RNPressable, StyleSheet } from 'react-native';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
+import {  Modal, Pressable as RNPressable, StyleSheet  } from 'react-native';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
 import AnimatedRing from '@components/AnimatedRing';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from '../pages/migrated/theme';
-
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from '../pages/migrated/theme';
 export interface StartupChecklistStep {
   id: string;
   label: string;
@@ -133,7 +132,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     backgroundColor: C.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -147,7 +146,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
   },
   stepRowActive: { backgroundColor: C.success5, borderLeftWidth: 3, borderLeftColor: C.success },
   stepLabel: { flex: 1, fontSize: 15, fontFamily: FONT.medium, color: C.textPrimary, marginRight: 12 },

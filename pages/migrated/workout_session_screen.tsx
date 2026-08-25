@@ -10,33 +10,33 @@ import {
   NativeScrollEvent,
   Vibration,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
-import { Box } from '@components/ui/box';
-import { HStack } from '@components/ui/hstack';
-import { Text } from '@components/ui/text';
-import { Heading } from '@components/ui/heading';
-import { Card } from '@components/ui/card';
-import { Button, ButtonText } from '@components/ui/button';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Divider } from '@components/ui/divider';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { ExerciseThumbMem } from '../../components/ExerciseThumb';
-import { ConfirmDialogMem } from '../../components/ConfirmDialog';
+import {  Box  } from '@components/ui/box';
+import {  HStack  } from '@components/ui/hstack';
+import {  Text  } from '@components/ui/text';
+import {  Heading  } from '@components/ui/heading';
+import {  Card  } from '@components/ui/card';
+import {  Button, ButtonText  } from '@components/ui/button';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Divider  } from '@components/ui/divider';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
+import {  ConfirmDialogMem  } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
-import { useTutorial } from '@store/TutorialContext';
+import {  useTutorial  } from '@store/TutorialContext';
 import PainReportSheet from '../../components/PainReportSheet';
-import { useAuth } from '../../store/AuthContext';
-import { workoutHistoryApi } from '../../api/workoutHistory';
-import { MetricCatalogItem } from '../../api/workoutTemplate';
-import { exercisesApi, ExerciseItem, BodyPartItem } from '../../api/exercises';
-import { loadSuggestionApi, pickPendingSuggestion, LoadSuggestion } from '../../api/loadSuggestion';
+import {  useAuth  } from '../../store/AuthContext';
+import {  workoutHistoryApi  } from '../../api/workoutHistory';
+import {  MetricCatalogItem  } from '../../api/workoutTemplate';
+import {  exercisesApi, ExerciseItem, BodyPartItem  } from '../../api/exercises';
+import {  loadSuggestionApi, pickPendingSuggestion, LoadSuggestion  } from '../../api/loadSuggestion';
 import {
   ACTIVE_SESSION_STORAGE_KEY,
   updateActiveWorkoutSession,
@@ -68,7 +68,7 @@ const ADHOC_DEFAULT_METRICS = ['carga', 'reps', 'descanso', 'rir'];
 const ADHOC_DEFAULT_SERIES = 3;
 // Estilos del renderItem del picker de "Añadir ejercicio", fuera del
 // componente para no reconstruirlos en cada fila del FlatList.
-const PICKER_RESULT_IMAGE_STYLE = { width: 44, height: 44, borderRadius: 8, marginRight: 12 };
+const PICKER_RESULT_IMAGE_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 };
 const PICKER_RESULT_PLACEHOLDER_STYLE = { width: 44, height: 44, marginRight: 12 };
 const PICKER_RESULT_TITLE_STYLE = { fontSize: 14, marginRight: 8 };
 const RESISTANCE_TRAINING_MET = 5.0;
@@ -893,7 +893,7 @@ export default function WorkoutSessionScreen(props: Props) {
           className="flex-row items-center px-5"
           style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
         >
-          <Pressable onPress={() => navigation?.goBack()}>
+          <Pressable onPress={() => navigation?.goBack()} accessibilityRole="button" accessibilityLabel="Cerrar">
             <Icon name="close" size={26} color={C.textPrimary} />
           </Pressable>
         </Box>
@@ -945,7 +945,7 @@ export default function WorkoutSessionScreen(props: Props) {
           className="flex-row items-center justify-between px-5"
           style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
         >
-          <Pressable onPress={() => navigation?.goBack()}>
+          <Pressable onPress={() => navigation?.goBack()} accessibilityRole="button" accessibilityLabel="Cerrar">
             <Icon name="close" size={26} color={C.textPrimary} />
           </Pressable>
         </Box>
@@ -989,6 +989,8 @@ export default function WorkoutSessionScreen(props: Props) {
                   style={{ marginLeft: 8 }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   onPress={() => setPainReportTarget(ex)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reportar dolor"
                 >
                   <Icon name="medkit-outline" size={20} className="text-muted-foreground" />
                 </Pressable>
@@ -1222,7 +1224,7 @@ export default function WorkoutSessionScreen(props: Props) {
             className="flex-row items-center justify-between px-5"
             style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
           >
-            <Pressable onPress={onClose}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar">
               <Icon name="close" size={26} className="text-foreground" />
             </Pressable>
             <Heading size="sm" className="flex-1 text-center mx-3" numberOfLines={1}>
@@ -1362,7 +1364,7 @@ export default function WorkoutSessionScreen(props: Props) {
             className="flex-row items-center justify-between px-5"
             style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
           >
-            <Pressable onPress={() => setIsPickerVisible(false)}>
+            <Pressable onPress={() => setIsPickerVisible(false)} accessibilityRole="button" accessibilityLabel="Cerrar">
               <Icon name="close" size={26} className="text-foreground" />
             </Pressable>
             <Heading size="sm">Añadir ejercicio</Heading>

@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, FlatList, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Button } from '@components/ui/button';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Input, InputField, InputSlot } from '@components/ui/input';
-import { Spinner } from '@components/ui/spinner';
+import {  ScrollView, FlatList, Dimensions  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Button  } from '@components/ui/button';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Input, InputField, InputSlot  } from '@components/ui/input';
+import {  Spinner  } from '@components/ui/spinner';
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -16,9 +16,10 @@ import {
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { exercisesApi, EXERCISE_TYPES } from '../../api/exercises';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  exercisesApi, EXERCISE_TYPES  } from '../../api/exercises';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
+import {  RADIUS  } from './theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -362,9 +363,9 @@ export default function SearchScreen(props: any) {
         }
       >
         {item.exerciseImage ? (
-          <Image source={{ uri: item.exerciseImage }} style={{ width: 64, height: 64, borderRadius: 12 }} contentFit="cover" />
+          <Image source={{ uri: item.exerciseImage }} style={{ width: 64, height: 64, borderRadius: RADIUS.sm }} contentFit="cover" />
         ) : (
-          <Box style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: C.surfaceLight }} />
+          <Box style={{ width: 64, height: 64, borderRadius: RADIUS.sm, backgroundColor: C.surfaceLight }} />
         )}
         <Text weight="medium" className="flex-1 text-foreground" style={{ marginLeft: 12 }}>{item.title}</Text>
       </Pressable>

@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FlatList, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
+import {  FlatList, ActivityIndicator  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
-import { postsApi } from '../../api/posts';
+import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
+import {  RADIUS  } from './theme';
 
 interface BookmarkPost {
   id: number;
@@ -172,7 +173,7 @@ export default function BookmarkScreen({ navigation }: any) {
             <Box className="mx-3" style={{ marginBottom: 8 }}>
               <Image
                 source={{ uri: item.postImage }}
-                style={{ width: '100%', height: 200, borderRadius: 8 }}
+                style={{ width: '100%', height: 200, borderRadius: RADIUS.xs }}
                 contentFit="cover"
               />
             </Box>

@@ -1,18 +1,19 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { FlatList, RefreshControl, ActivityIndicator, Alert, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { HStack } from '@components/ui/hstack';
-import { Heading } from '@components/ui/heading';
-import { Button } from '@components/ui/button';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { postsApi } from '../../api/posts';
+import {  FlatList, RefreshControl, ActivityIndicator, Alert, StyleSheet  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  useFocusEffect  } from '@react-navigation/native';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  HStack  } from '@components/ui/hstack';
+import {  Heading  } from '@components/ui/heading';
+import {  Button  } from '@components/ui/button';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
+import {  RADIUS  } from './theme';
 
 interface PostData {
   id: number;
@@ -203,7 +204,7 @@ export default function CommunityScreen(props: any) {
               <Image
                 source={{ uri: item.users.profileImage }}
                 contentFit="cover"
-                style={{ width: 40, height: 40, borderRadius: 20 }}
+                style={{ width: 40, height: 40, borderRadius: RADIUS.lg }}
               />
             ) : (
               <Box className="w-10 h-10 rounded-full bg-secondary items-center justify-center">

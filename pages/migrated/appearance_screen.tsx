@@ -1,15 +1,14 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { HStack } from '@components/ui/hstack';
+import {  StyleSheet, View  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  HStack  } from '@components/ui/hstack';
 import ScreenHeader from '@components/ScreenHeader';
-import { useAppColorMode, ThemePreference } from '@helper/useAppColorMode';
-import { FONT } from './theme';
-
+import {  useAppColorMode, ThemePreference  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
 // Pantalla nueva (pedido explícito, captura de referencia de Bevel: "Aspecto"
 // con tarjetas de vista previa en miniatura) -- solo se implementa la
 // sección "Tema de la aplicación" (Sistema/Leve/Oscuro de la referencia),
@@ -93,7 +92,7 @@ const s = StyleSheet.create({
   previewBox: {
     width: '100%',
     aspectRatio: 0.72,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
@@ -119,10 +118,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
     sectionLabel: { fontSize: 15, fontFamily: FONT.bold, color: C.textPrimary, marginBottom: 12 },
-    groupCard: { backgroundColor: C.surface, borderRadius: 20, padding: 12 },
+    groupCard: { backgroundColor: C.surface, borderRadius: RADIUS.lg, padding: 12 },
     optionCell: {
       flex: 1,
-      borderRadius: 16,
+      borderRadius: RADIUS.md,
       padding: 6,
       borderWidth: 2,
       borderColor: 'transparent',

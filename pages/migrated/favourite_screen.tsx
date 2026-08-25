@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FlatList, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
+import {  FlatList, ActivityIndicator  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
 import ScreenHeader from '@components/ScreenHeader';
-import { workoutTemplateApi } from '../../api/workoutTemplate';
-import { recipesApi } from '../../api/recipes';
+import {  workoutTemplateApi  } from '../../api/workoutTemplate';
+import {  recipesApi  } from '../../api/recipes';
 import logger from '@helper/logger';
+import {  RADIUS  } from './theme';
 
 // Fuera del componente para no reconstruir el objeto en cada fila del FlatList.
-const THUMBNAIL_STYLE = { width: 44, height: 44, borderRadius: 8 };
+const THUMBNAIL_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs };
 
 interface FavouriteScreenProps {
   navigation: any;

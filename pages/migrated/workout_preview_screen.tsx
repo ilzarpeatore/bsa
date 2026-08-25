@@ -7,24 +7,24 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { Divider } from '@components/ui/divider';
-import { Button, ButtonText } from '@components/ui/button';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  LinearGradient  } from 'expo-linear-gradient';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  Divider  } from '@components/ui/divider';
+import {  Button, ButtonText  } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
-import { FONT, SHADOW } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { ExerciseThumbMem } from '../../components/ExerciseThumb';
-import { workoutTemplateApi } from '../../api/workoutTemplate';
-import { readinessApi, ReadinessValues } from '../../api/readiness';
+import { FONT, SHADOW, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
+import {  workoutTemplateApi  } from '../../api/workoutTemplate';
+import {  readinessApi, ReadinessValues  } from '../../api/readiness';
 import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
@@ -491,7 +491,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     left: 16,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -500,7 +500,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginLeft: 16,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: C.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -518,7 +518,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   iconBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: C.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -563,7 +563,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   seriesChip: {
     backgroundColor: C.brand50,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
@@ -602,7 +602,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   coachNoteBanner: {
     marginTop: 10,
     backgroundColor: C.warning5,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     paddingVertical: 8,
     paddingHorizontal: 10,
   },

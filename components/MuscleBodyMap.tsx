@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable, Text } from 'react-native';
+import {  View, StyleSheet, Pressable, Text  } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { FRONT_MUSCLES, BACK_MUSCLES, FRONT_VIEW_BOX, BACK_VIEW_BOX, ViewSide } from '../constants/bodyMusclesPaths';
-import { bodyMusclesIdsFor } from '../constants/bodyMusclesMap';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from '../pages/migrated/theme';
-
+import {  FRONT_MUSCLES, BACK_MUSCLES, FRONT_VIEW_BOX, BACK_VIEW_BOX, ViewSide  } from '../constants/bodyMusclesPaths';
+import {  bodyMusclesIdsFor  } from '../constants/bodyMusclesMap';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from '../pages/migrated/theme';
 // Mismo degradado 0-10 que usa el heatmap del admin panel (body-muscles,
 // INTENSITY_COLORS) — mantenido igual a mano para que ambas plataformas se
 // vean iguales, ya que aqui no se puede importar el paquete npm (es DOM-only).
@@ -126,12 +125,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     toggleRow: {
       flexDirection: 'row',
       backgroundColor: C.surface,
-      borderRadius: 12,
+      borderRadius: RADIUS.sm,
       padding: 4,
       marginBottom: 12,
       gap: 4,
     },
-    toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+    toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.xs },
     toggleBtnActive: { backgroundColor: C.accentBlack },
     toggleText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.textSecondary },
     toggleTextActive: { color: '#FFFFFF' },

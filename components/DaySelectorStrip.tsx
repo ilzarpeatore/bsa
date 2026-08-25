@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { FONT } from '../pages/migrated/theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import {  View, Text, StyleSheet, Pressable  } from 'react-native';
+import { FONT, RADIUS } from '../pages/migrated/theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 
 export interface DaySelectorItem {
   /** YYYY-MM-DD */
@@ -58,7 +58,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   card: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -67,7 +67,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   selectedCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: C.accentBlack,
     alignItems: 'center',
     justifyContent: 'center',

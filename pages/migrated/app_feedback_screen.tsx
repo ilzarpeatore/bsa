@@ -1,18 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Platform, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {  StyleSheet, Platform, Alert, ActivityIndicator, ScrollView  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { HStack } from '@components/ui/hstack';
-import { Input, InputField } from '@components/ui/input';
-import { Textarea, TextareaInput } from '@components/ui/textarea';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  HStack  } from '@components/ui/hstack';
+import {  Input, InputField  } from '@components/ui/input';
+import {  Textarea, TextareaInput  } from '@components/ui/textarea';
 import ScreenHeader from '@components/ScreenHeader';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { getDiagnosticsReportText } from '@helper/logger';
-import { appFeedbackApi, AppFeedbackType, AppFeedbackSection } from '@api/appFeedback';
-import { FONT } from './theme';
-
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  getDiagnosticsReportText  } from '@helper/logger';
+import {  appFeedbackApi, AppFeedbackType, AppFeedbackSection  } from '@api/appFeedback';
+import { FONT, RADIUS } from './theme';
 // Pantalla nueva (pedido explícito): "Solicitar una función" / "Informar de
 // un error" dejan de ser un mailto y pasan a ser un formulario real que
 // guarda en el backend -- mismo mecanismo que ya usa ScreenReviewFab
@@ -153,15 +152,15 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
     label: { fontSize: 13, fontFamily: FONT.bold, color: C.textPrimary, marginBottom: 8 },
-    inputBox: { backgroundColor: C.surface, borderRadius: 12, borderWidth: 0 },
-    textareaBox: { backgroundColor: C.surface, borderRadius: 12, borderWidth: 0, minHeight: 120, paddingHorizontal: 4 },
-    chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: C.surface, marginBottom: 8 },
+    inputBox: { backgroundColor: C.surface, borderRadius: RADIUS.sm, borderWidth: 0 },
+    textareaBox: { backgroundColor: C.surface, borderRadius: RADIUS.sm, borderWidth: 0, minHeight: 120, paddingHorizontal: 4 },
+    chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: RADIUS.lg, backgroundColor: C.surface, marginBottom: 8 },
     chipActive: { backgroundColor: C.textPrimary },
     chipText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.textSecondary },
     chipTextActive: { color: C.bg },
     submitBtn: {
       backgroundColor: C.primary,
-      borderRadius: 16,
+      borderRadius: RADIUS.md,
       paddingVertical: 15,
       alignItems: 'center' as const,
       marginTop: 28,

@@ -1,16 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Switch, Linking, Alert, AppState } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {  StyleSheet, Switch, Linking, Alert, AppState  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
 import ScreenHeader from '@components/ScreenHeader';
-import { ensureNotificationPermissionsAsync } from '@helper/reminderNotifications';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from './theme';
-
+import {  ensureNotificationPermissionsAsync  } from '@helper/reminderNotifications';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
 // Pantalla nueva (pedido explícito, captura de referencia Bevel): "Permitir
 // notificaciones" -- NO es un flag propio de la app, refleja el permiso REAL
 // del sistema operativo (Notifications.getPermissionsAsync(), mismo helper
@@ -93,7 +92,7 @@ export default function NotificationSettingsScreen(props: any) {
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
-    card: { backgroundColor: C.surface, borderRadius: 16, padding: 16 },
+    card: { backgroundColor: C.surface, borderRadius: RADIUS.md, padding: 16 },
     title: { fontSize: 15, fontFamily: FONT.bold, color: C.textPrimary },
     subtitle: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
   });

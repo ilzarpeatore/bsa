@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
+import {  ScrollView, Dimensions  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import { recipesApi } from '../../api/recipes';
+import {  recipesApi  } from '../../api/recipes';
+import {  RADIUS  } from './theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -87,7 +88,7 @@ export default function RecipeCategoryListScreen(props: any) {
                   {item.recipeCategoryImage ? (
                     <Image
                       source={{ uri: item.recipeCategoryImage }}
-                      style={{ width: columnWidth, height: 120, borderRadius: 12 }}
+                      style={{ width: columnWidth, height: 120, borderRadius: RADIUS.sm }}
                       contentFit="cover"
                     />
                   ) : (

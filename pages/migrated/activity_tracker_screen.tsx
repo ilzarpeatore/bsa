@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from './theme';
-
+import {  View, Text, StyleSheet, ScrollView, Pressable, Dimensions  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  LinearGradient  } from 'expo-linear-gradient';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 function StatCard({ icon, iconColor, value, label, target, progress, bgColor, styles }: any) {
@@ -214,10 +213,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   periodContainer: {
     flexDirection: 'row',
     backgroundColor: C.surface,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     padding: 4,
   },
-  periodBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  periodBtn: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.xs, alignItems: 'center' },
   periodBtnActive: { backgroundColor: C.orange },
   periodText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.gray30, textAlign: 'center' },
   periodTextActive: { color: '#FFFFFF' },
@@ -225,10 +224,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   statCard: {
     flex: 1,
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 16,
   },
-  statIconWrap: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  statIconWrap: { width: 40, height: 40, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
   statValue: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, color: C.white, marginTop: 12 },
   statLabel: { fontSize: 12, fontFamily: FONT.regular, color: C.gray30, marginTop: 2 },
   progressTrack: { height: 4, backgroundColor: C.bg, borderRadius: 4, marginTop: 8, overflow: 'hidden' },
@@ -238,7 +237,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginHorizontal: 20,
     marginTop: 24,
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 20,
   },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -252,7 +251,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginTop: 20,
   },
   barCol: { alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: 32, borderRadius: 8 },
+  bar: { width: 32, borderRadius: RADIUS.xs },
   barLabel: { fontSize: 11, fontFamily: FONT.regular, color: C.gray30, marginTop: 8 },
   section: { paddingHorizontal: 20, marginTop: 24, marginBottom: 32 },
   sectionTitle: { fontSize: 18, fontFamily: FONT.bold, color: C.white, marginBottom: 16 },
@@ -260,7 +259,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: C.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 16,
     marginBottom: 12,
   },

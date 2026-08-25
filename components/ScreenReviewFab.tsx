@@ -1,17 +1,17 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Icon } from '@components/ui/icon';
-import { Fab } from '@components/ui/fab';
-import { Pressable } from '@components/ui/pressable';
-import { Textarea, TextareaInput } from '@components/ui/textarea';
-import { Modal, ModalBackdrop, ModalContent } from '@components/ui/modal';
-import { isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { FONT } from '../pages/migrated/theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { screenReviewApi, ScreenReviewStatus, ScreenReviewMark } from '../api/screenReview';
+import {  ActivityIndicator  } from 'react-native';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Icon  } from '@components/ui/icon';
+import {  Fab  } from '@components/ui/fab';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Textarea, TextareaInput  } from '@components/ui/textarea';
+import {  Modal, ModalBackdrop, ModalContent  } from '@components/ui/modal';
+import {  isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
+import { FONT, RADIUS } from '../pages/migrated/theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  screenReviewApi, ScreenReviewStatus, ScreenReviewMark  } from '../api/screenReview';
 
 // Herramienta TEMPORAL de desarrollo pedida para revisar las 200+ pantallas
 // migradas: FAB visible en toda la app que deja marcar cada pantalla como
@@ -130,7 +130,7 @@ export default function ScreenReviewFab({ navigationRef }: Props) {
         <ModalContent
           className="items-stretch"
           style={{
-            borderRadius: 20,
+            borderRadius: RADIUS.lg,
             padding: 20,
             maxWidth: 360,
             width: '100%',
@@ -190,7 +190,7 @@ export default function ScreenReviewFab({ navigationRef }: Props) {
               <Text muted className="text-center" style={{ fontSize: 12, marginTop: 4, marginBottom: 16 }} numberOfLines={1}>
                 {routeName}
               </Text>
-              <Textarea className="border-0 bg-card" style={{ borderRadius: 12, minHeight: 90 }}>
+              <Textarea className="border-0 bg-card" style={{ borderRadius: RADIUS.sm, minHeight: 90 }}>
                 <TextareaInput
                   placeholder="Nota (opcional) — objetivo, instrucciones, qué falta..."
                   style={{ fontFamily: FONT.regular, fontSize: 13.5 }}

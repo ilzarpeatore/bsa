@@ -4,27 +4,27 @@ import {
   ScrollView, Alert,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
-import { useTabBarScroll } from '@store/TabBarScrollContext';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
+import {  useTabBarScroll  } from '@store/TabBarScrollContext';
+import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, SharedValue } from 'react-native-reanimated';
-import { runOnJS } from 'react-native-worklets';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Button, ButtonText } from '@components/ui/button';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
-import { adaptiveWeekPlansApi } from '../../api/adaptiveWeekPlans';
-import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
+import {  runOnJS  } from 'react-native-worklets';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Button, ButtonText  } from '@components/ui/button';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  workoutHistoryApi, CompletedSessionItem  } from '../../api/workoutHistory';
+import {  adaptiveWeekPlansApi  } from '../../api/adaptiveWeekPlans';
+import {  checkinsApi, checkinTypeLabel, CheckInAssignment  } from '../../api/checkins';
 
 interface CalendarWorkout {
   title?: string;
@@ -875,24 +875,38 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             <Pressable
               style={styles.viewToggleBtn}
               onPress={() => setReorderMode(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Reorganizar semana"
             >
               <Icon name="swap-vertical-outline" size={18} color={C.textSecondary} />
             </Pressable>
             <Pressable
               style={styles.viewToggleBtn}
               onPress={() => setSelectionMode(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Marcar días"
             >
               <Icon name="close-circle-outline" size={18} color={C.textSecondary} />
             </Pressable>
             <Pressable
               style={[styles.viewToggleBtn, viewMode === 'calendar' && styles.viewToggleBtnActive]}
               onPress={() => setViewMode('calendar')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Vista calendario"
+              accessibilityState={{ selected: viewMode === 'calendar' }}
             >
               <Icon name="calendar-outline" size={18} color={viewMode === 'calendar' ? '#FFFFFF' : C.textSecondary} />
             </Pressable>
             <Pressable
               style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
               onPress={() => setViewMode('list')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Vista lista"
+              accessibilityState={{ selected: viewMode === 'list' }}
             >
               <Icon name="list-outline" size={18} color={viewMode === 'list' ? '#FFFFFF' : C.textSecondary} />
             </Pressable>
@@ -1137,7 +1151,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   viewToggleBtn: {
     width: 34,
     height: 30,
-    borderRadius: 8,
+    borderRadius: RADIUS.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1150,7 +1164,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   periodChip: {
     paddingHorizontal: 16,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: C.surfaceLight,
   },
   periodChipActive: { backgroundColor: '#1C1C1E' },
@@ -1173,7 +1187,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginBottom: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     backgroundColor: C.surfaceLight,
   },
   weekBlockedText: { flex: 1, fontSize: 13, fontFamily: FONT.medium, color: C.textSecondary },
@@ -1274,7 +1288,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginHorizontal: 8,
     paddingHorizontal: 8,
     paddingTop: 4,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     backgroundColor: C.brand10,
   },
   daySectionDropTargetHover: {
@@ -1284,11 +1298,11 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   dropTargetText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.orange, marginRight: 8 },
   dayDate: { fontSize: 13, fontFamily: FONT.regular, color: C.textSecondary },
-  workoutImage: { width: 72, height: 72, borderRadius: 16 },
+  workoutImage: { width: 72, height: 72, borderRadius: RADIUS.md },
   checkinIconWrap: {
     width: 72,
     height: 72,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     backgroundColor: C.warning10,
     alignItems: 'center',
     justifyContent: 'center',

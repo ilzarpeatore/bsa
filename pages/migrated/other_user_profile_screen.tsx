@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
+import {  ScrollView, ActivityIndicator, useWindowDimensions  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { postsApi } from '../../api/posts';
-import { profileApi, UserSocialStats } from '../../api/profile';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  postsApi  } from '../../api/posts';
+import {  profileApi, UserSocialStats  } from '../../api/profile';
 import logger from '@helper/logger';
+import {  RADIUS  } from './theme';
 
 interface UserDetails {
   id?: number;
@@ -144,7 +145,7 @@ export default function OtherUserProfileScreen(props: any) {
           <Image
             source={{ uri: profileImg }}
             contentFit="cover"
-            style={{ width: 40, height: 40, borderRadius: 20 }}
+            style={{ width: 40, height: 40, borderRadius: RADIUS.lg }}
           />
         ) : (
           <Box
@@ -177,7 +178,7 @@ export default function OtherUserProfileScreen(props: any) {
               style={{
                 width: 80,
                 height: 80,
-                borderRadius: 8,
+                borderRadius: RADIUS.xs,
                 marginRight: 8,
                 backgroundColor: C.surfaceLight,
               }}

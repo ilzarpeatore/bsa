@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../../pages/migrated/theme';
-
+import {  View, Pressable, StyleSheet  } from 'react-native';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
+import { C, RADIUS } from '../../pages/migrated/theme';
 interface Props {
   onBack?: () => void;
   stageCount: number;
@@ -45,7 +44,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: C.surface,

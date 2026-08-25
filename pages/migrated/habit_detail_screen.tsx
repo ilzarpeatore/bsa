@@ -1,24 +1,24 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { StyleSheet, ScrollView, Alert, TextInput, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import { Card } from '@components/ui/card';
-import { HStack } from '@components/ui/hstack';
-import { VStack } from '@components/ui/vstack';
-import { Badge, BadgeText } from '@components/ui/badge';
-import { Button, ButtonText } from '@components/ui/button';
-import { Modal, ModalBackdrop, ModalContent } from '@components/ui/modal';
-import { isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT, SHADOW } from './theme';
-import { habitsApi, Habit, HabitLogEntry, HABIT_HISTORY_DAYS } from '../../api/habits';
-import { habitIoniconFor } from '../../constants/habitIcons';
-import { habitProgressRatio, habitCellColor } from '../../constants/habitColor';
+import {  StyleSheet, ScrollView, Alert, TextInput, useWindowDimensions  } from 'react-native';
+import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  useFocusEffect  } from '@react-navigation/native';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Spinner  } from '@components/ui/spinner';
+import {  Card  } from '@components/ui/card';
+import {  HStack  } from '@components/ui/hstack';
+import {  VStack  } from '@components/ui/vstack';
+import {  Badge, BadgeText  } from '@components/ui/badge';
+import {  Button, ButtonText  } from '@components/ui/button';
+import {  Modal, ModalBackdrop, ModalContent  } from '@components/ui/modal';
+import {  isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, SHADOW, RADIUS } from './theme';
+import {  habitsApi, Habit, HabitLogEntry, HABIT_HISTORY_DAYS  } from '../../api/habits';
+import {  habitIoniconFor  } from '../../constants/habitIcons';
+import {  habitProgressRatio, habitCellColor  } from '../../constants/habitColor';
 
 type Period = 'week' | 'month' | 'quarter' | 'half' | 'year';
 
@@ -315,11 +315,15 @@ export default function HabitDetailScreen(props: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Box style={styles.header}>
-        <Pressable onPress={() => navigation?.goBack()}>
+        <Pressable onPress={() => navigation?.goBack()} accessibilityRole="button" accessibilityLabel="Volver">
           <Icon name="chevron-back" size={24} color={C.textPrimary} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{habit?.title || 'Hábito'}</Text>
-        <Pressable onPress={handleDelete} disabled={!habit}>
+        <Pressable
+          onPress={handleDelete}
+          disabled={!habit}
+          accessibilityRole="button"
+          accessibilityLabel="Eliminar hábito">
           <Icon name="trash-outline" size={20} color={C.destructive} />
         </Pressable>
       </Box>
@@ -351,6 +355,8 @@ export default function HabitDetailScreen(props: Props) {
                 style={styles.quickAddBtn}
                 onPress={handleQuickAdd}
                 disabled={pendingDate === todayStr}
+                accessibilityRole="button"
+                accessibilityLabel="Registrar hoy"
               >
                 <Icon name="add" size={22} color="#FFFFFF" />
               </Pressable>
@@ -504,7 +510,7 @@ export default function HabitDetailScreen(props: Props) {
         <ModalContent
           className="items-stretch"
           style={{
-            borderRadius: 20,
+            borderRadius: RADIUS.lg,
             padding: 20,
             maxWidth: 360,
             width: '100%',
@@ -567,10 +573,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginBottom: 16,
     ...SHADOW.card,
   },
-  summaryIconWrap: { width: 52, height: 52, borderRadius: 16, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  summaryIconWrap: { width: 52, height: 52, borderRadius: RADIUS.md, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   summaryTitle: { fontFamily: FONT.bold, fontSize: 16, color: C.textPrimary },
   summarySub: { fontFamily: FONT.regular, fontSize: 12.5, color: C.textSecondary, marginTop: 3 },
-  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.warning5, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.warning5, borderRadius: RADIUS.sm, paddingHorizontal: 10, paddingVertical: 6 },
   streakBadgeText: { fontFamily: FONT.bold, fontSize: 14, color: C.warning60 },
   quickAddBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.accentBlack, alignItems: 'center', justifyContent: 'center' },
   tabsRow: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 14, padding: 4, marginBottom: 12, ...SHADOW.card },

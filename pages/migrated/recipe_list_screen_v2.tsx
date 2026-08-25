@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { FlatList, ActivityIndicator, Dimensions, TextInput, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { Text } from '@components/ui/text';
-import { Heading } from '@components/ui/heading';
-import { HStack } from '@components/ui/hstack';
-import { Button, ButtonText } from '@components/ui/button';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { Input, InputField } from '@components/ui/input';
-import { Spinner } from '@components/ui/spinner';
+import {  FlatList, ActivityIndicator, Dimensions, TextInput, StyleSheet  } from 'react-native';
+import {  Image  } from 'expo-image';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  Text  } from '@components/ui/text';
+import {  Heading  } from '@components/ui/heading';
+import {  HStack  } from '@components/ui/hstack';
+import {  Button, ButtonText  } from '@components/ui/button';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  Input, InputField  } from '@components/ui/input';
+import {  Spinner  } from '@components/ui/spinner';
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -18,9 +18,10 @@ import {
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { recipesApi } from '../../api/recipes';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  recipesApi  } from '../../api/recipes';
 import logger from '@helper/logger';
+import {  RADIUS  } from './theme';
 
 // Rediseño (2026-08-22, referencia Lifesum aportada por el usuario): la
 // cabecera con título + botón de favoritos/filtro se sustituye por una barra
@@ -220,11 +221,11 @@ export default function RecipeListScreenV2(props: any) {
           {item.recipeImage ? (
             <Image
               source={{ uri: item.recipeImage }}
-              style={{ width: columnWidth, height: 130, borderRadius: 12 }}
+              style={{ width: columnWidth, height: 130, borderRadius: RADIUS.sm }}
               contentFit="cover"
             />
           ) : (
-            <Box className="bg-card" style={{ width: columnWidth, height: 130, borderRadius: 12 }} />
+            <Box className="bg-card" style={{ width: columnWidth, height: 130, borderRadius: RADIUS.sm }} />
           )}
           {item.isPremium && !item.isAccessible && (
             <HStack
@@ -470,7 +471,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       alignItems: 'center',
       gap: 8,
       backgroundColor: C.surfaceLight,
-      borderRadius: 12,
+      borderRadius: RADIUS.sm,
       borderWidth: 1,
       borderColor: C.border,
       paddingHorizontal: 12,
@@ -481,7 +482,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     filterBadge: {
       width: 24,
       height: 24,
-      borderRadius: 12,
+      borderRadius: RADIUS.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: C.orange,
@@ -491,7 +492,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      borderRadius: 20,
+      borderRadius: RADIUS.lg,
       paddingHorizontal: 14,
       paddingVertical: 8,
       backgroundColor: C.orange,

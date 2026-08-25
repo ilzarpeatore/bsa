@@ -1,15 +1,14 @@
 import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
+import {  View, ScrollView, StyleSheet  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Image  } from 'expo-image';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
 import AnimatedRing from '@components/AnimatedRing';
-import { useAuth } from '@store/AuthContext';
-import { useAppColorMode } from '@helper/useAppColorMode';
-import { FONT } from '../theme';
-
+import {  useAuth  } from '@store/AuthContext';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from '../theme';
 // Screen mostrada justo al terminar las 36 preguntas del onboarding
 // (onboarding_v2_screen.tsx navega aquí con `route.params.answers` -- las
 // respuestas en crudo, ya que se borran de AsyncStorage justo antes de
@@ -407,14 +406,14 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
     gap: 8,
     backgroundColor: `${C.orange}1F`,
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginTop: 16,
   },
   goalChipEmoji: { fontSize: 18 },
   goalChipText: { fontFamily: FONT.semiBold, fontSize: 14, color: C.orange },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 16 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: RADIUS.lg, padding: 20, marginBottom: 16 },
   cardTitle: { fontFamily: FONT.bold, fontSize: 18, lineHeight: 23, color: C.textPrimary, marginBottom: 18 },
   cardNote: { fontFamily: FONT.regular, fontSize: 12.5, color: C.gray50, marginTop: 14 },
   macrosRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -446,7 +445,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   mealImage: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.gray10 },
   mealLabel: { fontFamily: FONT.semiBold, fontSize: 13, color: C.textPrimary },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: '#FFF3EC' },
-  continueBtn: { paddingVertical: 17, borderRadius: 28, alignItems: 'center', backgroundColor: C.orange },
+  continueBtn: { paddingVertical: 17, borderRadius: RADIUS.xl, alignItems: 'center', backgroundColor: C.orange },
   continueBtnText: { fontFamily: FONT.bold, fontSize: 16, color: '#FFFFFF' },
   });
 }

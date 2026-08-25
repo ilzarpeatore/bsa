@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
-import { HStack } from '@components/ui/hstack';
-import { Text } from '@components/ui/text';
-import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
-import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view';
-import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
-import { subscribeWorkoutSession, ActiveWorkoutSession } from '../helper/workoutSessionBus';
+import {  Platform  } from 'react-native';
+import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
+import {  Box  } from '@components/ui/box';
+import {  HStack  } from '@components/ui/hstack';
+import {  Text  } from '@components/ui/text';
+import {  Pressable  } from '@components/ui/pressable';
+import {  Icon  } from '@components/ui/icon';
+import {  GlassView, isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
+import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
+import {  subscribeWorkoutSession, ActiveWorkoutSession  } from '../helper/workoutSessionBus';
+import {  RADIUS  } from '../pages/migrated/theme';
 
 interface Props {
   navigationRef: any;
@@ -94,7 +95,7 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
         // el menú cuando sí la tiene).
         bottom: Math.max(insets.bottom, 12) + TAB_BAR_CLEARANCE + (Platform.OS === 'ios' ? 6 : 10),
         zIndex: 50,
-        borderRadius: 20,
+        borderRadius: RADIUS.lg,
         boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
       }}
     >
@@ -108,11 +109,11 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
             contenido redondeado. Se envuelve en un Box con overflow:hidden
             propio (recorte 100% fiable de RN, independiente del native
             module) como red de seguridad. */}
-        <Box style={{ borderRadius: 20, overflow: 'hidden' }}>
+        <Box style={{ borderRadius: RADIUS.lg, overflow: 'hidden' }}>
           <GlassView
             glassEffectStyle="regular"
             style={{
-              borderRadius: 20,
+              borderRadius: RADIUS.lg,
               paddingHorizontal: 16,
               paddingVertical: 12,
               ...(hasGlass ? null : { backgroundColor: '#1C1C1E' }),

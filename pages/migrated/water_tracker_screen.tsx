@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import {  View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert  } from 'react-native';
+import {  SafeAreaView  } from 'react-native-safe-area-context';
+import {  Ionicons  } from '@expo/vector-icons';
+import {  LinearGradient  } from 'expo-linear-gradient';
 import AnimatedRing from '@components/AnimatedRing';
-import { FONT } from './theme';
-import { useAppColorMode } from '@helper/useAppColorMode';
+import { FONT, RADIUS } from './theme';
+import {  useAppColorMode  } from '@helper/useAppColorMode';
 
 type WaterChartFilter = 'week' | 'month' | 'year' | 'every';
 
@@ -258,7 +258,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   banner: {
     padding: 14,
     backgroundColor: C.brand10,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
   },
   bannerText: {
     fontFamily: FONT.semiBold,
@@ -314,7 +314,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   logBtn: {
     backgroundColor: C.blue,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     paddingVertical: 12,
     paddingHorizontal: 40,
     alignSelf: 'center',
@@ -327,7 +327,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     color: '#FFFFFF',
   },
   goalCard: {
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 16,
   },
   goalHeader: {
@@ -353,7 +353,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   goalInput: {
     backgroundColor: C.surface,
-    borderRadius: 12,
+    borderRadius: RADIUS.sm,
     padding: 12,
     fontSize: 16,
     color: C.textPrimary,
@@ -361,7 +361,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   goalSaveBtn: {
     backgroundColor: C.surface,
-    borderRadius: 8,
+    borderRadius: RADIUS.xs,
     paddingVertical: 10,
     alignItems: 'center',
     marginTop: 8,
@@ -373,7 +373,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   chartCard: {
     backgroundColor: C.surfaceLight,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     padding: 12,
     marginTop: 30,
     boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
@@ -396,7 +396,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   filterChip: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: C.border,
   },
