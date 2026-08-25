@@ -306,7 +306,11 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
           {/* Avatar */}
           <Box style={localStyles.imageSection}>
             {renderProfileImage()}
-            <Pressable style={localStyles.cameraBtn} onPress={pickImage}>
+            <Pressable
+              style={localStyles.cameraBtn}
+              onPress={pickImage}
+              accessibilityRole="button"
+              accessibilityLabel="Cambiar foto de perfil">
               <Icon name="camera" size={14} color="#FFFFFF" />
             </Pressable>
             <Text weight="bold" size="lg" style={{ marginTop: 12 }}>{fullName}</Text>

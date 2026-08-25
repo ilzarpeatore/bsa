@@ -106,6 +106,9 @@ export default function MainGoalScreen(props: MainGoalScreenProps) {
       key={item.title}
       style={({ pressed }) => [styles.goalCard, isSelected && styles.goalCardSelected, pressed && { opacity: 0.7 }]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={item.title}
+      accessibilityState={{ selected: isSelected }}
     >
       <View style={styles.goalCardRow}>
         <View style={styles.goalIconBox}>

@@ -71,7 +71,12 @@ export default function FitnessMetricsScreen({ navigation }: any) {
         </Box>
         <ScrollView contentContainerStyle={styles.list}>
           {METRICS.map((m) => (
-            <Pressable key={m.id} onPress={() => handlePress(m)}>
+            <Pressable
+              key={m.id}
+              onPress={() => handlePress(m)}
+              accessibilityRole="button"
+              accessibilityLabel={`${m.name}, ${m.value}${m.unit ? ` ${m.unit}` : ''}, ${m.status}`}
+            >
               <Card variant="outline" className="flex-row items-center p-4 gap-3">
                 <Box
                   className="w-11 h-11 rounded-pill items-center justify-center"

@@ -98,6 +98,18 @@ El motor de readiness de Fase 4 (`app/Services/ReadinessCalculationService.php`,
 
 **Mismo problema, alcance más amplio (no verificado en esta sesión, mencionar por si aplica):** `recipe_category` (el concepto separado de "categorías" que usa `MigratedRecipeCategoryList`, `RecipeCategory` en `api/recipes.ts`) podría tener la misma limitación de lista plana sin agrupación — no se investigó a fondo porque no era el pedido de esta sesión (solo `MigratedRecipeTagList`), pero si se aborda el backend de tags, vale la pena revisar si categorías tiene el mismo hueco.
 
+### 12. Moderación de publicaciones — reportar + borrado desde admin (2026-08-25)
+
+`post_details_screen.tsx` tenía el botón "más opciones" (icono `ellipsis-horizontal`) sin `onPress`, sin ningún menú detrás. Se ha cableado en el cliente para abrir "Reportar publicación" → llama a `postsApi.report(postId, reason)` (`api/posts.ts`, `POST report-on-posting` con `{ posting_id, reason }`), que ya existía en el wrapper de API pero no se usaba desde ninguna pantalla — no se ha inventado ningún endpoint nuevo en el cliente.
+
+Lo que falta confirmar/construir en el backend y el admin panel para que esto sirva de algo:
+
+- **Verificar que `report-on-posting` persiste el reporte** en una tabla consultable (sugerida `posting_reports`: `id`, `posting_id` FK, `reporter_user_id` FK, `reason` (string/enum), `status` (enum `pending`/`reviewed`/`dismissed`, default `pending`), `created_at`) — hoy no hay forma de confirmar desde este repo (solo frontend) si el endpoint ya hace esto o solo responde OK sin guardar nada.
+- **Admin panel**: pantalla nueva de "Publicaciones reportadas" — listado (con el `reason`, quién reportó, contenido/autor del post, fecha) + acción de borrar el post directamente desde ahí. No existe ningún sitio hoy para que un entrenador/admin vea reportes.
+- **Permiso de borrado ampliado**: `postsApi.deletePost()` (`POST delete-userpost`) ya existe y se usa en `community_screen.tsx`, pero ahí solo se ofrece al propio autor (`item.canEdit`, que viene del backend). Para que un entrenador/admin pueda borrar la publicación de otro usuario desde el panel, el backend necesita permitir `delete-userpost` también a roles admin/coach sobre posts ajenos (hoy no verificable desde aquí si `delete-userpost` ya contempla esto o solo acepta al propietario).
+
+El pedido original era "que el entrenador o administrador pueda borrar el post desde el admin panel" — esa pieza (panel + permiso ampliado) es 100% backend/admin y queda fuera de este repo (solo frontend de la app). El resto de este item (checkbox de motivo, confirmación al usuario tras reportar) ya está resuelto en el cliente.
+
 ---
 
 ## Pagos — checkout externo (no es trabajo de este backend/admin, pero es el bloqueante real)

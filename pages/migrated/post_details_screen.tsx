@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Image, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Image, TextInput, KeyboardAvoidingView, Platform, ScrollView, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Card } from '@components/ui/card';
@@ -110,6 +110,42 @@ export default function PostDetailsScreen(props: any) {
     commentInputRef.current?.focus();
   };
 
+  const handleShare = async () => {
+    try {
+      await Share.share({ message: postData.content || 'Mira esta publicación en BeFit' });
+    } catch (e) {
+      logger.error('Error sharing post', e);
+    }
+  };
+
+  const submitReport = async (reason: string) => {
+    if (!postData.id) return;
+    try {
+      await postsApi.report(postData.id, reason);
+      Alert.alert('Gracias', 'Hemos recibido tu reporte y lo revisaremos.');
+    } catch (e) {
+      logger.error('Error reporting post', e);
+      Alert.alert('Error', 'No se pudo enviar el reporte.');
+    }
+  };
+
+  const showReportReasons = () => {
+    Alert.alert('Motivo del reporte', undefined, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Spam', onPress: () => submitReport('spam') },
+      { text: 'Contenido inapropiado', onPress: () => submitReport('inappropriate_content') },
+      { text: 'Acoso o bullying', onPress: () => submitReport('harassment') },
+      { text: 'Otro', onPress: () => submitReport('other') },
+    ]);
+  };
+
+  const showPostOptions = () => {
+    Alert.alert('Publicación', undefined, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Reportar publicación', style: 'destructive', onPress: showReportReasons },
+    ]);
+  };
+
   const submitComment = async () => {
     const text = commentText.trim();
     if (!text || !postData.id || postingComment) return;
@@ -160,7 +196,11 @@ export default function PostDetailsScreen(props: any) {
                   )}
                 </Box>
               </Pressable>
-              <Pressable style={{ padding: 4 }}>
+              <Pressable
+                style={{ padding: 4 }}
+                onPress={showPostOptions}
+                accessibilityRole="button"
+                accessibilityLabel="Más opciones">
                 <Icon name="ellipsis-horizontal" size={20} className="text-muted-foreground" />
               </Pressable>
             </Box>
@@ -190,7 +230,10 @@ export default function PostDetailsScreen(props: any) {
               <Pressable
                 className="flex-row items-center"
                 style={{ marginRight: 20 }}
-                onPress={toggleLike}>
+                onPress={toggleLike}
+                accessibilityRole="button"
+                accessibilityLabel="Me gusta"
+                accessibilityState={{ selected: isLiked }}>
                 <Icon
                   name={isLiked ? 'heart' : 'heart-outline'}
                   size={22}
@@ -206,7 +249,9 @@ export default function PostDetailsScreen(props: any) {
               <Pressable
                 className="flex-row items-center"
                 style={{ marginRight: 20 }}
-                onPress={focusCommentInput}>
+                onPress={focusCommentInput}
+                accessibilityRole="button"
+                accessibilityLabel="Comentar">
                 <Icon name="chatbubble-outline" size={22} className="text-muted-foreground" />
                 <Text size="xs" className="text-muted-foreground" style={{ marginLeft: 6 }}>
                   {commentsCount}
@@ -215,7 +260,10 @@ export default function PostDetailsScreen(props: any) {
               <Pressable
                 className="flex-row items-center"
                 style={{ marginRight: 20 }}
-                onPress={toggleBookmark}>
+                onPress={toggleBookmark}
+                accessibilityRole="button"
+                accessibilityLabel="Guardar en marcadores"
+                accessibilityState={{ selected: isBookmarked }}>
                 <Icon
                   name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
                   size={22}
@@ -223,7 +271,12 @@ export default function PostDetailsScreen(props: any) {
                   style={isBookmarked ? { color: C.orange } : undefined}
                 />
               </Pressable>
-              <Pressable className="flex-row items-center" style={{ marginRight: 20 }}>
+              <Pressable
+                className="flex-row items-center"
+                style={{ marginRight: 20 }}
+                onPress={handleShare}
+                accessibilityRole="button"
+                accessibilityLabel="Compartir">
                 <Icon name="share-outline" size={22} className="text-muted-foreground" />
               </Pressable>
             </Box>

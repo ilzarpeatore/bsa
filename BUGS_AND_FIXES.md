@@ -1185,3 +1185,157 @@ No es un bug, se documenta aquí por contexto (varias entradas de este documento
 - `water_tracker_screen.tsx` / `activity_tracker_screen.tsx` — siguen siendo destino de 2 botones "+" en la Home real (`home_screen_modern_v2.tsx`).
 
 Sí se borró `log_steps_form_screen.tsx`, quitando también la opción "Entrada manual" en `home/link_device_choice_screen.tsx` que la abría (única referencia externa real). Verificado con grep de cada uno de los 30 nombres de ruta en todo el repo tras el borrado: 0 referencias colgantes. `App.tsx` y `pages/ScreenExplorer.tsx` actualizados para no registrar ni listar las rutas borradas.
+
+---
+
+# BUG-025 — Botón "compartir" muerto en `post_details_screen.tsx`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** Funcionalidad
+**Fase:** Fase 3 — UX
+
+## Problema
+
+`post_details_screen.tsx:226-228` (numeración previa al fix): `<Pressable><Icon name="share-outline" /></Pressable>` sin `onPress` — no existía ningún `handleShare` ni llamada a `Share.share(...)` en todo el archivo. El botón se veía y se podía tocar, pero no hacía nada.
+
+## Fix
+
+Añadido `handleShare` usando la API `Share` de React Native (`Share.share({ message: postData.content || '...' })`), cableado al `onPress` del botón. Patrón estándar, sin ambigüedad de producto — coincide con el mismo mecanismo ya usado en `helper/logger.ts` para "Enviar registros al desarrollador".
+
+## Archivos modificados
+
+- `pages/migrated/post_details_screen.tsx`
+
+## Verificación
+
+`npx eslint` limpio. Sin cambio visual (mismo icono, mismo estilo) — solo se añadió el comportamiento que faltaba.
+
+---
+
+# BUG-026 — Botón "más opciones" muerto en `post_details_screen.tsx`
+
+**Estado:** 🟢 Solucionado (frontend) — admin panel documentado como pendiente
+**Severidad:** 🟡 Medio
+**Categoría:** Funcionalidad
+**Fase:** Fase 3 — UX
+
+## Problema
+
+`post_details_screen.tsx:163-165` (numeración previa al fix): mismo patrón que BUG-025, `<Icon name="ellipsis-horizontal">` sin `onPress` ni handler en ningún sitio del archivo.
+
+## Decisión del usuario
+
+El usuario pidió que muestre la opción "Reportar publicación", de forma que exista un endpoint que permita a un entrenador/administrador borrar la publicación desde el panel de admin.
+
+## Fix (alcance de este repo — solo frontend)
+
+- Añadido `showPostOptions` → `Alert.alert` con "Reportar publicación" → `showReportReasons` → `Alert.alert` con motivos (Spam / Contenido inapropiado / Acoso o bullying / Otro) → `submitReport(reason)` → `postsApi.report(postId, reason)`.
+- **No se ha inventado ningún endpoint nuevo**: `postsApi.report()` (`POST report-on-posting`) ya existía en `api/posts.ts` y en `hooks/usePosts.ts`, pero no se usaba desde ninguna pantalla — se ha cableado un consumidor real por primera vez.
+- El panel de admin (listado de reportes + borrado por parte de un entrenador/admin de publicaciones ajenas) es 100% backend/admin y no existe código de servidor en este repositorio (`bsa` es solo la app React Native) — documentado en detalle, para implementar en otra sesión, en `docs/PENDIENTE_BACKEND_ADMIN.md` (nueva sección "12. Moderación de publicaciones").
+
+## Archivos modificados
+
+- `pages/migrated/post_details_screen.tsx`
+- `docs/PENDIENTE_BACKEND_ADMIN.md` (nueva sección)
+
+## Verificación
+
+`npx eslint` limpio. Sin cambio visual — mismo icono, mismo estilo; el menú es un `Alert.alert` nativo (mismo patrón ya usado en `community_screen.tsx::showPostOptions`).
+
+---
+
+# BUG-027 — Flag `-r` (redondeo) de `useResponsiveStyleSheet` no hacía nada
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo
+**Categoría:** Bug latente (sin uso real todavía)
+**Fase:** Fase 3 — UX
+
+## Problema
+
+`helper/responsiveStyleSheet.tsx`: `Math.ceil(scale * size)` se calculaba siempre primero; `Math.round()` solo se aplicaba después sobre ese resultado ya entero (no-op garantizado — redondear un entero no cambia nada). `"48@ratio-r"` se comportaba idéntico a `"48@ratio"`, contradiciendo su propio comentario de documentación. Confirmado con `grep` que `@ratio-r` tiene 0 usos en todo el repo — no afecta a ninguna pantalla existente.
+
+## Fix
+
+`return shouldRound ? Math.round(scale * size) : Math.ceil(scale * size);` — ahora la rama de redondeo se decide antes de aplicar cualquiera de las dos funciones, no después.
+
+## Archivos modificados
+
+- `helper/responsiveStyleSheet.tsx`
+
+## Verificación
+
+Cero riesgo de regresión visual (0 usos de `@ratio-r` en el repo). Caso de prueba manual: con `scale=0.33` y `size=10`, antes ambas ramas daban `4` (`Math.round(Math.ceil(3.3)) = Math.round(4) = 4`); ahora `"10@ratio"` da `4` (`Math.ceil(3.3)`) y `"10@ratio-r"` da `3` (`Math.round(3.3)`) — distintos, como se espera.
+
+---
+
+# BUG-028 — `ScreenExplorerFab` sin gate de producción — cerrado, es intencional
+
+**Estado:** ⚫ Cerrado / Comportamiento intencional
+**Severidad:** N/A
+**Categoría:** UI / herramienta interna
+**Fase:** Fase 3 — UX
+
+## Hallazgo
+
+`App.tsx:501`: `ScreenExplorerFab` se monta incondicionalmente, sin ningún `if (__DEV__)` ni feature flag — accesible en cualquier build, incluida producción.
+
+## Por qué se cierra sin cambio de código
+
+El usuario confirmó explícitamente que es intencional: "Es intencional, dejarla" — herramienta interna aceptada en producción. No se aplica ningún gate.
+
+---
+
+# BUG-029 — Tarjetas de objetivo seleccionables sin estado de accesibilidad
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo
+**Categoría:** Accesibilidad
+**Fase:** Fase 3 — UX
+
+## Problema
+
+`main_goal_screen.tsx::renderGoalCard`: `isSelected` solo cambiaba el estilo visual; no había `accessibilityState={{selected: isSelected}}` — un usuario de lector de pantalla no podía saber qué objetivo estaba seleccionado.
+
+## Fix
+
+Añadido `accessibilityRole="button"`, `accessibilityLabel={item.title}` y `accessibilityState={{selected: isSelected}}` al `Pressable` de cada tarjeta.
+
+## Archivos modificados
+
+- `pages/migrated/main_goal_screen.tsx`
+
+## Verificación
+
+Puramente aditivo (solo props de accesibilidad) — `npx eslint` limpio, sin cambio de estilo/layout.
+
+---
+
+# BUG-030 — `home_screen_modern.tsx` huérfano — retirado
+
+**Estado:** 🟢 Solucionado (retirado)
+**Severidad:** 🟢 Bajo
+**Categoría:** Código muerto
+**Fase:** Fase 3 — UX
+
+## Problema
+
+`MigratedHomeModern` no tenía ningún `navigation.navigate(...)` real en todo el repo — la única referencia fuera de su propio registro en `App.tsx` era la entrada del catálogo de `ScreenExplorer.tsx` (la herramienta de debug de BUG-028). El tab "Inicio" real apunta a `MigratedHomeModernV2` desde el rediseño del 2026-08-23. Duplicaba lógica completa con la v2 (su propio `handleLogout`, su propio cálculo de escala Figma).
+
+## Fix
+
+Mismo protocolo que la retirada de las 30 pantallas anteriores, confirmado por el usuario ("Retirarla, mismo protocolo que antes"):
+
+1. Verificado con `grep` de `home_screen_modern` y `MigratedHomeModern` en todo el repo — solo 4 coincidencias: el propio archivo, su test, su registro en `App.tsx`, y la entrada de `ScreenExplorer.tsx`. 0 referencias de navegación real.
+2. Borrado `pages/migrated/home_screen_modern.tsx` y `pages/migrated/__tests__/home_screen_modern.test.tsx`.
+3. Quitado el lazy-import y el `<MStack.Screen>` de `App.tsx`.
+4. Quitada la entrada del catálogo de `pages/ScreenExplorer.tsx`.
+5. Re-verificado con grep tras el borrado: 0 referencias colgantes.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern.tsx` (borrado)
+- `pages/migrated/__tests__/home_screen_modern.test.tsx` (borrado)
+- `App.tsx`
+- `pages/ScreenExplorer.tsx`

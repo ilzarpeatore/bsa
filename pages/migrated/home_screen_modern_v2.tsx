@@ -3,7 +3,6 @@ import { Platform ,
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Dimensions,
   useWindowDimensions,
   Modal,
   Alert,
@@ -71,7 +70,6 @@ import WeekComplianceRow from '@components/WeekComplianceRow';
 import { computeWeekCompliance } from '@components/weekCompliance';
 import { useAuth } from '../../store/AuthContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FIGMA_W = 375;
 const FIGMA_H = 812;
 
@@ -854,14 +852,24 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
         <Box style={{ paddingTop: insets.top + r(10) }}>
           <HStack style={styles.heroTopBar}>
-            <Pressable style={styles.heroIconBtn} onPress={() => navigation?.navigate('MigratedMyProgramCalendar')}>
+            <Pressable
+              style={styles.heroIconBtn}
+              onPress={() => navigation?.navigate('MigratedMyProgramCalendar')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Calendario">
               <Icon name="calendar-outline" size={19} color="#FFFFFF" />
             </Pressable>
             <Text style={styles.heroGreeting} numberOfLines={1}>
               {greetingForHour(new Date().getHours())}, {displayName}
             </Text>
             <HStack space="sm" className="items-center">
-              <Pressable style={styles.heroIconBtn} onPress={() => navigation?.navigate('MigratedNotification')}>
+              <Pressable
+                style={styles.heroIconBtn}
+                onPress={() => navigation?.navigate('MigratedNotification')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Notificaciones">
                 <Icon name="notifications-outline" size={18} color="#FFFFFF" />
                 {notificationCount > 0 && (
                   <Box style={styles.notifBadge}>
@@ -869,7 +877,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   </Box>
                 )}
               </Pressable>
-              <Pressable style={styles.heroIconBtn} onPress={() => setShowMenu(true)}>
+              <Pressable
+                style={styles.heroIconBtn}
+                onPress={() => setShowMenu(true)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Ajustes">
                 <Icon name="settings-outline" size={18} color="#FFFFFF" />
               </Pressable>
             </HStack>

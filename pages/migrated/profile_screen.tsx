@@ -153,6 +153,9 @@ export default function ProfileScreen(props: any) {
                 className="items-center justify-center rounded-pill"
                 style={{ width: 32, height: 32, backgroundColor: C.surface }}
                 onPress={() => props.navigation?.goBack()}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
               >
                 <Icon name="close" size={18} color={C.textPrimary} />
               </Pressable>
@@ -177,6 +180,9 @@ export default function ProfileScreen(props: any) {
                 className="absolute rounded-pill items-center justify-center"
                 style={{ bottom: 0, right: 0, width: 28, height: 28, backgroundColor: C.orange, borderWidth: 2, borderColor: C.surface }}
                 onPress={() => props.navigation?.navigate('MigratedEditProfile')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Editar foto de perfil"
               >
                 <Icon name="pencil" size={12} color="#FFFFFF" />
               </Pressable>

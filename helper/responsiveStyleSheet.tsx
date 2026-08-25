@@ -89,11 +89,10 @@ export const useResponsiveStyleSheet = (
 
       let size = parseFloat(regexExecResult![1]);
       const shouldRound = typeof regexExecResult![3] != 'undefined'; // string or undefined
-      const result = Math.ceil(scale * size);
       /**
        * return value rounded or not based on -r flag
        */
-      return shouldRound ? Math.round(result) : result;
+      return shouldRound ? Math.round(scale * size) : Math.ceil(scale * size);
     },
     []
   );

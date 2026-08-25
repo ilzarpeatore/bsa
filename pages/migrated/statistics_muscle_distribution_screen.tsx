@@ -194,6 +194,9 @@ export default function StatisticsMuscleDistributionScreen(props: Props) {
             className="rounded-pill bg-card items-center justify-center shadow-card"
             style={{ width: 32, height: 32 }}
             onPress={openHelp}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+            accessibilityRole="button"
+            accessibilityLabel="Ayuda"
           >
             <Text weight="bold" size="xs" muted>?</Text>
           </Pressable>
@@ -202,6 +205,9 @@ export default function StatisticsMuscleDistributionScreen(props: Props) {
             style={{ width: 32, height: 32 }}
             onPress={onShare}
             disabled={isSharing}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+            accessibilityRole="button"
+            accessibilityLabel="Compartir"
           >
             {isSharing ? (
               <Spinner size="small" color={C.textSecondary} />

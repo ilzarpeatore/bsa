@@ -165,7 +165,10 @@ export default function AddPostScreen({ navigation, route }: any) {
                   <Image source={{ uri }} className="w-full h-full rounded-sm bg-secondary" />
                   <Pressable
                     style={{ position: 'absolute', top: -6, right: -6 }}
-                    onPress={() => removeExistingImage(index)}>
+                    onPress={() => removeExistingImage(index)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Quitar imagen">
                     <Icon name="close-circle" size={24} className="text-destructive" />
                   </Pressable>
                 </Box>

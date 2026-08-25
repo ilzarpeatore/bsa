@@ -205,6 +205,8 @@ export default function ChattingScreen({ navigation }: any) {
             style={{ backgroundColor: C.brand5 }}
             onPress={sendMessage}
             disabled={!msgController.trim()}
+            accessibilityRole="button"
+            accessibilityLabel="Enviar mensaje"
           >
             <Icon name="send" size={16} className="text-foreground" />
           </Pressable>

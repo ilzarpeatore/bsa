@@ -47,6 +47,10 @@ function ChoiceRow({
             className="items-center justify-center rounded-pill"
             style={{ width: 34, height: 34, backgroundColor: active ? C.accentBlack : C.bg }}
             onPress={() => onChange(n)}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel={`${n}`}
+            accessibilityState={{ selected: active }}
           >
             {icon ? (
               <Icon name="star" size={16} color={active ? '#FFFFFF' : C.textSecondary} />

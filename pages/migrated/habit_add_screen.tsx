@@ -144,6 +144,9 @@ function HabitAddScreenInner(props: Props) {
           style={{ width: 34, height: 34, backgroundColor: C.accentBlack }}
           onPress={() => adopt(t)}
           disabled={adoptingId === t.id}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Añadir hábito ${t.title ?? ''}`.trim()}
         >
           {adoptingId === t.id ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Icon name="add" size={20} color="#FFFFFF" />}
         </Pressable>
@@ -240,6 +243,10 @@ function HabitAddScreenInner(props: Props) {
                   className="items-center justify-center bg-card rounded-sm"
                   style={{ width: 40, height: 40, backgroundColor: icon === key ? C.accentBlack : C.surface }}
                   onPress={() => setIcon(key)}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Icono ${key}`}
+                  accessibilityState={{ selected: icon === key }}
                 >
                   <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? '#FFFFFF' : C.textSecondary} />
                 </Pressable>

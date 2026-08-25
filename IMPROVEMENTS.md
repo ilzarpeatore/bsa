@@ -158,4 +158,76 @@ Primer incremento de Fase 2 (`docs/AUDITORIA_UIUX_2026-08-24.md`, línea 458), a
 
 `eslint --quiet` limpio en todos los archivos. `tsc --noEmit -p .` completo limpio (confirma que `RADIUS.lg` sigue valiendo 20 tras el re-numerado, sin regresión de tipos). Cambios de radio/tipografía en sí **pendientes de confirmación visual** en la prueba final.
 
-**Resultado:** 🔵 Aplicado, pendiente de confirmación visual para los cambios de radio/tipografía; la migración masiva y la regla de ESLint quedan explícitamente para una fase futura con capacidad de verificación visual.
+**Resultado:** 🔵 Aplicado, pendiente de confirmación visual para los cambios de radio/tipografía; la regla de ESLint queda explícitamente para una fase futura. La migración masiva de `borderRadius` sí se completó parcialmente en el mismo día — ver IMP-006.
+
+---
+
+# IMP-006 — Migración masiva de `borderRadius` a tokens `RADIUS` (subconjunto seguro)
+
+**Estado:** ✅ Aplicada (parcial, alcance deliberado)
+**Categoría:** Otros
+**Fase:** Fase 2 — Visual System (cierre antes de Fase 3, a petición explícita del usuario)
+
+## Descripción
+
+IMP-005 había diferido la migración masiva de literales por considerarla de riesgo alto sin poder verificar visualmente. Al revisar de nuevo el problema real: migrar un literal a un token **solo cuando su valor coincide exactamente** con uno de la escala (`RADIUS.xs=8, sm=12, md=16, lg=20, xl=28, pill=999`) no cambia ningún valor renderizado — es una sustitución de mismo-valor, verificable por comparación numérica, no por vista. El riesgo real estaba en forzar valores _no coincidentes_ al token más cercano (eso sí cambiaría el resultado visual), que este cambio evita explícitamente.
+
+## Cambio aplicado
+
+Script de migración (no manual, para evitar errores de transcripción en ~40 archivos): localiza cada `borderRadius: N` en `pages/migrated/**` y `components/**`, sustituye por `RADIUS.<token>` únicamente si `N` coincide exactamente con un valor de la escala, y añade `RADIUS` al import de `theme.ts` de ese archivo (a su import existente si ya importaba algo de ahí, o como import nuevo con la ruta relativa correcta si no). Cualquier valor sin coincidencia exacta (10, 3, 4, 14, 2, 18, 26, 6, 5, 44, 48, 22, 34, 42, 36, 32, 30, 24, 17, 13...) se dejó intacto — son huérfanos reales de la escala, forzarlos habría sido un cambio de diseño no pedido.
+
+Resultado: **41 archivos modificados, 147 sustituciones** (`pages/migrated`: 29 archivos/135 cambios; `components`: 12 archivos/12 cambios). `components/ui/card/index.tsx` (único `borderRadius: 20` restante detectado) se dejó deliberadamente sin tocar — es un valor de seguridad ("safety net") ya documentado en el propio componente base del design system, no un descuido de una pantalla.
+
+## Archivos afectados
+
+41 archivos en `pages/migrated/**` y `components/**` — lista completa en el commit correspondiente (mensaje detallado con el desglose exacto por archivo).
+
+## Verificación
+
+`eslint --fix` limpio (0 errores, solo warnings preexistentes no relacionados) en los 41 archivos. `tsc --noEmit -p .` completo del proyecto: limpio, 0 errores. Verificación adicional específica de este cambio: cada sustitución es matemáticamente idéntica al literal que reemplaza (mismo valor exacto), no requiere confirmación visual como los cambios de IMP-005 — es un refactor de nombres puro sobre un subconjunto ya filtrado por coincidencia exacta.
+
+**Resultado:** ✅ Correcto
+
+## Notas
+
+Quedan sin migrar los literales que NO coinciden con ningún token de la escala (más de 100 casos restantes) y toda la migración de `fontSize`→`TYPE` (estructuralmente más compleja: `TYPE` empaqueta `fontSize`+`fontWeight` como objeto, no solo un número — migrarlo requeriría verificar que ambos coincidan y que ninguna otra propiedad del mismo objeto de estilos se pierda, un riesgo real que si necesita revisión visual). La regla de ESLint que fuerce el uso de tokens sigue diferida — solo tendría sentido una vez migrados también los valores huérfanos (si no, bloquearía la mayoría de archivos existentes desde el primer commit).
+
+---
+
+# IMP-007 — Fase 3 (UX): hitSlop, accesibilidad, Toast, correcciones puntuales
+
+**Estado:** ✅ Aplicada (bloque seguro completo, ver diferido)
+**Categoría:** Accesibilidad / UX / Otros
+**Fase:** Fase 3 — UX
+
+## Descripción
+
+Continuación directa de la auditoría UI/UX (`docs/AUDITORIA_UIUX_2026-08-24.md`), Fase 3: accesibilidad en primitivos compartidos, `hitSlop` en botones de icono ajustados, componente Toast nuevo. Antes de implementar, 3 agentes Explore remidieron cada punto contra el estado actual del repo (no los números de la auditoría original, ya desactualizados tras el borrado de 30 pantallas) y encontraron 6 bugs nuevos reales (BUG-025 a BUG-030, ver `BUGS_AND_FIXES.md`).
+
+## Cambios aplicados
+
+1. **`hitSlop={{top:8,bottom:8,left:8,right:8}}`** (o valores reducidos en grids con gap ajustado, para evitar solapar áreas táctiles entre botones adyacentes) en los ~10 patrones de botón-icono confirmados: `profile_screen.tsx` (×2), `my_program_calendar_screen.tsx` (×4), `home_screen_modern_v2.tsx` (×3), `habit_add_screen.tsx` (×2), `checkin_fill_screen.tsx`, `body_metrics_screen.tsx`, `statistics_body_distribution_screen.tsx` (×2), `statistics_muscle_distribution_screen.tsx` (×2), `add_post_screen.tsx`.
+2. **`accessibilityRole="button"` + `accessibilityLabel`** (más `accessibilityState={{selected}}` en patrones de selección/toggle) en los patrones `Pressable`+`Icon` de solo-icono confirmados: `plan_screen.tsx`, `habit_detail_screen.tsx` (×3), `edit_profile_screen.tsx`, `chatting_screen.tsx`, `workout_session_screen.tsx` (×4), `add_post_screen.tsx`, `post_details_screen.tsx` (×5, junto con BUG-025/026), `main_goal_screen.tsx` (BUG-029), `home/fitness_metrics_screen.tsx` (patrón Card-pulsable, con label compuesto a partir de nombre+valor+estado de la métrica).
+3. **BUG-025/026** — botones "compartir" y "más opciones" muertos en `post_details_screen.tsx`, corregidos (ver `BUGS_AND_FIXES.md`).
+4. **BUG-027** — flag `-r` roto de `helper/responsiveStyleSheet.tsx`, corregido.
+5. **Limpieza `SCREEN_WIDTH` muerto** en `home_screen_modern_v2.tsx` (import de `Dimensions` completo eliminado, sin otro uso en el archivo). No se tocó en `home_screen_modern.tsx` porque ese archivo se retiró en el mismo pase (BUG-030).
+6. **Componente Toast nuevo** (`components/ui/toast/index.tsx`) — sigue el mismo patrón que `components/ui/button/index.tsx` (envuelve la factoría headless `createToast`/`createToastHook` de `@gluestack-ui/core/toast/creator`, estilado con los tokens semánticos ya existentes en `global.css`: `bg-success`/`bg-warning`/`bg-destructive`/`bg-info` + sus `-foreground`). Exporta `Toast`, `Toast.Title`/`ToastTitle`, `Toast.Description`/`ToastDescription`, `useToast()`. `ToastProvider` ya envolvía la app entera (`GluestackUIProvider`) desde antes — no hubo que tocar el árbol de providers. **No se ha migrado ningún `Alert.alert` existente a este componente en este pase** (ver diferido).
+7. **BUG-030** — retirada de `home_screen_modern.tsx` (código huérfano, solo alcanzable vía la herramienta de debug de BUG-028), mismo protocolo que la retirada de 30 pantallas de la sesión anterior: verificación de 0 referencias de navegación real, borrado del archivo y su test, limpieza de `App.tsx` y `pages/ScreenExplorer.tsx`.
+
+## Explícitamente diferido
+
+- **Migrar los ~70-75 `Alert.alert` de feedback simple al nuevo Toast** — cambia comportamiento real (no bloqueante, timing, posición en pantalla), necesita verificación visual no disponible en este entorno. El Toast queda listo para cuando se aborde con acceso a dispositivo/simulador. Los `Alert.alert` de confirmación destructiva se quedan como están (la propia auditoría lo pide así).
+- **Migrar Home v1/v2 al helper de responsive compartido** — ya no aplica a v1 (retirado, BUG-030); en v2 sigue diferido porque `useResponsiveStyleSheet` usa `Math.ceil` por defecto y Home usa `Math.round` — adoptar la anotación `"N@ratio"` tal cual cambiaría el valor renderizado en la mitad de los casos fraccionarios. Sustituir solo el `useMemo` de escala por `useScale()` (fórmula idéntica, sin cambiar el `Math.round` local) seguiría siendo seguro pero no se ha hecho en este pase.
+- **BUG-028 (ScreenExplorerFab sin gate de producción)** — cerrado como comportamiento intencional, confirmado por el usuario. Sin cambio de código.
+- **BUG-026, pieza de backend/admin panel** — reportar publicación desde el cliente ya funciona (usa un endpoint `report-on-posting` que ya existía en `api/posts.ts` sin consumidor); la capacidad de que un entrenador/admin vea los reportes y borre la publicación desde el panel es 100% servidor y queda fuera de este repositorio (documentado en `docs/PENDIENTE_BACKEND_ADMIN.md`, sección 12).
+- **`components/ui/card/index.tsx` con variante `cardCompact`** — diferido desde Fase 2 (IMP-005), sigue igual.
+
+## Archivos afectados
+
+`pages/migrated/profile_screen.tsx`, `my_program_calendar_screen.tsx`, `home_screen_modern_v2.tsx`, `habit_add_screen.tsx`, `checkin_fill_screen.tsx`, `body_metrics_screen.tsx`, `statistics_body_distribution_screen.tsx`, `statistics_muscle_distribution_screen.tsx`, `add_post_screen.tsx`, `plan_screen.tsx`, `habit_detail_screen.tsx`, `edit_profile_screen.tsx`, `chatting_screen.tsx`, `workout_session_screen.tsx`, `post_details_screen.tsx`, `main_goal_screen.tsx`, `home/fitness_metrics_screen.tsx`; `helper/responsiveStyleSheet.tsx`; `components/ui/toast/index.tsx` (nuevo); `App.tsx`, `pages/ScreenExplorer.tsx` (BUG-030); `docs/PENDIENTE_BACKEND_ADMIN.md`; `pages/migrated/home_screen_modern.tsx` + su test (borrados).
+
+## Verificación
+
+`npx eslint --quiet` limpio en cada bloque de archivos tocados. `tsc --noEmit -p .` completo del proyecto (mismo run que cierra IMP-006): limpio, 0 errores. Todos los cambios de `hitSlop`/accesibilidad son puramente aditivos (props nuevas, sin tocar ningún valor de estilo/layout existente) — no requieren verificación visual real, aunque un smoke-test con VoiceOver/TalkBack en dispositivo confirmaría que los botones ahora anuncian rol+etiqueta correctamente. BUG-030 verificado por grep (0 referencias colgantes tras el borrado).
+
+**Resultado:** 🔵 Correcto por inspección de código y `tsc` limpio — pendiente de smoke-test visual real en dispositivo

@@ -195,6 +195,9 @@ export default function BodyMetricsScreen(props: any) {
                       className="items-center justify-center rounded-pill"
                       style={{ width: 34, height: 34, backgroundColor: C.accentBlack }}
                       onPress={openAdd}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Añadir medición"
                     >
                       <Icon name="add" size={20} color="#FFFFFF" />
                     </Pressable>
