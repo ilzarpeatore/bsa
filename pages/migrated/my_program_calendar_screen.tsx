@@ -21,7 +21,7 @@ import { Card } from '@components/ui/card';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
-import { FONT } from './theme';
+import { FONT, RADIUS } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { adaptiveWeekPlansApi } from '../../api/adaptiveWeekPlans';
@@ -1303,7 +1303,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.brand10,
   },
   workoutTitle: { flex: 1, fontSize: 15, fontFamily: FONT.bold, color: C.textPrimary },
-  completedBadgeText: { fontFamily: FONT.semiBold, fontSize: 11.5, color: C.success },
+  completedBadgeText: { fontFamily: FONT.semiBold, fontSize: 11.5, color: C.success60 },
   pendingMoveText: { fontFamily: FONT.semiBold, fontSize: 11.5, color: C.orange },
   restDayText: { fontFamily: FONT.regular, fontSize: 13, color: C.textSecondary },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 },
@@ -1333,7 +1333,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.orange,
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: RADIUS.sm,
   },
   unavailableSubmitText: { fontFamily: FONT.semiBold, fontSize: 14, color: '#FFFFFF' },
   });

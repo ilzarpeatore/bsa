@@ -1347,7 +1347,7 @@ export default function WorkoutSessionScreen(props: Props) {
         className="px-5 border-t border-border bg-background"
         style={{ paddingTop: 10, paddingBottom: Math.max(insets.bottom, 14) + 6 }}
       >
-        <Button radius="pill" onPress={onFinish}>
+        <Button size="lg" radius="pill" onPress={onFinish}>
           <ButtonText style={{ letterSpacing: 0.5 }}>✓ FINALIZAR ENTRENAMIENTO</ButtonText>
         </Button>
       </Box>

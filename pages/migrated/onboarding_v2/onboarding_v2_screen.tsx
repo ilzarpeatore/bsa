@@ -105,7 +105,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
   }, [question, restored, answers, setAnswer]);
 
   const submitStage = useCallback(
-    async (stageId: string) => {
+    async (stageId: string): Promise<boolean> => {
       try {
         if (stageId === 'personal_data') {
           const name = answers.name as { first_name: string; last_name: string } | undefined;
@@ -168,30 +168,42 @@ export default function OnboardingV2Screen({ navigation }: any) {
             favorite_combined_dishes: String(answers.favorite_combined_dishes ?? ''),
           });
         }
+        return true;
       } catch (e) {
         // Best-effort: etapas 2-4 aún no tienen endpoint real (ver
         // docs/ONBOARDING_V2.md), y ni siquiera la etapa 1 debe bloquear el
         // alta de un usuario por un fallo de red puntual -- las respuestas
-        // ya quedaron a salvo en AsyncStorage.
+        // ya quedaron a salvo en AsyncStorage. El valor de retorno (false)
+        // sí se usa -- ver handleContinue: si la ÚLTIMA etapa falla, no se
+        // borra el checkpoint de AsyncStorage, para no perder la única copia
+        // de unas respuestas que nunca llegaron a guardarse en el backend.
         logger.error(`[onboarding_v2] fallo al enviar etapa ${stageId}`, e);
+        return false;
       }
     },
     [answers, heightUnit, weightUnit, state.user]
   );
 
   const handleContinue = useCallback(async () => {
+    let stageSubmitted = true;
     if (isLastOfStage) {
       setSubmitting(true);
-      await submitStage(question.stage);
+      stageSubmitted = await submitStage(question.stage);
       setSubmitting(false);
     }
     if (isLastQuestion) {
       // Se pasan las respuestas por params en vez de depender de que la
       // screen de resultado las relea de AsyncStorage -- se borran justo
       // antes de navegar (una fila más abajo), así que para cuando esa
-      // pantalla montase ya no estarían disponibles ahí.
+      // pantalla montase ya no estarían disponibles ahí. Si la última etapa
+      // falló al enviarse, NO se borra el checkpoint -- es la única copia
+      // de esas respuestas fuera del backend, y borrarla en ese momento
+      // eliminaría cualquier posibilidad de reintentar el envío más
+      // adelante (ver comentario de submitStage).
       const finalAnswers = answers;
-      await AsyncStorage.removeItem(ANSWERS_STORAGE_KEY).catch(() => {});
+      if (stageSubmitted) {
+        await AsyncStorage.removeItem(ANSWERS_STORAGE_KEY).catch(() => {});
+      }
       navigation.replace('MigratedAssessmentResult', { answers: finalAnswers });
       return;
     }
