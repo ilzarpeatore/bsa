@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { C } from '../pages/migrated/theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 export interface AppIconProps {
   name: keyof typeof Ionicons.glyphMap;
@@ -16,12 +16,13 @@ export interface AppIconProps {
 export default function AppIcon({
   name,
   size = 18,
-  color = C.textPrimary,
-  bg = C.brand10,
+  color,
+  bg,
   containerSize = 36,
   borderRadius,
   style,
 }: AppIconProps) {
+  const { colors: C } = useAppColorMode();
   return (
     <View
       style={[
@@ -29,14 +30,14 @@ export default function AppIcon({
           width: containerSize,
           height: containerSize,
           borderRadius: borderRadius ?? containerSize / 2,
-          backgroundColor: bg,
+          backgroundColor: bg ?? C.brand10,
           alignItems: 'center',
           justifyContent: 'center',
         },
         style,
       ]}
     >
-      <Ionicons name={name} size={size} color={color} />
+      <Ionicons name={name} size={size} color={color ?? C.textPrimary} />
     </View>
   );
 }
