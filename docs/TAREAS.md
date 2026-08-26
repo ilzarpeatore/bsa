@@ -2251,3 +2251,9 @@ Ninguno de los siguientes tiene trabajo de código pendiente; todos necesitan so
 - **BUG-026, pieza de backend/admin panel** — ver `docs/PENDIENTE_BACKEND_ADMIN.md` §12 (moderación de publicaciones: panel de reportes + permiso de borrado ampliado a admin/coach).
 - **Migrar los ~70-75 `Alert.alert` de feedback simple al `Toast` nuevo** — cambia comportamiento real (timing, no bloqueante), diferido a cuando haya verificación visual real.
 - **Home v1/v2 al helper de responsive compartido vía `"N@ratio"`** — no es un swap seguro (`Math.ceil` vs `Math.round`), diferido.
+
+### Push a `master` y build de IPA de esta sesión (2026-08-26)
+
+Con las 4 fases verificadas (`tsc --noEmit -p .` limpio, `eslint --quiet` limpio), `origin/master` era ancestro estricto de la rama de esta sesión (0 commits propios en `master` desde el último merge, 16 por delante en la rama) — push directo como fast-forward, sin conflictos ni merge commit (`339da4e..e19588c`).
+
+Build lanzado inmediatamente después vía `actions_run_trigger` (`workflow_dispatch`, `ios-build.yml`, `ref: master`) con los inputs correctos documentados en `docs/BUILD_IPA.md` — `ios_path: "ios"`, `configuration: "Release"`, `build_id: "befit-20260826-0122-e19588c"` — evitando explícitamente el default (`ios_path: "."`, `configuration: "Debug"`) que causó el incidente ya documentado más arriba (`SKIP_BUNDLING=1`, crash "No script URL provided"). Run #47: `https://github.com/ilzarpeatore/bsa/actions/runs/32918737490`.
