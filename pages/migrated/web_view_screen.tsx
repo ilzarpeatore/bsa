@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
+import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { Box } from '@components/ui/box';
 import { Button } from '@components/ui/button';
 import { Icon } from '@components/ui/icon';
@@ -24,39 +24,32 @@ export default function WebViewScreen(props: WebViewScreenProps) {
   const webViewRef = useRef<WebView>(null);
 
   const url = mInitialUrl || 'https://www.google.com';
+  const initialOrigin = useMemo(() => {
+    try {
+      return new URL(url).origin;
+    } catch {
+      return null;
+    }
+  }, [url]);
 
-  const onWebViewMessage = useCallback((event: any) => {
-    // Handle messages from webview if needed
-  }, []);
-
-  const onNavigationStateChange = useCallback(
-    (navState: any) => {
-      const currentUrl = navState.url || '';
-
-      // Handle social/app URLs - in RN webview these would open externally
-      const externalDomains = [
-        'linkedin.com',
-        'market://',
-        'whatsapp://',
-        'truecaller://',
-        'pinterest.com',
-        'snapchat.com',
-        'instagram.com',
-        'play.google.com',
-        'mailto:',
-        'tel:',
-        'share=telegram',
-        'messenger.com',
-      ];
-
-      for (const domain of externalDomains) {
-        if (currentUrl.includes(domain)) {
-          // Linking.openURL(currentUrl);
-          return;
-        }
+  // Restringe la navegacion al mismo origen que la URL inicial -- esta
+  // pantalla se abre con un external_url que viene del backend (recursos/CMS),
+  // no de un input directo del usuario, pero sin esta comprobacion la WebView
+  // seguiria cualquier redirect/enlace embebido sin ningun limite. Cualquier
+  // otro origen se abre en el navegador del sistema en vez de cargarse aqui.
+  const onShouldStartLoadWithRequest = useCallback(
+    (request: WebViewNavigation) => {
+      if (!initialOrigin) return true;
+      try {
+        const requestOrigin = new URL(request.url).origin;
+        if (requestOrigin === initialOrigin) return true;
+      } catch {
+        // esquemas sin origen HTTP real (mailto:, tel:, whatsapp://, etc.)
       }
+      Linking.openURL(request.url).catch(() => {});
+      return false;
     },
-    [],
+    [initialOrigin]
   );
 
   const onLoadStart = () => setIsLoading(true);
@@ -80,7 +73,7 @@ export default function WebViewScreen(props: WebViewScreenProps) {
           onLoadStart={onLoadStart}
           onLoadEnd={onLoadEnd}
           onError={onError}
-          onNavigationStateChange={onNavigationStateChange}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           javaScriptEnabled={true}
           domStorageEnabled={true}
           allowsInlineMediaPlayback={true}

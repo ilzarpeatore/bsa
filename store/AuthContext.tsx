@@ -4,6 +4,8 @@ import { authApi, LoginPayload, RegisterPayload } from '../api/auth';
 import { UserData } from '../api/profile';
 import { onboardingV2Api } from '../api/onboardingV2';
 import { setLogoutHandler } from '../api/client';
+import { getToken, setToken, removeToken } from '../helper/secureToken';
+import { ACTIVE_SESSION_STORAGE_KEY } from '../helper/workoutSessionBus';
 import logger from '../helper/logger';
 
 interface AuthState {
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const restoreToken = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('TOKEN');
+      const token = await getToken();
       const userJson = await AsyncStorage.getItem('USER');
       const user = userJson ? JSON.parse(userJson) : null;
       const onboardingCompleted = await resolveOnboardingCompleted(user);
@@ -127,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.login(payload);
     const userData = response.data.data;
     const token = userData.api_token;
-    await AsyncStorage.setItem('TOKEN', token);
+    await setToken(token);
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
     const onboardingCompleted = await resolveOnboardingCompleted(userData);
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
@@ -137,15 +139,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.register(payload);
     const userData = response.data.data;
     const token = userData.api_token;
-    await AsyncStorage.setItem('TOKEN', token);
+    await setToken(token);
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
     const onboardingCompleted = await resolveOnboardingCompleted(userData);
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.removeItem('TOKEN');
-    await AsyncStorage.removeItem('USER');
+    await removeToken();
+    // Limpia tambien el resto de estado ligado a la cuenta que salia -- antes
+    // solo se borraba TOKEN/USER, dejando ONBOARDING_COMPLETED y una sesion
+    // de entrenamiento activa colgados para el siguiente usuario que inicie
+    // sesion en el mismo dispositivo.
+    await AsyncStorage.removeMany(['USER', 'ONBOARDING_COMPLETED', ACTIVE_SESSION_STORAGE_KEY]);
     dispatch({ type: 'SIGN_OUT' });
   }, []);
 

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { getToken, removeToken } from '../helper/secureToken';
 
 function resolveBaseUrl(): string {
   if (__DEV__) {
@@ -36,7 +36,7 @@ export function setLogoutHandler(handler: () => void) {
 }
 
 apiClient.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('TOKEN');
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -47,10 +47,19 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('TOKEN');
+      await removeToken();
       if (logoutHandler) {
         logoutHandler();
       }
+    }
+    // Un error 5xx puede traer detalle interno del servidor (stack trace,
+    // nombre de tabla/query) en el body -- las pantallas de toda la app leen
+    // err.response?.data?.message directamente en su Alert de error, asi que
+    // se sanea aqui una vez en vez de en cada uno de los ~10 sitios que lo
+    // hacen. Los errores 4xx (validacion de formulario) se dejan intactos,
+    // son mensajes pensados para el usuario.
+    if (error.response?.status >= 500 && error.response?.data) {
+      error.response.data.message = 'Ha ocurrido un error en el servidor. Inténtalo de nuevo más tarde.';
     }
     return Promise.reject(error);
   }
