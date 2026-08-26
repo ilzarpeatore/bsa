@@ -28,6 +28,12 @@ import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { hapticLight, hapticSuccess } from '@helper/haptics';
+import {
+  startWorkoutLiveActivity,
+  updateWorkoutLiveActivity,
+  endWorkoutLiveActivity,
+  WorkoutActivityState,
+} from '@helper/liveActivity';
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  ConfirmDialogMem  } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
@@ -326,7 +332,19 @@ export default function WorkoutSessionScreen(props: Props) {
   // serie concreta tiene un valor de "descanso" (metrica real del catalogo
   // -- series/reps/carga/tiempo/tempo/descanso/rir/rpe) configurado.
   const [restCountdown, setRestCountdown] = useState<number | null>(null);
+  // epoch ms del fin del descanso -- espejo de restCountdown pero como fecha
+  // absoluta, que es lo que necesita la Live Activity (Text(timerInterval:)
+  // del lado nativo cuenta atras sola, sin que la app le mande un tick cada
+  // segundo).
+  const [restEndDate, setRestEndDate] = useState<number | null>(null);
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Live Activity (Lock Screen/Dynamic Island, pedido explícito 2026-08-26):
+  // como esta pantalla puede tener varios bloques con su propio ejercicio
+  // activo a la vez (accordion por bloque), se usa el ULTIMO ejercicio en el
+  // que el cliente marcó una serie como "el que se está viendo ahora" -- es
+  // la señal más reciente y real de foco, más fiable que asumir el bloque 0.
+  const currentFocusRef = useRef<{ blockIdx: number; exIdx: number }>({ blockIdx: 0, exIdx: 0 });
+  const liveActivityStartedRef = useRef(false);
   // Motor de Auto-Regulacion: sugerencia de carga PENDIENTE (aun no
   // aprobada por el coach) por exerciseId, cargada bajo demanda solo para
   // el ejercicio activo/expandido (ver fetchLoadSuggestion). Las ya
@@ -378,6 +396,12 @@ export default function WorkoutSessionScreen(props: Props) {
   const clearPersistedSession = useCallback(() => {
     AsyncStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY).catch(() => {});
     clearActiveWorkoutSession();
+    // Único choque comun a "finalizar" (navigateToFeedback) y "cerrar/
+    // abandonar" (onClose) -- justo donde la sesion persistida deja de
+    // existir de verdad, a diferencia de minimizar (onMinimize), que no
+    // llama a esto porque el entrenamiento sigue en curso.
+    liveActivityStartedRef.current = false;
+    endWorkoutLiveActivity();
   }, []);
 
   const load = useCallback(
@@ -625,6 +649,7 @@ export default function WorkoutSessionScreen(props: Props) {
   const startRestCountdown = (seconds: number) => {
     if (restIntervalRef.current) clearInterval(restIntervalRef.current);
     setRestCountdown(seconds);
+    setRestEndDate(Date.now() + seconds * 1000);
     restIntervalRef.current = setInterval(() => {
       setRestCountdown((prev) => (prev != null && prev > 1 ? prev - 1 : null));
     }, 1000);
@@ -636,6 +661,7 @@ export default function WorkoutSessionScreen(props: Props) {
       restIntervalRef.current = null;
     }
     setRestCountdown(null);
+    setRestEndDate(null);
   };
 
   // fires once when the countdown reaches zero on its own (the ref guard
@@ -646,6 +672,7 @@ export default function WorkoutSessionScreen(props: Props) {
     if (restCountdown === null && restIntervalRef.current) {
       clearInterval(restIntervalRef.current);
       restIntervalRef.current = null;
+      setRestEndDate(null);
       Vibration.vibrate([0, 400, 200, 400]);
     }
   }, [restCountdown]);
@@ -656,7 +683,53 @@ export default function WorkoutSessionScreen(props: Props) {
     };
   }, []);
 
+  // Live Activity: construye el ContentState actual a partir del ejercicio
+  // con foco (ver currentFocusRef) -- null si aun no hay bloques cargados.
+  const buildLiveActivityState = useCallback((): WorkoutActivityState | null => {
+    const { blockIdx, exIdx } = currentFocusRef.current;
+    const ex = blocks[blockIdx]?.exercises[exIdx];
+    if (!ex) return null;
+    let exerciseIndex = 0;
+    let totalExercises = 0;
+    blocks.forEach((b) => {
+      b.exercises.forEach((e) => {
+        totalExercises += 1;
+        if (e === ex) exerciseIndex = totalExercises;
+      });
+    });
+    const nextRowIdx = ex.rows.findIndex((r) => !r.completed);
+    const setLabel = nextRowIdx === -1 ? 'Última serie' : `Serie ${nextRowIdx + 1}/${ex.rows.length}`;
+    return {
+      exerciseName: ex.title,
+      exerciseIndex: exerciseIndex || 1,
+      totalExercises: totalExercises || 1,
+      setLabel,
+      isResting: restCountdown != null,
+      restEndDate: restCountdown != null ? restEndDate : null,
+    };
+  }, [blocks, restCountdown, restEndDate]);
+
+  // Arranca la Live Activity una sola vez, en cuanto la sesion termina de
+  // cargar (real o retomada) -- nunca si conflictingSession bloqueo la
+  // pantalla, porque en ese caso blocks nunca llega a poblarse (ver el
+  // efecto de carga mas arriba).
+  useEffect(() => {
+    if (isLoading || blocks.length === 0 || liveActivityStartedRef.current) return;
+    const initial = buildLiveActivityState();
+    if (!initial) return;
+    liveActivityStartedRef.current = true;
+    startWorkoutLiveActivity(mTitle || 'Entrenamiento', initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, blocks.length]);
+
+  useEffect(() => {
+    if (!liveActivityStartedRef.current) return;
+    const state = buildLiveActivityState();
+    if (state) updateWorkoutLiveActivity(state);
+  }, [buildLiveActivityState]);
+
   const toggleRowComplete = (blockIdx: number, exIdx: number, rowIndex: number) => {
+    currentFocusRef.current = { blockIdx, exIdx };
     const currentEx = blocks[blockIdx].exercises[exIdx];
     const wasCompleted = currentEx.rows[rowIndex].completed;
     const rows = [...currentEx.rows];

@@ -383,3 +383,38 @@ Sin cambios, a propósito (17 `Alert.alert` reales): `pages/Home.tsx`, `pages/mi
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Feature nueva con interacción real (sheet que se abre solo, escala de colores, columna tocable, toggle persistido) — **pendiente de confirmación en dispositivo real**, mismo criterio que el resto de cambios visuales de esta sesión.
+
+---
+
+# IMP-012 — Live Activity de iOS para el entrenamiento en curso (Lock Screen / Dynamic Island)
+
+**Estado:** 🔵 Aplicada, pendiente de verificación en build/dispositivo real
+**Categoría:** iOS nativo / entrenamiento
+**Fase:** Post-sesión (pedido explícito del usuario con captura de referencia de otra app, "Symmetry", 2026-08-26)
+
+## Contexto
+
+El usuario pidió una notificación/popup en la barra de notificaciones de iOS como la de la app de referencia (Lock Screen + Dynamic Island mostrando el entrenamiento en curso). Inicialmente se le dijo que esto requería Xcode y no se podría verificar desde este entorno — el usuario corrigió (correctamente): su PC tampoco tiene Xcode, y **toda** la app hasta ahora se construyó igual, a ciegas, verificando solo vía el build de CI (`ios-build.yml`, runner `macos-latest`). Esta feature se implementó con el mismo método: edición directa de `project.pbxproj` sin Xcode local, a verificar en el próximo build de IPA.
+
+## Qué se construyó
+
+- **Nuevo target de extensión de Widget** (`befitWidgetsExtension`, producto `befitWidgets.appex`) añadido a mano en `ios/befit.xcodeproj/project.pbxproj` — target, fases de build (Sources/Frameworks/Resources vacía), configuraciones Debug/Release, dependencia + fase "Embed Foundation Extensions" en el target `befit` para que el `.appex` se empaquete dentro del `.app`. **Sin App Group ni entitlement nuevo**: la extensión solo RENDERIZA el `ContentState` que ActivityKit le entrega, no lee nada compartido en disco, así que no hace falta compartir `UserDefaults`/ficheros entre targets. El scheme compartido "befit" (usado por `ios-build.yml` vía `$(basename WORKSPACE .xcworkspace)`) no necesitó tocarse — las dependencias de target se respetan igual en el build sin firmar (`CODE_SIGNING_ALLOWED=NO`) que usa el workflow.
+- **`ios/befitWidgets/`** (nuevo): `WorkoutActivityAttributes.swift` (struct `ActivityAttributes` compartido, compilado en AMBOS targets — app y extensión — porque ActivityKit exige el mismo tipo en quien crea la actividad y quien la renderiza), `BefitWidgetsBundle.swift` (`@main WidgetBundle`), `WorkoutLiveActivityView.swift` (vista de Lock Screen + Dynamic Island con `Text(timerInterval:countsDown:)` para la cuenta atrás de descanso y `Text(startDate, style: .timer)` para el tiempo transcurrido — ambos se actualizan solos, sin que la app tenga que reenviar el estado cada segundo), `Info.plist` (extensión WidgetKit).
+- **`ios/befit/LiveActivityModule.swift` + `.m`** (nuevo): puente nativo `@objc` con 3 métodos (`startActivity`/`updateActivity`/`endActivity`) que llaman a `Activity<WorkoutActivityAttributes>.request/update/end`. `IPHONEOS_DEPLOYMENT_TARGET = 16.4` ya cubre el mínimo de ActivityKit (16.1+), así que no hizo falta ningún `@available`/`#available`.
+- **`ios/befit/Info.plist` + `app.json`**: `NSSupportsLiveActivities = true`.
+- **`helper/liveActivity.ts`** (nuevo): wrapper JS del módulo nativo, no-op seguro fuera de iOS (`Platform.OS !== 'ios'`) y donde el módulo nativo aún no esté compilado (Expo Go).
+- **`pages/migrated/workout_session_screen.tsx`**: arranca la Live Activity una vez que la sesión termina de cargar (real o retomada), la actualiza en cada cambio relevante (ejercicio con foco — el último donde el cliente marcó una serie, ya que la pantalla puede tener varios bloques con ejercicio activo propio a la vez —, próxima serie pendiente, descanso en curso con su fecha de fin real), y la cierra (`endWorkoutLiveActivity()`) desde `clearPersistedSession()` — el único punto común a "finalizar" y "cerrar/abandonar" el entrenamiento. Al minimizar (`onMinimize`) la Live Activity sigue viva a propósito: el entrenamiento sigue en curso.
+- **Alcance recortado a propósito**: sin los botones interactivos (-10s/+10s/"Omitir") de la captura de referencia — eso requiere App Intents (iOS 17+), una pieza separada y más grande. Esta primera versión es de solo lectura.
+
+## Archivos modificados/nuevos
+
+- `ios/befit.xcodeproj/project.pbxproj` (target nuevo + wiring)
+- `ios/befitWidgets/{WorkoutActivityAttributes.swift,BefitWidgetsBundle.swift,WorkoutLiveActivityView.swift,Info.plist}` (nuevos)
+- `ios/befit/{LiveActivityModule.swift,LiveActivityModule.m}` (nuevos)
+- `ios/befit/Info.plist`, `app.json`
+- `helper/liveActivity.ts` (nuevo)
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` y `tsc --noEmit -p .` limpios en el lado JS/TS. **El `project.pbxproj` y el código Swift NO se pueden verificar en este entorno** (no hay Xcode/macOS aquí, igual que con `pod install` — ver `docs/BUILD_IPA.md`) — la única verificación real es el próximo build de IPA en `ios-build.yml` (runner `macos-latest`), y es razonablemente probable que haga falta más de un intento si el `pbxproj` editado a mano tiene algún objeto mal referenciado. Chequeo estructural básico hecho localmente (llaves/paréntesis balanceados, sin IDs de objeto duplicados, todas las referencias cruzadas resuelven a un objeto definido) pero eso no sustituye a que `xcodebuild` lo abra de verdad.
