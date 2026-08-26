@@ -2317,3 +2317,9 @@ Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto s
 **IMP-011**: selector guiado de intensidad tras completar una serie, pedido en 2 pasos (RIR primero, RPE después con el criterio "deben ser reemplazables"). Un único componente `IntensityCheckSheet.tsx` parametrizado por `metric:'rir'|'rpe'` (no dos casi-duplicados: RIR y RPE son la misma escala de 5 tramos vista al revés — RIR 0 = RPE 10). RIR y RPE dejan de ser dos columnas posibles independientes: ahora comparten un único "slot" en la tabla, y el cliente elige cuál rellenar tocando el título de la columna (`getIntensityMode`/`toggleIntensityMode`/`getDisplayMetrics`, por ejercicio). Al completar una serie con esa métrica activa (y la preferencia de apertura automática encendida, persistida en `AsyncStorage`), se abre el sheet con la escala de 5 opciones coloreadas; el valor elegido se escribe con la misma `setCellValue` que ya usaba la celda de texto libre.
 
 Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores en ambos bloques.
+
+### Push a `master` y build de IPA tras esta ronda (2026-08-26)
+
+Con BUG-041 e IMP-011 verificados (`tsc --noEmit -p .` limpio, `eslint --quiet` limpio), `origin/master` era ancestro estricto de la rama de esta sesión — push directo como fast-forward, sin conflictos ni merge commit (`e142056..d0dad57`).
+
+Build lanzado inmediatamente después vía `mcp__github__actions_run_trigger` (`run_workflow`, `ios-build.yml`, `ref: master`) con los inputs correctos de `docs/BUILD_IPA.md` — `ios_path: "ios"`, `configuration: "Release"`, `build_id: "befit-20260826-1541-d0dad57"` — evitando explícitamente el default (`ios_path: "."`, `configuration: "Debug"`) que causó el incidente ya documentado más arriba. Run #48: `https://github.com/ilzarpeatore/bsa/actions/runs/32985848821`.
