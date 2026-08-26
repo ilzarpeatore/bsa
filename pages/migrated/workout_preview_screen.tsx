@@ -399,24 +399,33 @@ export default function WorkoutPreviewScreen(props: Props) {
                 const noteExpanded = expandedNoteId === ex.id;
                 return (
                   <Card key={ex.id} variant="elevated" className="p-3.5" style={{ marginBottom: 12 }}>
-                    <HStack className="items-center">
-                      <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} />
-                      <Box style={styles.exerciseInfo}>
-                        <Text style={styles.exerciseTitle} numberOfLines={2}>
-                          {ex.title}
-                        </Text>
-                        <HStack space="sm" className="items-center" style={{ marginTop: 6 }}>
-                          {seriesCount != null && (
-                            <Box style={styles.seriesChip}>
-                              <Text style={styles.seriesChipText}>{seriesCount} series</Text>
-                            </Box>
-                          )}
-                          <Text style={styles.exerciseSubtitle} numberOfLines={1}>
-                            {formatPrescribedSubtitle(ex.prescribed)}
+                    <Pressable
+                      onPress={() =>
+                        navigation?.navigate('MigratedExerciseInfo', {
+                          mExerciseId: ex.exerciseId,
+                          mExerciseName: ex.title,
+                        })
+                      }
+                    >
+                      <HStack className="items-center">
+                        <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} />
+                        <Box style={styles.exerciseInfo}>
+                          <Text style={styles.exerciseTitle} numberOfLines={2}>
+                            {ex.title}
                           </Text>
-                        </HStack>
-                      </Box>
-                    </HStack>
+                          <HStack space="sm" className="items-center" style={{ marginTop: 6 }}>
+                            {seriesCount != null && (
+                              <Box style={styles.seriesChip}>
+                                <Text style={styles.seriesChipText}>{seriesCount} series</Text>
+                              </Box>
+                            )}
+                            <Text style={styles.exerciseSubtitle} numberOfLines={1}>
+                              {formatPrescribedSubtitle(ex.prescribed)}
+                            </Text>
+                          </HStack>
+                        </Box>
+                      </HStack>
+                    </Pressable>
 
                     {lastPerformance && (
                       <>

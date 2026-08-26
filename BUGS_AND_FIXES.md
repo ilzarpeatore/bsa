@@ -1989,3 +1989,61 @@ No se deshacen ni se revierten — siguen siendo correctos y necesarios como est
 ## Verificación
 
 `eslint --quiet` limpio. Tipo verificado contra las declaraciones `.d.ts` compiladas de `react-native-css` (`colorScheme: { get(): ColorSchemeName; set(value: ColorSchemeName): void }`). **No se puede verificar el comportamiento real en este entorno** — la única prueba real es instalar el próximo IPA y comprobar si las pantallas AÚN NO tocadas hoy (p. ej. las que usan `Button`/`Modal`/`Actionsheet` del sistema de diseño sin haber sido migradas a `theme.ts`) ya siguen el modo oscuro real de la app sin más cambios.
+
+---
+
+# BUG-048 — `workout_session_screen.tsx`: número de serie y check de completar desalineados con las celdas de métrica
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En la tabla de series de `MigratedWorkoutSession`, el círculo con el número de serie (izquierda) y el check de completar (derecha) se veían más abajo de lo que tocaba, sin alinear verticalmente con los recuadros rellenables (reps/carga/descanso) de en medio.
+
+## Causa
+
+La fila (`HStack`) usaba `className="items-center"` — centra cada hijo según la altura TOTAL de la fila, que la marca la celda más alta. Las celdas de métrica llevan el `TextInput` MÁS el texto "Obj: X" debajo (cuando el ejercicio tiene un objetivo del coach) — más altas que el simple círculo de 24px o el icono de 26px. Con `items-center`, el círculo y el check se centraban contra esa altura TOTAL (input + texto), no contra el propio recuadro del input, y quedaban desplazados hacia abajo.
+
+## Fix
+
+`items-center` → `items-start` en la fila, con un `marginTop` pequeño en el círculo del número (4px) y en el botón de check (3px) para alinearlos contra la altura real del `TextInput` (`paddingVertical:8` + `fontSize:13` ≈ 32px) en vez de contra la altura completa de la celda.
+
+## Archivos modificados
+
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de alineación puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-049 — Menú "+" de la barra de navegación se ve claro en modo oscuro
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / dark mode
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+Al desplegar el submenu de accesos rápidos ("+" de la barra de navegación flotante, con Perfil/Blog/Comunidad/Métricas/Check-ins), el popup se ve con capa blanca y texto oscuro incluso con la app en modo oscuro — no respeta el tema, a diferencia del resto de la pantalla detrás.
+
+## Causa
+
+`components/NavigationTab.tsx`: `quickMenuTint` (la capa semi-opaca sobre el `GlassView` que da contraste al popup) y `quickMenuLabel` (color del texto de cada acceso) estaban hardcodeados a `rgba(255,255,255,0.85)`/`#1C1C1E` en el `StyleSheet`, sin depender del tema — mismo tipo de bug puntual que BUG-044/045 (un color fijo en vez de tomarlo de `theme.ts`/el modo actual), aquí en un componente que no pasa por Tailwind sino por `StyleSheet` directo.
+
+## Fix
+
+Se añade `mode: colorMode` desde `useAppColorMode()` y se aplica como override inline (mismo patrón ya usado en `quickMenuIconWrap` para el color dependiente de `C.orange`, con el mismo motivo: `useResponsiveStyleSheet` solo memoiza por `scale`, no por estos valores) — capa oscura semi-opaca (`rgba(28,28,30,0.9)`) y texto claro (`#FAFAFA`) en modo oscuro, manteniendo blanco/oscuro como antes en modo claro.
+
+## Archivos modificados
+
+- `components/NavigationTab.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.

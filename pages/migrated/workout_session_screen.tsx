@@ -1272,13 +1272,24 @@ export default function WorkoutSessionScreen(props: Props) {
                   {ex.rows.map((row, rowIdx) => (
                     <HStack
                       key={rowIdx}
-                      className="items-center rounded-sm"
+                      className="items-start rounded-sm"
                       style={{
                         marginBottom: 8,
                         paddingVertical: row.completed ? 4 : 0,
                         backgroundColor: row.completed ? C.success5 : 'transparent',
                       }}
                     >
+                      {/* items-start (no items-center) en el HStack de arriba
+                          -- las celdas de métrica son más altas que este
+                          círculo y el check de más abajo porque llevan
+                          debajo el texto "Obj: X" (ver más abajo); con
+                          items-center, el círculo/check se centraban contra
+                          esa altura TOTAL (input + texto) en vez de contra
+                          el propio recuadro del input, y quedaban más abajo
+                          de lo que tocaba (reportado con captura,
+                          2026-08-26). marginTop aquí los alinea contra la
+                          altura real del TextInput (paddingVertical:8 +
+                          fontSize:13 ≈ 32px). */}
                       <Box
                         className="items-center justify-center"
                         style={{
@@ -1288,6 +1299,7 @@ export default function WorkoutSessionScreen(props: Props) {
                           borderWidth: 1.5,
                           borderColor: C.border,
                           marginHorizontal: 5,
+                          marginTop: 4,
                         }}
                       >
                         <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
@@ -1362,7 +1374,7 @@ export default function WorkoutSessionScreen(props: Props) {
                         const toggleBtn = (
                           <Pressable
                             className="items-center"
-                            style={{ width: 34 }}
+                            style={{ width: 34, marginTop: 3 }}
                             onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
                           >
                             <Icon

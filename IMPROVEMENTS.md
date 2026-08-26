@@ -449,3 +449,55 @@ Con IMP-012 ya confirmada funcionando en dispositivo real, el usuario pidió amp
 ## Verificación
 
 `eslint --quiet` limpio en los archivos JS/TS. Chequeo estructural básico en los 3 ficheros Swift (llaves/paréntesis balanceados) — **no se puede compilar ni verificar de ninguna otra forma en este entorno** (sin Xcode/macOS). La única prueba real es el próximo build de IPA.
+
+---
+
+# IMP-014 — Home v2: fondo fijo (no se desplaza con el scroll) con oscurecido progresivo, respetando modo claro/oscuro
+
+**Estado:** 🔵 Aplicada, experimento pedido explícitamente por el usuario ("quiero probar en el home") — pendiente de verse en dispositivo real para ajustar curva de opacidad/recorrido
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (pedido explícito con 2 capturas de referencia de otra app, 2026-08-26)
+
+## Contexto
+
+El usuario pidió que la foto de fondo del hero de Home v2 (ya existente, elegida por hora del día — amanecer/atardecer, día, noche) se quedase FIJA (sin desplazarse con el scroll, a diferencia de antes, que vivía dentro del `ScrollView` y desaparecía al bajar) y se fuera oscureciendo progresivamente con el scroll para mantener el contenido legible, respetando el modo claro y oscuro real de la app (no solo el "mood" de la foto).
+
+## Qué se construyó
+
+- **Capa de fondo fija** (`homeBgFixedLayer`, nueva): la misma foto (`HERO_IMAGES[heroMood]`) + su degradado de ambiente (`heroGradient.scrim`) + un oscurecido animado, todo FUERA del `Animated.ScrollView`, como hermano posicionado antes de la barra fija y el propio scroll dentro del `SafeAreaView` — no se mueve nunca, sea cual sea el scroll.
+- **Oscurecido con recorrido largo** (`homeBgDarkenAnimatedStyle`, `HOME_BG_FADE_SCROLL_RANGE = 1100`): mismo mecanismo que el oscurecido ya existente de la cabecera (`heroDarkenAnimatedStyle`, pensado solo para los primeros ~420px), pero con un recorrido mucho mayor -- pensado para cubrir varias pantallas de contenido, no solo la cabecera, tal y como se veía en las capturas de referencia (la foto se nota un buen trecho, no desaparece de golpe).
+- **Color del oscurecido según el tema real** (`homeBgDarkenLayer`): en modo oscuro reutiliza el tono ya existente por mood (`heroGradient.darken` -- cálido en amanecer/atardecer, frío en día, casi negro en noche); en modo claro funde hacia `C.bg` (el gris casi blanco de siempre), para que el contenido no se lea "en oscuro" si el usuario tiene elegido el tema claro.
+- **`styles.container`** (el `SafeAreaView` raíz) pasa de `backgroundColor: C.bg` opaco a transparente, para que esta nueva capa fija se vea a través en los huecos entre tarjetas de todas las secciones (no solo la cabecera) -- las propias tarjetas de contenido (`Card variant="outline"`, `bg-card`) ya son opacas por su cuenta, así que su legibilidad no depende de esto. La pantalla de carga (spinner, antes de que haya datos) mantiene su propio fondo opaco explícito, porque no tiene esta capa fija detrás.
+- Se quitó la foto duplicada que vivía DENTRO de la cabecera del `ScrollView` (`heroHeader`) -- ahora esa zona se queda transparente y deja ver la nueva capa fija a través; el resto de efectos que ya tenía esa cabecera (scrim/blur progresivo/oscurecido local, sin tocar) le siguen dando al texto de la cabecera el contraste extra que necesita en su propia zona.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de comportamiento de scroll y color puramente visual/de sensación (recorrido y curva de opacidad elegidos a ojo, sin poder verlo en un dispositivo real) — el propio usuario lo enmarcó como "quiero probar", así que se espera necesitar un ajuste fino (`HOME_BG_FADE_SCROLL_RANGE`, `HOME_BG_MIN_OPACITY`/`MAX_OPACITY`) tras verlo funcionando de verdad.
+
+---
+
+# IMP-015 — `workout_preview_screen.tsx`: foto y título del ejercicio navegan al detalle
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UX / navegación
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-26)
+
+## Contexto
+
+En la vista previa de un entrenamiento (`MigratedWorkoutPreview`), cada ejercicio se lista con miniatura + título dentro de una `Card`, sin ninguna forma de tocarlos para ver el detalle del ejercicio antes de empezar la sesión.
+
+## Qué se construyó
+
+Se envolvió el `HStack` con la miniatura (`ExerciseThumbMem`) y el título/subtítulo del ejercicio en un `Pressable` que navega a `MigratedExerciseInfo` con `{ mExerciseId: ex.exerciseId, mExerciseName: ex.title }` — mismo patrón y mismos params que ya usa `openExerciseInfo` en `workout_session_screen.tsx`. El resto de la `Card` (última marca, notas del coach) queda igual, sin envolver.
+
+## Archivos modificados
+
+- `pages/migrated/workout_preview_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Navegación con la misma firma de params ya probada en otra pantalla — pendiente de confirmación visual/funcional en dispositivo real.
