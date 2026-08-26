@@ -356,3 +356,30 @@ Sin cambios, a propósito (17 `Alert.alert` reales): `pages/Home.tsx`, `pages/mi
 ## Verificación
 
 `eslint --quiet` limpio en los 32 archivos tocados, `tsc --noEmit -p .` completo del proyecto sin errores (detectado y corregido en el proceso un error real de JSX en `App.tsx` — un `</TutorialProvider>` que se había quedado sin cerrar al montar `ToastHost`, capturado por el propio `tsc` antes de llegar a commitear). Cambio de comportamiento visual real (aparece un toast donde antes había un diálogo nativo) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de cambios de esta sesión.
+
+---
+
+# IMP-011 — Consulta de intensidad (RIR/RPE, intercambiables) tras completar una serie
+
+**Estado:** ✅ Aplicada
+**Categoría:** UX / entrenamiento
+**Fase:** Post-sesión (pedido explícito del usuario con capturas de referencia, 2026-08-26 — RIR primero, RPE después con el mismo criterio: "deben ser reemplazables")
+
+## Contexto
+
+`MigratedWorkoutSession` ya tenía "rir"/"rpe" como columnas más de entrada libre de texto (cuando el ejercicio las trae en `enabledMetrics`), pero sin ninguna ayuda para rellenarlas — el cliente tenía que saber de memoria la escala y escribir el número a mano. Pedido en 2 pasos: (1) un selector guiado tipo otra app de referencia para RIR, que se abre solo al completar una serie; (2) lo mismo para RPE, con series/repeticiones/carga/descanso como métricas fijas pero RIR y RPE **intercambiables** — el cliente elige cuál de las dos rellenar tocando el título de la columna, en vez de que ambas convivan como columnas separadas.
+
+## Qué se construyó
+
+- **`components/IntensityCheckSheet.tsx`** (nuevo) — un único componente parametrizado por `metric: 'rir'|'rpe'`, no dos casi-duplicados: RIR (Reps In Reserve) y RPE (Ratio de Esfuerzo Percibido) son la MISMA escala de intensidad de 5 tramos vista desde 2 ángulos inversos (RIR 0 = RPE 10, RIR 4+ = RPE ≤6), así que comparten estructura/colores/flujo y solo cambian etiqueta, pregunta, valores mostrados/guardados y texto de ayuda. Reutiliza `SimpleBottomSheet` (mismo patrón que `ReadinessCheckSheet.tsx`/`PainReportSheet.tsx`): escala de 5 círculos coloreados (Ligero azul, Moderado verde, Difícil amarillo, Muy difícil naranja, Máximo rojo), titular dinámico que cambia de color según la opción elegida, línea de contexto de la serie ("#N Set: reps x carga kg"), icono de información con la explicación de la métrica activa (`Alert.alert` nativo a propósito — es la única forma de garantizar que se vea POR ENCIMA de un sheet ya abierto, sin depender del z-index del `ToastHost` global), y un banner superior descartable con el interruptor "seguir preguntando automáticamente" (persistido en `AsyncStorage`, clave `intensity_check_auto_open` — una sola preferencia para ambas métricas, son el mismo "slot").
+- **Columna RIR/RPE intercambiable** (`pages/migrated/workout_session_screen.tsx`): `getIntensityMode(ex)` decide cuál de las dos toca mostrar para cada ejercicio (por defecto, la que traiga `enabledMetrics` de la plantilla; si el cliente la cambia, se recuerda por `exerciseId` durante toda la sesión vía `intensityModeOverride`). `getDisplayMetrics(ex)` colapsa `enabledMetrics` quitando 'rir'/'rpe' sueltos y reinserta solo la métrica activa, antes de pasar por `sortMetricKeys` (rango compartido para ambas en `METRIC_DISPLAY_RANK`, así ocupan siempre el mismo puesto en la tabla: series, repeticiones, carga, RIR/RPE, descanso). El título de esa columna es tocable (`toggleIntensityMode`) y alterna entre las dos.
+- Al marcar una serie como completada (`toggleRowComplete`, solo al marcar, nunca al desmarcar — mismo criterio que el disparo del cronómetro de descanso ya existente), si `getIntensityMode` devuelve algo y la preferencia de apertura automática sigue activa, se abre `IntensityCheckSheet` con esa métrica y el contexto de la fila exacta. Al pulsar "Registrar", el valor se escribe con `setCellValue(...,intensityCheckTarget.metric, valor)` — la MISMA función que ya usa la celda de texto libre, así que el dato queda exactamente donde ya se guardaba. La opción "4+"/"≤6" se guarda como número real (`"4"`/`"6"`), no como string con símbolo — evita un valor no numérico en un campo que `exercise_info_screen.tsx` intenta parsear como número al decidir si graficarlo.
+
+## Archivos modificados
+
+- `components/IntensityCheckSheet.tsx` (nuevo — sustituye al `RirCheckSheet.tsx` de la primera iteración, generalizado antes de llegar a commitear)
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Feature nueva con interacción real (sheet que se abre solo, escala de colores, columna tocable, toggle persistido) — **pendiente de confirmación en dispositivo real**, mismo criterio que el resto de cambios visuales de esta sesión.

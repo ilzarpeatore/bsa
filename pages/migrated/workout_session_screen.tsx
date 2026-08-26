@@ -33,6 +33,7 @@ import {  ConfirmDialogMem  } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import {  useTutorial  } from '@store/TutorialContext';
 import PainReportSheet from '../../components/PainReportSheet';
+import IntensityCheckSheet, { IntensityMetric } from '../../components/IntensityCheckSheet';
 import {  useAuth  } from '../../store/AuthContext';
 import {  workoutHistoryApi  } from '../../api/workoutHistory';
 import {  MetricCatalogItem  } from '../../api/workoutTemplate';
@@ -67,19 +68,29 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // 'rir' como default único entre "rir o rpe" que pide la nota.
 const ADHOC_DEFAULT_METRICS = ['carga', 'reps', 'descanso', 'rir'];
 const ADHOC_DEFAULT_SERIES = 3;
-// Mismo orden canónico ya usado en exercise_info_screen.tsx para esta misma
-// lista de métricas (peticion de modernizar la tabla, 2026-08-26: la
-// referencia visual muestra "KG" antes que "REPETICIONES", al revés que el
-// orden crudo que a veces trae `enabledMetrics` del backend/plantilla) —
-// solo de cara al render, no reordena el array real de la plantilla.
-const METRIC_DISPLAY_PRIORITY = ['series', 'carga', 'reps', 'descanso', 'rir', 'rpe', 'tiempo'];
+// Orden pedido explícitamente por el usuario (2026-08-26): series,
+// repeticiones, carga, rir/rpe y descanso -- distinto del orden crudo que a
+// veces trae `enabledMetrics` del backend/plantilla. Solo de cara al
+// render, no reordena el array real de la plantilla. `rir` y `rpe`
+// comparten el mismo rango (mismo "slot" intercambiable, ver
+// getIntensityMode más abajo -- solo uno de los dos aparece a la vez).
+// tiempo (no mencionado) va al final.
+const METRIC_DISPLAY_RANK: Record<string, number> = {
+  series: 0,
+  reps: 1,
+  carga: 2,
+  rir: 3,
+  rpe: 3,
+  descanso: 4,
+  tiempo: 5,
+};
 function sortMetricKeys(keys: string[]): string[] {
   return [...keys].sort((a, b) => {
-    const ai = METRIC_DISPLAY_PRIORITY.indexOf(a);
-    const bi = METRIC_DISPLAY_PRIORITY.indexOf(b);
-    if (ai === -1 && bi === -1) return a.localeCompare(b);
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
+    const ai = METRIC_DISPLAY_RANK[a];
+    const bi = METRIC_DISPLAY_RANK[b];
+    if (ai === undefined && bi === undefined) return a.localeCompare(b);
+    if (ai === undefined) return 1;
+    if (bi === undefined) return -1;
     return ai - bi;
   });
 }
@@ -87,6 +98,14 @@ function sortMetricKeys(keys: string[]): string[] {
 // componente para no reconstruirlos en cada fila del FlatList.
 const PICKER_RESULT_IMAGE_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 };
 const PICKER_RESULT_PLACEHOLDER_STYLE = { width: 44, height: 44, marginRight: 12 };
+// Preferencia "seguir abriendo la consulta de intensidad (RIR o RPE)
+// automáticamente después de cada serie" (IntensityCheckSheet, pedido
+// explícito 2026-08-26) -- persistida igual que el resto de flags simples
+// de la app (ver DIAGNOSTICS_STORAGE_KEY en helper/logger.ts), local a esta
+// pantalla porque solo se lee/escribe aquí. Una sola preferencia para
+// ambas métricas -- son el mismo "slot" intercambiable, no dos ajustes
+// independientes.
+const INTENSITY_AUTO_OPEN_STORAGE_KEY = 'intensity_check_auto_open';
 const PICKER_RESULT_TITLE_STYLE = { fontSize: 14, marginRight: 8 };
 const RESISTANCE_TRAINING_MET = 5.0;
 const FALLBACK_WEIGHT_KG = 70;
@@ -248,6 +267,52 @@ export default function WorkoutSessionScreen(props: Props) {
   const [closeConfirmVisible, setCloseConfirmVisible] = useState(false);
   const [emptyFinishConfirmVisible, setEmptyFinishConfirmVisible] = useState(false);
   const [painReportTarget, setPainReportTarget] = useState<SessionExercise | null>(null);
+  // Consulta de intensidad (RIR o RPE) tras completar una serie
+  // (IntensityCheckSheet) -- guarda las coordenadas de la fila recién
+  // marcada + qué métrica tocaba en ese momento, no el objeto entero (a
+  // diferencia de painReportTarget), porque necesita seguir apuntando a la
+  // fila correcta aunque `blocks` cambie mientras el sheet está abierto.
+  const [intensityCheckTarget, setIntensityCheckTarget] = useState<{
+    blockIdx: number;
+    exIdx: number;
+    rowIndex: number;
+    metric: IntensityMetric;
+  } | null>(null);
+  const [intensityAutoOpenEnabled, setIntensityAutoOpenEnabled] = useState(true);
+  useEffect(() => {
+    AsyncStorage.getItem(INTENSITY_AUTO_OPEN_STORAGE_KEY).then((v) => {
+      if (v != null) setIntensityAutoOpenEnabled(v === 'true');
+    });
+  }, []);
+  const toggleIntensityAutoOpen = (enabled: boolean) => {
+    setIntensityAutoOpenEnabled(enabled);
+    AsyncStorage.setItem(INTENSITY_AUTO_OPEN_STORAGE_KEY, enabled ? 'true' : 'false').catch(() => {});
+  };
+  // RIR y RPE son la misma "columna de intensidad" vista desde 2 escalas
+  // inversas -- pedido explícito 2026-08-26: "deben de ser reemplazables",
+  // el cliente elige tocando la cabecera de la columna. Por ejercicio (no
+  // global): un mismo entrenamiento puede tener ejercicios donde interese
+  // usar una u otra. Sin entrada aquí -> se usa el default de
+  // getIntensityMode (lo que ya traiga `enabledMetrics` de la plantilla).
+  const [intensityModeOverride, setIntensityModeOverride] = useState<Record<number, IntensityMetric>>({});
+  const getIntensityMode = (ex: SessionExercise): IntensityMetric | null => {
+    const override = intensityModeOverride[ex.exerciseId];
+    if (override) return override;
+    if (ex.enabledMetrics.includes('rir')) return 'rir';
+    if (ex.enabledMetrics.includes('rpe')) return 'rpe';
+    return null;
+  };
+  const toggleIntensityMode = (exerciseId: number, current: IntensityMetric) => {
+    setIntensityModeOverride((prev) => ({ ...prev, [exerciseId]: current === 'rir' ? 'rpe' : 'rir' }));
+  };
+  // Columnas a pintar para este ejercicio: enabledMetrics tal cual, pero con
+  // 'rir'/'rpe' colapsados a un único slot (el que decida getIntensityMode)
+  // en vez de poder aparecer los dos a la vez.
+  const getDisplayMetrics = (ex: SessionExercise): string[] => {
+    const withoutIntensity = ex.enabledMetrics.filter((k) => k !== 'rir' && k !== 'rpe');
+    const mode = getIntensityMode(ex);
+    return sortMetricKeys(mode ? [...withoutIntensity, mode] : withoutIntensity);
+  };
   // Guard "no se puede empezar un workout si ya hay uno empezado" (petición
   // 2026-08-19) -- si al montar esta pantalla YA hay una sesión activa con
   // un identityKey DISTINTO al que se pide aquí, se bloquea por completo
@@ -620,6 +685,13 @@ export default function WorkoutSessionScreen(props: Props) {
     if (!wasCompleted && ex.enabledMetrics.includes('descanso')) {
       const seconds = parseRestSeconds(rows[rowIndex].values.descanso);
       if (seconds != null) startRestCountdown(seconds);
+    }
+    // IntensityCheckSheet (pedido explícito 2026-08-26): solo al MARCAR,
+    // solo si el ejercicio tiene RIR o RPE activo (getIntensityMode), y
+    // solo si el usuario no ha desactivado la apertura automática.
+    const intensityMetric = getIntensityMode(ex);
+    if (!wasCompleted && intensityMetric && intensityAutoOpenEnabled) {
+      setIntensityCheckTarget({ blockIdx, exIdx, rowIndex, metric: intensityMetric });
     }
   };
 
@@ -1054,27 +1126,48 @@ export default function WorkoutSessionScreen(props: Props) {
                   inputs de abajo. Ancho fijo por columna + toda la tabla
                   como una única fila horizontalmente scrolleable (en vez de
                   comprimir texto) mantiene # / métricas / ✓ siempre alineados.
-                  Orden de columnas fijo vía sortMetricKeys (carga antes que
-                  reps, etc.) -- pedido explícito 2026-08-26 de modernizar la
-                  tabla con el mismo orden que ya usa exercise_info_screen.tsx. */}
+                  Orden de columnas fijo vía getDisplayMetrics/sortMetricKeys
+                  (series, reps, carga, rir/rpe, descanso) -- pedido
+                  explícito 2026-08-26. La columna RIR/RPE es tocable: son
+                  la misma "casilla" de intensidad intercambiable
+                  (getIntensityMode/toggleIntensityMode), el cliente elige
+                  cuál rellenar tocando su título. */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Box style={{ marginTop: 16 }}>
                   <HStack className="items-center" style={{ marginBottom: 8 }}>
                     <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
                       SERIE
                     </Text>
-                    {sortMetricKeys(ex.enabledMetrics).map((key) => (
-                      <Text
-                        key={key}
-                        weight="semibold"
-                        muted
-                        className="text-center"
-                        style={{ fontSize: 11, width: 72, marginHorizontal: 2 }}
-                        numberOfLines={1}
-                      >
-                        {metricLabel(key)}
-                      </Text>
-                    ))}
+                    {getDisplayMetrics(ex).map((key) => {
+                      const isIntensity = key === 'rir' || key === 'rpe';
+                      const label = (
+                        <Text
+                          weight="semibold"
+                          muted={!isIntensity}
+                          className="text-center"
+                          style={[
+                            { fontSize: 11, width: 72, marginHorizontal: 2 },
+                            isIntensity && { color: C.blue },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {metricLabel(key)}
+                        </Text>
+                      );
+                      return isIntensity ? (
+                        <Pressable
+                          key={key}
+                          onPress={() => toggleIntensityMode(ex.exerciseId, key as IntensityMetric)}
+                          hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Cambiar entre RIR y RPE (actual: ${key.toUpperCase()})`}
+                        >
+                          {label}
+                        </Pressable>
+                      ) : (
+                        <Box key={key}>{label}</Box>
+                      );
+                    })}
                     <Box style={{ width: 34 }} />
                   </HStack>
 
@@ -1103,7 +1196,7 @@ export default function WorkoutSessionScreen(props: Props) {
                           {rowIdx + 1}
                         </Text>
                       </Box>
-                      {sortMetricKeys(ex.enabledMetrics).map((key) => {
+                      {getDisplayMetrics(ex).map((key) => {
                         // Punto 1 (Motor de Auto-Regulacion de Carga): si hay una
                         // sugerencia PENDIENTE del motor para este ejercicio, esa
                         // es la carga/reps real que hay que usar -- se muestra en
@@ -1545,6 +1638,32 @@ export default function WorkoutSessionScreen(props: Props) {
         isWorkoutTemplate={painReportIsWorkoutTemplate}
         exerciseId={painReportTarget?.exerciseId ?? 0}
         exerciseTitle={painReportTarget?.title}
+      />
+
+      <IntensityCheckSheet
+        visible={!!intensityCheckTarget}
+        metric={intensityCheckTarget?.metric ?? 'rir'}
+        onClose={() => setIntensityCheckTarget(null)}
+        onRegister={(value) => {
+          if (!intensityCheckTarget) return;
+          setCellValue(
+            intensityCheckTarget.blockIdx,
+            intensityCheckTarget.exIdx,
+            intensityCheckTarget.rowIndex,
+            intensityCheckTarget.metric,
+            value
+          );
+          setIntensityCheckTarget(null);
+        }}
+        setLabel={(() => {
+          if (!intensityCheckTarget) return '';
+          const row = blocks[intensityCheckTarget.blockIdx]?.exercises[intensityCheckTarget.exIdx]?.rows[intensityCheckTarget.rowIndex];
+          const reps = row?.values.reps || '-';
+          const carga = row?.values.carga || '-';
+          return `#${intensityCheckTarget.rowIndex + 1} Set: ${reps} x ${carga} kg`;
+        })()}
+        autoOpenEnabled={intensityAutoOpenEnabled}
+        onToggleAutoOpen={toggleIntensityAutoOpen}
       />
     </SafeAreaView>
   );
