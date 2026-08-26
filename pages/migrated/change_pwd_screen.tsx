@@ -52,8 +52,8 @@ export default function ChangePwdScreen({ navigation }: any) {
       Alert.alert('Error', 'Introduce una contraseña nueva');
       return;
     }
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
       return;
     }
     if (newPassword.trim() !== confirmPassword.trim()) {

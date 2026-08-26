@@ -62,8 +62,8 @@ export default function RegisterScreen() {
       Alert.alert("Error", "Introduce tu email");
       return;
     }
-    if (password.length < 6) {
-      Alert.alert("Error", "La contraseña debe tener al menos 6 caracteres");
+    if (password.length < 8) {
+      Alert.alert("Error", "La contraseña debe tener al menos 8 caracteres");
       return;
     }
     if (password !== confirmPassword) {
