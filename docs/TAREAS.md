@@ -2204,3 +2204,50 @@ Pedido explícito: "estos son los colores que quiero usar tanto en modo claro co
 **3 colores nuevos detectados en las capturas, sin aplicar todavía** (documentados en `docs/Paleta_Color_BeFit.md`, sección 01b, pendientes de decidir con el usuario): un naranja-rojo `#EB4F27` para un icono de "Energía" (no mapea limpiamente al `orange` actual `#FF6B35`), un azul de chip de avatar que se invierte entre modos (`#C7DCED` claro / `#DFF6FE` oscuro — más claro en oscuro que en claro), y un verde de estado `#7BC390` más apagado que el `success` actual (`#34C759`). No se tocaron los colores semánticos (`success/warning/destructive/info`) por decisión deliberada: solo 1 de los 4 (verde) tiene evidencia en las 2 capturas, y tocar solo uno de los 4 habría creado una inconsistencia nueva en vez de resolver una.
 
 Verificado: `eslint` limpio (0 errores en `pages/migrated/theme.ts`). `tsc --noEmit -p .` verificado limpio (0 errores en todo el proyecto — el cambio es solo de valores string, no de forma del objeto, así que `C_DARK: typeof C` sigue tipando igual). **Pendiente de verificación visual en dispositivo real** — confirmar que el nuevo fondo oscuro (más claro que antes) se sigue leyendo bien contra las superficies, y que el nuevo `textSecondary` claro (3.37:1, límite) es legible en la práctica pese a no llegar a AA estricto.
+
+## Sesión 2026-08-25/26 — Auditoría UI/UX completa, Fases 1 a 4
+
+Continuación directa de `docs/AUDITORIA_UIUX_2026-08-24.md` (14 secciones + Design System), ejecutada en 4 fases sucesivas tal como las define la propia auditoría (Critical → Visual System → UX → Polish), cada una cerrada con el usuario antes de pasar a la siguiente. Detalle línea a línea de cada bug y mejora en `BUGS_AND_FIXES.md` (BUG-001 a BUG-030) e `IMPROVEMENTS.md` (IMP-001 a IMP-008) — aquí solo el resumen ejecutivo por fase y lo que queda pendiente.
+
+**Metodología usada en las 4 fases, por si se repite el patrón en el futuro**: separar siempre lo verificable sin simulador (valores idénticos, aritmética, ausencia de props, `tsc`/`eslint`) de lo que necesita ojos humanos (contraste, tamaño, timing, "cómo se siente"). Lo primero se implementa y se cierra 🟢 en la misma sesión; lo segundo se implementa igual (no se difiere solo por no poder verlo) pero se marca 🔵 "necesita verificación" hasta que alguien lo confirme en un dispositivo real. Nunca convertir un hallazgo de un agente de investigación en un fix sin revisar el contexto real primero (lección de BUG-024, reaplicada varias veces en Fase 3/4 para descartar falsos positivos de iconos).
+
+### Fase 1 — Critical
+
+Corrección de contraste WCAG (`textTertiary`, `completedBadgeText`), cierre de catches silenciosos en onboarding/sesión de entrenamiento, uniformado de tamaño/radio de CTAs principales, y una ronda de bugs reales de compilación/crash encontrados en el proceso (BUG-001 a BUG-011).
+
+### Fase 2 — Visual System
+
+Ampliación de `RADIUS`/`SPACING`/`TYPE` a la escala propuesta por la auditoría, mapa canónico de iconos, unificación de la implementación de "card". Migración masiva de `borderRadius` a tokens `RADIUS` (147 sustituciones en 41 archivos), restringida a coincidencias de valor exacto para que fuera verificable sin simulador (IMP-006). 3 bugs nuevos encontrados y corregidos en el proceso.
+
+### Fase 3 — UX
+
+Accesibilidad (`accessibilityRole`/`accessibilityLabel`/`accessibilityState`) en ~40 patrones de icono-botón y tarjetas seleccionables, `hitSlop` en ~10 botones con área táctil por debajo del mínimo, componente `Toast` nuevo (`components/ui/toast/`) construido y listo para cuando se aborde la migración de `Alert.alert`, y 6 bugs nuevos (BUG-025 a BUG-030): botones "compartir"/"reportar" muertos en `post_details_screen.tsx` (el reportar ya llama a un endpoint real, `report-on-posting`, que existía sin consumidor — la pieza de panel de admin para que un entrenador/admin borre el post queda documentada en `docs/PENDIENTE_BACKEND_ADMIN.md` §12, es trabajo de otro repo/sesión), flag `-r` roto de `useResponsiveStyleSheet`, `ScreenExplorerFab` sin gate de producción (cerrado como intencional, confirmado por el usuario), tarjetas de objetivo sin `accessibilityState`, y retirada de `home_screen_modern.tsx` (huérfano, solo alcanzable vía la herramienta de debug).
+
+### Fase 4 — Polish
+
+Instalado `expo-haptics`, cableado en los 5 puntos de mayor frecuencia (completar serie de entrenamiento, marcar todas, marcar hábito, dar like, marcar comida del plan) — el proyecto tiene `ios/` nativo propio, así que el haptic no vibra de verdad hasta un rebuild nativo (`pod install`), igual que el bloqueante ya conocido de HealthKit. Feedback de "press" centralizado en `components/ui/pressable/index.tsx` (una sola clase `data-[active=true]:opacity-20`, aprovechando un `dataSet` que el wrapper ya emitía sin usar — cubre de golpe los ~310 `Pressable` de `pages/migrated/**` que no tenían ningún feedback al tocar). Transición de navegación propia (`helper/motion.ts`, valores ya usados en `NavigationTab.tsx`, sin inventar timing nuevo) en los 2 stacks de `App.tsx`. Iconos de la barra de tabs inferior pasan a filled cuando la tab está activa (antes siempre outline, solo cambiaba el color) + 1 fix puntual en `checkins_list_screen.tsx`. 2 "inconsistencias" de icono más señaladas por el agente de investigación se descartaron tras revisar el contexto (no eran bugs reales).
+
+Verificado en las 4 fases: `eslint --quiet` limpio en cada bloque de archivos tocados, `tsc --noEmit -p .` completo del proyecto sin errores (un único proceso por corrida, sin agentes en paralelo, tras confirmar en esta misma sesión que la contención de recursos dispara corridas de 15-20+ minutos cuando se mezclan).
+
+### Bugs pendientes de verificación visual real (no de código — el fix ya está aplicado)
+
+Ninguno de los siguientes tiene trabajo de código pendiente; todos necesitan solamente que alguien los confirme en un dispositivo/simulador real, algo que no es posible desde este entorno de agente:
+
+- **BUG-012** — tamaño del botón "FINALIZAR ENTRENAMIENTO".
+- **BUG-013** — radio de los botones del calendario.
+- **BUG-015** — refresco de colores dinámicos en pantallas con `useResponsiveStyleSheet`.
+- **BUG-016** — modo oscuro de `GluestackUIProvider`.
+- **BUG-017** — paleta oscura de `global.css` vs `theme.ts`.
+- **BUG-018** — contenido HTML de `blog_detail_screen.tsx` sin tema.
+- **BUG-019** — pestañas de `diet_detail_screen.tsx` con fondo blanco fijo.
+- **BUG-020** — ternario roto del título en `main_goal_screen.tsx`.
+- **BUG-021** — tarjeta casi invisible en `onboarding_v2_screen.tsx`.
+- **IMP-004** — tamaño/forma de los botones migrados a variantes del componente `Button`.
+- **IMP-007 (Fase 3)** — `hitSlop`/accesibilidad (confirmar con VoiceOver/TalkBack que anuncian rol+etiqueta).
+- **IMP-008 (Fase 4)** — dimming al tocar (`data-[active=true]:opacity-20`), transición de navegación (¿se siente bien la curva prestada?), iconos filled de la tab bar, y confirmación funcional de los haptics tras el rebuild nativo.
+
+### Pendiente fuera de alcance de este repo
+
+- **BUG-026, pieza de backend/admin panel** — ver `docs/PENDIENTE_BACKEND_ADMIN.md` §12 (moderación de publicaciones: panel de reportes + permiso de borrado ampliado a admin/coach).
+- **Migrar los ~70-75 `Alert.alert` de feedback simple al `Toast` nuevo** — cambia comportamiento real (timing, no bloqueante), diferido a cuando haya verificación visual real.
+- **Home v1/v2 al helper de responsive compartido vía `"N@ratio"`** — no es un swap seguro (`Math.ceil` vs `Math.round`), diferido.
