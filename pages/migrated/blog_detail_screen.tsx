@@ -370,7 +370,7 @@ export default function BlogDetailScreen({ navigation, route }: any) {
               value={bibliographyOpen ? ['bibliography'] : []}
               onValueChange={(value) => setBibliographyOpen(value.includes('bibliography'))}
               className="bg-card rounded-lg"
-              style={{ marginTop: 24, marginHorizontal: 16 }}
+              style={{ marginTop: 24, marginHorizontal: 12, overflow: 'hidden' }}
             >
               <AccordionItem value="bibliography">
                 <AccordionHeader>

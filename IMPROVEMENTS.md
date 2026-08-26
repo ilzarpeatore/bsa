@@ -267,3 +267,48 @@ Al revisar el contexto real de otras 2 "inconsistencias" señaladas por el agent
 `npx eslint --quiet` limpio en todos los archivos tocados. `tsc --noEmit -p .` completo del proyecto sin errores. Los cambios de haptics son puramente aditivos (llamadas a una API que no renderiza nada) — sin riesgo visual, pero sin poder confirmar la vibración real en dispositivo desde este entorno (requiere `pod install`/rebuild nativo). Los cambios de press feedback, transición de navegación e iconos SÍ tienen efecto visual real y quedan marcados 🔵 pendientes de confirmación en dispositivo/simulador — mismo criterio que el resto de bugs de esta sesión que necesitan ojos reales.
 
 **Resultado:** 🔵 Correcto por inspección de código y `tsc` limpio — pendiente de smoke-test visual y funcional real en dispositivo (haptics necesita además rebuild nativo)
+
+---
+
+# IMP-009 — Renombra los títulos de "Estadísticas" para no coincidir con la app de referencia
+
+**Estado:** ✅ Aplicada
+**Categoría:** Contenido / naming
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-26)
+
+## Descripción
+
+El usuario pidió cambiar los títulos de sección de `MigratedStatistics` (`statistics_screen.tsx`) porque coincidían literalmente con los de la app de referencia en la que se inspiró el diseño (Bevel, mencionada en otras partes de esta sesión).
+
+## Cambio aplicado
+
+Reescritos el encabezado de sección y los 6 títulos del listado "Estadísticas avanzadas", manteniendo el mismo significado/función pero con redacción propia:
+
+| Antes                                    | Ahora                     |
+| ---------------------------------------- | ------------------------- |
+| ESTADÍSTICAS AVANZADAS                   | ANÁLISIS AVANZADO         |
+| Recuento de series por grupo de músculos | Series por grupo muscular |
+| Distribución de los músculos             | Balance muscular          |
+| Distribución del cuerpo                  | Mapa de calor corporal    |
+| Ejercicios principales                   | Ejercicios más frecuentes |
+| Marcas personales                        | Mejores marcas            |
+| Informe mensual                          | Resumen mensual           |
+
+Los subtítulos (descripciones bajo cada título) no se tocaron — el pedido era específicamente sobre los títulos.
+
+**Actualizados también los encabezados de las 6 pantallas de destino** (`statistics_series_count_screen.tsx`, `statistics_muscle_distribution_screen.tsx`, `statistics_body_distribution_screen.tsx`, `statistics_top_exercises_screen.tsx`, `statistics_personal_records_screen.tsx`, `statistics_monthly_report_screen.tsx`) para que coincidan con el nuevo nombre del listado — sin esto, tocar una fila mostraría un título distinto al que aparecía en `statistics_screen.tsx`, una inconsistencia nueva peor que la original. Mismo criterio aplicado a las entradas del catálogo de `pages/ScreenExplorer.tsx` (herramienta de debug interna, cosmético).
+
+## Archivos modificados
+
+- `pages/migrated/statistics_screen.tsx`
+- `pages/migrated/statistics_series_count_screen.tsx`
+- `pages/migrated/statistics_muscle_distribution_screen.tsx`
+- `pages/migrated/statistics_body_distribution_screen.tsx`
+- `pages/migrated/statistics_top_exercises_screen.tsx`
+- `pages/migrated/statistics_personal_records_screen.tsx`
+- `pages/migrated/statistics_monthly_report_screen.tsx`
+- `pages/ScreenExplorer.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puramente de texto (ningún string se usa como key/id en ningún sitio del código, confirmado por grep antes de tocarlos) — sin riesgo funcional. Pendiente de que el usuario confirme que la nueva redacción le convence.

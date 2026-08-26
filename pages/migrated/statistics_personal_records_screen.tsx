@@ -116,7 +116,7 @@ export default function StatisticsPersonalRecordsScreen(props: Props) {
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Marcas personales
+          Mejores marcas
         </Heading>
         <Button variant="ghost" size="icon" onPress={() => setShowMuscleSheet(true)}>
           <Icon name="body-outline" size={22} color={muscleId ? C.orange : C.textPrimary} />

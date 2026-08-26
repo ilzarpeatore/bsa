@@ -154,7 +154,7 @@ export default function StatisticsBodyDistributionScreen(props: Props) {
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Distribución del cuerpo
+          Mapa de calor corporal
         </Heading>
         <HStack space="sm">
           <Pressable

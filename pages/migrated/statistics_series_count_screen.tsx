@@ -139,7 +139,7 @@ export default function StatisticsSeriesCountScreen(props: Props) {
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Recuento de series
+          Series por grupo muscular
         </Heading>
         <Box style={{ width: 36, height: 36 }} />
       </HStack>

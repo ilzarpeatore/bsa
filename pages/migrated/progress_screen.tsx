@@ -47,7 +47,7 @@ function CompositionTile({
   return (
     <Pressable
       className="rounded-md bg-card"
-      style={{ width: '47%', minHeight: 104, padding: 14, ...SHADOW.card }}
+      style={{ flex: 1, minHeight: 104, padding: 14, ...SHADOW.card }}
       onPress={onPress}
     >
       <Text size="xs" weight="medium" muted>{label}</Text>
@@ -148,10 +148,25 @@ export default function ProgressScreen(props: any) {
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
           {/* Composición corporal */}
           <Text size="sm" weight="bold" style={{ marginTop: 20, marginBottom: 10 }}>Composición corporal</Text>
-          <Box className="flex-row flex-wrap gap-3">
-            {composition.map((m) => (
-              <CompositionTile key={m.key} label={m.label} entry={m.entry} delta={m.delta} onPress={() => goToMetric(m.key)} />
-            ))}
+          {/* 2 filas explicitas de flex:1, no flex-wrap -- con flexBasis 0
+              (lo que da flex:1 sin width fijo) Yoga no sabe cuantos caben por
+              fila, así que un contenedor flex-wrap con 4 tiles a flex:1 no
+              garantiza 2 columnas. Filas explicitas si dan un ancho exacto,
+              gap-aware, sin el desajuste de "47%" que dejaba a este bloque
+              mas estrecho que el Button de abajo (mismo ancho que el
+              contenedor en ambos, alineados en los 2 bordes). COMPOSITION_METRICS
+              tiene siempre 4 items -- si se anade un 5º, esto necesita revisarse. */}
+          <Box className="gap-3">
+            <Box className="flex-row gap-3">
+              {composition.slice(0, 2).map((m) => (
+                <CompositionTile key={m.key} label={m.label} entry={m.entry} delta={m.delta} onPress={() => goToMetric(m.key)} />
+              ))}
+            </Box>
+            <Box className="flex-row gap-3">
+              {composition.slice(2, 4).map((m) => (
+                <CompositionTile key={m.key} label={m.label} entry={m.entry} delta={m.delta} onPress={() => goToMetric(m.key)} />
+              ))}
+            </Box>
           </Box>
           <Button
             radius="pill"

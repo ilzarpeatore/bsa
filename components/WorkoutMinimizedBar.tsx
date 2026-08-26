@@ -112,6 +112,7 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
         <Box style={{ borderRadius: RADIUS.lg, overflow: 'hidden' }}>
           <GlassView
             glassEffectStyle="regular"
+            colorScheme="dark"
             style={{
               borderRadius: RADIUS.lg,
               paddingHorizontal: 16,
@@ -119,30 +120,34 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
               ...(hasGlass ? null : { backgroundColor: '#1C1C1E' }),
             }}
           >
-          {/* Nota 2026-08-19: "el minimizador al estar en glass effect y con
-              texto blanco no se ve nada. Pon el texto en negro". El
-              GlassView real (hasGlass, Liquid Glass de iOS 26+) sale claro
-              sobre el fondo del app (tema claro) -- texto blanco encima
-              queda invisible. El fallback (!hasGlass, backgroundColor
-              '#1C1C1E' sólido y oscuro) sigue necesitando texto claro. Color
-              explícito en vez de una clase de tema para que quede
-              garantizado tal cual se pidió, sin depender de tokens que
-              puedan cambiar. */}
+          {/* Nota 2026-08-19: "con texto blanco no se ve nada, ponlo en
+              negro". Ese fix asumía que el GlassView real (hasGlass, Liquid
+              Glass de iOS 26+) siempre sale con material CLARO, pero
+              `colorScheme` por defecto es 'auto' -- sigue la apariencia del
+              sistema, y sobre la foto del hero (fondos oscuros/nocturnos)
+              el material real podía salir oscuro, dejando el texto negro
+              invisible otra vez (reportado con captura, 2026-08-26). Fix
+              real: `colorScheme="dark"` fuerza el material Liquid Glass a
+              su variante oscura siempre, igual que el fondo sólido
+              '#1C1C1E' del fallback (!hasGlass) -- así las dos ramas son
+              siempre oscuras y el texto puede ser blanco fijo en ambas, sin
+              depender de qué apariencia calcule el sistema ni de qué foto
+              haya detrás. */}
           <HStack className="items-center justify-between">
             <HStack space="sm" className="items-center flex-1" style={{ marginRight: 10 }}>
               <Box className="items-center justify-center rounded-pill" style={{ width: 34, height: 34, backgroundColor: 'rgba(255,255,255,0.14)' }}>
-                <Icon name="barbell-outline" size={17} color={hasGlass ? '#1C1C1E' : '#FFFFFF'} />
+                <Icon name="barbell-outline" size={17} color="#FFFFFF" />
               </Box>
               <Box className="flex-1">
-                <Text weight="bold" numberOfLines={1} style={{ fontSize: 14, color: hasGlass ? '#1C1C1E' : '#FFFFFF' }}>
+                <Text weight="bold" numberOfLines={1} style={{ fontSize: 14, color: '#FFFFFF' }}>
                   {session.mTitle || 'Entrenamiento'}
                 </Text>
-                <Text style={{ fontSize: 12, opacity: 0.75, marginTop: 2, color: hasGlass ? '#1C1C1E' : '#FFFFFF' }}>
+                <Text style={{ fontSize: 12, opacity: 0.75, marginTop: 2, color: '#FFFFFF' }}>
                   {formatTimer(elapsedSeconds)} · {session.completedSets}/{session.totalSets} series
                 </Text>
               </Box>
             </HStack>
-            <Icon name="chevron-up-circle" size={26} color={hasGlass ? '#1C1C1E' : '#FFFFFF'} />
+            <Icon name="chevron-up-circle" size={26} color="#FFFFFF" />
           </HStack>
           <Box style={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 10, overflow: 'hidden' }}>
             <Box style={{ height: 3, borderRadius: 2, width: `${Math.round(progress * 100)}%`, backgroundColor: '#34C759' }} />

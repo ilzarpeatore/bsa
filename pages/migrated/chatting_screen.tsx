@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FlatList, Alert, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { FlatList, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable as RNPressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -157,7 +157,13 @@ export default function ChattingScreen({ navigation }: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <Pressable onPress={Keyboard.dismiss} accessible={false} style={{ flex: 1 }}>
+        {/* RNPressable nativo aqui a proposito, no el wrapper @components/ui/pressable
+            (usePress de react-aria) -- este envuelve todo el area de mensajes
+            (flex:1, contenido complejo condicional: spinner/FlatList/empty state)
+            solo para el gesto "tocar fuera para cerrar teclado". Mismo tipo de
+            wrapper ya confirmado con comportamiento poco fiable en un rol
+            equivalente (overlay/bloqueo grande) en BUG-032. */}
+        <RNPressable onPress={Keyboard.dismiss} accessible={false} style={{ flex: 1 }}>
           <Box className="flex-1">
             {isLoadingHistory ? (
               <Box className="flex-1 items-center justify-center" style={{ gap: 12 }}>
@@ -183,7 +189,7 @@ export default function ChattingScreen({ navigation }: any) {
               </Box>
             )}
           </Box>
-        </Pressable>
+        </RNPressable>
 
         <Box
           className="flex-row items-end bg-card"

@@ -2269,3 +2269,31 @@ Pedido explícito del usuario: auditoría profesional de seguridad de la app (cl
 Detalle completo (resumen ejecutivo, threat model, cada vulnerabilidad con severidad/evidencia/impacto/solución, dependencias vulnerables, checklist de producción, top 10 riesgos, y veredicto final) en `SECURITY_AUDIT.md` (nuevo, raíz del repo). **Veredicto: 🟡 SÍ, PERO CON RIESGOS PENDIENTES** — nada crítico activo en el cliente tras los fixes, pero el backend (RLS, rate limiting, IDOR real) no se ha podido auditar desde este repositorio. 6 puntos de hardening quedan documentados sin implementar (política de contraseñas, protección anti-capturas, dependencias de UI en alpha/preview, resto de vulnerabilidades de tooling de build, certificate pinning evaluado y descartado, confirmación del dominio de API de producción).
 
 Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores.
+
+## Sesión 2026-08-26 (continuación) — Ronda de bugs reportados uno a uno tras el build de IPA
+
+Tras el build de IPA y la auditoría de seguridad, el usuario reportó 10 bugs/peticiones concretas uno a uno (con capturas en la mayoría), resueltos en el mismo orden. Detalle línea a línea de cada uno en `BUGS_AND_FIXES.md` (BUG-031 a BUG-040) e `IMPROVEMENTS.md` (IMP-009) — aquí solo el resumen ejecutivo.
+
+**Fixes puntuales, alta confianza** (evidencia de código concreta, no verificación visual pendiente más allá del criterio ya establecido en la sesión):
+
+- **BUG-031** — swipe lateral del calendario (`my_program_calendar_screen.tsx`) competía con el gesto de volver atrás del navigator; excluido con `hitSlop({left: -25})` el margen de 25pt que usa el gesto nativo de iOS.
+- **BUG-032** — diálogo de ajustes de Home v2 se volvía transparente al tocar dentro; el `Pressable` del wrapper compartido (`@components/ui/pressable`, basado en `react-aria`) no propagaba bien `stopPropagation()` en el patrón overlay/sheet — cambiado a `Pressable` nativo.
+- **BUG-033** — botón "ver todas las métricas" en Progress sobresalía por la derecha; `width: '47%'` dentro de un contenedor con `gap` no descuenta el gap del porcentaje (aritmética de Yoga/flexbox) — arreglado con `flex: 1` en filas explícitas sin wrap.
+- **IMP-009** — renombrados los títulos de las 6 secciones de "Estadísticas avanzadas" por coincidir literalmente con los de la app de referencia.
+- **BUG-035** — acordeón de bibliografía en Blog Detail no alineaba con el bloque de contenido; unificado el `marginHorizontal` (16→12) + `overflow: hidden`.
+- **BUG-040** — borradas 4 pantallas sin ningún punto de entrada real (`MigratedMainGoal`, `MigratedFitnessMetrics`, `MigratedHealthMetricInsight`, `MigratedManageHealthMetrics`), confirmado con `grep` de navegación antes de borrar.
+
+**Fixes de mejor esfuerzo, causa raíz no confirmada** (sin acceso a backend/dispositivo desde este entorno):
+
+- **BUG-034** — `MigratedChatting` se veía roto (sin cabecera, sin mensajes, input arriba del todo). Investigación exhaustiva (git log completo, comparación con `chatting_image_screen.tsx`) sin encontrar la causa exacta; aplicado el mismo tipo de fix que BUG-032 (mismo wrapper de `Pressable` implicado) como evidencia circunstancial, no confirmada.
+- **BUG-039** — crear un hábito personalizado (`MigratedHabitAdd`) fallaba sin indicar el motivo. No se encontró ningún bloqueo de frontend; se corrigió una inconsistencia real (el error del backend se descartaba en vez de mostrarse, a diferencia de `adopt()` en el mismo fichero) y se añadió `logger.error` a los 3 `catch` de la pantalla para que un fallo real quede registrado.
+
+**Cambios grandes, pendientes de confirmación real en dispositivo**:
+
+- **BUG-036** — la imagen del hero de Home v2 seguía sin llenar la pantalla completa pese a pedirse varias veces en sesiones anteriores; la altura restaba explícitamente el hueco de la barra de pestañas flotante. Cambiado a `height: winH` puro y **eliminados por completo** los 2 degradados de cierre (`heroCloseGradient`/`seamGradient`) que disimulaban ese corte, pedido explícito del usuario ("el degradado tampoco está bien hecho, quítalo").
+- **BUG-037** — texto ilegible en el minimizador de entrenamiento (`WorkoutMinimizedBar.tsx`), segundo intento sobre este mismo bug (el fix anterior, de otra sesión, asumía que el `GlassView` real siempre sale claro). Fix real: `colorScheme="dark"` explícito en vez de dejar que el sistema decida, con texto blanco fijo en ambas ramas (glass real u fallback).
+- **BUG-038**, el más grande del lote — causa raíz real de "casi ninguna pantalla deja volver atrás deslizando": los 2 navigators de pantalla completa usaban `createStackNavigator` (`@react-navigation/stack`, gesto de volver implementado en JS, pierde el arbitraje de toque contra cualquier scroll horizontal de la pantalla). Migrados a `createNativeStackNavigator` (`@react-navigation/native-stack`, nueva dependencia), que delega el gesto al `UINavigationController` real de iOS. No requiere `pod install` (reutiliza el módulo nativo de `react-native-screens`, ya enlazado). Efecto colateral aceptado: se pierde la transición de resorte personalizada de Fase 4 (`helper/motion.ts`, eliminado) — pasa a la transición nativa por defecto de la plataforma.
+
+Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores (esta corrida en particular tardó notablemente más de lo habitual — ~20 min frente a los 5-10 min normales de la sesión — atribuible al mayor coste de inferencia de tipos genéricos de `native-stack` sobre las ~150 pantallas registradas, no a contención de recursos: la carga del sistema se mantuvo normal durante toda la corrida).
+
+**Pendiente**: confirmación visual/funcional real en dispositivo de los 3 cambios grandes (BUG-036, 037, 038) antes de darlos por cerrados del todo — recomendado como prioridad #1 del próximo build de IPA, empezando por BUG-038 al ser el de mayor superficie (afecta a toda la navegación de la app).

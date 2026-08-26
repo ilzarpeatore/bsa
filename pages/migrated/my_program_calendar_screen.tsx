@@ -561,6 +561,13 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     .enabled(!selectionMode)
     .activeOffsetY([-20, 20])
     .failOffsetX([-18, 18])
+    // Excluye el borde izquierdo del area de deteccion (mismo ancho que
+    // gestureResponseDistance por defecto de @react-navigation/stack en iOS,
+    // 25pt) -- sin esto, este gesto vertical competia por el toque inicial
+    // con el swipe-to-go-back del navigator y lo bloqueaba, aunque
+    // failOffsetX lo liberase enseguida en cuanto detectaba movimiento
+    // horizontal.
+    .hitSlop({ left: -25 })
     .onEnd((e) => {
       if (e.translationY <= -CALENDAR_SWIPE_THRESHOLD) {
         runOnJS(applyWeekSwipe)();

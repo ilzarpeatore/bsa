@@ -97,7 +97,7 @@ export default function StatisticsTopExercisesScreen(props: Props) {
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Ejercicios principales
+          Ejercicios más frecuentes
         </Heading>
         <Button variant="ghost" size="icon" onPress={() => setMuscleSheetVisible(true)}>
           <Icon name="body-outline" size={22} color={muscleId ? C.orange : C.textPrimary} />

@@ -9,6 +9,7 @@ import { Platform ,
   Switch,
   Linking,
   Share,
+  Pressable as RNPressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
@@ -142,30 +143,22 @@ function getHeroMoodForHour(hour: number): HeroMood {
 // el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya
 // oscura de por sí). Cada mood tiene su propio tono: cálido dorado para
 // amanecer/atardecer, azul frío para día, casi negro/navy para noche.
-// `seam` mantiene el criterio ya establecido (revisión 2026-08-20): el
-// último color SIEMPRE es C.bg, nunca alpha 0, para que la transición acabe
-// en el color de fondo real de la app en vez de un lavado sucio.
-const HERO_GRADIENTS: Record<
-  HeroMood,
-  { scrim: [string, string]; close: [string, string]; darken: string; seam: (bg: string) => [string, string, string, string] }
-> = {
+// `scrim` da contraste al texto sobre la foto; `darken` es el oscurecido
+// animado del efecto de scroll. Los degradados de cierre/costura (close,
+// seam) que había antes se han quitado del todo (pedido explícito
+// 2026-08-26: "el degradado tampoco está bien hecho, quítalo").
+const HERO_GRADIENTS: Record<HeroMood, { scrim: [string, string]; darken: string }> = {
   sunriseSunset: {
     scrim: ['rgba(40,20,8,0.22)', 'rgba(28,13,5,0.52)'],
-    close: ['rgba(40,18,6,0)', 'rgba(30,14,6,0.68)'],
     darken: '#2B1608',
-    seam: (bg) => ['rgba(30,14,6,0.68)', 'rgba(30,14,6,0.42)', 'rgba(30,14,6,0.16)', bg],
   },
   day: {
     scrim: ['rgba(10,22,38,0.18)', 'rgba(8,16,30,0.48)'],
-    close: ['rgba(8,16,30,0)', 'rgba(10,20,34,0.62)'],
     darken: '#0E1B2E',
-    seam: (bg) => ['rgba(10,20,34,0.62)', 'rgba(10,20,34,0.38)', 'rgba(10,20,34,0.14)', bg],
   },
   night: {
     scrim: ['rgba(0,4,12,0.3)', 'rgba(0,3,9,0.6)'],
-    close: ['rgba(0,3,9,0)', 'rgba(2,4,10,0.7)'],
     darken: '#04070D',
-    seam: (bg) => ['rgba(2,4,10,0.7)', 'rgba(2,4,10,0.44)', 'rgba(2,4,10,0.16)', bg],
   },
 };
 
@@ -365,35 +358,27 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
-    // Con foto real de fondo (amanecer/atardecer, día o noche, ver
-    // getHeroMoodForHour) + scrim oscuro -- antes era un LinearGradient
-    // plano; el texto blanco de encima sigue necesitando fondo oscuro real,
-    // ahora lo da el scrim. Sin border-radius inferior a propósito (revisión
-    // 2026-08-19): el bloque superior se funde con "Mi plan de hoy" mediante
-    // degradado de color (ver seamGradient más abajo), no con una esquina
-    // redondeada -- mismo criterio aplicado ahora a la foto.
-    // paddingBottom subido de 24 a 48 (pedido explícito: "haz la imagen un
-    // poco más vertical") -- más foto real antes de que empiece el
-    // degradado de cierre, no solo un recorrido de gradiente más largo.
-    // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
-    // ocupe todo el tamaño de la screen según entras") -- con el 100% de
-    // winH crudo el contenido se quedaba anclado arriba dejando un margen
-    // muerto enorme debajo, porque winH incluye zonas que ya no son
-    // "pantalla visible" (status bar, home indicator, barra flotante de
-    // pestañas). Se probó luego un 64% fijo, pero al ser una fracción fija
-    // el hueco muerto reaparece en pantallas más altas (revisión 2026-08-24,
-    // reportado con captura). Fix real: altura = viewport visible exacto
-    // (winH menos el inset inferior seguro menos la barra flotante), así la
-    // foto llena TODO lo que se ve al entrar en cualquier tamaño de
-    // pantalla, sin cálculo de porcentaje de por medio.
+    // con foto real de fondo (amanecer/atardecer, día o noche, ver
+    // getHeroMoodForHour) + scrim oscuro -- el texto blanco de encima sigue
+    // necesitando fondo oscuro real, lo da el scrim. Sin border-radius
+    // inferior ni degradado de cierre a propósito (revisión 2026-08-26,
+    // pedido explícito repetido: la foto debe llenar la pantalla entera sin
+    // ningún degradado de transición, ni dentro de la foto ni entre esta y
+    // "Mi plan de hoy" -- los intentos anteriores con degradado de cierre
+    // (heroCloseGradient/seamGradient) se han quitado del todo).
+    // height: winH crudo, sin restar inset inferior ni barra de pestañas --
+    // versiones previas restaban esas zonas para dejar hueco a la barra
+    // flotante, pero el resultado seguía sin leerse como "pantalla
+    // completa" (reportado con captura, 2026-08-26); esta vez se prioriza
+    // que la foto ocupe el 100% del viewport visible al entrar, aunque deje
+    // más foto sin contenido de UI encima en pantallas altas.
     heroHeader: {
-      height: Math.max(r(360), winH - insets.bottom - TAB_BAR_CLEARANCE),
-      paddingBottom: r(48),
+      height: winH,
+      paddingBottom: r(24),
       paddingHorizontal: r(20),
       overflow: 'hidden' as const,
     },
     heroDarkenLayer: { backgroundColor: heroGradient.darken },
-    heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
     // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
     // para poder quedar estática al hacer scroll. heroTopBar ya no forma
@@ -417,15 +402,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     ringLabel: { fontSize: r(10), lineHeight: r(14), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.65)', letterSpacing: 0.5, marginTop: r(2) },
     ringSubLabel: { fontSize: r(9), lineHeight: r(13), color: 'rgba(255,255,255,0.5)' },
     readinessCtaHint: { fontSize: r(11), color: 'rgba(255,255,255,0.6)', textAlign: 'center' as const, marginTop: r(-8) },
-    // Degradado de transición entre el bloque superior y "Mi plan de hoy" —
-    // sustituye el borde redondeado que había antes (petición 2026-08-19).
-    // Revisión 2026-08-20: el degradado quedaba "cutre" (salto duro de solo 2
-    // colores planos, naranja -> bg) y terminaba antes de llegar a la altura
-    // de las tarjetas de Sueño/Balance de carga. Se sube la altura para que
-    // el tramo visible llegue hasta, aproximadamente, la mitad vertical de
-    // esas tarjetas (ver miniCardsRow) — mismo marginTop = -altura/2 de
-    // antes, solo escalado hacia arriba para cubrir más superficie.
-    seamGradient: { height: r(130), marginTop: r(-1) },
     // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
     // de demo, todavía sobre la foto), no a caballo sobre el degradado como
     // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
@@ -532,7 +508,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
     menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
     menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
-  }), [sc, r, C, winH, insets.bottom, heroGradient]);
+  }), [sc, r, C, winH, heroGradient]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -945,16 +921,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             pointerEvents="none"
             style={[StyleSheet.absoluteFill, styles.heroDarkenLayer, heroDarkenAnimatedStyle]}
           />
-          {/* Degradado de cierre, fijo (no animado): sin él, el límite
-              inferior de la foto contra el resto del contenido se nota como
-              un corte -- este remate suaviza esa transición siempre, esté o
-              no en marcha el efecto de scroll. Color a juego con el mood de
-              la foto, mismo criterio que el scrim de arriba. */}
-          <LinearGradient
-            colors={heroGradient.close}
-            style={styles.heroCloseGradient}
-            pointerEvents="none"
-          />
 
           {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin
               fuente de datos real todavía (necesitaría el ACWR que ya
@@ -1083,29 +1049,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             </Box>
           </HStack>
         </Box>
-
-        {/* Degradado de transición hacia "Mi plan de hoy" (petición
-            2026-08-19: fusión por color, no por borde redondeado; revisión
-            2026-08-20: varios pasos intermedios de opacidad en vez de saltar
-            de golpe entre 2 colores planos, para que la costura no se vea
-            como un corte duro). Recoloreado de naranja a la misma paleta
-            oscura/cálida del heroCloseGradient de arriba -- con foto de fondo
-            real el remate ya no es naranja, tiene que continuar el mismo
-            tono para que ambos degradados se lean como uno solo. Termina en
-            C.bg opaco (no en alpha 0): desvanecer un color oscuro sobre un
-            fondo claro dejaba un lavado grisáceo/sucio en vez de una
-            transición limpia -- pedido explícito de que la imagen "termine
-            con un degradado hacia el color de fondo del resto de la
-            pantalla", literal. Revisión 2026-08-24: el tono ya no es un
-            marrón fijo para las 3 fotos -- sigue el mismo mood (heroGradient)
-            que el scrim y el heroCloseGradient de arriba, para que las 3
-            franjas horarias se lean como una sola transición coherente en
-            vez de un remate genérico desconectado de la foto real. */}
-        <LinearGradient
-          colors={heroGradient.seam(C.bg)}
-          locations={[0, 0.3, 0.6, 1]}
-          style={styles.seamGradient}
-        />
 
         {errorMessage && (
           <HStack style={styles.errorBanner}>
@@ -1528,8 +1471,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           barra superior fija (cerrar + título "Ajustes"), igual que el
           "Ajustes" real de Bevel. */}
       <Modal visible={showMenu} transparent animationType="slide" onRequestClose={() => setShowMenu(false)}>
-        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
-          <Pressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
+        {/* RNPressable nativo aqui a proposito, no el wrapper @components/ui/pressable
+            (basado en usePress de react-aria) -- ese wrapper no bloquea de forma
+            fiable la propagacion del toque al padre via stopPropagation, asi que
+            cualquier toque dentro de la hoja tambien cerraba el menu (mismo patron
+            ya usado y verificado en ConfirmDialog.tsx). */}
+        <RNPressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
+          <RNPressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
             <Box style={styles.menuHandle} />
             <Box style={styles.menuHeaderBar}>
               <Pressable style={styles.menuCloseBtn} onPress={() => setShowMenu(false)}>
@@ -1787,8 +1735,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Text style={styles.menuLogoutText}>Cerrar sesión</Text>
               </Pressable>
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </RNPressable>
+        </RNPressable>
       </Modal>
     </SafeAreaView>
   );

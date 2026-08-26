@@ -1350,3 +1350,307 @@ No son bugs, se documenta aquí por el mismo motivo que BUG-024: un hallazgo de 
 - `habit_detail_screen.tsx:492` (ternario de 3 vías con una rama `create-outline`) — revisado: esa rama representa una acción distinta (editar un valor numérico del hábito), no el mismo estado "hecho/no hecho" del resto del ternario sin fillear.
 
 Ambos se dejan sin cambio de código.
+
+---
+
+# BUG-031 — El swipe-back (deslizar desde el borde izquierdo) no funciona en `MigratedMyProgramCalendar`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** Navegación / gestos
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26)
+
+## Problema
+
+Deslizar desde el borde izquierdo hacia la derecha (el gesto estándar de iOS para volver a la pantalla anterior) no funcionaba en `my_program_calendar_screen.tsx`, a diferencia del resto de pantallas de la app.
+
+## Causa
+
+`calendarSwipeGesture` (`Gesture.Pan()`, línea ~560) implementa el swipe vertical del propio calendario (arriba/abajo para cambiar entre vista semanal y mensual). Su `GestureDetector` envuelve el grid completo del calendario (línea ~985), que ocupa todo el ancho de la pantalla — incluido el borde izquierdo, exactamente donde arranca el gesto de "volver atrás" de `@react-navigation/stack`. Aunque el gesto ya tenía `failOffsetX([-18, 18])` (debería liberarse en cuanto detecta movimiento horizontal), `react-native-gesture-handler` seguía reteniendo el toque inicial el tiempo suficiente como para robarle la prioridad al gesto de navegación, que necesita activarse con muy poco desplazamiento.
+
+## Fix
+
+Añadido `.hitSlop({ left: -25 })` a `calendarSwipeGesture` — un valor negativo de `hitSlop` en RNGH reduce el área de detección del gesto (documentado en su propia definición de tipos), así que ahora excluye los 25pt más a la izquierda (el mismo `gestureResponseDistance` por defecto que usa `@react-navigation/stack` en iOS, no personalizado en `App.tsx`). El swipe vertical del calendario sigue funcionando igual en el resto de la pantalla; solo se libera la franja exacta donde el swipe-back necesita prioridad.
+
+## Archivos modificados
+
+- `pages/migrated/my_program_calendar_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Pendiente de confirmación visual en dispositivo real** — es un cambio de comportamiento de gestos que solo puede confirmarse tocando la pantalla de verdad (swipe-back debería volver a funcionar, y el swipe vertical arriba/abajo debería seguir funcionando igual que antes en el resto del grid).
+
+---
+
+# BUG-032 — El menú "Ajustes" de Home v2 se cierra/parpadea al tocar dentro (fuera de los botones)
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** UI / componentes compartidos
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+Al abrir el menú "Ajustes" desde `home_screen_modern_v2.tsx`, tocar dentro de la hoja (fuera de un botón concreto) hacía que el diálogo se viera transparente/parpadeara — captura del usuario muestra el contenido de Home bajo el menú, ambos superpuestos, coherente con capturar un fotograma a mitad de la animación de cierre (`animationType="slide"`).
+
+## Causa
+
+`home_screen_modern_v2.tsx` usa en todo el archivo el `Pressable` de `@components/ui/pressable` (envuelve `createPressable` de gluestack-ui sobre `usePress` de `@react-native-aria/utils`, pensado originalmente para web/puntero universal). El patrón overlay-cierra/hoja-bloquea (`<Pressable onPress={cierra}><Pressable onPress={e => e.stopPropagation()}>...`) se aplicó con este mismo `Pressable`, pero `stopPropagation()` no bloquea de forma fiable que el `Pressable` exterior también reciba el toque con esta implementación — a diferencia del `Pressable` nativo de React Native, cuyo sistema de responder sí aísla correctamente los toques anidados. El resultado: cualquier toque dentro de la hoja (no solo en la zona oscura de fuera) también disparaba `setShowMenu(false)`, cerrando el menú.
+
+**Mismo patrón ya usado y funcionando bien en `components/ConfirmDialog.tsx`** — ese componente usa el `Pressable` nativo de `react-native` (no el wrapper compartido) para su par overlay/card, y no presenta este problema. Sirvió de referencia directa para el fix.
+
+## Fix
+
+En `home_screen_modern_v2.tsx`, el par `menuOverlay`/`menuSheet` del modal "Ajustes" pasa a usar `Pressable` nativo de `react-native` (importado como `RNPressable` para no chocar con el `Pressable` compartido ya usado en el resto del archivo), igual que `ConfirmDialog.tsx`. El resto de `Pressable`s dentro de la hoja (los botones/filas del menú) no se tocan — siguen siendo botones normales, no forman parte del par overlay/bloqueo.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Pendiente de confirmación visual en dispositivo real** — confirmar que tocar dentro de la hoja (títulos, espacios entre tarjetas) ya no cierra el menú, que tocar fuera (zona oscura) sí lo cierra, y que los botones/filas de dentro siguen funcionando igual que antes.
+
+---
+
+# BUG-033 — Botón "Ver todas las medidas" sobresale por la derecha respecto a las tarjetas de `progress_screen.tsx`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedProgress` (`progress_screen.tsx`), el botón "Ver todas las medidas (cintura, cadera, pecho...)" se veía más ancho que la cuadrícula 2×2 de tarjetas de composición corporal justo encima, sobresaliendo por el borde derecho.
+
+## Causa
+
+`CompositionTile` usaba `width: '47%'` dentro de un contenedor `flex-row flex-wrap gap-3` — un valor fijo pensado para aproximar "2 columnas con hueco", pero `47%×2 + gap` no llena exactamente el 100% del ancho real del contenedor (React Native/Yoga no resta el `gap` de un `width` en porcentaje, igual que en CSS). El resultado: la cuadrícula quedaba unos píxeles más estrecha que el ancho real disponible, mientras que el `Button` de debajo (sin `width` propio) sí se estira al 100% por defecto — de ahí el desajuste visible en el borde derecho.
+
+## Fix
+
+Sustituido el contenedor único `flex-wrap` por 2 filas explícitas (`Box className="flex-row gap-3"`, una por par de tarjetas) con `CompositionTile` usando `flex: 1` en vez de `width: '47%'`. Con `flex:1` en una fila que NO envuelve, Yoga reparte el ancho disponible de forma exacta y ya tiene en cuenta el `gap` — las 2 tarjetas de cada fila llenan el 100% del ancho real, igual que el `Button` de debajo, quedando alineados en ambos bordes. `COMPOSITION_METRICS` tiene siempre 4 elementos fijos, así que dividir en `slice(0,2)`/`slice(2,4)` es seguro; si se añade un 5º elemento en el futuro, esta estructura necesita revisarse.
+
+## Archivos modificados
+
+- `pages/migrated/progress_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de aritmética de layout, verificable por lectura (Yoga reparte `flex:1` en una fila no-wrap teniendo en cuenta el `gap`, a diferencia de un `width` en porcentaje) — **pendiente de confirmación visual en dispositivo real** para el ajuste fino final.
+
+---
+
+# BUG-034 — `MigratedChatting` se ve roto (cabecera y mensajes ausentes, input arriba del todo)
+
+**Estado:** 🔵 Necesita verificación (fix aplicado, causa raíz no confirmable sin dispositivo)
+**Severidad:** 🔴 Crítico
+**Categoría:** UI / componentes compartidos
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+`chatting_screen.tsx` se veía completamente roto: sin cabecera "FitBot", sin mensajes ni estado vacío, solo la barra de escribir mensaje pegada arriba del todo y el resto de la pantalla en blanco. Confirmado por el usuario: siempre, solo en esta pantalla (no en `chatting_image_screen.tsx`, prácticamente idéntica, ni en ninguna otra).
+
+## Investigación (sin poder reproducir en dispositivo)
+
+Revisión exhaustiva de `chatting_screen.tsx` y su historial de git (múltiples commits que la tocaron: migración de color, ajustes de `SafeAreaView`/`ScreenHeader`, accesibilidad) sin encontrar un error sintáctico ni una diferencia estructural evidente frente a pantallas hermanas que sí funcionan — ni un solo commit de "traducción" toca realmente este archivo (confirmado con `git log`), pese al recuerdo del usuario. `tsc`/`eslint` limpios en todo momento, sin marcadores de conflicto de merge.
+
+**Diferencia real encontrada** frente a `chatting_image_screen.tsx` (misma UI, mismo patrón, confirmado sin problemas): `chatting_screen.tsx` envuelve TODA el área de mensajes (`flex:1`, contenido condicional complejo: spinner/`FlatList`/estado vacío) en el `Pressable` de `@components/ui/pressable` (basado en `usePress` de `react-aria`, no el `Pressable` nativo de React Native) solo para el gesto "tocar fuera para cerrar teclado" — `chatting_image_screen.tsx` no tiene este wrapper en absoluto. Este mismo wrapper personalizado ya se confirmó con comportamiento poco fiable en un rol equivalente (par overlay/bloqueo grande) en BUG-032, en el mismo pase de trabajo.
+
+## Fix aplicado (mejor esfuerzo, no una causa raíz confirmada)
+
+Ese `Pressable` pasa a ser el `Pressable` nativo de `react-native` (`RNPressable`), igual que el fix de BUG-032. Es un cambio mínimo y de bajo riesgo (no quita ninguna funcionalidad, solo cambia la implementación táctil de un envoltorio grande por la más probada). **Honestidad completa**: no se ha podido confirmar en un dispositivo real que esta era la causa exacta — es la evidencia circunstancial más fuerte encontrada tras una investigación a fondo (git log completo del archivo, comparación línea a línea con la pantalla hermana funcional), no una reproducción confirmada.
+
+## Archivos modificados
+
+- `pages/migrated/chatting_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Necesita confirmación real en dispositivo** — si el problema persiste tras este fix, el siguiente paso recomendado es activar "Habilitar diagnósticos" + reproducir + "Enviar registros al desarrollador" (Ajustes) para conseguir un log real, ya que la investigación estática no encontró una causa 100% concluyente.
+
+---
+
+# BUG-035 — Acordeón "Fuente / Bibliografía" desalineado con el bloque de contenido en `blog_detail_screen.tsx`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedBlogDetail`, el acordeón "Fuente / Bibliografía" no respetaba el mismo margen horizontal que la tarjeta de contenido del blog justo encima, quedando desalineado (más ancho, tocando más cerca de los bordes de la pantalla).
+
+## Causa
+
+La tarjeta de contenido (WebView, línea 352) usa `marginHorizontal: 12` + `overflow: 'hidden'` (necesario para recortar las esquinas redondeadas). El `Accordion` de bibliografía (línea 373, añadido en una sesión distinta) usaba `marginHorizontal: 16` y no tenía `overflow: 'hidden'` — ambos son los únicos 2 bloques de la pantalla con `marginHorizontal` propio (el `ScrollView` no aplica padding horizontal global, cada bloque gestiona el suyo), así que la diferencia de 4px por lado entre ambos era exactamente el desajuste reportado.
+
+## Fix
+
+Unificado el `Accordion` a `marginHorizontal: 12` (igual que la tarjeta de contenido) y añadido `overflow: 'hidden'` para que sus esquinas redondeadas (`rounded-lg`) se recorten igual que en el bloque de arriba.
+
+## Archivos modificados
+
+- `pages/migrated/blog_detail_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puro de valores de margen/overflow, verificable por lectura — **pendiente de confirmación visual en dispositivo real** para el ajuste fino final.
+
+---
+
+# BUG-036 — Hero de `home_screen_modern_v2.tsx` seguía sin llenar la pantalla completa + degradado de cierre mal resuelto
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con 2 capturas, 2026-08-26 — pedido repetido varias veces sin resolverse hasta ahora)
+
+## Problema
+
+La foto de fondo del hero de `HomeScreenModernV2` seguía sin ocupar el 100% de la pantalla visible al entrar (se veía ya un trozo de "Mi plan de hoy" antes de terminar la foto), y el degradado de cierre entre la foto y el resto del contenido se veía mal resuelto.
+
+## Causa
+
+`heroHeader.height` restaba explícitamente `insets.bottom + TAB_BAR_CLEARANCE` (84px) del alto de ventana para dejar hueco a la barra de pestañas flotante — es decir, por diseño la foto SIEMPRE terminaba antes del borde inferior real de la pantalla, dejando ver contenido posterior en la carga inicial. Además había dos `LinearGradient` decorativos encadenados (`heroCloseGradient` dentro de la foto + `seamGradient` justo debajo, fuera de ella) pensados para disimular ese corte — el propio degradado era la evidencia visual de que la foto no llegaba al final de la pantalla.
+
+## Fix
+
+- `heroHeader.height` pasa a ser `winH` puro (alto de ventana sin restar nada) — la foto ocupa el 100% del viewport visible al entrar, en cualquier tamaño de pantalla.
+- Se elimina por completo el degradado de cierre: `heroCloseGradient` (dentro de la foto) y `seamGradient` (transición hacia "Mi plan de hoy"), junto con las entradas `close`/`seam` de `HERO_GRADIENTS` que ya no se usan. Se mantiene el `scrim` (necesario para el contraste del texto blanco sobre la foto) y el oscurecido animado de scroll (`heroDarkenLayer`, efecto de blur progresivo — funcional, no decorativo).
+- `paddingBottom` del hero baja de 48 a 24 (el valor alto existía solo para dejar hueco visual al degradado de cierre que ya no existe).
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de layout/altura real (afecta cuánta foto se ve al entrar y quita 2 elementos visuales) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de bugs de esta sesión. Si en pantallas muy altas dejar la foto a pantalla completa deja demasiado espacio vacío bajo los anillos/tarjetas (efecto ya advertido y descartado en un intento anterior, ver historial de comentarios en el propio archivo), es un ajuste de valor, no un rediseño — el usuario ha pedido explícitamente priorizar "pantalla completa" sobre ese equilibrio.
+
+---
+
+# BUG-037 — Texto ilegible en la barra flotante de entrenamiento minimizado (`WorkoutMinimizedBar.tsx`)
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** UI / contraste
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En la barra flotante que aparece al minimizar un entrenamiento en curso, el título y el contador ("00:34 · 0/21 series") se veían en un tono oscuro casi ilegible sobre un fondo igualmente oscuro/traslúcido.
+
+## Causa
+
+El fix anterior a este mismo componente (nota 2026-08-19, "con texto blanco no se ve nada, ponlo en negro") asumía que el `GlassView` real (Liquid Glass, iOS 26+) sale siempre con material CLARO, así que fijaba el texto en negro (`#1C1C1E`) cuando `hasGlass` es true. Pero `colorScheme` del `GlassView` estaba en su valor por defecto (`'auto'`), que sigue la apariencia calculada por el sistema en ese momento -- sobre el fondo de esta pantalla (foto del hero, con variantes oscuras/nocturnas) el material real podía salir oscuro, dejando el texto negro invisible otra vez. Es el mismo tipo de suposición frágil ya visto en otros bugs de esta sesión (texto fijo asumiendo un fondo que no está garantizado).
+
+## Fix
+
+`colorScheme="dark"` explícito en el `GlassView` -- fuerza el material Liquid Glass a su variante oscura siempre, en vez de dejar que "auto" decida. Con las dos ramas (glass real oscuro forzado, o el fallback ya existente con fondo sólido `#1C1C1E`) siempre oscuras, el texto y los iconos pasan a blanco fijo (`#FFFFFF`) sin ninguna rama condicional por `hasGlass`, eliminando la suposición que ya había fallado dos veces.
+
+## Archivos modificados
+
+- `components/WorkoutMinimizedBar.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de contraste garantizado por diseño (fondo forzado a oscuro en ambas ramas, ya no depende de qué calcule el sistema) -- **pendiente de confirmación visual en dispositivo real** para cerrar del todo, dado que ya hubo un fix previo a este mismo texto que no fue suficiente.
+
+---
+
+# BUG-038 — Casi ninguna pantalla permite volver atrás con el gesto de deslizar desde el borde izquierdo
+
+**Estado:** 🔵 Necesita verificación (cambio de arquitectura de navegación, pendiente de confirmación en dispositivo)
+**Severidad:** 🔴 Crítico
+**Categoría:** Navegación / gestos
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26 — "prácticamente ninguna pantalla te deja volver hacia la pantalla anterior deslizando hacia la derecha")
+
+## Problema
+
+El gesto nativo de "volver atrás" deslizando desde el borde izquierdo de la pantalla no funcionaba de forma fiable en prácticamente ninguna pantalla de la app, no solo en una puntual (el `MigratedMyProgramCalendar` de BUG-031 en este mismo lote era un síntoma aislado de la misma causa raíz, no un caso único).
+
+## Causa raíz
+
+Los 2 navigators de pantalla completa (`RootNavigator` y `MigratedNavigator`, en `App.tsx`) usaban `createStackNavigator` de `@react-navigation/stack` — un stack navigator implementado en JS, cuyo gesto de "swipe-to-go-back" se resuelve con un `PanGestureHandler` (react-native-gesture-handler) a nivel de la propia librería de navegación. Este gesto JS compite en pie de igualdad con CUALQUIER otro gesto horizontal de la pantalla actual (`ScrollView` horizontal, carruseles de imágenes, selectores de chips, listas horizontales...) y, al no ser el gesto nativo real del sistema operativo, pierde el arbitraje de toque con facilidad — de ahí que casi cualquier pantalla con algún elemento deslizable horizontalmente (que son la mayoría: carruseles de blog/recetas/ejercicios, selectores de unidad como en `habit_add_screen.tsx`, etc.) bloqueara el gesto de volver.
+
+## Fix
+
+Migrados ambos navigators de pantalla completa de `createStackNavigator` (`@react-navigation/stack`) a `createNativeStackNavigator` (`@react-navigation/native-stack`, instalado nuevo). `native-stack` delega la navegación y su gesto de "volver" al `UINavigationController` real de iOS (y al equivalente nativo en Android) en vez de reimplementarlo en JS — el arbitraje de gestos nativo del sistema operativo es mucho más robusto frente a gestos hijos (ScrollView, listas, etc.) que cualquier implementación en JS, que es exactamente el mismo mecanismo que ya usa el resto de apps nativas del sistema para este gesto.
+
+Efecto colateral aceptado: `native-stack` no soporta `transitionSpec`/`cardStyleInterpolator` personalizados (la transición "con identidad propia" de Fase 4, con curva de resorte prestada de `NavigationTab.tsx`) — se elimina esa personalización y las pantallas pasan a usar la transición nativa por defecto de la plataforma (en iOS, la misma curva que cualquier pantalla nativa del sistema, ya lograba imitarse con `CardStyleInterpolators.forHorizontalIOS` en JS). Se prioriza que el gesto de volver funcione de verdad sobre mantener una curva de resorte custom. `helper/motion.ts` (la constante de esa curva) se elimina por quedar sin ningún uso.
+
+`@react-navigation/native-stack` es un paquete 100% JS (no añade ningún podspec/módulo nativo nuevo — reutiliza el módulo nativo de `react-native-screens`, ya instalado y enlazado porque `@react-navigation/stack` con `enableScreens()` ya lo usaba internamente), así que este cambio no requiere `pod install` ni recompilar el binario nativo — aplica sobre el bundle JS actual, a diferencia del caso ya documentado de `expo-haptics`.
+
+## Archivos modificados
+
+- `App.tsx` (los 2 navigators de pantalla completa)
+- `package.json` / `package-lock.json` (nueva dependencia `@react-navigation/native-stack`)
+- `helper/motion.ts` (eliminado, sin uso tras el cambio)
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de arquitectura de navegación con efecto en TODAS las pantallas — **pendiente de confirmación real en dispositivo**, tanto del gesto de volver (debería funcionar ahora de forma fiable en cualquier pantalla) como del aspecto de la transición nativa por defecto (se pierde la curva de resorte personalizada de Fase 4).
+
+---
+
+# BUG-039 — `MigratedHabitAdd.tsx`: crear un hábito personalizado fallaba sin indicar el motivo real
+
+**Estado:** 🔵 Necesita verificación (mejora de diagnóstico aplicada, causa raíz de backend no confirmable sin logs/dispositivo)
+**Severidad:** 🔴 Crítico
+**Categoría:** UX / manejo de errores
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26 — "no deja crear hábitos personalizados")
+
+## Investigación
+
+Revisión completa de la pestaña "Crear el mío" de `habit_add_screen.tsx` (formulario, validación, `habitsApi.createPersonal`, tipos de `api/habits.ts`) y de su `ErrorBoundary` (ya existente desde un fix anterior a este mismo fichero, commit `3fa5e2e`, para un crash distinto en la pestaña "Biblioteca"): no se encuentra ningún error sintáctico ni de lógica en el frontend que bloquee la creación de forma incondicional. Sin acceso al backend (vive en la VPS, no accesible desde este entorno) ni a un dispositivo real, no se puede confirmar si el fallo real es una validación del backend rechazando la petición.
+
+**Defecto real sí confirmado**: a diferencia de `adopt()` (adoptar de biblioteca), que ya extraía y mostraba `e?.response?.data?.message` del backend en su alerta de error, `submitPersonal()` (crear hábito propio) descartaba ese mensaje por completo y mostraba siempre el mismo texto genérico ("No se pudo crear el hábito. Inténtalo de nuevo.") — si el backend rechaza la petición por un motivo concreto (p. ej. un campo inválido), el cliente nunca lo ve, y toda esta pantalla (y sus 3 flujos: cargar biblioteca, adoptar, crear) tampoco registraba ningún error con `logger.error`, así que ni siquiera quedaba rastro en "Enviar registros al desarrollador" (Ajustes) para diagnosticarlo después.
+
+## Fix
+
+- `submitPersonal()` ahora extrae y muestra `e?.response?.data?.message` igual que `adopt()`, con el mismo texto genérico solo como último recurso.
+- Los 3 `catch` de la pantalla (`loadLibrary`, `adopt`, `submitPersonal`) y el `componentDidCatch` del `ErrorBoundary` ahora registran con `logger.error`, igual que el resto de pantallas de la app — un fallo aquí queda ahora en el buffer de diagnósticos en vez de perderse en silencio.
+
+## Archivos modificados
+
+- `pages/migrated/habit_add_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Honestidad completa**: no se ha podido confirmar ni reproducir la causa raíz exacta del fallo de creación sin acceso al backend/dispositivo real — este fix garantiza que, si el problema persiste, el mensaje de error real del backend será visible en el momento (en vez de uno genérico) y quedará registrado para diagnóstico, en vez de resolver a ciegas una causa no confirmada.
+
+---
+
+# BUG-040 — Eliminadas 4 pantallas huérfanas sin punto de entrada real
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo (limpieza)
+**Categoría:** Mantenimiento / pantallas huérfanas
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-26 — "las siguientes screen son inútiles, borralas")
+
+## Problema
+
+`MigratedManageHealthMetrics`, `MigratedHealthMetricInsight`, `MigratedFitnessMetrics` y `MigratedMainGoal` no tenían ningún punto de entrada real desde la app.
+
+## Verificación antes de borrar
+
+`grep` de `.navigate()`/`.replace()` en todo `pages/` confirmó que ninguna pantalla activa navega a estas 4 rutas — el único enlace encontrado es `fitness_metrics_screen.tsx` navegando a `MigratedHealthMetricInsight` (una pantalla muerta navegando a otra pantalla muerta, cadena completamente aislada del resto de la app). Las 4 ya figuraban como huérfanas en `docs/DEAD_SCREENS.md` (auditoría del 04-08-2026): `MigratedFitnessMetrics`, `MigratedMainGoal` y `MigratedManageHealthMetrics` en B1 (sin enlace entrante), `MigratedHealthMetricInsight` en B2 (solo alcanzable desde otra pantalla muerta).
+
+## Fix
+
+Borrados los 4 archivos (`pages/migrated/main_goal_screen.tsx`, `pages/migrated/home/fitness_metrics_screen.tsx`, `pages/migrated/home/health_metric_insight_screen.tsx`, `pages/migrated/home/manage_health_metrics_screen.tsx`) junto con su registro en `App.tsx` (imports `React.lazy` + `<MStack.Screen>`) y su fila en el catálogo de `pages/ScreenExplorer.tsx`.
+
+## Archivos modificados
+
+- `App.tsx`
+- `pages/ScreenExplorer.tsx`
+- `docs/PANTALLAS.md`, `docs/DEAD_SCREENS.md` (nota de baja, mismo criterio que las anteriores)
+- Borrados: `pages/migrated/main_goal_screen.tsx`, `pages/migrated/home/fitness_metrics_screen.tsx`, `pages/migrated/home/health_metric_insight_screen.tsx`, `pages/migrated/home/manage_health_metrics_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Borrado seguro por diseño: sin ningún punto de entrada real, no hay ninguna ruta de navegación de la app que quede rota.

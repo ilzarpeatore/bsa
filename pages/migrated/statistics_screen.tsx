@@ -37,42 +37,42 @@ const ADVANCED_ITEMS: AdvancedItem[] = [
   {
     key: 'series',
     icon: 'bar-chart-outline',
-    title: 'Recuento de series por grupo de músculos',
+    title: 'Series por grupo muscular',
     subtitle: 'Total agregado por zona en un rango (7/30/90 días), comparado con el periodo anterior',
     route: 'MigratedStatisticsSeriesCount',
   },
   {
     key: 'muscles',
     icon: 'analytics-outline',
-    title: 'Distribución de los músculos',
+    title: 'Balance muscular',
     subtitle: 'Compara la distribución actual y previa de tus músculos entrenados',
     route: 'MigratedStatisticsMuscles',
   },
   {
     key: 'body',
     icon: 'body-outline',
-    title: 'Distribución del cuerpo',
+    title: 'Mapa de calor corporal',
     subtitle: 'El mismo heatmap de los últimos 7 días, con navegador para moverte entre semanas',
     route: 'MigratedStatisticsBody',
   },
   {
     key: 'topExercises',
     icon: 'podium-outline',
-    title: 'Ejercicios principales',
+    title: 'Ejercicios más frecuentes',
     subtitle: 'Lista de los ejercicios que realizas con más frecuencia',
     route: 'MigratedStatisticsTopExercises',
   },
   {
     key: 'prs',
     icon: 'trophy-outline',
-    title: 'Marcas personales',
+    title: 'Mejores marcas',
     subtitle: 'Ranking de tus mejores marcas por ejercicio',
     route: 'MigratedStatisticsPersonalRecords',
   },
   {
     key: 'monthly',
     icon: 'document-text-outline',
-    title: 'Informe mensual',
+    title: 'Resumen mensual',
     subtitle: 'Resumen de tus entrenamientos y estadísticas del mes',
     route: 'MigratedStatisticsMonthlyReport',
   },
@@ -162,7 +162,7 @@ export default function StatisticsScreen(props: Props) {
           </Box>
 
           <Box className="px-5" style={{ marginTop: 28, marginBottom: 12 }}>
-            <Text weight="semibold" size="xs" muted style={{ letterSpacing: 0.5 }}>ESTADÍSTICAS AVANZADAS</Text>
+            <Text weight="semibold" size="xs" muted style={{ letterSpacing: 0.5 }}>ANÁLISIS AVANZADO</Text>
           </Box>
 
           <Box className="px-5 gap-3">

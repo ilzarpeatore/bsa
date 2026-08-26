@@ -11,6 +11,7 @@ import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { logger } from '@helper/logger';
 import { habitsApi, HabitTemplate, HabitFrequency } from '../../api/habits';
 import { HABIT_ICON_KEYS, habitIoniconFor } from '../../constants/habitIcons';
 
@@ -41,7 +42,7 @@ class HabitAddErrorBoundary extends React.Component<
     return { hasError: true };
   }
   componentDidCatch(error: unknown) {
-    console.error('[HabitAddScreen] Error atrapado por el ErrorBoundary:', error);
+    logger.error('[HabitAddScreen] Error atrapado por el ErrorBoundary:', error);
   }
   render() {
     if (this.state.hasError) {
@@ -96,6 +97,7 @@ function HabitAddScreenInner(props: Props) {
       // un crash de pantalla completa.
       setTemplates(Array.isArray(raw) ? raw.filter((t): t is HabitTemplate => !!t && typeof t === 'object') : []);
     } catch (e) {
+      logger.error('[HabitAdd] Error cargando biblioteca de hábitos:', e);
       setErrorLibrary(true);
     } finally {
       setLoadingLibrary(false);
@@ -117,6 +119,7 @@ function HabitAddScreenInner(props: Props) {
         navigation?.goBack();
       }
     } catch (e: any) {
+      logger.error('[HabitAdd] Error adoptando hábito de biblioteca:', e);
       const msg = e?.response?.data?.message || 'No se pudo añadir este hábito.';
       Alert.alert('Aviso', msg);
     } finally {
@@ -176,8 +179,16 @@ function HabitAddScreenInner(props: Props) {
       } else {
         navigation?.goBack();
       }
-    } catch (e) {
-      Alert.alert('Error', 'No se pudo crear el hábito. Inténtalo de nuevo.');
+    } catch (e: any) {
+      // Antes se mostraba siempre el mismo mensaje genérico, descartando el
+      // motivo real que devuelve el backend (p. ej. un campo inválido) --
+      // mismo patrón ya usado en adopt() más arriba, para que un fallo de
+      // creación deje de ser una caja negra tanto para el cliente como para
+      // el diagnóstico posterior (logger.error, ver "Enviar registros al
+      // desarrollador" en Ajustes).
+      logger.error('[HabitAdd] Error creando hábito personal:', e);
+      const msg = e?.response?.data?.message || 'No se pudo crear el hábito. Inténtalo de nuevo.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }

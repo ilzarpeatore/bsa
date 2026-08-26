@@ -194,7 +194,7 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Text style={styles.appBarTitle} numberOfLines={1}>
-          Informe mensual
+          Resumen mensual
         </Text>
         <Box style={styles.iconBtn} />
       </HStack>
