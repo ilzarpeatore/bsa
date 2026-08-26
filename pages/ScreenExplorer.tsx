@@ -127,7 +127,6 @@ const ALL_SCREENS: ScreenItem[] = [
     // tab renderiza MigratedNavigator con initialRouteName 'MigratedHomeModernV2'
     // -- es decir, es un alias en vivo a Home Modern V2.
   },
-  { name: 'Home Modern', route: 'MigratedHomeModern', category: 'Migrated - Dashboard', file: 'home_screen_modern.tsx', gluestackMigrated: true },
   { name: 'Home Modern V2 (nueva cabecera)', route: 'MigratedHomeModernV2', category: 'Migrated - Dashboard', file: 'home_screen_modern_v2.tsx', gluestackMigrated: true },
   { name: 'Main Goal', route: 'MigratedMainGoal', category: 'Migrated - Onboarding', file: 'main_goal_screen.tsx' },
   { name: 'Workout Detail (migrated)', route: 'MigratedWorkoutDetail', category: 'Migrated - Workout', file: 'workout_detail_screen.tsx', gluestackMigrated: true },
