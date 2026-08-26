@@ -135,7 +135,7 @@ export default function AddPostScreen({ navigation, route }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={flow === 'EditFlow' ? 'Editar publicación' : 'Nueva publicación'}
         onBack={() => navigation.goBack()}

@@ -10,6 +10,7 @@ import {  Spinner  } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import {  recipesApi  } from '../../api/recipes';
 import {  RADIUS  } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ interface RecipeCategory {
 }
 
 export default function RecipeCategoryListScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [mCategoryList, setMCategoryList] = useState<RecipeCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -63,7 +65,7 @@ export default function RecipeCategoryListScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Categorías" onBack={() => props.navigation.goBack()} />
 
       <Box className="flex-1">

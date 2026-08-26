@@ -119,8 +119,8 @@ export default function StatisticsScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <Box className="bg-background flex-1">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+      <Box className="flex-1">
         <HStack className="items-center justify-between px-3 py-3">
           <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
             <Icon name="chevron-back" size={22} className="text-foreground" />

@@ -99,8 +99,13 @@ function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): stri
        tarjeta (bg-card) que lo envuelve, sin ningún margen propio: se veía
        "colapsado y junto" (pedido explícito). El padding vive aquí, no en la
        tarjeta de fuera, para que las imágenes/tablas del contenido puedan
-       seguir siendo full-bleed si el editor las pone así. */
-    body { margin:0; padding:16px 18px; background-color:${C.surface}; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+       seguir siendo full-bleed si el editor las pone así. Horizontal a 16px
+       (no 18px) para que el texto quede exactamente alineado con el
+       paddingHorizontal:16 del acordeón "Fuente / Bibliografía" de abajo --
+       ambos bloques comparten el mismo marginHorizontal:12 por fuera
+       (BUG-035), así que un padding interno distinto seguía desalineando el
+       texto real 2px por lado aunque las cajas ya midieran lo mismo. */
+    body { margin:0; padding:16px; background-color:${C.surface}; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
     img { max-width:100%; height:auto; border-radius:12px; margin:10px 0; }
     p, li { font-size:15px; line-height:1.7; margin:10px 0; }
     h1,h2,h3,h4 { margin:16px 0 10px; }
@@ -224,14 +229,14 @@ export default function BlogDetailScreen({ navigation, route }: any) {
 
   if (loading) {
     return (
-      <Box className="flex-1 items-center justify-center bg-background">
+      <Box className="flex-1 items-center justify-center" style={{ backgroundColor: C.bg }}>
         <ActivityIndicator size="large" color={C.orange} />
       </Box>
     );
   }
 
   return (
-    <Box className="flex-1 bg-background">
+    <Box className="flex-1" style={{ backgroundColor: C.bg }}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -326,7 +331,7 @@ export default function BlogDetailScreen({ navigation, route }: any) {
         </Box>
 
         {/* Content */}
-        <Box className="bg-background rounded-t-lg" style={{ paddingTop: 16, paddingBottom: 40 }}>
+        <Box className="rounded-t-lg" style={{ paddingTop: 16, paddingBottom: 40, backgroundColor: C.bg }}>
           {/* Tags */}
           {blog?.tags_name && blog.tags_name.length > 0 && (
             <Box

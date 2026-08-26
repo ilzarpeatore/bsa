@@ -145,7 +145,7 @@ export default function ResourceDetailScreen(props: Props) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
         <ScreenHeader title="" onBack={() => navigation?.goBack()} />
         <Box className="flex-1 items-center justify-center px-8">
           <Spinner size="large" color={C.textPrimary} />
@@ -156,7 +156,7 @@ export default function ResourceDetailScreen(props: Props) {
 
   if (error || !resource) {
     return (
-      <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
         <ScreenHeader title="" onBack={() => navigation?.goBack()} />
         <Box className="flex-1 items-center justify-center px-8">
           <Text muted className="text-center">No se pudo cargar el recurso.</Text>
@@ -168,7 +168,7 @@ export default function ResourceDetailScreen(props: Props) {
   const isExternalType = resource.type === 'video' || resource.type === 'link';
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title={resource.title || fallbackTitle || ''} onBack={() => navigation?.goBack()} />
 
       {isExternalType ? (

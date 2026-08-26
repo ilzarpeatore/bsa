@@ -14,6 +14,7 @@ import { Badge, BadgeText } from '@components/ui/badge';
 import { Spinner } from '@components/ui/spinner';
 import { workoutHistoryApi, SessionDetail } from '../../api/workoutHistory';
 import logger from '@helper/logger';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -22,6 +23,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function SessionHistoryDetailScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const { programDayAssignmentId, workoutTemplateId, date, title } = props.route?.params ?? {};
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +49,7 @@ export default function SessionHistoryDetailScreen(props: any) {
   }, [load]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => props.navigation?.goBack()}>
           <Icon name="chevron-back" size={24} className="text-foreground" />

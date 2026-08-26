@@ -1688,3 +1688,304 @@ La `Card` de cada ejercicio activo usaba `variant="filled"` (`bg-secondary`). En
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio visual real (contraste de las tarjetas, orden de columnas, nueva fila de botones) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de cambios de esta sesión.
+
+---
+
+# BUG-042 — `MigratedWorkoutSummary.tsx`: botón "OK" invisible en modo oscuro
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / contraste / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En la pantalla de resumen de entrenamiento completado (`workout_summary_screen.tsx`), el botón final "OK" se veía como una píldora blanca sin ningún texto visible en modo oscuro.
+
+## Causa
+
+El `Button` usa `variant="default"` (`bg-primary` del sistema de diseño compartido, `components/ui/button/index.tsx`), cuyo `ButtonText` ya trae por defecto la clase `text-primary-foreground` — pensada precisamente para invertirse junto con `--primary` según el tema (`global.css`: en modo oscuro `--primary` pasa a blanco y `--primary-foreground` a negro, y viceversa en claro). Pero el estilo inline `s.doneBtnText` fijaba `color: '#FFFFFF'` a pelo, pisando esa clase — en modo oscuro eso deja texto blanco sobre un botón que también es blanco.
+
+## Fix
+
+Quitado el `color: '#FFFFFF'` hardcodeado de `doneBtnText` — el texto vuelve a heredar `text-primary-foreground` del propio `ButtonText`, que ya resuelve correctamente negro/blanco en ambos modos sin necesitar ningún valor nuevo.
+
+## Archivos modificados
+
+- `pages/migrated/workout_summary_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio visual real (el texto "OK" pasa a verse en modo oscuro) — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-043 — `blog_detail_screen.tsx`: el acordeón "Fuente / Bibliografía" seguía sin alinear con el texto del contenido pese a BUG-035
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26 — persistía tras BUG-035)
+
+## Problema
+
+Tras el fix de BUG-035 (igualar `marginHorizontal` de la caja exterior a 12 en ambos bloques), el usuario reportó que el acordeón de bibliografía seguía sin verse alineado con el bloque de contenido del blog justo encima.
+
+## Causa
+
+BUG-035 igualó el margen de las dos CAJAS exteriores, pero no el padding interno de cada una — que es lo que realmente decide dónde empieza el TEXTO visible. El contenido del blog se renderiza en un `WebView` cuyo `body` tenía `padding:16px 18px` (18px en horizontal); el acordeón usa `paddingHorizontal:16` nativo en su header y su contenido. Con el mismo `marginHorizontal:12` por fuera, ese padding interno distinto (18px vs 16px) seguía desplazando el texto real 2px por lado entre un bloque y otro — la caja medía lo mismo, pero el texto dentro no arrancaba en el mismo sitio.
+
+## Fix
+
+`body { padding:16px 18px; }` → `body { padding:16px; }` en el HTML generado para el `WebView` (`getRenderedHtml()`), igualando el padding horizontal a los 16px que ya usa el acordeón.
+
+## Archivos modificados
+
+- `pages/migrated/blog_detail_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de un valor CSS dentro del HTML embebido — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-044 — `profile_screen.tsx`: fondo de la pantalla incorrecto en modo oscuro (claro por debajo de tarjetas oscuras)
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedProfile`, con el tema en modo oscuro, todas las tarjetas (perfil, Comunidad/Soporte, Cuenta, Actividad) se veían correctamente oscuras, pero el fondo de la propia pantalla detrás de ellas se quedaba en un gris claro — como si la pantalla estuviera en modo claro y solo las tarjetas en oscuro.
+
+## Causa
+
+La app tiene **dos sistemas de tema independientes** que normalmente coinciden pero no están acoplados entre sí:
+
+1. `theme.ts` (`C`/`C_DARK`, vía `useAppColorMode()`) — con su propia preferencia (`auto` por hora del día vía `isNightHour`, o `light`/`dark` fijados a mano en Ajustes → Aspecto), persistida en `@befit_theme_preference`. Es lo que usan explícitamente **todas las tarjetas** de esta pantalla (`backgroundColor: C.surface`, 9 usos en el fichero).
+2. El sistema de diseño Tailwind/NativeWind (`bg-background`, `bg-card`, etc. de `global.css`), que seguía el modo de color del propio dispositivo (`prefers-color-scheme`).
+
+El contenedor raíz de `MigratedProfile` usaba `className="bg-background"` (sistema 2) mientras el resto de la pantalla usa `C.*` (sistema 1). En cuanto ambos sistemas discrepan — el caso más simple: el dispositivo está en modo claro pero la preferencia de la app está en oscuro (manual o por `isNightHour`) — el fondo de la pantalla sigue el tema del SO (claro) mientras las tarjetas siguen el tema de la app (oscuro), exactamente lo que se ve en la captura.
+
+El resto de pantallas de la sesión (`workout_session_screen.tsx`, `habits_list_screen.tsx`, etc.) ya usan `style={{ backgroundColor: C.bg }}` en el contenedor raíz — el patrón mayoritario y correcto — así que este era un caso puntual desalineado con esa convención, no un problema del propio `theme.ts`.
+
+## Fix
+
+`className="bg-background"` → `style={{ backgroundColor: C.bg }}` en el `SafeAreaView` raíz, igualando el resto de la pantalla (y el patrón ya establecido en otras pantallas migradas).
+
+## Actualización — el usuario reportó el mismo bug en `community_screen.tsx`
+
+Se detectaron otras **16 pantallas** con exactamente el mismo patrón (`className="bg-background"` en el `SafeAreaView` raíz + `C.surface`/`C.bg` en el resto de la pantalla): `about_us_screen`, `checkin_fill_screen`, `community_screen`, `muscle_progress_screen`, `notification_screen`, `progress_screen`, `recipe_list_screen_v2`, `recipe_tag_list_screen`, `resource_detail_screen` (3 `SafeAreaView` — loading/error/contenido), `resources_list_screen`, `shopping_list_screen`, `statistics_body_distribution_screen`, `statistics_muscle_distribution_screen`, `statistics_personal_records_screen`, `statistics_series_count_screen`, `statistics_top_exercises_screen`, `view_all_blog_screen`.
+
+Inicialmente se dejaron sin tocar (solo se corrigió la pantalla reportada) documentando el hallazgo para decidir con el usuario. El usuario reportó por separado, con captura, el mismo síntoma exacto en `community_screen.tsx` (fondo claro detrás de tarjetas oscuras) — una de las 16 ya identificadas — confirmando que el patrón reproduce de verdad. Se aplicó entonces el mismo fix a las 17 pantallas (`community_screen.tsx` + las 16 restantes): `className="bg-background"` → `style={{ backgroundColor: C.bg }}` en cada `SafeAreaView` raíz, mismo criterio en todas.
+
+## Segunda actualización — el bug también aparece en pantallas que NO usan `theme.ts` en absoluto
+
+El usuario reportó un tercer caso, `workout_history_screen.tsx` (fondo claro tras las tarjetas de historial, cada una oscura vía `bg-card`) — una pantalla que **no** usaba `useAppColorMode`/`theme.ts` en ningún sitio, solo clases Tailwind (`bg-background` en el contenedor, `bg-card` en cada fila). Esto descarta la teoría inicial de "dos sistemas de tema mezclados" como causa única: el problema real es que `className="bg-background"` en un `SafeAreaView` (de `react-native-safe-area-context`) no refleja de forma fiable el modo oscuro en esta app, tenga o no la pantalla otros elementos con `C.*`. El fix ya usado (pasar el color a `style` en vez de `className`) sí funciona de forma consistente en todos los casos.
+
+Con 3 de 3 pantallas reportadas confirmando el mismo patrón, se barrieron TODAS las pantallas restantes de `pages/migrated/` con el mismo `className="bg-background"` en su `SafeAreaView` raíz (búsqueda exhaustiva, no solo las que ya usaban `theme.ts`): `about_app_screen`, `coming_soon_screen`, `favourite_screen`, `language_screen`, `privacy_policy_screen`, `recipe_category_list_screen`, `session_history_detail_screen`, `terms_and_conditions_screen`, `tips_screen`, `video_detail_screen`, `video_screen`, `view_body_part_screen`, `web_view_screen` y el propio `workout_history_screen`. Ninguna de estas 14 importaba `useAppColorMode` — se añadió el import + `const { colors: C } = useAppColorMode();` en cada una, siguiendo exactamente la misma convención que ya usan el resto de pantallas migradas, y se aplicó el mismo reemplazo de `SafeAreaView`. Confirmado con una búsqueda final: no queda ningún `SafeAreaView` con `className="bg-background"` en todo `pages/migrated/` — las 31 pantallas afectadas (17 de la primera ronda + 14 de esta) quedan cubiertas.
+
+## Archivos modificados
+
+- `pages/migrated/profile_screen.tsx`
+- `pages/migrated/community_screen.tsx`
+- `pages/migrated/about_us_screen.tsx`
+- `pages/migrated/checkin_fill_screen.tsx`
+- `pages/migrated/muscle_progress_screen.tsx`
+- `pages/migrated/notification_screen.tsx`
+- `pages/migrated/progress_screen.tsx`
+- `pages/migrated/recipe_list_screen_v2.tsx`
+- `pages/migrated/recipe_tag_list_screen.tsx`
+- `pages/migrated/resource_detail_screen.tsx`
+- `pages/migrated/resources_list_screen.tsx`
+- `pages/migrated/shopping_list_screen.tsx`
+- `pages/migrated/statistics_body_distribution_screen.tsx`
+- `pages/migrated/statistics_muscle_distribution_screen.tsx`
+- `pages/migrated/statistics_personal_records_screen.tsx`
+- `pages/migrated/statistics_series_count_screen.tsx`
+- `pages/migrated/statistics_top_exercises_screen.tsx`
+- `pages/migrated/view_all_blog_screen.tsx`
+- `pages/migrated/workout_history_screen.tsx`
+- `pages/migrated/about_app_screen.tsx`
+- `pages/migrated/coming_soon_screen.tsx`
+- `pages/migrated/favourite_screen.tsx`
+- `pages/migrated/language_screen.tsx`
+- `pages/migrated/privacy_policy_screen.tsx`
+- `pages/migrated/recipe_category_list_screen.tsx`
+- `pages/migrated/session_history_detail_screen.tsx`
+- `pages/migrated/terms_and_conditions_screen.tsx`
+- `pages/migrated/tips_screen.tsx`
+- `pages/migrated/video_detail_screen.tsx`
+- `pages/migrated/video_screen.tsx`
+- `pages/migrated/view_body_part_screen.tsx`
+- `pages/migrated/web_view_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en las 32 pantallas tocadas en total (18 de la primera ronda + 14 de la segunda). Cambio mecánico e idéntico en cada una (mismo contenedor raíz, mismo reemplazo; en las 14 nuevas además se añadió el import/hook de `useAppColorMode` donde no existía) — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-045 — Texto/iconos blancos invisibles sobre botones "accentBlack" en modo oscuro (bug sistémico, 15 archivos)
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario con captura de `body_metrics_screen.tsx`, 2026-08-26)
+
+## Problema
+
+En `MigratedBodyMetrics`, varios botones ("Añadir primera medida", "Guardar", el chip de tipo de medida seleccionado, el botón "+" circular) se veían como píldoras blancas sin texto ni icono visibles en modo oscuro.
+
+## Causa
+
+`theme.ts` define `accentBlack` como acento neutro para CTAs tipo Bevel — **negro en modo claro, blanco en modo oscuro** (se invierte a propósito, mismo criterio que `--primary`/`--primary-foreground` de Tailwind usado en botones del sistema de diseño). El problema: en al menos 15 archivos, el texto/icono que va ENCIMA de un fondo `C.accentBlack` se dejó hardcodeado a `'#FFFFFF'` en vez de usar un color que se invierta junto con el fondo — funciona en modo claro (blanco sobre negro) pero en modo oscuro el fondo pasa a blanco y el texto se queda blanco también: blanco sobre blanco, invisible. Exactamente el mismo tipo de bug de fondo que BUG-042 (`workout_summary_screen.tsx`, con `--primary`/`--primary-foreground`), pero aquí con el token equivalente del otro sistema (`theme.ts`), y mucho más extendido.
+
+Se incluyen también 2 casos del sistema Tailwind (`Button` sin `variant` = `variant="default"` = `bg-primary`) con el mismo problema: un `Spinner`/`ActivityIndicator` hijo hardcodeado a blanco en vez de heredar el color correcto -- `ButtonText` ya usa la clase `text-primary-foreground` que sí se invierte sola, pero un `Spinner` no es un `ButtonText` y no hereda esa clase.
+
+## Fix
+
+- Nuevo token en `theme.ts`: `accentBlackForeground` — el inverso exacto de `accentBlack` (blanco en claro, negro en oscuro). Cualquier texto/icono/spinner que vaya sobre un fondo `accentBlack` debe usar este token, no un `'#FFFFFF'` fijo.
+- Reemplazados todos los `'#FFFFFF'` que estaban emparejados con un fondo `C.accentBlack` (condicional o fijo) por `C.accentBlackForeground`, en los archivos listados abajo.
+- En `components/ConfirmDialog.tsx`, el mismo `confirmBtnText` se usa tanto para el botón normal (`accentBlack`, necesita invertirse) como para el destructivo (`destructive50`, rojo sólido en ambos temas, blanco siempre correcto) — se dejó el blanco como base y se añade `color: C.accentBlackForeground` solo cuando `!destructive`.
+
+## Casos revisados y descartados (a propósito, sin cambio)
+
+Se auditaron TODOS los usos de `accentBlack` en el repo (15 archivos) y todo texto/icono/spinner blanco hardcodeado cercano — varios casos NO son el mismo bug y se dejaron igual:
+
+- `habit_detail_screen.tsx` (checkmark de `DayCell`, spinner/icono/texto de "Marcar hoy completado"): el fondo real ahí es `C.success50` (verde sólido, `#34C759` en ambos temas), no `accentBlack` — blanco es correcto siempre.
+- `workout_preview_screen.tsx` (chevron-back del header): fondo `rgba(0,0,0,0.35)` fijo sobre la foto de portada, no depende del tema — blanco correcto siempre. El icono de marcador (bookmark) usa `accentBlack` como TINTE (no como fondo) sobre `C.surfaceLight`, que en oscuro es gris oscuro (`#363840`), no blanco — buen contraste, no es un bug.
+- `PainReportSheet.tsx` (icono de radio button): mismo caso, `accentBlack` como tinte sobre `C.gray10` (gris oscuro en modo oscuro, `#3A3A3C`), no sobre blanco.
+- `statistics_monthly_report_screen.tsx` (`expandBtnText`): `Button variant="link"`, sin fondo — `accentBlack` usado como color de texto normal (se invierte con el tema, correcto).
+- `IntensityCheckSheet.tsx`, `workout_session_screen.tsx` (barra de descanso), `resource_detail_screen.tsx`, `workout_summary_screen.tsx` (`dotActive`), `components/onboarding_v2/OnboardingHeader.tsx`: usan colores semánticos sólidos (azul/verde/naranja/rojo) o la clase `text-background` (que ya se invierte sola) — sin blanco fijo sobre fondo `accentBlack`.
+
+## Archivos modificados
+
+- `pages/migrated/theme.ts` (nuevo token `accentBlackForeground`)
+- `pages/migrated/body_metrics_screen.tsx`
+- `pages/migrated/checkin_fill_screen.tsx`
+- `pages/migrated/habit_add_screen.tsx`
+- `pages/migrated/habit_detail_screen.tsx`
+- `pages/migrated/workout_preview_screen.tsx`
+- `pages/migrated/workout_session_screen.tsx`
+- `components/ConfirmDialog.tsx`
+- `components/DaySelectorStrip.tsx`
+- `components/MetricLineChart.tsx`
+- `components/MuscleBodyMap.tsx`
+- `components/PainReportSheet.tsx`
+- `components/ReadinessCheckSheet.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en los 13 archivos. Cambio de color puro, mismo patrón en cada sitio — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+## Tercera actualización — causa raíz real localizada + barrido final completo
+
+El usuario reportó una lista larga y adicional de pantallas con el mismo síntoma (fondo claro/gris rompiendo el resto de la UI oscura), incluyendo `statistics_monthly_report_screen.tsx` ("hay bloques que no respetan el modo oscuro" — un síntoma ligeramente distinto) y `view_body_part_screen.tsx` ("también hay botones e iconos que no concuerdan", ya cubierto por BUG-045 vía `MuscleBodyMap.tsx`).
+
+**Causa raíz real, encontrada al fin**: un comentario ya existente en `blog_detail_screen.tsx` (de una sesión anterior) documentaba que `GluestackUIProvider` (`components/ui/gluestack-ui-provider/index.tsx`) recibe correctamente el `mode` dinámico desde `useAppColorMode()` vía `GluestackModeBridge` (`App.tsx`), pero en la versión NATIVA (no web) de ese provider, lo único que hace con `mode` es `Appearance.setColorScheme(mode)` — no aplica ninguna clase `.dark`/`.light` ni resuelve las variables CSS de `global.css` (`:root.dark`, `@media (prefers-color-scheme: dark)`), que son mecanismos de CSS puro pensados para la build **web**. En la app nativa (iOS/Android), NativeWind no está resolviendo estas clases de fondo (`bg-background`, `bg-card`, `bg-muted`, etc.) contra el modo real de la app de forma fiable — de ahí que **cualquier** `className` con estas clases, en cualquier tipo de componente (`SafeAreaView`, `Box`, `Pressable`, `ActionsheetContent`), pueda quedarse "congelado" en el valor de un modo que no es el actual. No se ha intentado arreglar este mecanismo de raíz (`GluestackUIProvider`/NativeWind) por ser un cambio de altísimo riesgo que afectaría a cientos de usos en toda la app sin forma de probarlo en este entorno (sin Xcode/dispositivo real) — se mantiene el fix ya probado y seguro: sustituir la clase por un `style` inline con el color de `theme.ts` (`C.bg`), que sí se resuelve de forma fiable porque viene de React Context (`useAppColorMode()`), no de CSS.
+
+**Statistics — Resumen mensual** (`statistics_monthly_report_screen.tsx`): distinto al resto — el fondo de la propia pantalla ya estaba bien (`style={styles.container}` con `C.bg` inline, nunca usó `className`). El problema real eran las 4 tarjetas KPI (Entrenamientos/Duración/Volumen/Series), que usaban `<Card variant="outline" className="bg-muted p-4">` — `className` pisa el `bg-card` propio del `variant="outline"` (mismo mecanismo de fusión de clases que ya causó BUG-041 con `bg-secondary`), y `--muted` en oscuro (`rgb(36,36,38)`) es casi idéntico a `--background` (`rgb(36,37,41)`) — la tarjeta se volvía invisible por falta de contraste, no por un fondo "equivocado". Cambiadas a `variant="elevated"` (mismo criterio que la tarjeta "Desglose semanal" de la misma pantalla, que sí contrasta bien). Los 2 usos de `bg-muted` dentro de "Progreso y marcas" se dejan igual a propósito: ahí el `bg-muted` contrasta contra su propia tarjeta padre (`bg-card`), no contra el fondo de pantalla, así que sí funciona en ambos modos.
+
+**Barrido final** — se repitió la búsqueda de `bg-background` (y equivalentes en template literals) por TODO `pages/migrated/`, sin limitarla ya a `SafeAreaView` como en rondas anteriores, encontrando y corrigiendo el mismo patrón en `Box`, `Pressable` y `ActionsheetContent` de otras 27 pantallas: `favourite_recipe_screen`, `assigned_meals_screen` (2 sitios), `view_equipment_screen`, `search_screen`, `shopping_list_detail_screen` (2 sitios), `add_shopping_list_screen`, `home/device_connected_screen`, `home/emparejando_screen`, `home/link_device_choice_screen`, `home/link_device_list_screen`, `add_post_screen`, `chatting_screen`, `chatting_image_screen` (2 sitios), `other_user_profile_screen`, `post_details_screen` (2 sitios), `bookmark_screen`, `workout_template_list_screen`, `statistics_screen` (la pantalla del bug del círculo "Mi" reportado antes — el contenido interno también usaba `bg-background`, no solo el `SafeAreaView`), `checkins_list_screen`, `blog_detail_screen` (2 sitios más, además del padding de BUG-043), `chewie_screen` (4 sitios), `habit_add_screen` (avatar del icono de plantilla), `habits_list_screen` (avatar del icono de hábito), `workout_session_screen` (barra fija de "Finalizar entrenamiento"), `shopping_list_screen` (Actionsheet), `recipe_list_screen_v2` (Actionsheet), `notification_screen` (tarjeta de notificación leída). Confirmado con grep final: cero apariciones de `bg-background` en `pages/migrated/` fuera de esta lista y del comentario explicativo ya citado.
+
+Deliberadamente NO tocados (fuera de alcance, mucho más riesgo): los usos de `bg-background` dentro de los propios componentes base del sistema de diseño (`components/ui/button`, `modal`, `tooltip`, `accordion`, `tabs`, `textarea`, `actionsheet`, `select`) — cambiarlos afectaría potencialmente a cientos de usos en toda la app sin forma de probarlo aquí.
+
+## Archivos modificados (tercera ronda)
+
+`pages/migrated/{statistics_monthly_report_screen,favourite_recipe_screen,assigned_meals_screen,view_equipment_screen,search_screen,shopping_list_detail_screen,add_shopping_list_screen,add_post_screen,chatting_screen,chatting_image_screen,other_user_profile_screen,post_details_screen,bookmark_screen,workout_template_list_screen,statistics_screen,checkins_list_screen,blog_detail_screen,chewie_screen,habit_add_screen,habits_list_screen,workout_session_screen,shopping_list_screen,recipe_list_screen_v2,notification_screen}.tsx`, `pages/migrated/home/{device_connected_screen,emparejando_screen,link_device_choice_screen,link_device_list_screen}.tsx`.
+
+## Verificación
+
+`eslint --quiet` limpio en las 28 pantallas de esta tercera ronda.
+
+---
+
+# BUG-046 — `DietDashboard.tsx`/`DietList.tsx`: siempre en modo claro, sin reaccionar al modo oscuro de la app
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26)
+
+## Problema
+
+`DietDashboard.tsx` y `DietList.tsx` (pantallas de dieta, en `pages/`, NO en `pages/migrated/`) se veían siempre en modo claro, sin importar el modo real de la app.
+
+## Causa
+
+Estas 2 pantallas son de un estilo de código anterior a la migración a `theme.ts`/`useAppColorMode()`: usan `constants/colors.ts`, un objeto `Colors` que se calculaba **una sola vez, al importar el módulo**, a partir de la paleta CLARA fija (`import { C } from '../pages/migrated/theme'`) — nunca de `C_DARK`, y sin ninguna suscripción a `useAppColorMode()`. A diferencia del bug de `bg-background` (que sí reaccionaba pero de forma poco fiable), aquí el problema es más simple y más severo: el valor **nunca** cambia, sea cual sea el modo real de la app.
+
+Un detalle adicional: ambas pantallas ya usaban `useResponsiveStyleSheet()` para sus estilos, cuyo `StyleSheet.create()` se memoiza solo por `scale` (no por los colores embebidos) — el hook ya tenía preparado un parámetro `extraDeps` pensado exactamente para este caso (comentario ya existente en `helper/responsiveStyleSheet.tsx`: "colores de useAppColorMode() (`C`/`C_DARK`)"), pero nunca se había usado.
+
+## Fix
+
+- `constants/colors.ts`: extraída la construcción del objeto a `buildColors(c)`. El export estático `Colors` se mantiene EXACTAMENTE igual (sigue devolviendo la paleta clara fija, sin cambios de comportamiento) para no afectar a sus otros 24 consumidores (pantallas de auth, `DietCard`, `WorkoutCard`, etc. — fuera de alcance de este reporte). Nuevo hook `useColors()`, que sí lee `useAppColorMode()` y memoiza sobre esa referencia.
+- `DietDashboard.tsx`/`DietList.tsx`: cambiado el import estático por `useColors()`. Declarando `const Colors = useColors();` al principio del componente y de su función `useStyle()` (una función aparte, no ve las variables locales del componente) — el resto del código seguía intacto, ya que `Colors.*` se referencia por el mismo nombre en todo el archivo, y ahora resuelve a la versión reactiva sin renombrar cada uso. Añadido `[Colors]` como `extraDeps` a `useResponsiveStyleSheet()` en ambas pantallas para que el `StyleSheet` memoizado se recalcule cuando cambia el tema. En `DietList.tsx`, el array `CHIP_GRADIENT_COLORS` (antes una constante de módulo fija) pasó a un `useMemo` dentro del componente por el mismo motivo.
+
+## Archivos modificados
+
+- `constants/colors.ts`
+- `pages/DietDashboard.tsx`
+- `pages/DietList.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en los 3 archivos. **No se tocaron** los otros 24 consumidores de `Colors` (pantallas de auth y varios componentes de tarjeta) — fuera de lo reportado, y varios de ellos (p. ej. `DietCard`) dependen a propósito de que ciertos valores (`CARD_START/END`) se queden fijos en claro. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-047 — Causa raíz REAL de BUG-044: `Appearance.setColorScheme()` no notifica al motor de NativeWind, así que ninguna clase de Tailwind seguía el modo oscuro de la app
+
+**Estado:** 🔴 Fix de alto impacto, sin verificar (nunca antes probado en este entorno — requiere el próximo build de IPA)
+**Severidad:** 🔴 Alto (afecta potencialmente a TODAS las pantallas que usan clases Tailwind dependientes del tema)
+**Categoría:** UI / modo oscuro / infraestructura
+**Fase:** Post-sesión (pedido explícito del usuario: "no tiene sentido ajustar pantalla por pantalla, hay que solucionarlo de raíz", 2026-08-26)
+
+## Contexto
+
+Tras corregir BUG-044 en decenas de pantallas (sustituyendo `className="bg-background"` por `style={{backgroundColor: C.bg}}` una por una), el usuario preguntó, con razón, cuál era el problema real y por qué había que tocar pantalla por pantalla en vez de arreglarlo una sola vez. La respuesta correcta requería localizar el mecanismo exacto, no una teoría — se investigó el código fuente de React Native y de `react-native-css` (el motor real detrás de NativeWind en este proyecto) hasta encontrar la línea exacta.
+
+## Causa raíz (confirmada leyendo el código fuente, no una hipótesis)
+
+`GluestackUIProvider` (`components/ui/gluestack-ui-provider/index.tsx`) recibe el `mode` ('light'/'dark') correctamente desde `useAppColorMode()` vía `GluestackModeBridge` (`App.tsx`), y llama a `Appearance.setColorScheme(mode)` de React Native para propagarlo.
+
+El problema: en `node_modules/react-native/Libraries/Utilities/Appearance.js`, la función `setColorScheme()` actualiza su caché interna (`state.appearance`) pero **nunca emite el evento `'change'`** (`eventEmitter.emit('change', ...)`) — ese evento solo lo dispara el listener nativo `appearanceChanged`, es decir, un cambio REAL del sistema operativo, nunca una llamada programática desde JS.
+
+El motor que resuelve las clases de Tailwind/NativeWind en este proyecto (`react-native-css`, no `nativewind` directamente) mantiene su propio estado de "modo de color" como un observable (`node_modules/react-native-css/src/native/reactivity.ts`):
+
+```js
+export const colorScheme = observable < ColorSchemeName > Appearance.getColorScheme();
+Appearance.addChangeListener((event) => colorScheme.set(event.colorScheme));
+```
+
+Se inicializa **una sola vez**, al arrancar la app (con lo que reporte el sistema operativo en ese instante), y desde ahí **solo** se actualiza escuchando el evento `'change'` de `Appearance` — el mismo que `setColorScheme()` nunca dispara. Resultado: este observable queda congelado para siempre en el tema del sistema operativo al arranque, sin enterarse nunca de ningún cambio posterior — ni de `GluestackModeBridge`, ni de nada.
+
+Esto explica el 100% de los síntomas observados durante toda la sesión:
+
+- `theme.ts`/`C`/`C_DARK` vía `useAppColorMode()`: siempre correcto y reactivo, porque es Context de React puro — no pasa por `Appearance` en ningún momento.
+- Cualquier `className` de Tailwind (`bg-background`, `bg-card`, `bg-muted`, `text-primary-foreground`, etc., en CUALQUIER pantalla, migrada o no, tocada hoy o no): nunca reaccionaba al modo oscuro real de la app, solo al del sistema operativo en el momento del arranque.
+
+## Fix
+
+`react-native-css` expone su propio `colorScheme` con un método `.set()` que sí actualiza ese observable directamente (`node_modules/react-native-css/src/native/api.tsx`) y sí notifica a todos los componentes que usan `className` en tiempo real — es la pieza que faltaba llamar. Añadida la llamada `nativeCssColorScheme.set(mode === 'system' ? null : mode)` en el mismo `useEffect` de `GluestackUIProvider`, junto a la llamada ya existente a `Appearance.setColorScheme()` (que se deja, por si algún otro módulo nativo la necesita — es aditivo, no se quita nada).
+
+## Por qué no se hizo antes en la sesión
+
+Se consideró explícitamente al principio de la investigación de BUG-044 y se descartó por ser "un cambio de altísimo riesgo en la plomería compartida de toda la app, sin forma de probarlo en este entorno". Tras la pregunta del usuario se investigó más a fondo hasta dar con la línea exacta y el mecanismo concreto — con eso, el riesgo real es mucho menor de lo que parecía: es un cambio de una sola línea, puramente aditivo (no se toca ni se quita el código existente), en un único punto ya centralizado. Sigue sin poder probarse en este entorno (sin Xcode/dispositivo real) — es la pieza de mayor impacto y menor certeza de todo lo aplicado hoy, y su verificación real depende del próximo build de IPA.
+
+## Qué significa esto para los fixes de BUG-044/045/046 ya aplicados
+
+No se deshacen ni se revierten — siguen siendo correctos y necesarios como estaban (siguen usando `C.bg`/`C.accentBlackForeground` de `theme.ts`, la fuente de verdad que SIEMPRE funcionó bien). Si este fix de raíz funciona, las clases Tailwind (`bg-background`, etc.) en el RESTO de la app (pantallas no tocadas hoy, tanto las 60+ ya migradas a NativeWind como componentes de sistema de diseño como `Button`/`Modal`/`Actionsheet`) deberían empezar a seguir el modo oscuro real de la app sin necesitar ningún cambio adicional — es el mecanismo que arregla "de golpe" lo que pedía el usuario. Si no funciona (p. ej. si `react-native-css` resuelve un módulo distinto en el build real, o si hay alguna otra capa de caché no descubierta), las pantallas ya migradas a `C.bg` seguirán funcionando igual de bien que ahora, sin depender de este fix.
+
+## Archivos modificados
+
+- `components/ui/gluestack-ui-provider/index.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Tipo verificado contra las declaraciones `.d.ts` compiladas de `react-native-css` (`colorScheme: { get(): ColorSchemeName; set(value: ColorSchemeName): void }`). **No se puede verificar el comportamiento real en este entorno** — la única prueba real es instalar el próximo IPA y comprobar si las pantallas AÚN NO tocadas hoy (p. ej. las que usan `Button`/`Modal`/`Actionsheet` del sistema de diseño sin haber sido migradas a `theme.ts`) ya siguen el modo oscuro real de la app sin más cambios.

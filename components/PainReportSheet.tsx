@@ -292,7 +292,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   chipActive: { backgroundColor: C.accentBlack },
   chipText: { fontSize: 12.5, fontFamily: FONT.semiBold, color: C.textSecondary },
-  chipTextActive: { color: '#FFFFFF' },
+  chipTextActive: { color: C.accentBlackForeground },
   customInput: {
     marginTop: 10,
     backgroundColor: C.bg,
@@ -314,7 +314,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   scaleChipActive: { backgroundColor: C.accentBlack },
   scaleChipText: { fontFamily: FONT.bold, fontSize: 13, color: C.textSecondary },
-  scaleChipTextActive: { color: '#FFFFFF' },
+  scaleChipTextActive: { color: C.accentBlackForeground },
   scaleHint: { width: '100%', marginTop: 6, fontFamily: FONT.medium, fontSize: 12.5, color: C.textSecondary },
   footer: {
     paddingHorizontal: 24,

@@ -58,21 +58,33 @@ class LiveActivityModule: NSObject {
 
     private static func contentState(from params: NSDictionary) -> WorkoutActivityAttributes.ContentState {
         let exerciseName = params["exerciseName"] as? String ?? ""
+        let exerciseImageURL = params["exerciseImageURL"] as? String
         let exerciseIndex = (params["exerciseIndex"] as? NSNumber)?.intValue ?? 1
         let totalExercises = (params["totalExercises"] as? NSNumber)?.intValue ?? 1
         let setLabel = params["setLabel"] as? String ?? ""
+        let reps = params["reps"] as? String
+        let load = params["load"] as? String
+        let intensityLabel = params["intensityLabel"] as? String
+        let intensityValue = params["intensityValue"] as? String
         let isResting = (params["isResting"] as? NSNumber)?.boolValue ?? false
+        let nextExerciseName = params["nextExerciseName"] as? String
         var restEndDate: Date?
         if let restEndMs = (params["restEndDate"] as? NSNumber)?.doubleValue {
             restEndDate = Date(timeIntervalSince1970: restEndMs / 1000)
         }
         return WorkoutActivityAttributes.ContentState(
             exerciseName: exerciseName,
+            exerciseImageURL: exerciseImageURL,
             exerciseIndex: exerciseIndex,
             totalExercises: totalExercises,
             setLabel: setLabel,
+            reps: reps,
+            load: load,
+            intensityLabel: intensityLabel,
+            intensityValue: intensityValue,
             isResting: isResting,
-            restEndDate: restEndDate
+            restEndDate: restEndDate,
+            nextExerciseName: nextExerciseName
         )
     }
 }

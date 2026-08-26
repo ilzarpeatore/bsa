@@ -359,7 +359,7 @@ export default function HabitDetailScreen(props: Props) {
                 accessibilityRole="button"
                 accessibilityLabel="Registrar hoy"
               >
-                <Icon name="add" size={22} color="#FFFFFF" />
+                <Icon name="add" size={22} color={C.accentBlackForeground} />
               </Pressable>
             </Box>
 
@@ -537,7 +537,7 @@ export default function HabitDetailScreen(props: Props) {
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </Pressable>
             <Pressable style={styles.modalSaveBtn} onPress={submitValue} disabled={savingValue}>
-              {savingValue ? <Spinner size="small" color="#FFFFFF" /> : <Text style={styles.modalSaveText}>Guardar</Text>}
+              {savingValue ? <Spinner size="small" color={C.accentBlackForeground} /> : <Text style={styles.modalSaveText}>Guardar</Text>}
             </Pressable>
           </Box>
         </ModalContent>
@@ -584,7 +584,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   tab: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
   tabActive: { backgroundColor: C.accentBlack },
   tabText: { fontFamily: FONT.semiBold, fontSize: 11, color: C.textSecondary },
-  tabTextActive: { color: '#FFFFFF' },
+  tabTextActive: { color: C.accentBlackForeground },
   rangeStat: { fontFamily: FONT.medium, fontSize: 12.5, color: C.textSecondary, marginBottom: 12, textAlign: 'center' },
   weekCard: { backgroundColor: C.surface, borderRadius: 18, padding: 16, marginBottom: 16, ...SHADOW.card },
   weekHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 },
@@ -629,6 +629,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   modalCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.bg },
   modalSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.accentBlack },
   modalCancelText: { fontFamily: FONT.semiBold, fontSize: 14, color: C.textPrimary },
-  modalSaveText: { fontFamily: FONT.bold, fontSize: 14, color: '#FFFFFF' },
+  modalSaveText: { fontFamily: FONT.bold, fontSize: 14, color: C.accentBlackForeground },
   });
 }

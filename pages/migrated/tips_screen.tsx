@@ -8,10 +8,12 @@ import { VStack } from '@components/ui/vstack';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function TipsScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const {
     mTips = '',
     mExerciseImage = '',
@@ -24,7 +26,7 @@ export default function TipsScreen(props: any) {
   const isYouTube = mExerciseVideo?.includes('https://youtu');
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Tips & Instructions" onBack={() => props.navigation.goBack()} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>

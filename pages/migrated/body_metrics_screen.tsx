@@ -168,7 +168,7 @@ export default function BodyMetricsScreen(props: any) {
                 <Text
                   weight="semibold"
                   size="xs"
-                  style={{ fontSize: 12.5, color: selectedType === t.value ? '#FFFFFF' : C.textSecondary }}
+                  style={{ fontSize: 12.5, color: selectedType === t.value ? C.accentBlackForeground : C.textSecondary }}
                 >
                   {t.label}
                 </Text>
@@ -199,7 +199,7 @@ export default function BodyMetricsScreen(props: any) {
                       accessibilityRole="button"
                       accessibilityLabel="Añadir medición"
                     >
-                      <Icon name="add" size={20} color="#FFFFFF" />
+                      <Icon name="add" size={20} color={C.accentBlackForeground} />
                     </Pressable>
                   </Box>
                   <Box className="flex-row items-center justify-between" style={{ marginTop: 8 }}>
@@ -229,7 +229,7 @@ export default function BodyMetricsScreen(props: any) {
                   <Icon name="body-outline" size={32} color={C.gray30} />
                   <Text size="sm" muted className="text-center">Sin medidas de {meta?.label.toLowerCase()} todavía</Text>
                   <Button style={{ backgroundColor: C.accentBlack, marginTop: 4 }} onPress={openAdd}>
-                    <Text weight="bold" size="sm" style={{ color: '#FFFFFF' }}>Añadir primera medida</Text>
+                    <Text weight="bold" size="sm" style={{ color: C.accentBlackForeground }}>Añadir primera medida</Text>
                   </Button>
                 </Box>
               )}
@@ -295,7 +295,7 @@ export default function BodyMetricsScreen(props: any) {
             <Text weight="medium" size="md" muted>{unit}</Text>
           </Box>
           <Button style={{ backgroundColor: C.accentBlack, marginTop: 16 }} onPress={save} disabled={saving}>
-            {saving ? <Spinner size="small" color="#FFFFFF" /> : <Text weight="bold" size="sm" style={{ color: '#FFFFFF' }}>Guardar</Text>}
+            {saving ? <Spinner size="small" color={C.accentBlackForeground} /> : <Text weight="bold" size="sm" style={{ color: C.accentBlackForeground }}>Guardar</Text>}
           </Button>
         </Box>
       </SimpleBottomSheet>

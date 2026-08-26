@@ -54,8 +54,12 @@ function mapNotification(item: NotificationItem, iconMap: IconMap): DisplayNotif
 }
 
 function NotificationCard({ item }: { item: DisplayNotification }) {
+  const { colors: C } = useAppColorMode();
   return (
-    <Box className={`flex-row gap-3.5 p-3.5 rounded-sm ${item.isUnread ? 'bg-secondary border border-border' : 'bg-background'}`}>
+    <Box
+      className={`flex-row gap-3.5 p-3.5 rounded-sm ${item.isUnread ? 'bg-secondary border border-border' : ''}`}
+      style={!item.isUnread ? { backgroundColor: C.bg } : undefined}
+    >
       <AppIcon name={item.icon} size={22} color={item.iconColor} bg={item.iconBg} containerSize={44} borderRadius={12} />
       <Box className="flex-1">
         <VStack space="xs">
@@ -125,7 +129,7 @@ export default function NotificationScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title="Notificaciones"
         onBack={() => props.navigation?.goBack()}

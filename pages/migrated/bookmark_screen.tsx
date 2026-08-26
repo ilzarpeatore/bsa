@@ -10,6 +10,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
 import {  RADIUS  } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface BookmarkPost {
   id: number;
@@ -23,6 +24,7 @@ interface BookmarkPost {
 }
 
 export default function BookmarkScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
   const [postList, setPostList] = useState<BookmarkPost[]>([]);
   // page/numPage stay as state (not refs): both are read during render below
   // to drive the loading indicators, so they need to trigger a re-render.
@@ -223,7 +225,7 @@ export default function BookmarkScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Guardados" onBack={() => navigation.goBack()} />
 
       <Box className="flex-1">

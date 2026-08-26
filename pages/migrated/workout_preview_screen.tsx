@@ -162,7 +162,7 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
           className="py-4"
         >
           {saving ? (
-            <Spinner size="small" color="#FFFFFF" />
+            <Spinner size="small" color={C.accentBlackForeground} />
           ) : (
             <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
           )}
@@ -688,7 +688,7 @@ function createReadinessStyles(C: ReturnType<typeof useAppColorMode>['colors']) 
     color: C.textSecondary,
   },
   scaleChipTextActive: {
-    color: '#FFFFFF',
+    color: C.accentBlackForeground,
   },
   scaleHint: {
     width: '100%',

@@ -139,7 +139,7 @@ export default function ChattingScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title="FitBot"
         onBack={() => navigation.goBack()}

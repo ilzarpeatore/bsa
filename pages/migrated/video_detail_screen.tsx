@@ -5,10 +5,12 @@ import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 export default function VideoDetailScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="" onBack={() => props.navigation.goBack()} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>

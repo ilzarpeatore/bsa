@@ -164,7 +164,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   scaleChipActive: { backgroundColor: C.accentBlack },
   scaleChipText: { fontFamily: FONT.bold, fontSize: 13, color: C.textSecondary },
-  scaleChipTextActive: { color: '#FFFFFF' },
+  scaleChipTextActive: { color: C.accentBlackForeground },
   scaleHint: { width: '100%', marginTop: 6, fontFamily: FONT.medium, fontSize: 12.5, color: C.textSecondary },
   footer: { paddingHorizontal: 24, paddingTop: 14 },
   submitBtn: {
@@ -174,6 +174,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
   },
   submitBtnDisabled: { opacity: 0.35 },
-  submitBtnText: { fontFamily: FONT.bold, fontSize: 14, color: '#FFFFFF', letterSpacing: 0.5 },
+  submitBtnText: { fontFamily: FONT.bold, fontSize: 14, color: C.accentBlackForeground, letterSpacing: 0.5 },
   });
 }

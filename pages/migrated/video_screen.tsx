@@ -8,6 +8,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 function VideoComponent({ item }: { item: any }) {
   return (
@@ -34,6 +35,7 @@ function VideoComponent({ item }: { item: any }) {
 }
 
 export default function VideoScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [videoList, setVideoList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const pageRef = useRef(1);
@@ -76,7 +78,7 @@ export default function VideoScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Videos" onBack={() => props.navigation.goBack()} />
 
       <FlatList

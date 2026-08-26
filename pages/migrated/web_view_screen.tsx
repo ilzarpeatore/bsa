@@ -6,6 +6,7 @@ import { Box } from '@components/ui/box';
 import { Button } from '@components/ui/button';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface WebViewScreenProps {
   route?: {
@@ -19,6 +20,7 @@ interface WebViewScreenProps {
 }
 
 export default function WebViewScreen(props: WebViewScreenProps) {
+  const { colors: C } = useAppColorMode();
   const { mInitialUrl, isAdsLoad = false, onClick } = props.route?.params || {};
   const [isLoading, setIsLoading] = useState(true);
   const webViewRef = useRef<WebView>(null);
@@ -57,7 +59,7 @@ export default function WebViewScreen(props: WebViewScreenProps) {
   const onError = () => setIsLoading(false);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <Box className="flex-row items-center px-2 py-2.5 bg-card border-b border-border">
         <Button variant="ghost" size="icon" onPress={() => props.navigation?.goBack()}>
           <Icon name="chevron-back" size={24} className="text-foreground" />

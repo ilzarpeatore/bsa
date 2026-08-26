@@ -218,22 +218,22 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
           <>
             {/* KPIs con comparativa vs mes anterior */}
             <HStack space="md" className="flex-wrap" style={{ marginTop: 12 }}>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Entrenamientos</Text>
                 <Text style={styles.kpiValue}>{stats.sessionsCount}</Text>
                 <DeltaText current={stats.sessionsCount} previous={prevStats.sessionsCount} format={(n) => String(Math.round(n))} />
               </Card>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Duración</Text>
                 <Text style={styles.kpiValue}>{formatDuration(stats.durationSeconds)}</Text>
                 <DeltaText current={stats.durationSeconds} previous={prevStats.durationSeconds} format={formatDuration} />
               </Card>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Volumen</Text>
                 <Text style={styles.kpiValue}>{formatVolume(stats.volumeKg)}</Text>
                 <DeltaText current={stats.volumeKg} previous={prevStats.volumeKg} format={formatVolume} />
               </Card>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Series</Text>
                 <Text style={styles.kpiValue}>{totalSeries}</Text>
                 <DeltaText current={totalSeries} previous={prevTotalSeries} format={(n) => String(Math.round(n))} />

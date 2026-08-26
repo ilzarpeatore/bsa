@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '@components/ui/text';
 import { Card } from '@components/ui/card';
 import ScreenHeader from '@components/ScreenHeader';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 export default function TermsAndConditionsScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Terms of Services" onBack={() => props.navigation.goBack()} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>

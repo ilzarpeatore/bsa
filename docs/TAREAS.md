@@ -2332,4 +2332,4 @@ Pedido explícito del usuario con captura de referencia de otra app ("Symmetry")
 
 Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **El `project.pbxproj`/Swift no se pueden verificar en este entorno** (sin Xcode/macOS) — la única prueba real es el próximo build de IPA en CI, con razonable probabilidad de necesitar más de un intento dado que es la primera vez que se edita el `pbxproj` a mano para añadir un target nuevo completo (no solo referencias de archivo sueltas).
 
-Push a `master` como fast-forward (`d2a9027..0d0ba8c`) y build lanzado inmediatamente después: **run #50**, `https://github.com/ilzarpeatore/bsa/actions/runs/32993709013` (`ios_path: "ios"`, `configuration: "Release"`) — esta es la prueba real de si el `project.pbxproj` editado a mano compila.
+Push a `master` como fast-forward (`d2a9027..0d0ba8c`) y build lanzado inmediatamente después: **run #50**, `https://github.com/ilzarpeatore/bsa/actions/runs/32993709013` (`ios_path: "ios"`, `configuration: "Release"`) — **terminó en éxito a la primera**, sin necesitar ningún ajuste al `project.pbxproj`/Swift editados a mano. El IPA de ese run ya lleva el Live Activity.

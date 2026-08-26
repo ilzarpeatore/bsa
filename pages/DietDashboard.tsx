@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { Colors } from "@constants/colors";
+import { useColors } from "@constants/colors";
 import { dietApi, DietListItem, AssignedMealsSummary } from "../api/diet";
 import { DietGridCardMem } from "../components/DietGridCard";
 import { EmptyStateMem } from "../components/EmptyState";
@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default function DietDashboard({ navigation }: Props) {
+  const Colors = useColors();
   const styles = useStyle();
   const [otherDiets, setOtherDiets] = useState<DietListItem[]>([]);
   const [assignedMealsGoal, setAssignedMealsGoal] = useState<AssignedMealsSummary["goal"] | null>(null);
@@ -253,6 +254,7 @@ export default function DietDashboard({ navigation }: Props) {
 }
 
 function useStyle() {
+  const Colors = useColors();
   return useResponsiveStyleSheet({
     bg: {
       width: "100%",
@@ -368,5 +370,5 @@ function useStyle() {
       fontSize: "14@ratio",
       color: Colors.TEXT_SECONDARY,
     },
-  });
+  }, [Colors]);
 }

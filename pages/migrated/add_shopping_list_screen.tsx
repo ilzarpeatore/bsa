@@ -180,7 +180,7 @@ export default function AddShoppingListScreen({ navigation, route }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={isEditMode ? 'Editar lista de la compra' : 'Añadir lista de la compra'}
         onBack={() => navigation.goBack()}

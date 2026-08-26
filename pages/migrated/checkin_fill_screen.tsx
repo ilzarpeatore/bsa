@@ -54,9 +54,9 @@ function ChoiceRow({
             accessibilityState={{ selected: active }}
           >
             {icon ? (
-              <Icon name="star" size={16} color={active ? '#FFFFFF' : C.textSecondary} />
+              <Icon name="star" size={16} color={active ? C.accentBlackForeground : C.textSecondary} />
             ) : (
-              <Text weight="bold" size="sm" style={{ color: active ? '#FFFFFF' : C.textSecondary }}>{n}</Text>
+              <Text weight="bold" size="sm" style={{ color: active ? C.accentBlackForeground : C.textSecondary }}>{n}</Text>
             )}
           </Pressable>
         );
@@ -148,7 +148,7 @@ function QuestionCard({
                 style={{ paddingVertical: 12, backgroundColor: active ? C.accentBlack : C.bg }}
                 onPress={() => onChange(opt)}
               >
-                <Text weight="bold" style={{ color: active ? '#FFFFFF' : C.textSecondary }}>{opt === 'yes' ? 'Sí' : 'No'}</Text>
+                <Text weight="bold" style={{ color: active ? C.accentBlackForeground : C.textSecondary }}>{opt === 'yes' ? 'Sí' : 'No'}</Text>
               </Pressable>
             );
           })}
@@ -175,7 +175,7 @@ function QuestionCard({
                     }
                   }}
                 >
-                  <Text weight="semibold" size="xs" style={{ color: selected ? '#FFFFFF' : C.textSecondary }}>{opt}</Text>
+                  <Text weight="semibold" size="xs" style={{ color: selected ? C.accentBlackForeground : C.textSecondary }}>{opt}</Text>
                 </Pressable>
               );
             });
@@ -263,7 +263,7 @@ export default function CheckInFillScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title={form?.title || fallbackTitle || 'Formulario'} onBack={() => navigation?.goBack()} />
 
       {isLoading ? (
@@ -307,7 +307,7 @@ export default function CheckInFillScreen(props: Props) {
               </Text>
             )}
             <Button size="lg" radius="pill" onPress={handleSubmit} disabled={!canSubmit || submitting}>
-              {submitting ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>ENVIAR</ButtonText>}
+              {submitting ? <Spinner size="small" color={C.accentBlackForeground} /> : <ButtonText>ENVIAR</ButtonText>}
             </Button>
           </Box>
         </KeyboardAvoidingView>

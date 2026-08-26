@@ -142,7 +142,7 @@ export default function HabitsListScreen(props: Props) {
         onPress={() => openDetail(habit)}
       >
         <Box className="flex-row items-center" style={{ gap: 12, marginBottom: 12 }}>
-          <Box className="w-11 h-11 rounded-md bg-background items-center justify-center">
+          <Box className="w-11 h-11 rounded-md items-center justify-center" style={{ backgroundColor: C.bg }}>
             <Icon name={habitIoniconFor(habit.icon)} size={20} className="text-foreground" />
           </Box>
           <Box className="flex-1">

@@ -78,7 +78,7 @@ export default function MuscleProgressScreen(props: Props) {
   const isEmpty = !isLoading && sortedMuscles.length === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <Box className="flex-row items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={24} className="text-foreground" />

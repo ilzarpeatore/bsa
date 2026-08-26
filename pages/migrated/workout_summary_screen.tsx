@@ -547,7 +547,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   shareItemLabel: { fontFamily: FONT.regular, fontSize: 9.5, color: C.textSecondary, marginTop: 5, textAlign: 'center' },
 
   footer: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 6 },
-  doneBtnText: { fontFamily: FONT.bold, fontSize: 15, color: '#FFFFFF', letterSpacing: 0.5 },
+  // Sin color aqui a proposito: ButtonText ya trae "text-primary-foreground"
+  // por el variant="default" del Button (button/index.tsx), que invierte
+  // negro/blanco segun el tema -- un color fijo lo pisaba y dejaba el boton
+  // "OK" invisible (blanco sobre blanco) en modo oscuro, donde bg-primary
+  // pasa a ser blanco (ver --primary en global.css).
+  doneBtnText: { fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 },
 
   pageFill: { flex: 1 },
 

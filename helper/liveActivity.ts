@@ -8,12 +8,23 @@ import { NativeModules, Platform } from 'react-native';
 
 export interface WorkoutActivityState {
   exerciseName: string;
+  exerciseImageURL?: string | null;
   exerciseIndex: number;
   totalExercises: number;
+  /** "Serie N/M" de la próxima serie por hacer (sirve tanto sin descansar
+   * -- lo que toca ahora -- como descansando -- lo que viene después). */
   setLabel: string;
+  reps?: string | null;
+  load?: string | null;
+  /** "RIR" | "RPE", según cuál tenga activo el ejercicio (nunca los dos). */
+  intensityLabel?: string | null;
+  intensityValue?: string | null;
   isResting: boolean;
   /** epoch ms, solo relevante cuando isResting = true */
   restEndDate?: number | null;
+  /** Solo con isResting: nombre del ejercicio de la próxima serie, SOLO si
+   * es distinto al ejercicio actual (el actual ya no tiene series pendientes). */
+  nextExerciseName?: string | null;
 }
 
 type NativeLiveActivityModule = {

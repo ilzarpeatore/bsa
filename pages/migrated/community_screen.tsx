@@ -297,7 +297,7 @@ export default function CommunityScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <HStack className="items-center justify-between px-4 py-3">
         <Heading size="md">Comunidad</Heading>
         <HStack space="md" className="items-center">

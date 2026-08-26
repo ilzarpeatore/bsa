@@ -685,29 +685,54 @@ export default function WorkoutSessionScreen(props: Props) {
 
   // Live Activity: construye el ContentState actual a partir del ejercicio
   // con foco (ver currentFocusRef) -- null si aun no hay bloques cargados.
+  // "target" (pedido explícito 2026-08-26, con captura de referencia): la
+  // próxima serie por hacer, con sus datos reales (reps/carga/RIR o RPE) --
+  // el mismo cálculo sirve para "lo que toca ahora" (sin descansar) y para
+  // "lo que viene después del descanso" (descansando), y si el ejercicio
+  // actual ya no tiene series pendientes, salta al primer ejercicio
+  // siguiente en el orden de la plantilla (isNewExercise).
   const buildLiveActivityState = useCallback((): WorkoutActivityState | null => {
     const { blockIdx, exIdx } = currentFocusRef.current;
     const ex = blocks[blockIdx]?.exercises[exIdx];
     if (!ex) return null;
-    let exerciseIndex = 0;
-    let totalExercises = 0;
-    blocks.forEach((b) => {
-      b.exercises.forEach((e) => {
-        totalExercises += 1;
-        if (e === ex) exerciseIndex = totalExercises;
-      });
-    });
-    const nextRowIdx = ex.rows.findIndex((r) => !r.completed);
-    const setLabel = nextRowIdx === -1 ? 'Última serie' : `Serie ${nextRowIdx + 1}/${ex.rows.length}`;
+
+    const flat: SessionExercise[] = [];
+    blocks.forEach((b) => b.exercises.forEach((e) => flat.push(e)));
+    const currentFlatIdx = flat.indexOf(ex);
+    const exerciseIndex = currentFlatIdx === -1 ? 1 : currentFlatIdx + 1;
+    const totalExercises = flat.length || 1;
+
+    let targetEx = ex;
+    let targetRowIdx = ex.rows.findIndex((r) => !r.completed);
+    let isNewExercise = false;
+    if (targetRowIdx === -1 && currentFlatIdx !== -1) {
+      const nextEx = flat[currentFlatIdx + 1];
+      if (nextEx) {
+        targetEx = nextEx;
+        targetRowIdx = 0;
+        isNewExercise = true;
+      }
+    }
+    const targetRow = targetRowIdx >= 0 ? targetEx.rows[targetRowIdx] : null;
+    const cargaUnit = metricsCatalog.find((c) => c.key === 'carga')?.unit;
+    const intensityMode = getIntensityMode(targetEx);
+    const intensityValue = intensityMode && targetRow ? targetRow.values[intensityMode] : null;
+
     return {
       exerciseName: ex.title,
-      exerciseIndex: exerciseIndex || 1,
-      totalExercises: totalExercises || 1,
-      setLabel,
+      exerciseImageURL: ex.image ?? null,
+      exerciseIndex,
+      totalExercises,
+      setLabel: targetRowIdx >= 0 ? `Serie ${targetRowIdx + 1}/${targetEx.rows.length}` : 'Última serie',
+      reps: targetRow?.values.reps || null,
+      load: targetRow?.values.carga ? (cargaUnit ? `${targetRow.values.carga} ${cargaUnit}` : targetRow.values.carga) : null,
+      intensityLabel: intensityMode ? intensityMode.toUpperCase() : null,
+      intensityValue: intensityValue || null,
       isResting: restCountdown != null,
       restEndDate: restCountdown != null ? restEndDate : null,
+      nextExerciseName: isNewExercise ? targetEx.title : null,
     };
-  }, [blocks, restCountdown, restEndDate]);
+  }, [blocks, restCountdown, restEndDate, metricsCatalog]);
 
   // Arranca la Live Activity una sola vez, en cuanto la sesion termina de
   // cargar (real o retomada) -- nunca si conflictingSession bloqueo la
@@ -1578,8 +1603,8 @@ export default function WorkoutSessionScreen(props: Props) {
 
       {/* Sticky finish button — siempre visible, sin importar el bloque activo */}
       <Box
-        className="px-5 border-t border-border bg-background"
-        style={{ paddingTop: 10, paddingBottom: Math.max(insets.bottom, 14) + 6 }}
+        className="px-5 border-t border-border"
+        style={{ paddingTop: 10, paddingBottom: Math.max(insets.bottom, 14) + 6, backgroundColor: C.bg }}
       >
         <Button size="lg" radius="pill" onPress={onFinish}>
           <ButtonText style={{ letterSpacing: 0.5 }}>✓ FINALIZAR ENTRENAMIENTO</ButtonText>
@@ -1623,7 +1648,7 @@ export default function WorkoutSessionScreen(props: Props) {
               >
                 <Text
                   weight="semibold"
-                  style={{ fontSize: 12.5, color: selectedBodyPartId === null ? '#FFFFFF' : C.textSecondary }}
+                  style={{ fontSize: 12.5, color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary }}
                 >
                   Todos
                 </Text>
@@ -1637,7 +1662,7 @@ export default function WorkoutSessionScreen(props: Props) {
                 >
                   <Text
                     weight="semibold"
-                    style={{ fontSize: 12.5, color: selectedBodyPartId === bp.id ? '#FFFFFF' : C.textSecondary }}
+                    style={{ fontSize: 12.5, color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary }}
                   >
                     {bp.title}
                   </Text>

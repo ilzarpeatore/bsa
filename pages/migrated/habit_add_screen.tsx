@@ -134,7 +134,7 @@ function HabitAddScreenInner(props: Props) {
         className="flex-row items-center bg-card rounded-md"
         style={{ gap: 12, padding: 12, marginBottom: 10 }}
       >
-        <Box className="items-center justify-center bg-background" style={{ width: 42, height: 42, borderRadius: 13 }}>
+        <Box className="items-center justify-center" style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: C.bg }}>
           <Icon name={habitIoniconFor(t.icon)} size={20} className="text-foreground" />
         </Box>
         <Box className="flex-1">
@@ -152,7 +152,7 @@ function HabitAddScreenInner(props: Props) {
           accessibilityRole="button"
           accessibilityLabel={`Añadir hábito ${t.title ?? ''}`.trim()}
         >
-          {adoptingId === t.id ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Icon name="add" size={20} color="#FFFFFF" />}
+          {adoptingId === t.id ? <ActivityIndicator size="small" color={C.accentBlackForeground} /> : <Icon name="add" size={20} color={C.accentBlackForeground} />}
         </Pressable>
       </Box>
     ),
@@ -208,14 +208,14 @@ function HabitAddScreenInner(props: Props) {
           style={{ paddingVertical: 10, backgroundColor: tab === 'library' ? C.accentBlack : 'transparent' }}
           onPress={() => setTab('library')}
         >
-          <Text weight="semibold" size="sm" style={{ color: tab === 'library' ? '#FFFFFF' : C.textSecondary }}>Biblioteca</Text>
+          <Text weight="semibold" size="sm" style={{ color: tab === 'library' ? C.accentBlackForeground : C.textSecondary }}>Biblioteca</Text>
         </Pressable>
         <Pressable
           className="flex-1 rounded-sm items-center"
           style={{ paddingVertical: 10, backgroundColor: tab === 'create' ? C.accentBlack : 'transparent' }}
           onPress={() => setTab('create')}
         >
-          <Text weight="semibold" size="sm" style={{ color: tab === 'create' ? '#FFFFFF' : C.textSecondary }}>Crear el mío</Text>
+          <Text weight="semibold" size="sm" style={{ color: tab === 'create' ? C.accentBlackForeground : C.textSecondary }}>Crear el mío</Text>
         </Pressable>
       </Box>
 
@@ -260,7 +260,7 @@ function HabitAddScreenInner(props: Props) {
                   accessibilityLabel={`Icono ${key}`}
                   accessibilityState={{ selected: icon === key }}
                 >
-                  <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? '#FFFFFF' : C.textSecondary} />
+                  <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? C.accentBlackForeground : C.textSecondary} />
                 </Pressable>
               ))}
             </Box>
@@ -295,7 +295,7 @@ function HabitAddScreenInner(props: Props) {
                       style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: targetUnit === u ? C.accentBlack : C.surface }}
                       onPress={() => setTargetUnit(u)}
                     >
-                      <Text weight="semibold" size="sm" style={{ color: targetUnit === u ? '#FFFFFF' : C.textSecondary }}>{u}</Text>
+                      <Text weight="semibold" size="sm" style={{ color: targetUnit === u ? C.accentBlackForeground : C.textSecondary }}>{u}</Text>
                     </Pressable>
                   ))}
                 </Box>
@@ -311,13 +311,13 @@ function HabitAddScreenInner(props: Props) {
                   style={{ paddingVertical: 12, backgroundColor: frequency === f ? C.accentBlack : C.surface }}
                   onPress={() => setFrequency(f)}
                 >
-                  <Text weight="bold" size="sm" style={{ color: frequency === f ? '#FFFFFF' : C.textSecondary }}>{f === 'daily' ? 'Diario' : 'Semanal'}</Text>
+                  <Text weight="bold" size="sm" style={{ color: frequency === f ? C.accentBlackForeground : C.textSecondary }}>{f === 'daily' ? 'Diario' : 'Semanal'}</Text>
                 </Pressable>
               ))}
             </Box>
 
             <Button radius="pill" className="py-4" style={{ marginTop: 28 }} onPress={submitPersonal} disabled={submitting}>
-              {submitting ? <ActivityIndicator size="small" color="#FFFFFF" /> : <ButtonText style={{ letterSpacing: 0.5 }}>CREAR HÁBITO</ButtonText>}
+              {submitting ? <ActivityIndicator size="small" color={C.accentBlackForeground} /> : <ButtonText style={{ letterSpacing: 0.5 }}>CREAR HÁBITO</ButtonText>}
             </Button>
           </ScrollView>
         </KeyboardAvoidingView>

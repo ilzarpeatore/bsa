@@ -388,7 +388,7 @@ Sin cambios, a propósito (17 `Alert.alert` reales): `pages/Home.tsx`, `pages/mi
 
 # IMP-012 — Live Activity de iOS para el entrenamiento en curso (Lock Screen / Dynamic Island)
 
-**Estado:** 🔵 Aplicada, pendiente de verificación en build/dispositivo real
+**Estado:** 🟢 Compila (run #50, éxito a la primera) — 🔵 pendiente de confirmación visual/funcional real en dispositivo
 **Categoría:** iOS nativo / entrenamiento
 **Fase:** Post-sesión (pedido explícito del usuario con captura de referencia de otra app, "Symmetry", 2026-08-26)
 
@@ -418,3 +418,34 @@ El usuario pidió una notificación/popup en la barra de notificaciones de iOS c
 ## Verificación
 
 `eslint --quiet` y `tsc --noEmit -p .` limpios en el lado JS/TS. **El `project.pbxproj` y el código Swift NO se pueden verificar en este entorno** (no hay Xcode/macOS aquí, igual que con `pod install` — ver `docs/BUILD_IPA.md`) — la única verificación real es el próximo build de IPA en `ios-build.yml` (runner `macos-latest`), y es razonablemente probable que haga falta más de un intento si el `pbxproj` editado a mano tiene algún objeto mal referenciado. Chequeo estructural básico hecho localmente (llaves/paréntesis balanceados, sin IDs de objeto duplicados, todas las referencias cruzadas resuelven a un objeto definido) pero eso no sustituye a que `xcodebuild` lo abra de verdad.
+
+---
+
+# IMP-013 — Live Activity: foto del ejercicio + datos reales de la serie objetivo (reps/carga/RIR-RPE)
+
+**Estado:** 🔵 Aplicada, pendiente de verificación real (requiere el próximo build de IPA — ni siquiera se puede saber si compila hasta entonces)
+**Categoría:** iOS nativo / entrenamiento
+**Fase:** Post-sesión (el usuario confirmó que la Live Activity de IMP-012 funciona en el último IPA y pidió "darle más vida", con 2 capturas de referencia, 2026-08-26)
+
+## Contexto
+
+Con IMP-012 ya confirmada funcionando en dispositivo real, el usuario pidió ampliarla: foto + nombre del ejercicio, datos de la serie (reps/carga/RIR o RPE) durante el set activo, descanso pendiente + datos de la siguiente serie durante el descanso, y el nombre del ejercicio siguiente si la próxima serie ya no es del mismo ejercicio.
+
+## Qué se construyó
+
+- **`WorkoutActivityAttributes.ContentState`** ampliado con `exerciseImageURL`, `reps`, `load`, `intensityLabel`/`intensityValue` y `nextExerciseName` — todo opcional, junto a los campos ya existentes.
+- **`ExerciseThumbnail`** (nuevo, en `WorkoutLiveActivityView.swift`): `AsyncImage` sobre la URL remota del ejercicio (mismo CDN que ya usa el resto de la app para miniaturas) con fallback al icono genérico si no hay URL o falla la carga — sin App Group, la extensión no puede leer ficheros compartidos con la app, así que la foto se pide por red normal desde la propia extensión.
+- **Un único cálculo de "serie objetivo"** (`targetSummaryLine`/`restNextLine`, extensión de `ContentState`) sirve para las dos situaciones que pidió el usuario: sin descansar es "lo que toca ahora"; descansando es "lo que viene después" — mismo dato, solo cambia el texto que lo antepone ("Siguiente: ...").
+- **`workout_session_screen.tsx`**: `buildLiveActivityState()` calcula la "serie objetivo" real — la próxima fila sin completar del ejercicio con foco; si ese ejercicio ya no tiene series pendientes, salta al primer ejercicio siguiente en el orden de la plantilla (`isNewExercise`) y expone su nombre como `nextExerciseName`. Reps/carga se leen de `row.values` (mismo dato que ya rellena la tabla), la unidad de carga sale del catálogo de métricas (`metricsCatalog`, ya cargado por la pantalla), y RIR/RPE usa `getIntensityMode(ex)` — la misma función que ya decide qué columna de intensidad mostrar en la tabla, para que la Live Activity nunca muestre una métrica que el ejercicio no tenga activa.
+
+## Archivos modificados
+
+- `ios/befitWidgets/WorkoutActivityAttributes.swift`
+- `ios/befitWidgets/WorkoutLiveActivityView.swift`
+- `ios/befit/LiveActivityModule.swift`
+- `helper/liveActivity.ts`
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en los archivos JS/TS. Chequeo estructural básico en los 3 ficheros Swift (llaves/paréntesis balanceados) — **no se puede compilar ni verificar de ninguna otra forma en este entorno** (sin Xcode/macOS). La única prueba real es el próximo build de IPA.

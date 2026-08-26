@@ -182,7 +182,7 @@ export default function StatisticsMuscleDistributionScreen(props: Props) {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />

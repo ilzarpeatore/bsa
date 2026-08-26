@@ -117,6 +117,12 @@ export const C = {
   // Acento neutro para CTAs principales tipo Bevel (botones "Continuar",
   // "Guardar") — negro casi puro, no el brand50/60 morado de la app.
   accentBlack: "#000000",
+  // Color de texto/icono correcto sobre un fondo accentBlack -- invierte
+  // junto con él (blanco en claro, negro en oscuro, ya que accentBlack pasa
+  // a blanco ahí). Antes de este token, muchas pantallas hardcodeaban
+  // '#FFFFFF' junto a accentBlack asumiendo modo claro -- texto/icono
+  // blanco sobre un botón que en oscuro también es blanco (BUG-045).
+  accentBlackForeground: "#FFFFFF",
 };
 
 // Variante oscura de C, mismas claves exactas (Home v2, 2026-08-21 —
@@ -207,6 +213,7 @@ export const C_DARK: typeof C = {
   statusRest: "#FFD60A",
   statusCycle: "#FFD1DC",
   accentBlack: "#FFFFFF",
+  accentBlackForeground: "#000000",
 };
 
 // Hora local (0-23) a partir de la cual se considera "de noche" para el

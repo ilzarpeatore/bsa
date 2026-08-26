@@ -4,6 +4,7 @@ import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Button } from '@components/ui/button';
 import { Icon } from '@components/ui/icon';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface Props {
   navigation?: any;
@@ -11,11 +12,12 @@ interface Props {
 }
 
 export default function ComingSoonScreen(props: Props) {
+  const { colors: C } = useAppColorMode();
   const { navigation, route } = props;
   const title: string = route?.params?.title || 'Próximamente';
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <Box className="flex-row items-center px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />

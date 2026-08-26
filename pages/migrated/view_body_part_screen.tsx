@@ -11,6 +11,7 @@ import { Input, InputField, InputSlot } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import MuscleBodyMap from '../../components/MuscleBodyMap';
 import { bodyPartIdForMuscle, BODY_PART_ID_TO_NAME } from '../../constants/bodyMusclesMap';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 const MUSCLE_OPTIONS = Object.entries(BODY_PART_ID_TO_NAME)
   .map(([id, name]) => ({ id: Number(id), name }))
@@ -47,6 +48,7 @@ const BODY_MAP_TOGGLE_HEIGHT = 56;
 const TOGGLE_TOP_BREATHING_ROOM = 16;
 
 export default function ViewBodyPartScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [searchText, setSearchText] = useState('');
   const [listExpanded, setListExpanded] = useState(false);
   const [mapAreaHeight, setMapAreaHeight] = useState(0);
@@ -82,7 +84,7 @@ export default function ViewBodyPartScreen(props: any) {
   }, [searchText]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Buscar por músculo" onBack={() => props.navigation.goBack()} />
 
       <VStack space="sm" className="mx-5" style={{ marginTop: 12 }}>

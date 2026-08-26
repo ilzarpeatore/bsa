@@ -111,7 +111,7 @@ export default function ResourcesListScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Recursos" onBack={() => navigation?.goBack()} />
 
       <Box className="px-4" style={{ marginTop: 12, marginBottom: 4 }}>

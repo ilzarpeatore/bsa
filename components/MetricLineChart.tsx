@@ -165,7 +165,15 @@ function createTooltipStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       paddingVertical: 6,
       alignItems: 'center',
     },
-    value: { fontFamily: FONT.bold, fontSize: 13, color: '#FFFFFF' },
-    label: { fontFamily: FONT.regular, fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
+    value: { fontFamily: FONT.bold, fontSize: 13, color: C.accentBlackForeground },
+    label: {
+      fontFamily: FONT.regular,
+      fontSize: 10,
+      // mismo tono que "value" pero atenuado -- C.accentBlackForeground no
+      // admite alpha directamente, así que se deriva la rgba equivalente
+      // (blanco en claro, negro en oscuro, igual que el propio token).
+      color: C.accentBlackForeground === '#FFFFFF' ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.75)',
+      marginTop: 1,
+    },
   });
 }

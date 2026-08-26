@@ -84,7 +84,7 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <VStack className="flex-1" space="lg" style={{ padding: 20, paddingBottom: 40 }}>
         <Pressable
           className="w-10 h-10 rounded-sm bg-card border border-border items-center justify-center"

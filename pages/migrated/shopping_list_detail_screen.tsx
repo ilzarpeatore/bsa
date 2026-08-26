@@ -189,7 +189,7 @@ export default function ShoppingListDetailScreen(props: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={detailData?.title ?? 'Lista de la compra'}
         onBack={() => props.navigation.goBack()}
@@ -326,7 +326,7 @@ function AddItemSheet({
   return (
     <Actionsheet isOpen={visible} onClose={onClose}>
       <ActionsheetBackdrop />
-      <ActionsheetContent className="items-stretch p-0 bg-background rounded-t-lg" style={{ paddingBottom: 20 }}>
+      <ActionsheetContent className="items-stretch p-0 rounded-t-lg" style={{ paddingBottom: 20, backgroundColor: C.bg }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />

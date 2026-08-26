@@ -215,7 +215,7 @@ export default function OtherUserProfileScreen(props: any) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <Box
         className="absolute top-0 left-0 right-0"
         style={{ height: windowHeight * 0.3, backgroundColor: C.brand5 }}

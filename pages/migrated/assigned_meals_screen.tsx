@@ -240,7 +240,7 @@ export default function AssignedMealsScreen(props: any) {
       : '';
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title={title} onBack={() => props.navigation.goBack()} />
 
       {isLoading ? (
@@ -257,8 +257,7 @@ export default function AssignedMealsScreen(props: any) {
           {showCompactSummary && (
             <Pressable
               onPress={expandHeader}
-              className="bg-background"
-              style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}
+              style={{ backgroundColor: C.bg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}
             >
               <HStack className="items-center justify-between px-4">
                 {!isDietMode ? (
