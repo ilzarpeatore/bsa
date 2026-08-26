@@ -1654,3 +1654,37 @@ Borrados los 4 archivos (`pages/migrated/main_goal_screen.tsx`, `pages/migrated/
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Borrado seguro por diseño: sin ningún punto de entrada real, no hay ninguna ruta de navegación de la app que quede rota.
+
+---
+
+# BUG-041 — Modernización de `MigratedWorkoutSession.tsx`: bloques sin contraste real + fila de acciones con "Progreso"
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / contraste / navegación
+**Fase:** Post-sesión (reportado por el usuario con 2 capturas, 2026-08-26 — pedido de modernizar el estilo y añadir un botón "Progreso")
+
+## Problema
+
+La tarjeta de ejercicio activo en `MigratedWorkoutSession` ("los bloques") se veía plana, casi fundida con el fondo de la pantalla. Además se pidió: modernizar la tabla de series al estilo de una app de referencia (columnas KG antes que REPETICIONES, número de serie en círculo) y añadir un botón "Progreso" junto a "Añadir serie"/"Marcar todas" que abra el análisis histórico de ese ejercicio.
+
+## Causa del contraste
+
+La `Card` de cada ejercicio activo usaba `variant="filled"` (`bg-secondary`). En modo claro, `--secondary` es `rgb(247,247,247)` y `--background` (el fondo de la propia pantalla) es `rgb(244,244,247)` — una diferencia de 3 unidades por canal, invisible en la práctica. Las filas colapsadas de la misma pantalla, en cambio, ya usaban `bg-card` (`rgb(255,255,255)`, con contraste real de verdad contra el fondo) — de ahí que solo el bloque ACTIVO (el que se ve en la captura) pareciera "mal".
+
+## Fix
+
+- `Card` del ejercicio activo pasa de `variant="filled"` a `variant="elevated"` (`bg-card` + `shadow-card`) — mismo fondo blanco con contraste real que ya usan las filas colapsadas, más una sombra sutil de elevación.
+- Borde visible (`borderWidth:1, borderColor: C.border`) en el campo de nota y en cada celda de métrica (kg/reps/descanso/...), que antes solo tenían `bg-card` sin ningún borde -- ahora se recortan con nitidez contra la tarjeta, ya blanca de por sí.
+- Número de serie pasa de texto plano a una insignia circular con borde (mismo criterio visual que la referencia).
+- Orden de columnas fijado con una nueva función `sortMetricKeys()` (prioridad `series, carga, reps, descanso, rir, rpe, tiempo`) — reutiliza EXACTAMENTE el mismo orden canónico que ya usa `exercise_info_screen.tsx` para esta misma lista de métricas, en vez de inventar uno nuevo. Es un reordenamiento solo de cara al render; no toca el array `enabledMetrics` real de la plantilla.
+- Fila de acciones (antes "+ AÑADIR SERIE" / "MARCAR TODAS LAS SERIES", 2 botones sin separador) ahora son 3 columnas iguales con separador vertical: **PROGRESO / AÑADIR SERIE / MARCAR TODAS**.
+- "Progreso" reutiliza `openExerciseInfo(ex)`, una función que YA EXISTÍA en este mismo fichero (usada por el thumbnail/título del ejercicio) y que YA navegaba a `MigratedExerciseInfo` con `initialTab: 'analysis'` — no hizo falta ninguna navegación nueva, solo exponer un segundo punto de entrada explícito a la misma función.
+
+## Archivos modificados
+
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio visual real (contraste de las tarjetas, orden de columnas, nueva fila de botones) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de cambios de esta sesión.

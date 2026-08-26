@@ -67,6 +67,22 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // 'rir' como default único entre "rir o rpe" que pide la nota.
 const ADHOC_DEFAULT_METRICS = ['carga', 'reps', 'descanso', 'rir'];
 const ADHOC_DEFAULT_SERIES = 3;
+// Mismo orden canónico ya usado en exercise_info_screen.tsx para esta misma
+// lista de métricas (peticion de modernizar la tabla, 2026-08-26: la
+// referencia visual muestra "KG" antes que "REPETICIONES", al revés que el
+// orden crudo que a veces trae `enabledMetrics` del backend/plantilla) —
+// solo de cara al render, no reordena el array real de la plantilla.
+const METRIC_DISPLAY_PRIORITY = ['series', 'carga', 'reps', 'descanso', 'rir', 'rpe', 'tiempo'];
+function sortMetricKeys(keys: string[]): string[] {
+  return [...keys].sort((a, b) => {
+    const ai = METRIC_DISPLAY_PRIORITY.indexOf(a);
+    const bi = METRIC_DISPLAY_PRIORITY.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 // Estilos del renderItem del picker de "Añadir ejercicio", fuera del
 // componente para no reconstruirlos en cada fila del FlatList.
 const PICKER_RESULT_IMAGE_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 };
@@ -973,7 +989,7 @@ export default function WorkoutSessionScreen(props: Props) {
       >
         {block.exercises.map((ex, exIdx) =>
           exIdx === activeExIdx ? (
-            <Card key={ex.id} variant="filled" className="mx-4" style={{ marginBottom: 10 }}>
+            <Card key={ex.id} variant="elevated" className="mx-4" style={{ marginBottom: 10 }}>
               <HStack className="items-center">
                 <Pressable
                   className="flex-1 flex-row items-center"
@@ -1024,7 +1040,7 @@ export default function WorkoutSessionScreen(props: Props) {
 
               <TextInput
                 className="bg-card rounded-md px-3 py-2.5 text-foreground"
-                style={{ marginTop: 14, fontFamily: FONT.regular, fontSize: 13 }}
+                style={{ marginTop: 14, fontFamily: FONT.regular, fontSize: 13, borderWidth: 1, borderColor: C.border }}
                 placeholder="Añadir nota..."
                 placeholderTextColor={C.textSecondary}
                 value={ex.note}
@@ -1037,14 +1053,17 @@ export default function WorkoutSessionScreen(props: Props) {
                   cabecera envolvían a 2 líneas y se solapaban con la fila de
                   inputs de abajo. Ancho fijo por columna + toda la tabla
                   como una única fila horizontalmente scrolleable (en vez de
-                  comprimir texto) mantiene # / métricas / ✓ siempre alineados. */}
+                  comprimir texto) mantiene # / métricas / ✓ siempre alineados.
+                  Orden de columnas fijo vía sortMetricKeys (carga antes que
+                  reps, etc.) -- pedido explícito 2026-08-26 de modernizar la
+                  tabla con el mismo orden que ya usa exercise_info_screen.tsx. */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Box style={{ marginTop: 16 }}>
                   <HStack className="items-center" style={{ marginBottom: 8 }}>
-                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 26 }}>
-                      #
+                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                      SERIE
                     </Text>
-                    {ex.enabledMetrics.map((key) => (
+                    {sortMetricKeys(ex.enabledMetrics).map((key) => (
                       <Text
                         key={key}
                         weight="semibold"
@@ -1069,14 +1088,22 @@ export default function WorkoutSessionScreen(props: Props) {
                         backgroundColor: row.completed ? C.success5 : 'transparent',
                       }}
                     >
-                      <Text
-                        weight="medium"
-                        className="text-center text-foreground"
-                        style={{ fontSize: 13, width: 26 }}
+                      <Box
+                        className="items-center justify-center"
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          borderColor: C.border,
+                          marginHorizontal: 5,
+                        }}
                       >
-                        {rowIdx + 1}
-                      </Text>
-                      {ex.enabledMetrics.map((key) => {
+                        <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
+                          {rowIdx + 1}
+                        </Text>
+                      </Box>
+                      {sortMetricKeys(ex.enabledMetrics).map((key) => {
                         // Punto 1 (Motor de Auto-Regulacion de Carga): si hay una
                         // sugerencia PENDIENTE del motor para este ejercicio, esa
                         // es la carga/reps real que hay que usar -- se muestra en
@@ -1101,7 +1128,14 @@ export default function WorkoutSessionScreen(props: Props) {
                           <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
                             <TextInput
                               className="bg-card rounded-sm text-foreground"
-                              style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center' }}
+                              style={{
+                                paddingVertical: 8,
+                                fontFamily: FONT.regular,
+                                fontSize: 13,
+                                textAlign: 'center',
+                                borderWidth: 1,
+                                borderColor: C.border,
+                              }}
                               value={row.values[key] ?? ''}
                               onChangeText={(t) => setCellValue(blockIdx, exIdx, rowIdx, key, t)}
                               onFocus={isTutorialMetric ? () => reportAction(`metric_focus_${key}`) : undefined}
@@ -1158,20 +1192,47 @@ export default function WorkoutSessionScreen(props: Props) {
                 </Box>
               </ScrollView>
 
-              <HStack className="items-center justify-between" style={{ marginTop: 14 }}>
-                <Pressable onPress={() => addRow(blockIdx, exIdx)}>
-                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                    + AÑADIR SERIE
+              {/* Fila de acciones modernizada (pedido explícito 2026-08-26):
+                  "Progreso" abre el análisis histórico de ESTE ejercicio
+                  (misma navegación que ya usa el thumbnail/título de arriba,
+                  openExerciseInfo -- MigratedExerciseInfo con
+                  initialTab:'analysis'), al lado de "Añadir serie" y
+                  "Marcar todas" (antes en una fila propia de solo 2 botones,
+                  sin icono compartido ni separador). */}
+              <HStack
+                className="items-center justify-between"
+                style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border }}
+              >
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center"
+                  style={{ gap: 5 }}
+                  onPress={() => openExerciseInfo(ex)}
+                >
+                  <Icon name="analytics-outline" size={15} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 11 }}>
+                    PROGRESO
                   </Text>
                 </Pressable>
+                <Box style={{ width: 1, height: 18, backgroundColor: C.border }} />
                 <Pressable
-                  className="flex-row items-center"
-                  style={{ gap: 6 }}
+                  className="flex-1 flex-row items-center justify-center"
+                  style={{ gap: 5 }}
+                  onPress={() => addRow(blockIdx, exIdx)}
+                >
+                  <Icon name="add" size={16} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 11 }}>
+                    AÑADIR SERIE
+                  </Text>
+                </Pressable>
+                <Box style={{ width: 1, height: 18, backgroundColor: C.border }} />
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center"
+                  style={{ gap: 5 }}
                   onPress={() => markAllRows(blockIdx, exIdx)}
                 >
-                  <Icon name="checkmark-done" size={16} className="text-foreground" />
-                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                    MARCAR TODAS LAS SERIES
+                  <Icon name="checkmark-done" size={15} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 11 }}>
+                    MARCAR TODAS
                   </Text>
                 </Pressable>
               </HStack>
