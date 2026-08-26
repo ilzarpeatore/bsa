@@ -5,8 +5,8 @@ import {
   Dimensions,
   Platform,
   StatusBar,
-  Alert,
 } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  LinearGradient  } from 'expo-linear-gradient';
@@ -114,7 +114,7 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
       await readinessApi.submit(values);
       onDone();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSaving(false);
     }

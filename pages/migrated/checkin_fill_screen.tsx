@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -252,11 +253,10 @@ export default function CheckInFillScreen(props: Props) {
 
       await checkinsApi.submit(formAssignmentId, payload);
       reportAction('checkin_submitted');
-      Alert.alert('Enviado', 'Tu respuesta se ha guardado correctamente.', [
-        { text: 'OK', onPress: () => navigation?.goBack() },
-      ]);
+      showToast('Enviado', { description: 'Tu respuesta se ha guardado correctamente.', variant: 'success' });
+      navigation?.goBack();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo enviar el formulario. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo enviar el formulario. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSubmitting(false);
     }

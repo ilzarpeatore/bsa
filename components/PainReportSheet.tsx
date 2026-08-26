@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {  View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Alert  } from 'react-native';
+import {  View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator  } from 'react-native';
 import {  Ionicons  } from '@expo/vector-icons';
 import { FONT, RADIUS } from '../pages/migrated/theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { showToast } from '@helper/toast';
 import SimpleBottomSheet from './SimpleBottomSheet';
 import {
   painReportsApi,
@@ -108,14 +109,14 @@ export default function PainReportSheet({
       );
       const coachNotified = blocksProgression(tipo, intensidad);
       onClose();
-      Alert.alert(
-        'Dolor reportado',
-        coachNotified
+      showToast('Dolor reportado', {
+        description: coachNotified
           ? 'Gracias por avisar. Hemos notificado a tu entrenador para que lo revise.'
-          : 'Gracias por avisar, queda registrado en tu sesión.'
-      );
+          : 'Gracias por avisar, queda registrado en tu sesión.',
+        variant: 'success',
+      });
     } catch (e) {
-      Alert.alert('Error', 'No se pudo enviar el reporte. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo enviar el reporte. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSubmitting(false);
     }

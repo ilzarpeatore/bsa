@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ScrollView, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Box } from '@components/ui/box';
@@ -12,6 +12,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { logger } from '@helper/logger';
+import { showToast } from '@helper/toast';
 import { habitsApi, HabitTemplate, HabitFrequency } from '../../api/habits';
 import { HABIT_ICON_KEYS, habitIoniconFor } from '../../constants/habitIcons';
 
@@ -121,7 +122,7 @@ function HabitAddScreenInner(props: Props) {
     } catch (e: any) {
       logger.error('[HabitAdd] Error adoptando hábito de biblioteca:', e);
       const msg = e?.response?.data?.message || 'No se pudo añadir este hábito.';
-      Alert.alert('Aviso', msg);
+      showToast('Aviso', { description: msg, variant: 'error' });
     } finally {
       setAdoptingId(null);
     }
@@ -160,7 +161,7 @@ function HabitAddScreenInner(props: Props) {
 
   const submitPersonal = async () => {
     if (!title.trim()) {
-      Alert.alert('Falta el nombre', 'Ponle un nombre a tu hábito.');
+      showToast('Falta el nombre', { description: 'Ponle un nombre a tu hábito.', variant: 'warning' });
       return;
     }
     setSubmitting(true);
@@ -188,7 +189,7 @@ function HabitAddScreenInner(props: Props) {
       // desarrollador" en Ajustes).
       logger.error('[HabitAdd] Error creando hábito personal:', e);
       const msg = e?.response?.data?.message || 'No se pudo crear el hábito. Inténtalo de nuevo.';
-      Alert.alert('Error', msg);
+      showToast('Error', { description: msg, variant: 'error' });
     } finally {
       setSubmitting(false);
     }

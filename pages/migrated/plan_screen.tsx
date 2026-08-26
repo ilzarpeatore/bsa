@@ -31,6 +31,7 @@ import {  dietApi, AssignedMealsSummary, AssignedMealRecipe  } from '../../api/d
 import {  recipesApi, RecipeListItem  } from '../../api/recipes';
 import logger from '@helper/logger';
 import { hapticLight } from '@helper/haptics';
+import { showToast } from '@helper/toast';
 
 function formatDateYMD(d: Date): string {
   const y = d.getFullYear();
@@ -282,7 +283,7 @@ export default function PlanScreen(props: any) {
 
   const toggleRecipeCompletion = async (item: DailyPlanRecipeItem, mealType: string) => {
     if (!item.id || !item.dailyPlanId || !item.recipeId) {
-      Alert.alert('Error', 'Falta información necesaria');
+      showToast('Error', { description: 'Falta información necesaria', variant: 'error' });
       return;
     }
     setIsLoading(true);
@@ -301,7 +302,7 @@ export default function PlanScreen(props: any) {
       }
       applyDailyPlanResponse(response.data);
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo actualizar');
+      showToast('Error', { description: e?.message ?? 'No se pudo actualizar', variant: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -336,7 +337,7 @@ export default function PlanScreen(props: any) {
             await recipesApi.deleteAllDailyPlanRecipes(planId);
             await fetchDailyPlan();
           } catch (e) {
-            Alert.alert('Error', 'No se pudo vaciar el plan');
+            showToast('Error', { description: 'No se pudo vaciar el plan', variant: 'error' });
           } finally {
             setIsLoading(false);
           }
@@ -415,7 +416,7 @@ export default function PlanScreen(props: any) {
       setAddMealFor(null);
       await fetchDailyPlan();
     } catch {
-      Alert.alert('Error', 'No se pudo añadir esta comida. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo añadir esta comida. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSavingRecipeId(null);
     }

@@ -2297,3 +2297,15 @@ Tras el build de IPA y la auditoría de seguridad, el usuario reportó 10 bugs/p
 Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores (esta corrida en particular tardó notablemente más de lo habitual — ~20 min frente a los 5-10 min normales de la sesión — atribuible al mayor coste de inferencia de tipos genéricos de `native-stack` sobre las ~150 pantallas registradas, no a contención de recursos: la carga del sistema se mantuvo normal durante toda la corrida).
 
 **Pendiente**: confirmación visual/funcional real en dispositivo de los 3 cambios grandes (BUG-036, 037, 038) antes de darlos por cerrados del todo — recomendado como prioridad #1 del próximo build de IPA, empezando por BUG-038 al ser el de mayor superficie (afecta a toda la navegación de la app).
+
+## Sesión 2026-08-26 (continuación) — `pod install` (investigado, no ejecutable aquí) + migración de Alert.alert a Toast
+
+Pedido explícito del usuario tras la ronda de bugs anterior: "haz pod install, luego migra los 70-75 alert.alert". Detalle en `docs/BUILD_IPA.md` (nota de `pod install`) e `IMPROVEMENTS.md` (IMP-010) — resumen aquí.
+
+**`pod install`**: probado explícitamente (`gem install cocoapods` funciona en este sandbox Linux, pero `pod install` sobre `ios/Podfile` falla siempre porque `use_react_native!` invoca `xcodebuild`, inexistente fuera de macOS con Xcode). No es un problema del proyecto — es una limitación de plataforma sin solución posible desde este entorno de agente. No hace falta ningún workaround: `ios-build.yml` ya ejecuta `pod install` en cada build sobre un runner macOS real con Xcode, así que cualquier dependencia nativa nueva (haptics, HealthKit, SecureStore) se resuelve sola en el próximo build lanzado.
+
+**Migración de `Alert.alert` a Toast**: de los 107 `Alert.alert` del repo, 90 (feedback simple de una sola dirección: validaciones, errores, éxitos, avisos) se migraron a un sistema de toast global nuevo (`helper/toast.ts` + `components/ToastHost.tsx`, montado en `App.tsx`) construido sobre los componentes visuales `Toast`/`ToastTitle`/`ToastDescription` que ya existían desde Fase 3 sin consumidor real. Los otros 17 (confirmaciones destructivas con Cancelar/acción, menús de elección real) se dejan como `Alert.alert` a propósito — un toast no bloquea ni sustituye una decisión real. `tsc` detectó y permitió corregir un error de JSX real introducido al montar `ToastHost` (`</TutorialProvider>` sin cerrar en `App.tsx`) antes de llegar a commitear.
+
+**Backend**: nada de este bloque de trabajo requería tocar el backend — es 100% frontend (mecanismo de feedback visual) y config nativa ya resuelta por CI. El resto de puntos pendientes con dependencia de backend (rate limiting, saneado de errores 5xx en origen, revocación de sesión, IDOR) siguen tal cual en `docs/PENDIENTE_BACKEND_ADMIN.md`, sin cambios en esta sesión.
+
+Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores.

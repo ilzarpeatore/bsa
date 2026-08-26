@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { View, ScrollView } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -162,12 +163,12 @@ export default function StatisticsMuscleDistributionScreen(props: Props) {
       const uri = await captureRef(shareRef, { format: 'png', quality: 0.92 });
       const available = await Sharing.isAvailableAsync();
       if (!available) {
-        Alert.alert('No disponible', 'Compartir no está disponible en este dispositivo.');
+        showToast('No disponible', { description: 'Compartir no está disponible en este dispositivo.', variant: 'warning' });
         return;
       }
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir distribución muscular' });
     } catch (e) {
-      Alert.alert('Error', 'No se pudo generar la imagen para compartir.');
+      showToast('Error', { description: 'No se pudo generar la imagen para compartir.', variant: 'error' });
     } finally {
       setIsSharing(false);
     }

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {  StyleSheet, Platform, Alert, ActivityIndicator, ScrollView  } from 'react-native';
+import {  StyleSheet, Platform, ActivityIndicator, ScrollView  } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import {  Text  } from '@components/ui/text';
@@ -52,19 +53,19 @@ export default function AppFeedbackScreen(props: any) {
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      Alert.alert('Falta el título', 'Ponle un título corto a tu ' + (isBug ? 'informe.' : 'solicitud.'));
+      showToast('Falta el título', { description: 'Ponle un título corto a tu ' + (isBug ? 'informe.' : 'solicitud.'), variant: 'warning' });
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Falta la descripción', 'Cuéntanos con más detalle antes de enviarlo.');
+      showToast('Falta la descripción', { description: 'Cuéntanos con más detalle antes de enviarlo.', variant: 'warning' });
       return;
     }
     if (!section) {
-      Alert.alert('Falta la sección', 'Indica con qué parte de la app está relacionado.');
+      showToast('Falta la sección', { description: 'Indica con qué parte de la app está relacionado.', variant: 'warning' });
       return;
     }
     if (section === 'other' && !sectionOther.trim()) {
-      Alert.alert('Falta describir la sección', 'Cuéntanos brevemente con qué parte de la app está relacionado.');
+      showToast('Falta describir la sección', { description: 'Cuéntanos brevemente con qué parte de la app está relacionado.', variant: 'warning' });
       return;
     }
 
@@ -80,14 +81,14 @@ export default function AppFeedbackScreen(props: any) {
         app_version: Constants.expoConfig?.version,
         platform: Platform.OS,
       });
-      Alert.alert(
-        isBug ? 'Informe enviado' : 'Solicitud enviada',
-        'Gracias -- el equipo lo revisará en breve.',
-        [{ text: 'OK', onPress: () => props.navigation.goBack() }]
-      );
+      showToast(isBug ? 'Informe enviado' : 'Solicitud enviada', {
+        description: 'Gracias -- el equipo lo revisará en breve.',
+        variant: 'success',
+      });
+      props.navigation.goBack();
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'No se pudo enviar. Inténtalo de nuevo más tarde.';
-      Alert.alert('Error', msg);
+      showToast('Error', { description: msg, variant: 'error' });
     } finally {
       setSubmitting(false);
     }

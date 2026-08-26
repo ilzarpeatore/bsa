@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
-  ScrollView, Alert,
+  ScrollView,
   View,
 } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
@@ -413,12 +414,12 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     if (ok) {
       const [yearStr, monthStr] = ym.split('-');
       getData(Number(monthStr), Number(yearStr), ym);
-      Alert.alert(
-        'Guardado',
-        count > 1 ? `Se movieron ${count} entrenamientos de día.` : 'Se movió el entrenamiento de día.'
-      );
+      showToast('Guardado', {
+        description: count > 1 ? `Se movieron ${count} entrenamientos de día.` : 'Se movió el entrenamiento de día.',
+        variant: 'success',
+      });
     } else {
-      Alert.alert('No se pudo guardar', 'Inténtalo de nuevo en unos minutos.');
+      showToast('No se pudo guardar', { description: 'Inténtalo de nuevo en unos minutos.', variant: 'error' });
     }
   };
 
@@ -792,14 +793,15 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     cancelSelectionMode();
 
     if (errCount === 0) {
-      Alert.alert(
-        'Solicitud enviada',
-        okCount > 1
-          ? `Se enviaron ${okCount} solicitudes (una por semana). Tu entrenador las revisará antes de que se apliquen.`
-          : 'Tu entrenador la revisará antes de que se aplique a tu calendario.'
-      );
+      showToast('Solicitud enviada', {
+        description:
+          okCount > 1
+            ? `Se enviaron ${okCount} solicitudes (una por semana). Tu entrenador las revisará antes de que se apliquen.`
+            : 'Tu entrenador la revisará antes de que se aplique a tu calendario.',
+        variant: 'success',
+      });
     } else {
-      Alert.alert('Solicitud parcial', `${okCount} semana(s) enviada(s) correctamente, ${errCount} fallaron. Inténtalo de nuevo.`);
+      showToast('Solicitud parcial', { description: `${okCount} semana(s) enviada(s) correctamente, ${errCount} fallaron. Inténtalo de nuevo.`, variant: 'warning' });
     }
   };
 

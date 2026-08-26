@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Alert, ScrollView, LayoutChangeEvent } from 'react-native';
+import { ScrollView, LayoutChangeEvent } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -68,7 +69,7 @@ export default function ViewBodyPartScreen(props: any) {
   const handleMusclePress = (muscleId: string) => {
     const bodyPartId = bodyPartIdForMuscle(muscleId);
     if (!bodyPartId) {
-      Alert.alert('Sin ejercicios', 'Todavía no hay ejercicios clasificados para esta zona.');
+      showToast('Sin ejercicios', { description: 'Todavía no hay ejercicios clasificados para esta zona.', variant: 'info' });
       return;
     }
     goToExercises(bodyPartId);

@@ -15,6 +15,7 @@ import {  Button, ButtonText  } from '@components/ui/button';
 import {  Modal, ModalBackdrop, ModalContent  } from '@components/ui/modal';
 import {  isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { showToast } from '@helper/toast';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  habitsApi, Habit, HabitLogEntry, HABIT_HISTORY_DAYS  } from '../../api/habits';
 import {  habitIoniconFor  } from '../../constants/habitIcons';
@@ -178,7 +179,7 @@ export default function HabitDetailScreen(props: Props) {
       await habitsApi.logHabit(habit.id, { date: iso, is_completed: !wasCompleted });
       await load();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo actualizar ese día. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo actualizar ese día. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setPendingDate(null);
     }
@@ -207,7 +208,7 @@ export default function HabitDetailScreen(props: Props) {
     const raw = valueInput.trim();
     const num = raw === '' ? 0 : Number(raw.replace(',', '.'));
     if (Number.isNaN(num) || num < 0) {
-      Alert.alert('Valor no válido', 'Introduce un número válido.');
+      showToast('Valor no válido', { description: 'Introduce un número válido.', variant: 'warning' });
       return;
     }
     setSavingValue(true);
@@ -216,7 +217,7 @@ export default function HabitDetailScreen(props: Props) {
       await load();
       setValueModalDate(null);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar el registro. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo guardar el registro. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSavingValue(false);
     }
@@ -234,7 +235,7 @@ export default function HabitDetailScreen(props: Props) {
             await habitsApi.remove(habit.id);
             navigation?.goBack();
           } catch (e) {
-            Alert.alert('Error', 'No se pudo eliminar el hábito.');
+            showToast('Error', { description: 'No se pudo eliminar el hábito.', variant: 'error' });
           }
         },
       },

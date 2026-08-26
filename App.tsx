@@ -11,6 +11,7 @@ import ScreenReviewFab from "@components/ScreenReviewFab";
 import ScreenExplorerFab from "@components/ScreenExplorerFab";
 import WorkoutMinimizedBar from "@components/WorkoutMinimizedBar";
 import TutorialOverlay from "@components/tutorial/TutorialOverlay";
+import ToastHost from "@components/ToastHost";
 import { TutorialProvider } from "@store/TutorialContext";
 import { hydratePersistedWorkoutSession } from "@helper/workoutSessionBus";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -498,6 +499,7 @@ export default function App() {
                   <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
                   <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
                   <TutorialOverlay />
+                  <ToastHost />
                 </TutorialProvider>
               </AuthProvider>
             </GluestackModeBridge>

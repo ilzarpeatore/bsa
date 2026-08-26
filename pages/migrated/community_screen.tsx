@@ -13,6 +13,7 @@ import {  Icon  } from '@components/ui/icon';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 import { hapticLight } from '@helper/haptics';
 import {  RADIUS  } from './theme';
 
@@ -187,7 +188,7 @@ export default function CommunityScreen(props: any) {
             setMPostList((prev) => prev.filter((p) => p.id !== item.id));
           } catch (e) {
             logger.error('Error deleting post', e);
-            Alert.alert('Error', 'No se pudo eliminar la publicación');
+            showToast('Error', { description: 'No se pudo eliminar la publicación', variant: 'error' });
           }
         },
       },

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { View, ScrollView } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -38,10 +39,11 @@ function weekLabel(days: DaySelectorItem[]): string {
 }
 
 const onHelp = () =>
-  Alert.alert(
-    '¿Qué muestra este mapa?',
-    'El color de cada zona refleja el volumen entrenado en los últimos 7 días terminando en el día seleccionado (igual que el gráfico corporal de la pantalla principal de Estadísticas). La tabla de abajo muestra las series registradas por grupo muscular en esa misma ventana.'
-  );
+  showToast('¿Qué muestra este mapa?', {
+    description: 'El color de cada zona refleja el volumen entrenado en los últimos 7 días terminando en el día seleccionado (igual que el gráfico corporal de la pantalla principal de Estadísticas). La tabla de abajo muestra las series registradas por grupo muscular en esa misma ventana.',
+    variant: 'info',
+    duration: 6000,
+  });
 
 export default function StatisticsBodyDistributionScreen(props: Props) {
   const { navigation } = props;
@@ -137,12 +139,12 @@ export default function StatisticsBodyDistributionScreen(props: Props) {
       const uri = await captureRef(shareRef, { format: 'png', quality: 0.92 });
       const available = await Sharing.isAvailableAsync();
       if (!available) {
-        Alert.alert('No disponible', 'Compartir no está disponible en este dispositivo.');
+        showToast('No disponible', { description: 'Compartir no está disponible en este dispositivo.', variant: 'warning' });
         return;
       }
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir mapa corporal' });
     } catch (e) {
-      Alert.alert('Error', 'No se pudo generar la imagen para compartir.');
+      showToast('Error', { description: 'No se pudo generar la imagen para compartir.', variant: 'error' });
     } finally {
       setIsSharing(false);
     }

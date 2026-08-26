@@ -52,6 +52,7 @@ import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
 import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
+import { showToast } from '@helper/toast';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -238,13 +239,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleRateApp = useCallback(() => {
     if (Platform.OS === 'ios') {
       if (!APP_STORE_ID) {
-        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en la App Store.');
+        showToast('Aún no disponible', { description: 'BeFit todavía no tiene ficha publicada en la App Store.', variant: 'info' });
         return;
       }
       Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`);
     } else {
       if (!PLAY_STORE_PUBLISHED) {
-        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en Google Play.');
+        showToast('Aún no disponible', { description: 'BeFit todavía no tiene ficha publicada en Google Play.', variant: 'info' });
         return;
       }
       const pkg = Constants.expoConfig?.android?.package;
@@ -256,10 +257,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleSendLogs = useCallback(async () => {
     const report = getDiagnosticsReportText();
     if (!report) {
-      Alert.alert(
-        'No hay registros que enviar',
-        'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.'
-      );
+      showToast('No hay registros que enviar', {
+        description: 'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.',
+        variant: 'warning',
+      });
       return;
     }
     const header = `BeFit ${Constants.expoConfig?.version ?? ''} · ${Platform.OS}\n\n`;

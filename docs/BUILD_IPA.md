@@ -37,6 +37,12 @@ unsanitizedScriptURLString = (null)
 
 `Debug` solo tiene sentido si el APK/IPA va a conectarse a un Metro packager corriendo en la misma red (desarrollo con `npm start`, ver `docs/ARRANQUE_DESARROLLO.md`) — no es el caso de un IPA que alguien va a instalar y abrir de forma independiente.
 
+## `pod install` no se puede ejecutar desde este entorno de agente (2026-08-26)
+
+Probado explícitamente: CocoaPods sí se puede instalar como gem en este sandbox Linux (`gem install cocoapods` funciona), pero `pod install` sobre `ios/Podfile` falla siempre en el mismo punto — `use_react_native!` invoca `xcodebuild` para resolver la configuración nativa, y `xcodebuild` no existe fuera de macOS con Xcode instalado. No es un problema de configuración del proyecto, es una limitación de plataforma sin solución posible desde aquí.
+
+**No hace falta workaround**: el workflow `ios-build.yml` ya ejecuta `pod install` como parte de cada build, en un runner macOS de GitHub Actions con Xcode real — cualquier cambio de dependencias nativas (haptics, HealthKit, SecureStore, etc.) se resuelve solo, de forma correcta, en el siguiente build lanzado. No hay ninguna acción pendiente aquí; si se repite el intento de verificar dependencias nativas localmente en una sesión futura, esto ya está confirmado y no merece reintentarse.
+
 ## Firma (`use_signing`)
 
 Queda en `false` (default) mientras no haya cuenta de pago de Apple Developer Program configurada (bloqueante documentado en `docs/PENDIENTE_BACKEND_ADMIN.md`, sección HealthKit). Un IPA sin firmar sigue siendo válido para sideload vía herramientas tipo AltStore/Sideloadly, que lo resignan.

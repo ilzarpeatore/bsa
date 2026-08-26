@@ -8,13 +8,13 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@store/AuthContext";
 import { Colors } from "@constants/colors";
+import { showToast } from "@helper/toast";
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -27,7 +27,7 @@ export default function LoginScreen() {
 
   const handleLogin = useCallback(async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Introduce tu email y contraseña");
+      showToast("Error", { description: "Introduce tu email y contraseña", variant: "error" });
       return;
     }
     setLoading(true);
@@ -35,7 +35,7 @@ export default function LoginScreen() {
       await login({ email: email.trim(), password, user_type: "user" });
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || "Error al iniciar sesión";
-      Alert.alert("Error al iniciar sesión", message);
+      showToast("Error al iniciar sesión", { description: message, variant: "error" });
     } finally {
       setLoading(false);
     }

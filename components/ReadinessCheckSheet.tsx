@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FONT } from '../pages/migrated/theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { showToast } from '@helper/toast';
 import SimpleBottomSheet from './SimpleBottomSheet';
 import { readinessApi, ReadinessValues } from '../api/readiness';
 
@@ -88,7 +89,7 @@ export default function ReadinessCheckSheet({ visible, onClose, onSubmitted }: R
       onSubmitted(values);
       onClose();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSubmitting(false);
     }

@@ -20,6 +20,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { shoppingApi, ShoppingListDetail, ShoppingListItemDetail, MeasurementUnit } from '@api/shopping';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 
 export default function ShoppingListDetailScreen(props: any) {
   const { colors: C } = useAppColorMode();
@@ -94,7 +95,7 @@ export default function ShoppingListDetailScreen(props: any) {
                 props.navigation.goBack(true);
               } catch (e: any) {
                 logger.error('Error deleting shopping list:', e);
-                Alert.alert('Error', 'No se pudo borrar la lista');
+                showToast('Error', { description: 'No se pudo borrar la lista', variant: 'error' });
               }
             },
           },
@@ -301,7 +302,7 @@ function AddItemSheet({
 
   const submit = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Introduce el nombre del artículo');
+      showToast('Error', { description: 'Introduce el nombre del artículo', variant: 'error' });
       return;
     }
     setSubmitting(true);
@@ -316,7 +317,7 @@ function AddItemSheet({
       onAdded();
     } catch (e: any) {
       logger.error('Error adding shopping list item:', e);
-      Alert.alert('Error', 'No se pudo añadir el item');
+      showToast('Error', { description: 'No se pudo añadir el item', variant: 'error' });
     } finally {
       setSubmitting(false);
     }

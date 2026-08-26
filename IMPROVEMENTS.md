@@ -312,3 +312,47 @@ Los subtítulos (descripciones bajo cada título) no se tocaron — el pedido er
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puramente de texto (ningún string se usa como key/id en ningún sitio del código, confirmado por grep antes de tocarlos) — sin riesgo funcional. Pendiente de que el usuario confirme que la nueva redacción le convence.
+
+---
+
+# IMP-010 — Sistema de Toast global + migración de 90 `Alert.alert` de feedback simple
+
+**Estado:** ✅ Aplicada
+**Categoría:** UX / feedback
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-26 — "migrar los 70-65 alert.alert")
+
+## Contexto
+
+Fase 3 de la auditoría (`IMP-007`) ya había construido el componente visual `Toast`/`ToastTitle`/`ToastDescription` (`components/ui/toast/`, primitivas de `@gluestack-ui/core`) pero sin ningún consumidor real — se quedó como pieza lista pero inactiva, con la migración de `Alert.alert` diferida explícitamente ("cambia comportamiento real... diferido a cuando haya verificación visual real"). El usuario ha pedido ahora ejecutar esa migración.
+
+## Problema con `Alert.alert` para feedback simple
+
+`Alert.alert` es un diálogo nativo bloqueante (modal del sistema) — apropiado para una elección real (confirmar/cancelar, un menú de acciones), pero desproporcionado para un aviso de una sola dirección ("no se pudo guardar", "hecho", "próximamente"): interrumpe el flujo, exige un toque extra para descartarlo, y no encaja con el resto de la app (que ya usa overlays/sheets propios en vez de diálogos nativos del sistema en casi todo lo demás).
+
+## Infraestructura nueva
+
+Las primitivas de `components/ui/toast/` son de bajo nivel (`useToast()` de `@gluestack-ui/core`, un _hook_ que exige contexto de componente) — no sirven para reemplazar una función plana importable desde cualquier sitio como `Alert.alert`. Se construyó un controlador global imperativo encima, mismo patrón ya usado en el repo para estado global sin Context (ver `helper/workoutSessionBus.ts` + `WorkoutMinimizedBar.tsx`):
+
+- **`helper/toast.ts`** — pub/sub a nivel de módulo. `showToast(title, { description?, variant?, duration? })` es una función plana, importable y llamable desde cualquier `catch`/handler, exactamente igual que `Alert.alert` antes.
+- **`components/ToastHost.tsx`** — componente montado una sola vez cerca de la raíz (`App.tsx`, junto a `WorkoutMinimizedBar`/`TutorialOverlay`), se suscribe al controlador y pinta la pila de toasts activos usando los componentes visuales ya existentes de Fase 3, con auto-dismiss (3.5s por defecto, configurable por toast) y toque para descartar antes de tiempo.
+- Vive por encima del `NavigationContainer` (mismo nivel que el resto de overlays globales), así que un toast sobrevive a una navegación inmediata después de mostrarlo (relevante para los casos que antes usaban `onPress` del botón "OK" del `Alert.alert` para navegar — ver más abajo).
+
+## Criterio de migración (qué se convierte, qué no)
+
+Se revisaron los 107 `Alert.alert` del repo uno a uno, no en bloque:
+
+- **90 convertidos a `showToast`**: todos los que solo mostraban información o el resultado de una acción con un único botón implícito ("OK"), sin ninguna elección real del usuario — validaciones de formulario, errores de red, confirmaciones de éxito, avisos de "próximamente"/"no disponible", permisos denegados.
+- **17 se quedan como `Alert.alert`, a propósito**: confirmaciones destructivas con Cancelar + acción (cerrar sesión, borrar hábito/medida/lista/plan, limpiar chat, recargar la app) y menús de elección real con varios botones (elegir foto de galería/cámara, motivo de un reporte, opciones de una publicación). Un toast no bloquea ni puede sustituir una decisión real — forzarlo ahí sería un downgrade de UX, no una mejora.
+- **Caso especial resuelto**: los `Alert.alert` de éxito que encadenaban una navegación en el botón "OK" (p. ej. `app_feedback_screen.tsx`, `checkin_fill_screen.tsx`) pasan a mostrar el toast y navegar inmediatamente después, en vez de esperar al toque del usuario — mismo comportamiendo "no bloqueante" que motivó todo el cambio; el toast sigue visible durante la transición porque vive por encima del navigator.
+
+## Archivos modificados
+
+Infraestructura: `helper/toast.ts` (nuevo), `components/ToastHost.tsx` (nuevo), `App.tsx` (montaje).
+
+Migrados (90 `Alert.alert` → `showToast` en 30 archivos): `components/PainReportSheet.tsx`, `components/ReadinessCheckSheet.tsx`, `pages/auth/{ForgotPasswordOptionsScreen,LoginScreen,RegisterScreen,WelcomeAuthScreen}.tsx`, `pages/migrated/{add_post_screen,add_shopping_list_screen,app_feedback_screen,assigned_meals_screen,blog_screen,change_pwd_screen,checkin_fill_screen,community_screen,edit_profile_screen,habit_add_screen,habit_detail_screen,home_screen_modern_v2,my_program_calendar_screen,plan_screen,post_details_screen,shopping_list_detail_screen,statistics_body_distribution_screen,statistics_muscle_distribution_screen,view_body_part_screen,water_tracker_screen,workout_preview_screen,workout_summary_screen}.tsx`, `pages/migrated/home/link_device_choice_screen.tsx`.
+
+Sin cambios, a propósito (17 `Alert.alert` reales): `pages/Home.tsx`, `pages/migrated/{shopping_list_detail_screen,add_post_screen,notification_settings_screen,chatting_image_screen,profile_screen,chatting_screen,home_screen_modern_v2,habit_detail_screen,post_details_screen,edit_profile_screen,body_metrics_screen,community_screen,plan_screen}.tsx` (varios de estos archivos tienen AMBOS: alguno migrado y otro que se queda, ver detalle de cada uno en el propio código).
+
+## Verificación
+
+`eslint --quiet` limpio en los 32 archivos tocados, `tsc --noEmit -p .` completo del proyecto sin errores (detectado y corregido en el proceso un error real de JSX en `App.tsx` — un `</TutorialProvider>` que se había quedado sin cerrar al montar `ToastHost`, capturado por el propio `tsc` antes de llegar a commitear). Cambio de comportamiento visual real (aparece un toast donde antes había un diálogo nativo) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de cambios de esta sesión.

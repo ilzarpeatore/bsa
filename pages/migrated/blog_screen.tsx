@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {  StyleSheet, ScrollView, TextInput, Dimensions, Alert  } from 'react-native';
+import {  StyleSheet, ScrollView, TextInput, Dimensions  } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Image  } from 'expo-image';
 import {  Box  } from '@components/ui/box';
@@ -111,7 +112,7 @@ export default function BlogScreen({ navigation }: any) {
         setCategories(catsRes.data?.data ?? []);
       } catch {}
     } catch (e: any) {
-      Alert.alert('Blog Error', e?.message || String(e));
+      showToast('Blog Error', { description: e?.message || String(e), variant: 'error' });
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PostComment } from '../../api/posts';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 
 interface PostUser {
   id?: number;
@@ -122,10 +123,10 @@ export default function PostDetailsScreen(props: any) {
     if (!postData.id) return;
     try {
       await postsApi.report(postData.id, reason);
-      Alert.alert('Gracias', 'Hemos recibido tu reporte y lo revisaremos.');
+      showToast('Gracias', { description: 'Hemos recibido tu reporte y lo revisaremos.', variant: 'success' });
     } catch (e) {
       logger.error('Error reporting post', e);
-      Alert.alert('Error', 'No se pudo enviar el reporte.');
+      showToast('Error', { description: 'No se pudo enviar el reporte.', variant: 'error' });
     }
   };
 
