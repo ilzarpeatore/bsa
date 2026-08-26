@@ -221,7 +221,15 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                   onLongPress={onLongPress}
                   style={({ pressed }) => [styles.navigationbtn, pressed && { opacity: 0.2 }]}
                 >
-                  <Icon name={typedOptions.icon} size={22} color={isFocused ? "#1C1C1E" : "#AEAEB2"} />
+                  <Icon
+                    name={
+                      (isFocused
+                        ? typedOptions.icon.replace("-outline", "")
+                        : typedOptions.icon) as IoniconName
+                    }
+                    size={22}
+                    color={isFocused ? "#1C1C1E" : "#AEAEB2"}
+                  />
                   <Text style={[styles.navigationLabel, isFocused && styles.navigationLabelActive]} numberOfLines={1}>
                     {typedOptions.label}
                   </Text>

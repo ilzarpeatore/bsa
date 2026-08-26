@@ -27,6 +27,7 @@ import {  Spinner  } from '@components/ui/spinner';
 import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { hapticLight, hapticSuccess } from '@helper/haptics';
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  ConfirmDialogMem  } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
@@ -594,7 +595,10 @@ export default function WorkoutSessionScreen(props: Props) {
       return next;
     });
     syncExerciseLog(ex);
-    if (!wasCompleted) reportAction('workout_set_logged');
+    if (!wasCompleted) {
+      reportAction('workout_set_logged');
+      hapticLight();
+    }
     // Solo al MARCAR (no al desmarcar) y solo si esta serie concreta tiene
     // un valor de descanso real configurado -- sin dato, no se inventa.
     if (!wasCompleted && ex.enabledMetrics.includes('descanso')) {
@@ -625,6 +629,7 @@ export default function WorkoutSessionScreen(props: Props) {
       return next;
     });
     syncExerciseLog(ex);
+    hapticSuccess();
   };
 
   const openExerciseInfo = (ex: SessionExercise) => {

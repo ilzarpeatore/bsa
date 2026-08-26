@@ -114,7 +114,7 @@ export default function CheckInsListScreen(props: Props) {
           style={{ backgroundColor: a.is_due ? C.warning10 : C.success10 }}
         >
           <Icon
-            name={a.is_due ? 'alert-circle-outline' : 'checkmark-circle-outline'}
+            name={a.is_due ? 'alert-circle-outline' : 'checkmark-circle'}
             size={20}
             color={a.is_due ? C.warning60 : C.success60}
           />

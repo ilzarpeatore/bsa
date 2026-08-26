@@ -30,6 +30,7 @@ import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  dietApi, AssignedMealsSummary, AssignedMealRecipe  } from '../../api/diet';
 import {  recipesApi, RecipeListItem  } from '../../api/recipes';
 import logger from '@helper/logger';
+import { hapticLight } from '@helper/haptics';
 
 function formatDateYMD(d: Date): string {
   const y = d.getFullYear();
@@ -294,7 +295,10 @@ export default function PlanScreen(props: any) {
         mealType,
         !wasComplete
       );
-      if (!wasComplete) reportAction('meal_marked_done');
+      if (!wasComplete) {
+        reportAction('meal_marked_done');
+        hapticLight();
+      }
       applyDailyPlanResponse(response.data);
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'No se pudo actualizar');

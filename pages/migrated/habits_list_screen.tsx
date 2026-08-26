@@ -13,6 +13,7 @@ import { useTabBarScroll } from '@store/TabBarScrollContext';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { hapticLight } from '@helper/haptics';
 import { habitsApi, Habit, HabitSourceType } from '../../api/habits';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '../../components/WeekComplianceRow';
@@ -103,7 +104,10 @@ export default function HabitsListScreen(props: Props) {
     setTogglingId(habit.id);
     try {
       await habitsApi.logHabit(habit.id, { is_completed: !done });
-      if (!done) reportAction('habit_marked_done');
+      if (!done) {
+        reportAction('habit_marked_done');
+        hapticLight();
+      }
       await load();
     } catch (e) {
       // silencioso — el usuario puede reintentar el tap

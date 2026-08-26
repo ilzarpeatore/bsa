@@ -1339,3 +1339,14 @@ Mismo protocolo que la retirada de las 30 pantallas anteriores, confirmado por e
 - `pages/migrated/__tests__/home_screen_modern.test.tsx` (borrado)
 - `App.tsx`
 - `pages/ScreenExplorer.tsx`
+
+---
+
+## Nota — Fase 4 (Polish): 2 "inconsistencias" de icono descartadas tras revisar contexto (2026-08-26)
+
+No son bugs, se documenta aquí por el mismo motivo que BUG-024: un hallazgo de un agente de investigación no se traduce automáticamente en un fix. Durante la Fase 4 (ver `IMPROVEMENTS.md`, IMP-008) un agente señaló 2 sitios más como "inconsistencia outline/filled" al mismo nivel que el fix real aplicado en `checkins_list_screen.tsx`:
+
+- `change_pwd_screen.tsx` (`eye-outline`/`eye-off-outline`) — revisado: son dos símbolos de acción distintos (mostrar/ocultar contraseña), no el mismo icono sin fillear. Ningún otro toggle de visibilidad de contraseña en el ecosistema usa una variante filled aquí — forzarla habría sido inventar una convención nueva, no corregir una real.
+- `habit_detail_screen.tsx:492` (ternario de 3 vías con una rama `create-outline`) — revisado: esa rama representa una acción distinta (editar un valor numérico del hábito), no el mismo estado "hecho/no hecho" del resto del ternario sin fillear.
+
+Ambos se dejan sin cambio de código.

@@ -13,6 +13,7 @@ import {  Icon  } from '@components/ui/icon';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
+import { hapticLight } from '@helper/haptics';
 import {  RADIUS  } from './theme';
 
 interface PostData {
@@ -130,6 +131,7 @@ export default function CommunityScreen(props: any) {
 
   const toggleLike = (item: PostData) => {
     const wasLiked = !!item.isLiked;
+    if (!wasLiked) hapticLight();
     setMPostList((prev) =>
       prev.map((p) =>
         p.id === item.id

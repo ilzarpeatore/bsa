@@ -231,3 +231,39 @@ Continuación directa de la auditoría UI/UX (`docs/AUDITORIA_UIUX_2026-08-24.md
 `npx eslint --quiet` limpio en cada bloque de archivos tocados. `tsc --noEmit -p .` completo del proyecto (mismo run que cierra IMP-006): limpio, 0 errores. Todos los cambios de `hitSlop`/accesibilidad son puramente aditivos (props nuevas, sin tocar ningún valor de estilo/layout existente) — no requieren verificación visual real, aunque un smoke-test con VoiceOver/TalkBack en dispositivo confirmaría que los botones ahora anuncian rol+etiqueta correctamente. BUG-030 verificado por grep (0 referencias colgantes tras el borrado).
 
 **Resultado:** 🔵 Correcto por inspección de código y `tsc` limpio — pendiente de smoke-test visual real en dispositivo
+
+---
+
+# IMP-008 — Fase 4 (Polish): haptics, feedback de press, transición de navegación, iconos
+
+**Estado:** ✅ Aplicada (bloque completo, todo lo visual queda 🔵 pendiente de confirmación en dispositivo)
+**Categoría:** UX / Otros
+**Fase:** Fase 4 — Polish
+
+## Descripción
+
+Última fase del roadmap de la auditoría (`docs/AUDITORIA_UIUX_2026-08-24.md`): _"Haptics en acciones frecuentes. Feedback de 'press' consistente. Transición de navegación con identidad propia. Consistencia de outline/filled en iconos según estado activo/inactivo."_ 3 agentes Explore remidieron cada punto contra el estado actual del repo antes de implementar, siguiendo el mismo criterio de todas las fases anteriores.
+
+## Cambios aplicados
+
+1. **Haptics** — instalado `expo-haptics` (`~57.0.1`, alineado con el resto de módulos de Expo SDK 57 del proyecto). Nuevo `helper/haptics.ts` (`hapticLight()`/`hapticSuccess()`) cableado en los 5 puntos de mayor frecuencia confirmados con evidencia: `workout_session_screen.tsx::toggleRowComplete` (completar una serie), `workout_session_screen.tsx::markAllRows` (completar todas, impacto success), `habits_list_screen.tsx::toggleToday`, `community_screen.tsx::toggleLike`, `plan_screen.tsx::toggleRecipeCompletion` — en todos los casos solo al pasar a completado/dado-like, no al deshacer. **El proyecto tiene carpeta `ios/` nativa propia** (no es Expo Go puro) — el haptic no vibrará de verdad hasta que se regenere el proyecto nativo (`pod install` como mínimo), mismo tipo de limitación ya documentado para HealthKit en `docs/PENDIENTE_BACKEND_ADMIN.md`. El código compila y pasa `tsc` en este entorno; la confirmación funcional en dispositivo queda pendiente.
+2. **Feedback de "press" centralizado** — `components/ui/pressable/index.tsx` (el wrapper compartido) usa `createPressable` de gluestack-ui, que ya emitía automáticamente `dataSet={{active}}` sin que nadie lo aprovechara. Añadida una sola clase, `data-[active=true]:opacity-20`, junto al `data-[disabled=true]:opacity-40` ya existente — adopta el valor que ya era mayoritario en el propio repo (30 usos de `pressed && {opacity: 0.2}`, incluyendo `NavigationTab.tsx`) y coincide con el default histórico de `TouchableOpacity` en React Native. Efecto: los ~310 `Pressable` de `pages/migrated/**` que hoy no tenían ningún feedback al tocar pasan a tenerlo automáticamente, sin tocar cada archivo uno a uno. Los ~60 sitios que ya definían su propio `style={({pressed}) => ...}` no se tocan — ese `style` explícito se sigue pasando después del `className` en el wrapper, así que sigue ganando donde ya existía.
+3. **Transición de navegación con identidad propia** — nuevo `helper/motion.ts` con `screenTransitionSpec` (spring `{friction: 8, tension: 80}`, los mismos valores ya usados en `NavigationTab.tsx` para el menú "+", reutilizados para que la transición de pantalla completa se sienta de la misma familia — no se inventó ningún número nuevo). Cableado en `screenOptions` de los 2 stacks de `App.tsx` que sí renderizan transición de tarjeta (`Stack`/`RootNavigator` y `MStack`/`MigratedNavigator` — el `Tab` de abajo es `bottom-tabs`, no aplica `transitionSpec`/`cardStyleInterpolator`), manteniendo `CardStyleInterpolators.forHorizontalIOS` (el mismo estilo visual de slide, solo cambia el timing/curva, no el tipo de transición). **Bug real encontrado en el proceso**: `@react-navigation/stack` no exporta el tipo `TransitionSpec` en su punto de entrada público (solo `TransitionSpecs`, el namespace de presets, y `TransitionPreset`, que sí lo re-exporta indirectamente) — `tsc` lo marcó de inmediato (`TS2724`). Corregido tipando la constante como `TransitionPreset['transitionSpec']['open']` en vez de importar un tipo inexistente.
+4. **Consistencia outline/filled en iconos** — `components/NavigationTab.tsx`: los 4 iconos de la barra de tabs (antes siempre `-outline`, solo cambiaba el color con el foco) ahora usan la variante filled cuando la tab está activa, mismo mecanismo que los 13 sitios de la app que ya lo hacían bien (`heart`/`heart-outline`, `bookmark`/`bookmark-outline`, etc.). `checkins_list_screen.tsx`: el estado "completado" pasa de `checkmark-circle-outline` a `checkmark-circle` (filled), igualándolo al mismo concepto ya resuelto en `workout_session_screen.tsx`.
+
+## Excluido explícitamente, sin cambio de código
+
+Al revisar el contexto real de otras 2 "inconsistencias" señaladas por el agente de investigación (mismo tipo de verificación que evitó un fix incorrecto en BUG-024 esta sesión):
+
+- `change_pwd_screen.tsx` (`eye-outline`/`eye-off-outline`) — son dos símbolos de acción distintos (mostrar/ocultar contraseña), no un mismo estado sin fillear; forzar un filled aquí sería inventar una convención que ningún otro toggle de visibilidad de contraseña usa.
+- `habit_detail_screen.tsx:492` (rama `create-outline` en un ternario de 3 vías) — esa rama representa una acción distinta (editar un valor numérico), no el mismo estado "hecho/no hecho" sin fillear.
+
+## Archivos afectados
+
+`package.json`/`package-lock.json` (nueva dependencia); `helper/haptics.ts` (nuevo), `helper/motion.ts` (nuevo); `pages/migrated/workout_session_screen.tsx`, `habits_list_screen.tsx`, `community_screen.tsx`, `plan_screen.tsx`, `checkins_list_screen.tsx`; `components/ui/pressable/index.tsx`, `components/NavigationTab.tsx`; `App.tsx`.
+
+## Verificación
+
+`npx eslint --quiet` limpio en todos los archivos tocados. `tsc --noEmit -p .` completo del proyecto sin errores. Los cambios de haptics son puramente aditivos (llamadas a una API que no renderiza nada) — sin riesgo visual, pero sin poder confirmar la vibración real en dispositivo desde este entorno (requiere `pod install`/rebuild nativo). Los cambios de press feedback, transición de navegación e iconos SÍ tienen efecto visual real y quedan marcados 🔵 pendientes de confirmación en dispositivo/simulador — mismo criterio que el resto de bugs de esta sesión que necesitan ojos reales.
+
+**Resultado:** 🔵 Correcto por inspección de código y `tsc` limpio — pendiente de smoke-test visual y funcional real en dispositivo (haptics necesita además rebuild nativo)

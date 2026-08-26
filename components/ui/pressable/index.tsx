@@ -7,7 +7,7 @@ import { Pressable as RNPressable } from 'react-native';
 const UIPressable = createPressable({ Root: RNPressable });
 
 const pressableStyle = tva({
-  base: 'data-[disabled=true]:opacity-40',
+  base: 'data-[disabled=true]:opacity-40 data-[active=true]:opacity-20',
 });
 
 type IPressableProps = React.ComponentPropsWithoutRef<typeof UIPressable> &

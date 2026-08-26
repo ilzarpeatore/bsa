@@ -14,7 +14,8 @@ import TutorialOverlay from "@components/tutorial/TutorialOverlay";
 import { TutorialProvider } from "@store/TutorialContext";
 import { hydratePersistedWorkoutSession } from "@helper/workoutSessionBus";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator } from "@react-navigation/stack";
+import { createStackNavigator, CardStyleInterpolators } from "@react-navigation/stack";
+import { screenTransitionSpec } from "@helper/motion";
 import { enableScreens } from "react-native-screens";
 import {
   SafeAreaProvider,
@@ -223,7 +224,14 @@ function Homenavigator() {
 function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: string } } }) {
   const MStack = createStackNavigator();
   return (
-    <MStack.Navigator initialRouteName={route?.params?.initialScreen ?? "MigratedHomeModernV2"} screenOptions={{ headerShown: false }}>
+    <MStack.Navigator
+      initialRouteName={route?.params?.initialScreen ?? "MigratedHomeModernV2"}
+      screenOptions={{
+        headerShown: false,
+        transitionSpec: { open: screenTransitionSpec, close: screenTransitionSpec },
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+      }}
+    >
       <MStack.Screen name="MigratedAboutApp" component={AboutAppScreen} />
       <MStack.Screen name="MigratedAboutUs" component={AboutUsScreen} />
       <MStack.Screen name="MigratedActivityTracker" component={ActivityTrackerScreen} />
@@ -338,7 +346,11 @@ function RootNavigator() {
       <Stack.Navigator
         key={state.isAuthenticated ? (state.onboardingCompleted ? 'main' : 'onboarding') : 'auth'}
         initialRouteName={!state.isAuthenticated ? 'WelcomeAuth' : !state.onboardingCompleted ? 'MigratedOnboardingV2' : 'Home'}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          transitionSpec: { open: screenTransitionSpec, close: screenTransitionSpec },
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        }}
       >
         {!state.isAuthenticated ? (
         <>
