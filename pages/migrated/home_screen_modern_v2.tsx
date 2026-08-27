@@ -17,16 +17,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Image as ExpoImage } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import Animated, {
   useAnimatedScrollHandler,
-  useAnimatedStyle,
   useAnimatedReaction,
   useSharedValue,
-  interpolate,
-  Extrapolation,
   runOnJS,
 } from 'react-native-reanimated';
 import { Box } from '@components/ui/box';
@@ -77,26 +73,8 @@ const FIGMA_H = 812;
 // Fondo fijo de Home v2 (pedido explícito 2026-08-26, con 2 capturas de
 // referencia de otra app): la misma foto del hero, pero FUERA del
 // ScrollView -- no se desplaza con el contenido, se queda detrás de toda la
-// pantalla, y un ÚNICO oscurecido progresivo se va cerrando encima a medida
-// que se hace scroll para que el contenido (tarjetas, títulos de sección) se
-// mantenga legible cuanto más abajo se llegue. Recorrido largo (varias
-// pantallas de contenido) para que la foto se note un buen trecho, no solo
-// en los primeros píxeles.
-//
-// Antes había AQUÍ TAMBIÉN un blur+oscurecido local propio de la cabecera
-// (heroBlurAnimatedProps/heroDarkenAnimatedStyle, recorrido de solo 420px),
-// heredado de cuando la foto vivía dentro de la propia cabecera. Al mover la
-// foto a esta capa fija global (ver más abajo homeBgFixedLayer), ese
-// mecanismo local quedó DUPLICADO sobre la misma imagen y con un recorrido
-// mucho más corto que el de esta capa -- el resultado visible era que la
-// cabecera se oscurecía/desenfocaba del todo en los primeros 420px y, justo
-// al salir de la pantalla, dejaba ver la MISMA foto de fondo pero con el
-// oscurecido global (mucho más suave a esa altura de scroll) -- un salto de
-// brillo que se leía como "reaparece otro fondo" (reportado con capturas,
-// 2026-08-27). Eliminado: ahora solo existe esta única progresión.
-const HOME_BG_FADE_SCROLL_RANGE = 1100;
-const HOME_BG_MIN_OPACITY = 0.15;
-const HOME_BG_MAX_OPACITY = 0.94;
+// pantalla, sin ningún oscurecido/opacidad encima (pedido explícito
+// 2026-08-27: quitar el efecto glass que había sobre la foto).
 
 // Saludo dinamico por hora local del dispositivo (no posicion solar, no hace
 // falta suncalc) -- mismos rangos que usaria cualquier reloj: mañana antes de
@@ -142,30 +120,6 @@ function getHeroMoodForHour(hour: number): HeroMood {
   return 'night';
 }
 
-// Degradados por mood -- antes eran un único marrón cálido fijo
-// (rgba(20,11,6,...)) reutilizado para las 3 fotos, así que desentonaba con
-// el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya
-// oscura de por sí). Cada mood tiene su propio tono: cálido dorado para
-// amanecer/atardecer, azul frío para día, casi negro/navy para noche.
-// `scrim` da contraste al texto sobre la foto; `darken` es el oscurecido
-// animado del efecto de scroll. Los degradados de cierre/costura (close,
-// seam) que había antes se han quitado del todo (pedido explícito
-// 2026-08-26: "el degradado tampoco está bien hecho, quítalo").
-const HERO_GRADIENTS: Record<HeroMood, { scrim: [string, string]; darken: string }> = {
-  sunriseSunset: {
-    scrim: ['rgba(40,20,8,0.22)', 'rgba(28,13,5,0.52)'],
-    darken: '#2B1608',
-  },
-  day: {
-    scrim: ['rgba(10,22,38,0.18)', 'rgba(8,16,30,0.48)'],
-    darken: '#0E1B2E',
-  },
-  night: {
-    scrim: ['rgba(0,4,12,0.3)', 'rgba(0,3,9,0.6)'],
-    darken: '#04070D',
-  },
-};
-
 // Imagen de recurso: todavía no existe `image_url` en el backend (pendiente,
 // ver docs/TAREAS.md), así que mientras tanto se previsualiza con una foto
 // real de internet (LoremFlickr, sin API key) elegida por categoría -- más
@@ -201,7 +155,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // helper/useAppColorMode.ts) -- "C" queda con el mismo nombre que el
   // import estático de siempre para no reescribir los ~85 usos C.xxx de
   // este fichero; sigue el modo salvo que el usuario lo fije a mano.
-  const { preference: themePreference, colors: C, mode: colorMode } = useAppColorMode();
+  const { preference: themePreference, colors: C } = useAppColorMode();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -209,9 +163,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const scrollRef = useRef<ScrollView>(null);
   const firstLoadDone = useRef(false);
 
-  // Glass-effect progresivo del hero header: a medida que se hace scroll,
-  // la imagen/gradiente de fondo se va desenfocando (como en KOTCHA) en vez
-  // de desaparecer de golpe bajo el resto del contenido.
+  // scrollY sigue haciendo falta para plegar la barra de pestañas al hacer
+  // scroll (ver reportScrollY más abajo) -- el efecto glass/oscurecido que
+  // antes también dependía de este valor se ha quitado (pedido explícito
+  // 2026-08-27).
   const scrollY = useSharedValue(0);
   const heroScrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
@@ -279,13 +234,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       if (collapsed !== prevCollapsed) runOnJS(reportScrollY)(scrollY.value);
     }
   );
-  // Oscurecido del fondo fijo de toda la pantalla (ver HOME_BG_* arriba) --
-  // ÚNICA progresión de oscurecido de la pantalla completa, ver comentario
-  // junto a HOME_BG_FADE_SCROLL_RANGE.
-  const homeBgDarkenAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, HOME_BG_FADE_SCROLL_RANGE], [HOME_BG_MIN_OPACITY, HOME_BG_MAX_OPACITY], Extrapolation.CLAMP),
-  }));
-
   // Este bloque ("Reto para empezar") es la entrada al tutorial guiado:
   // cada paso es uno de los 7 retos esenciales (ver constants/tutorialChallenges.ts).
   // "done" viene de useTutorial() (persistido, se marca solo cuando el
@@ -308,11 +256,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const insets = useSafeAreaInsets();
 
   // Mood del hero (amanecer/atardecer, día o noche) por hora local -- se
-  // recalcula por render (barato, solo lee la hora actual) y sirve tanto
-  // para elegir la foto de fondo como su paleta de degradado a juego (ver
-  // HERO_GRADIENTS más abajo).
+  // recalcula por render (barato, solo lee la hora actual) y elige qué foto
+  // de fondo mostrar (ver HERO_IMAGES arriba).
   const heroMood = getHeroMoodForHour(new Date().getHours());
-  const heroGradient = HERO_GRADIENTS[heroMood];
   const [showMenu, setShowMenu] = useState(false);
   const [appleHealthOn, setAppleHealthOn] = useState(true);
   const [smartWatchOn, setSmartWatchOn] = useState(false);
@@ -360,17 +306,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // (ver homeBgFixedLayer más abajo) vive por debajo de todo, y necesita
     // que este contenedor y el ScrollView no lo tapen con un color sólido.
     container: { flex: 1 },
-    // Oscurecido en modo oscuro: mismo tono cálido/frío/negro por mood que
-    // ya usa el hero (heroGradient.darken) para no desentonar. En modo claro
-    // se funde con C.bg (el gris casi blanco de siempre) en vez de negro --
-    // si no, el contenido se leería "en oscuro" aunque el usuario tenga
-    // elegido el tema claro.
-    homeBgDarkenLayer: { backgroundColor: colorMode === 'dark' ? heroGradient.darken : C.bg },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
     // con foto real de fondo (amanecer/atardecer, día o noche, ver
-    // getHeroMoodForHour) + scrim oscuro -- el texto blanco de encima sigue
-    // necesitando fondo oscuro real, lo da el scrim. Sin border-radius
-    // inferior ni degradado de cierre a propósito (revisión 2026-08-26,
+    // getHeroMoodForHour), sin ningún scrim/oscurecido encima (pedido
+    // explícito 2026-08-27: quitar el efecto glass que había sobre la foto).
+    // Sin border-radius inferior ni degradado de cierre a propósito (revisión 2026-08-26,
     // pedido explícito repetido: la foto debe llenar la pantalla entera sin
     // ningún degradado de transición, ni dentro de la foto ni entre esta y
     // "Mi plan de hoy" -- los intentos anteriores con degradado de cierre
@@ -516,7 +456,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
     menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
     menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
-  }), [sc, r, C, winH, heroGradient, colorMode]);
+  }), [sc, r, C, winH]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -835,15 +775,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       {/* Fondo fijo de toda la pantalla (pedido explícito 2026-08-26, con 2
           capturas de referencia de otra app): la misma foto del hero, pero
           FUERA del ScrollView -- no se desplaza con el contenido, se queda
-          detrás de todo, y se va oscureciendo con el scroll (ver
-          homeBgDarkenAnimatedStyle) para que el contenido siga siendo
-          legible cuanto más abajo se llegue. Sigue el modo claro/oscuro real
-          de la app (homeBgDarkenLayer), a diferencia del "mood" de la foto
-          en sí (heroMood), que sigue la hora del día. */}
+          detrás de todo. Sin ningún oscurecido/opacidad encima (pedido
+          explícito 2026-08-27: quitar el efecto glass que había sobre la
+          foto). "mood" de la foto (heroMood) sigue la hora del día. */}
       <Box style={StyleSheet.absoluteFill} pointerEvents="none">
         <ExpoImage source={HERO_IMAGES[heroMood]} contentFit="cover" style={StyleSheet.absoluteFill} />
-        <LinearGradient colors={heroGradient.scrim} style={StyleSheet.absoluteFill} />
-        <Animated.View style={[StyleSheet.absoluteFill, styles.homeBgDarkenLayer, homeBgDarkenAnimatedStyle]} />
       </Box>
       {/* Barra fija con efecto glass (calendario / saludo / notificaciones /
           ajustes) — se mantiene estática al hacer scroll, mostrando
@@ -914,22 +850,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* La foto de fondo (amanecer/atardecer, día o noche) ya no vive
               aquí -- ahora es homeBgFixedLayer, fuera del ScrollView, fija
               para toda la pantalla (ver más arriba). Este Box se queda
-              transparente y deja verla a través; el scrim de abajo le da al
-              texto de la cabecera el contraste extra que necesita en su
-              propia zona (el oscurecido progresivo es uno solo, el de
-              homeBgDarkenAnimatedStyle -- ver comentario junto a
-              HOME_BG_FADE_SCROLL_RANGE). */}
-          {/* Scrim oscuro sobre la foto -- el texto/iconos en blanco de la
-              cabecera necesitan contraste real, la foto sola (sobre todo
-              día/amanecer, cielo muy claro) no lo da. Color a juego con el
-              mood de la foto (ver HERO_GRADIENTS) -- antes era un negro
-              plano fijo para las 3 fotos, por lo que no seguía la tonalidad
-              real de cada una (cálida en amanecer/atardecer, fría en día,
-              casi negra ya en noche). */}
-          <LinearGradient
-            colors={heroGradient.scrim}
-            style={StyleSheet.absoluteFill}
-          />
+              transparente y deja verla a través, sin ningún scrim/oscurecido
+              encima (pedido explícito 2026-08-27: quitar el efecto glass que
+              había sobre la foto). */}
 
           {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin
               fuente de datos real todavía (necesitaría el ACWR que ya
