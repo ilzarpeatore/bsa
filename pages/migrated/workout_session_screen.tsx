@@ -933,14 +933,22 @@ export default function WorkoutSessionScreen(props: Props) {
         acc.push(clean);
         return acc;
       }, []);
-      if (loggedSets.length === 0) return;
+      const note = ex.note.trim();
+      // Bug real (reportado por el usuario, 2026-08-27): antes se cortaba
+      // aquí sin más si no había NINGUNA serie completada -- una nota sola
+      // (p.ej. "no tengo esta máquina", justo el caso en que el cliente
+      // nunca va a poder marcar ninguna serie de este ejercicio) no llegaba
+      // nunca al entrenador. Ahora también se envía si hay nota, aunque
+      // logged_sets vaya vacío -- solo se corta de verdad cuando no hay
+      // absolutamente nada que guardar.
+      if (loggedSets.length === 0 && !note) return;
       workoutHistoryApi
         .logCalendarSets({
           workout_template_exercise_id: ex.isAdhoc ? undefined : ex.id,
           exercise_id: ex.isAdhoc ? ex.exerciseId : undefined,
           logged_sets: loggedSets,
           program_day_assignment_id: programDayAssignmentId ?? null,
-          notes: ex.note.trim() || undefined,
+          notes: note || undefined,
         })
         .catch(() => {});
     },
