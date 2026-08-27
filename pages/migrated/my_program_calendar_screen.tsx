@@ -805,15 +805,26 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     }
   };
 
+  // Estado circular del día (pedido explícito, con captura de referencia del
+  // calendario de Plan diario, 2026-08-27): el número de cada día vive dentro
+  // de un círculo con borde de color en vez del recuadro plano + puntito de
+  // antes -- naranja si hay entrenamiento o tarea asignada ese día, verde si
+  // ya se completó, gris/neutro (C.border) si el día no tiene nada asignado.
+  // A diferencia del puntito anterior (que distinguía check-in-only con un
+  // tercer color warning), aquí "tarea asignada" cuenta igual que
+  // "entrenamiento asignado" -- mismo naranja para ambas, tal como se pidió.
+  const dayStatusFor = (day: CalendarDayModel): 'completed' | 'assigned' | 'none' => {
+    const hasCompletedWorkout = day.workouts.some((w) => isWorkoutCompleted(w, day.date));
+    if (hasCompletedWorkout) return 'completed';
+    if (day.workouts.length > 0 || checkinsForDay(day.date).length > 0) return 'assigned';
+    return 'none';
+  };
+
   const renderDayCell = (day: CalendarDayModel, keyPrefix: string, big: boolean) => {
     const isToday = day.date === todayKey;
     const isSelected = day.date === selectedDayKey;
     const hasWorkout = day.workouts.length > 0;
-    const hasCompletedWorkout = day.workouts.some((w) => isWorkoutCompleted(w, day.date));
-    // Hoy puede tener check-ins/formularios pendientes sin ningún workout —
-    // igual que en el panel del día seleccionado, se refleja con un punto
-    // propio (color warning) para que la celda no se vea como día libre.
-    const hasCheckinTasks = checkinsForDay(day.date).length > 0;
+    const dayStatus = dayStatusFor(day);
     const isMarkedUnavailable = selectionMode && selectedDates.has(day.date);
     const isReorderDropTarget = reorderMode && !!movingWorkout && isCurrentWeekDate(day.date) && day.date !== movingWorkout.fromDate;
     const dateObj = new Date(`${day.date}T00:00:00`);
@@ -840,26 +851,24 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             {WEEKDAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1]}
           </Text>
         )}
-        <Text
+        <Box
           style={[
-            styles.dayCellText,
-            !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
+            big ? styles.dayNumberRingBig : styles.dayNumberRing,
+            dayStatus === 'assigned' && styles.dayNumberRingAssigned,
+            dayStatus === 'completed' && styles.dayNumberRingCompleted,
           ]}
         >
-          {dateObj.getDate()}
-        </Text>
-        {isMarkedUnavailable ? (
-          <Icon name="close-circle" size={12} color={C.destructive} />
-        ) : (
-          (hasWorkout || hasCheckinTasks) && (
-            <Box
-              style={[
-                styles.dayDot,
-                hasCompletedWorkout && styles.dayDotCompleted,
-                !hasWorkout && hasCheckinTasks && styles.dayDotCheckin,
-              ]}
-            />
-          )
+          <Text
+            style={[
+              styles.dayCellText,
+              !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
+            ]}
+          >
+            {dateObj.getDate()}
+          </Text>
+        </Box>
+        {isMarkedUnavailable && (
+          <Icon name="close-circle" size={12} color={C.destructive} style={{ marginTop: 2 }} />
         )}
       </Pressable>
     );
@@ -1270,18 +1279,35 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   dayCellTextMuted: {
     color: C.textTertiary,
   },
-  dayDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: C.orange,
+  // Anillo alrededor del número del día (ver dayStatusFor) -- neutro por
+  // defecto (día sin nada asignado), se recolorea a naranja/verde con
+  // dayNumberRingAssigned/Completed. borderRadius grande a propósito (mayor
+  // que la mitad de cualquier tamaño real que vaya a tener) para forzar
+  // círculo perfecto sin depender de calcular width/2 a mano.
+  dayNumberRing: {
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dayDotCompleted: {
-    backgroundColor: C.success,
+  // Ligeramente más grande que dayNumberRing (vista Semana, celdas más
+  // altas), pero sin pasarse -- las celdas "big" tienen aspectRatio 0.85 y ya
+  // llevan la letra del día encima, así que un anillo demasiado grande
+  // desbordaría la celda en pantallas estrechas.
+  dayNumberRingBig: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dayDotCheckin: {
-    backgroundColor: C.warning60,
-  },
+  dayNumberRingAssigned: { borderColor: C.orange },
+  dayNumberRingCompleted: { borderColor: C.success },
   selectedDaySection: {
     marginTop: 16,
     paddingHorizontal: 16,
