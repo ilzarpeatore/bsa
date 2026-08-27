@@ -84,8 +84,17 @@ const FIGMA_H = 812;
 // final de la pantalla (pedido explícito 2026-08-27, reintroducido tras
 // haberse quitado del todo: ver miPlanOffsetY, que mide en tiempo real dónde
 // empieza esa sección en vez de usar un nº de píxeles de scroll fijo).
+//
+// MAX bajado de 0.9 a 0.45 (reportado con captura, 2026-08-27): en modo
+// claro homeBgDarkenLayer funde hacia C.bg (#F4F4F7, opaco), así que al 0.9
+// la foto quedaba prácticamente tapada del todo por debajo de "Mi plan de
+// hoy" -- se veía como un bloque gris plano sin foto detrás durante el resto
+// del scroll (Blog, Sueño, tarjeta de soporte, incluso detrás de la barra de
+// pestañas). Con 0.45 la foto se sigue viendo (atenuada) en todo el
+// recorrido; las tarjetas de contenido (Card/blogCard/etc.) siguen legibles
+// porque tienen su propio fondo sólido, independiente de esta capa.
 const HOME_BG_MIN_OPACITY = 0.2;
-const HOME_BG_MAX_OPACITY = 0.9;
+const HOME_BG_MAX_OPACITY = 0.45;
 
 // Saludo dinamico por hora local del dispositivo (no posicion solar, no hace
 // falta suncalc) -- mismos rangos que usaria cualquier reloj: mañana antes de
