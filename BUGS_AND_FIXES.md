@@ -2050,6 +2050,37 @@ Se añade `mode: colorMode` desde `useAppColorMode()` y se aplica como override 
 
 ---
 
+# BUG-050 — La barra flotante de entrenamiento minimizado tapa el último contenido de la pantalla
+
+**Estado:** 🔵 Necesita verificación (cambio de layout real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura en `statistics_screen.tsx`, 2026-08-26)
+
+## Problema
+
+`WorkoutMinimizedBar` (la píldora flotante global de "entrenamiento en curso", montada una sola vez junto a `NavigationContainer` en `App.tsx`) puede aparecer sobre CUALQUIER pantalla mientras haya una sesión minimizada, sin que esa pantalla tenga forma de saberlo. Al hacer scroll hasta el final en pantallas sin barra de pestañas (p. ej. `Estadísticas`), el último elemento de la lista quedaba tapado por esta barra, porque el `ScrollView`/`FlatList` de la pantalla no reservaba ningún hueco pensado para ella (solo un `paddingBottom` fijo pequeño, p. ej. 32).
+
+## Causa
+
+Cada pantalla define su propio `paddingBottom` de forma aislada (no hay un `ScreenScrollView` compartido en el proyecto) sin contar con que este overlay global puede aparecer encima en cualquier momento — mismo tipo de problema estructural que ya resolvía `TAB_BAR_CLEARANCE` para la barra de pestañas, pero sin ningún equivalente para este segundo overlay.
+
+## Fix
+
+Nueva constante exportada `WORKOUT_MINIBAR_CLEARANCE` (`components/WorkoutMinimizedBar.tsx`, `TAB_BAR_CLEARANCE + 90` — cubre el hueco que ya reserva la barra de pestañas más la altura real renderizada de esta píldora). Barrido sobre las 44 pantallas con contenido desplazable que tenían un `paddingBottom` fijo en su contenedor principal: cada una pasa a `N + WORKOUT_MINIBAR_CLEARANCE`, manteniendo su valor base original visible. Las pantallas que ya reservaban `TAB_BAR_CLEARANCE` para lo mismo (p. ej. `plan_screen.tsx`, pantalla raíz de pestaña) cambian a `WORKOUT_MINIBAR_CLEARANCE` directamente, sin sumar ambas constantes (ya la incluye). Pantallas sin contenido desplazable, o donde el `paddingBottom` encontrado no correspondía al contenedor principal (una barra fija, un composer de chat, una fila de chips, etc.), se dejaron sin tocar — no tienen nada que tapar.
+
+## Archivos modificados
+
+`components/WorkoutMinimizedBar.tsx` (nueva constante) + 44 pantallas: `add_post_screen.tsx`, `app_feedback_screen.tsx`, `assigned_meals_screen.tsx`, `blog_detail_screen.tsx`, `body_metrics_screen.tsx`, `checkin_fill_screen.tsx`, `checkins_list_screen.tsx`, `community_screen.tsx`, `diet_detail_screen.tsx`, `edit_profile_screen.tsx`, `exercise_info_screen.tsx`, `habit_add_screen.tsx`, `habit_detail_screen.tsx`, `muscle_progress_screen.tsx`, `onboarding/assessment_result_screen.tsx`, `onboarding_v2/onboarding_v2_screen.tsx`, `other_user_profile_screen.tsx`, `plan_screen.tsx`, `post_details_screen.tsx`, `privacy_policy_screen.tsx`, `progress_screen.tsx`, `recipe_main_screen.tsx`, `recipe_tag_list_screen.tsx`, `resource_detail_screen.tsx`, `resources_list_screen.tsx`, `session_history_detail_screen.tsx`, `shopping_list_detail_screen.tsx`, `statistics_body_distribution_screen.tsx`, `statistics_monthly_report_screen.tsx`, `statistics_muscle_distribution_screen.tsx`, `statistics_personal_records_screen.tsx`, `statistics_screen.tsx`, `statistics_series_count_screen.tsx`, `statistics_top_exercises_screen.tsx`, `terms_and_conditions_screen.tsx`, `tips_screen.tsx`, `video_detail_screen.tsx`, `video_screen.tsx`, `water_tracker_screen.tsx`, `workout_detail_screen.tsx`, `workout_feedback_screen.tsx`, `workout_history_screen.tsx`, `workout_preview_screen.tsx`, `workout_session_screen.tsx`.
+
+**Pantallas revisadas y descartadas explícitamente** (tenían algún `paddingBottom` fijo pero no en su contenedor principal desplazable, o no tienen scroll): `about_us_screen.tsx`, `bookmark_screen.tsx`, `chatting_image_screen.tsx`, `chatting_screen.tsx`, `favourite_screen.tsx`, `home/link_device_choice_screen.tsx`, `home/link_device_list_screen.tsx`, `recipe_list_screen_v2.tsx`, `search_screen.tsx`, `view_body_part_screen.tsx`, `workout_summary_screen.tsx`.
+
+## Verificación
+
+`eslint --quiet` limpio en los 44 archivos. `tsc --noEmit -p .` completo sin errores. Cambio de espaciado puro — **pendiente de confirmación visual en dispositivo real** (el valor de `WORKOUT_MINIBAR_CLEARANCE` está calculado a partir de las medidas del propio componente, no medido en un dispositivo real).
+
+---
+
 # BUG-051 — `community_screen.tsx`: el fondo se confunde con el color de las publicaciones
 
 **Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)

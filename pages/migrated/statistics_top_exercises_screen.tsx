@@ -11,6 +11,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 import { exerciseStatsApi, TopExerciseItem } from '../../api/exerciseStats';
@@ -104,7 +105,7 @@ export default function StatisticsTopExercisesScreen(props: Props) {
         </Button>
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <HStack className="items-center flex-wrap gap-2" style={{ marginTop: 12 }}>
           <Pressable
             className="flex-row items-center self-start bg-card rounded-pill shadow-card gap-2"

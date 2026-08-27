@@ -15,6 +15,7 @@ import { Spinner } from '@components/ui/spinner';
 import { workoutHistoryApi, SessionDetail } from '../../api/workoutHistory';
 import logger from '@helper/logger';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -70,7 +71,7 @@ export default function SessionHistoryDetailScreen(props: any) {
           <Text size="sm" muted className="text-center">No se pudo cargar este entrenamiento</Text>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <VStack space="md">
           <Text size="xs" weight="medium" muted>{formatDate(detail.date)}</Text>
 

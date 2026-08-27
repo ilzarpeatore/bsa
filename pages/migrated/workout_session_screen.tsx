@@ -37,6 +37,7 @@ import {
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  ConfirmDialogMem  } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useTutorial  } from '@store/TutorialContext';
 import PainReportSheet from '../../components/PainReportSheet';
 import IntensityCheckSheet, { IntensityMetric } from '../../components/IntensityCheckSheet';
@@ -1154,7 +1155,7 @@ export default function WorkoutSessionScreen(props: Props) {
     return (
       <ScrollView
         style={{ width: SCREEN_WIDTH }}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
       >
         {block.exercises.map((ex, exIdx) =>

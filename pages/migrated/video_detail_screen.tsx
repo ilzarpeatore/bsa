@@ -6,6 +6,7 @@ import { Text } from '@components/ui/text';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 export default function VideoDetailScreen(props: any) {
   const { colors: C } = useAppColorMode();
@@ -13,7 +14,7 @@ export default function VideoDetailScreen(props: any) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="" onBack={() => props.navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Box style={{ marginBottom: 16 }} className="w-full h-[200px] bg-secondary items-center justify-center">
           <Icon name="play-circle" size={64} className="text-warning" />
         </Box>

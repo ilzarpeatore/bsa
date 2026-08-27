@@ -8,6 +8,7 @@ import { Button, ButtonText } from '@components/ui/button';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem } from '../../api/resources';
 
@@ -186,7 +187,7 @@ export default function ResourceDetailScreen(props: Props) {
           </Button>
         </Box>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE, paddingTop: 12 }}>
           {resource.content ? (
             <WebView
               source={{

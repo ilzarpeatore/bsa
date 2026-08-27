@@ -8,6 +8,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { VStack } from '@components/ui/vstack';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { readinessApi } from '../../api/readiness';
@@ -187,7 +188,7 @@ export default function CheckInsListScreen(props: Props) {
             </Text>
           </Box>
         ) : (
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
             <VStack space="sm">
               {(pending.length > 0 || readinessPending) && (
                 <Box>

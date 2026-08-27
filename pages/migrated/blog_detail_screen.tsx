@@ -27,6 +27,7 @@ import {
   AccordionContent,
 } from '@components/ui/accordion';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { blogApi, BlogDetailItem } from '../../api/blog';
 import logger from '@helper/logger';
 
@@ -331,7 +332,7 @@ export default function BlogDetailScreen({ navigation, route }: any) {
         </Box>
 
         {/* Content */}
-        <Box className="rounded-t-lg" style={{ paddingTop: 16, paddingBottom: 40, backgroundColor: C.bg }}>
+        <Box className="rounded-t-lg" style={{ paddingTop: 16, paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE, backgroundColor: C.bg }}>
           {/* Tags */}
           {blog?.tags_name && blog.tags_name.length > 0 && (
             <Box

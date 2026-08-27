@@ -12,6 +12,7 @@ import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { SHADOW } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
@@ -129,7 +130,7 @@ export default function StatisticsScreen(props: Props) {
           <Box style={{ width: 36, height: 36 }} />
         </HStack>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
           <HStack className="items-center justify-between px-5" style={{ marginTop: 8, marginBottom: 14 }}>
             <Text weight="semibold" size="sm" className="flex-1" style={{ marginRight: 12 }}>
               Gráfico corporal de los últimos 7 días

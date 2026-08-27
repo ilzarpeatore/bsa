@@ -9,6 +9,7 @@ import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 function VideoComponent({ item }: { item: any }) {
   return (
@@ -86,7 +87,7 @@ export default function VideoScreen(props: any) {
         data={videoList}
         keyExtractor={(item, i) => String(item.id || i)}
         renderItem={VideoComponent}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 + WORKOUT_MINIBAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}

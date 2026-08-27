@@ -19,6 +19,7 @@ import {  Card  } from '@components/ui/card';
 import {  HStack  } from '@components/ui/hstack';
 import {  Divider  } from '@components/ui/divider';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { FONT, RADIUS } from './theme';
 import {  ExerciseMediaHeaderMem, ExerciseHeaderFloatingIcons, HEADER_HEIGHT_RATIO  } from '../../components/ExerciseMediaHeader';
 import {  MuscleIsolateIconMem  } from '../../components/MuscleIsolateIcon';
@@ -219,7 +220,7 @@ export default function ExerciseInfoScreen(props: Props) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.textSecondary} />
         }

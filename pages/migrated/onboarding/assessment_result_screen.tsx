@@ -6,6 +6,7 @@ import {  Text  } from '@components/ui/text';
 import {  Pressable  } from '@components/ui/pressable';
 import {  Icon  } from '@components/ui/icon';
 import AnimatedRing from '@components/AnimatedRing';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAuth  } from '@store/AuthContext';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { FONT, RADIUS } from '../theme';
@@ -378,7 +379,7 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF3EC' },
-  scrollContent: { padding: 20, paddingBottom: 110 },
+  scrollContent: { padding: 20, paddingBottom: 110 + WORKOUT_MINIBAR_CLEARANCE },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   emptyText: { fontFamily: FONT.regular, fontSize: 14, color: C.gray50, textAlign: 'center' },
   hero: { alignItems: 'center', paddingVertical: 12, marginBottom: 20 },

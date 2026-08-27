@@ -5,6 +5,7 @@ import { Text } from '@components/ui/text';
 import { Card } from '@components/ui/card';
 import ScreenHeader from '@components/ScreenHeader';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 export default function TermsAndConditionsScreen(props: any) {
   const { colors: C } = useAppColorMode();
@@ -12,7 +13,7 @@ export default function TermsAndConditionsScreen(props: any) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Terms of Services" onBack={() => props.navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Card variant="outline">
           <Text muted className="leading-6">
             {`Terms and Conditions\n\n` +

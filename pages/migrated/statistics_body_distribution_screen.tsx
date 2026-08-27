@@ -13,6 +13,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import DaySelectorStrip, { DaySelectorItem } from '../../components/DaySelectorStrip';
@@ -187,7 +188,7 @@ export default function StatisticsBodyDistributionScreen(props: Props) {
         </HStack>
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <HStack className="items-center justify-center" style={{ gap: 16, marginTop: 8 }}>
           <Pressable onPress={goPrevWeek} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name="chevron-back" size={18} className="text-muted-foreground" />

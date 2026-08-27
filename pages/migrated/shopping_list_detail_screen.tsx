@@ -17,6 +17,7 @@ import {
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { shoppingApi, ShoppingListDetail, ShoppingListItemDetail, MeasurementUnit } from '@api/shopping';
 import logger from '@helper/logger';
@@ -157,7 +158,7 @@ export default function ShoppingListDetailScreen(props: any) {
       );
     }
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 + WORKOUT_MINIBAR_CLEARANCE }}>
         {items.map((item) => buildItem(item))}
       </ScrollView>
     );
@@ -174,7 +175,7 @@ export default function ShoppingListDetailScreen(props: any) {
       );
     }
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 + WORKOUT_MINIBAR_CLEARANCE }}>
         {categories.map((category) => (
           <Box key={category.ingredient_category_id ?? 'uncategorized'}>
             <Text weight="bold" size="lg" style={{ marginBottom: 12 }}>

@@ -9,6 +9,7 @@ import {  HStack  } from '@components/ui/hstack';
 import {  Input, InputField  } from '@components/ui/input';
 import {  Textarea, TextareaInput  } from '@components/ui/textarea';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  getDiagnosticsReportText  } from '@helper/logger';
 import {  appFeedbackApi, AppFeedbackType, AppFeedbackSection  } from '@api/appFeedback';
@@ -97,7 +98,7 @@ export default function AppFeedbackScreen(props: any) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title={screenTitle} onBack={() => props.navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE }} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Título</Text>
         <Input style={styles.inputBox} size="lg">
           <InputField placeholder={titlePlaceholder} value={title} onChangeText={setTitle} maxLength={100} style={{ fontFamily: FONT.regular }} />

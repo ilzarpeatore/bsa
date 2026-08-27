@@ -15,6 +15,7 @@ import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import AppIcon from '@components/AppIcon';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -525,7 +526,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   scrollContent: {
     paddingTop: 24,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE,
   },
   imageSection: {
     alignItems: 'center',

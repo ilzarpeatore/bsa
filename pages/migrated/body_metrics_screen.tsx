@@ -12,6 +12,7 @@ import { FONT, SHADOW } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import SimpleBottomSheet from '@components/SimpleBottomSheet';
 import MetricLineChart from '@components/MetricLineChart';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {
   bodyMetricsApi,
   BodyMetricTypeDef,
@@ -176,7 +177,7 @@ export default function BodyMetricsScreen(props: any) {
             ))}
           </ScrollView>
 
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
             <Box className="bg-card rounded-md" style={{ padding: 18, ...SHADOW.card }}>
               {latest ? (
                 <>

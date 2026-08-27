@@ -22,6 +22,7 @@ import {  Button, ButtonText  } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  workoutTemplateApi  } from '../../api/workoutTemplate';
 import {  readinessApi, ReadinessValues  } from '../../api/readiness';
@@ -318,7 +319,7 @@ export default function WorkoutPreviewScreen(props: Props) {
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 170 }}
+        contentContainerStyle={{ paddingBottom: 170 + WORKOUT_MINIBAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header image */}
@@ -643,7 +644,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
 function createReadinessStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  scroll: { paddingHorizontal: 24, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 24, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE },
   badge: {
     width: 52,
     height: 52,

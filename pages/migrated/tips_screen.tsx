@@ -9,6 +9,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,7 +30,7 @@ export default function TipsScreen(props: any) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Tips & Instructions" onBack={() => props.navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         {isYouTube ? (
           <Box style={{ width: SCREEN_WIDTH, aspectRatio: 12 / 7 }}>
             {mExerciseImage ? (

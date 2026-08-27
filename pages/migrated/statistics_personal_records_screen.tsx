@@ -12,6 +12,7 @@ import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { Input, InputField, InputSlot } from '@components/ui/input';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { exerciseStatsApi, PersonalRecordItem } from '../../api/exerciseStats';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 
@@ -123,7 +124,7 @@ export default function StatisticsPersonalRecordsScreen(props: Props) {
         </Button>
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Text size="xs" muted style={{ marginTop: 8, marginBottom: 4 }}>
           Tu mejor peso levantado en cada ejercicio, con el 1RM estimado.
           {!muscleId ? ` Se muestran solo los últimos ${RECENT_LIMIT} ejercicios realizados.` : ` Filtrado por ${muscleName}.`}

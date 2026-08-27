@@ -8,6 +8,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Input, InputField, InputSlot } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 
@@ -154,7 +155,7 @@ export default function ResourcesListScreen(props: Props) {
           <Text muted className="text-center px-8">No se pudieron cargar los recursos.</Text>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
           {activeList.length === 0 ? (
             <Box className="flex-1 items-center justify-center" style={{ paddingTop: 60 }}>
               <Icon name="folder-open-outline" size={40} className="text-muted-foreground" />

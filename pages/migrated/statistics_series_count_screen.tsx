@@ -10,6 +10,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import { muscleVolumeApi, MuscleVolumeSeriesGroup } from '../../api/muscleVolume';
 import { toLocalISODate } from '../../components/dayRange';
@@ -144,7 +145,7 @@ export default function StatisticsSeriesCountScreen(props: Props) {
         <Box style={{ width: 36, height: 36 }} />
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Pressable
           className="flex-row items-center self-start bg-card rounded-pill shadow-card gap-2"
           style={{ paddingHorizontal: 18, paddingVertical: 10, marginTop: 12 }}

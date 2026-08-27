@@ -11,6 +11,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PickedPostMedia } from '../../api/posts';
 import logger from '@helper/logger';
@@ -142,7 +143,7 @@ export default function AddPostScreen({ navigation, route }: any) {
       />
 
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-        <VStack space="lg" style={{ paddingTop: 16, paddingBottom: 32 }}>
+        <VStack space="lg" style={{ paddingTop: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}>
           {/* Description field */}
           <Textarea className="bg-card rounded-sm border-border h-auto" style={{ minHeight: 140 }}>
             <TextareaInput

@@ -5,6 +5,7 @@ import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Ionicons  } from '@expo/vector-icons';
 import {  LinearGradient  } from 'expo-linear-gradient';
 import AnimatedRing from '@components/AnimatedRing';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 
@@ -254,7 +255,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 30,
+    paddingBottom: 30 + WORKOUT_MINIBAR_CLEARANCE,
   },
   banner: {
     padding: 14,

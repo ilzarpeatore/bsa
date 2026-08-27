@@ -14,6 +14,7 @@ import {  Badge, BadgeText  } from '@components/ui/badge';
 import {  Button, ButtonText  } from '@components/ui/button';
 import {  Modal, ModalBackdrop, ModalContent  } from '@components/ui/modal';
 import {  isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { showToast } from '@helper/toast';
 import { FONT, SHADOW, RADIUS } from './theme';
@@ -560,7 +561,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: FONT.bold, fontSize: 16, color: C.textPrimary, marginHorizontal: 8 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyText: { fontFamily: FONT.regular, fontSize: 14, color: C.textSecondary, textAlign: 'center' },
-  scroll: { paddingHorizontal: 20, paddingBottom: 16 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 16 + WORKOUT_MINIBAR_CLEARANCE },
   topSection: { paddingHorizontal: 20 },
   bigArea: { flex: 1, paddingHorizontal: 20, justifyContent: 'center' },
   bigCard: { flex: 1, justifyContent: 'center', marginBottom: 0 },

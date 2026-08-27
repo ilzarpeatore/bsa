@@ -9,6 +9,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { logger } from '@helper/logger';
@@ -240,13 +241,13 @@ function HabitAddScreenInner(props: Props) {
             data={templates}
             keyExtractor={(t) => String(t.id)}
             renderItem={renderTemplateItem}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}
             showsVerticalScrollIndicator={false}
           />
         )
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text weight="bold" size="xs" muted className="uppercase" style={{ marginBottom: 8, marginTop: 16, letterSpacing: 0.3 }}>Icono</Text>
             <Box className="flex-row flex-wrap" style={{ gap: 8 }}>
               {HABIT_ICON_KEYS.map((key) => (

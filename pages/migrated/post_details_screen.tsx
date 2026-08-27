@@ -9,6 +9,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PostComment } from '../../api/posts';
 import logger from '@helper/logger';
@@ -170,7 +171,7 @@ export default function PostDetailsScreen(props: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <ScreenHeader title="" onBack={() => props.navigation?.goBack()} />
-        <ScrollView contentContainerStyle={{ padding: 6, paddingBottom: 24 }}>
+        <ScrollView contentContainerStyle={{ padding: 6, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}>
           <Card variant="ghost" style={{ marginBottom: 12 }}>
             <Box className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
               <Pressable

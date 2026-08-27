@@ -15,6 +15,7 @@ import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistor
 import { pickWorkoutFallbackImage } from './workoutViewShared';
 import logger from '@helper/logger';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 function formatDuration(totalSeconds: number | null): string {
   if (!totalSeconds) return '--';
@@ -104,7 +105,7 @@ export default function WorkoutHistoryScreen(props: any) {
           <Text size="sm" muted className="text-center">Todavía no has completado ningún entrenamiento</Text>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
           <VStack space="sm">
             {sessions.map(renderItem)}
           </VStack>

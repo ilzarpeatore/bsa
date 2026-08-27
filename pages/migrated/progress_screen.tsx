@@ -8,6 +8,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { SHADOW } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import MuscleBodyMap from '@components/MuscleBodyMap';
@@ -145,7 +146,7 @@ export default function ProgressScreen(props: any) {
           <Spinner size="large" color={C.orange} />
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
           {/* Composición corporal */}
           <Text size="sm" weight="bold" style={{ marginTop: 20, marginBottom: 10 }}>Composición corporal</Text>
           {/* 2 filas explicitas de flex:1, no flex-wrap -- con flexBasis 0

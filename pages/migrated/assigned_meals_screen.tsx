@@ -18,6 +18,7 @@ import { Icon } from '@components/ui/icon';
 import { Card } from '@components/ui/card';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
 import { buildDayRange, toLocalISODate } from '../../components/dayRange';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -283,7 +284,7 @@ export default function AssignedMealsScreen(props: any) {
             ref={scrollRef}
             onScroll={scrollHandler}
             scrollEventThrottle={16}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE }}
           >
           {!isDietMode && (
             <Card variant="ghost" style={{ marginTop: 16, marginBottom: 12 }}>

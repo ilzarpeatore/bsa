@@ -15,6 +15,7 @@ import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
 import { showToast } from '@helper/toast';
 import { hapticLight } from '@helper/haptics';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  RADIUS  } from './theme';
 
 interface PostData {
@@ -334,7 +335,7 @@ export default function CommunityScreen(props: any) {
                 tintColor={C.orange}
               />
             }
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: 20 + WORKOUT_MINIBAR_CLEARANCE }}
           />
         ) : (
           renderEmptyList()

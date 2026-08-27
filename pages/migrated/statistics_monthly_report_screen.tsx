@@ -11,6 +11,7 @@ import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { FONT } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { statisticsApi, PeriodStats, MonthlySessionItem, MonthlyPrEvent } from '../../api/statistics';
 import { muscleVolumeApi, MuscleVolumeGroup, MuscleVolumeByDate } from '../../api/muscleVolume';
 import { toLocalISODate } from '../../components/dayRange';
@@ -416,7 +417,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   container: { flex: 1, backgroundColor: C.bg },
   iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   appBarTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontFamily: FONT.bold, color: C.textPrimary, marginHorizontal: 4 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE },
   monthNavLabel: { fontFamily: FONT.semiBold, fontSize: 16, color: C.textPrimary, minWidth: 150, textAlign: 'center' },
   kpiLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary },
   // lineHeight explícito: Gilroy-ExtraBold/Black recortan el glifo a estos
