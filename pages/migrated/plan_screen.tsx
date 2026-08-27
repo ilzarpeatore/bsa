@@ -17,6 +17,7 @@ import {  Card  } from '@components/ui/card';
 import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
 import {  Divider  } from '@components/ui/divider';
+import AnimatedRing from '@components/AnimatedRing';
 import ScreenHeader from '@components/ScreenHeader';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import {  useTutorial  } from '@store/TutorialContext';
@@ -40,7 +41,26 @@ function formatDateYMD(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// % de kcal consumidas sobre el objetivo de un daily-plan-detail (misma
+// forma de respuesta que consume applyDailyPlanResponse: `value.data` trae
+// `calories` y `daily_plan.kCal`) -- extraído aparte porque el calendario
+// circular (ver weekKcalProgress) necesita este mismo cálculo para los 7
+// días de la semana visible, no solo para el día seleccionado.
+function extractKcalProgress(value: any): number {
+  const data = value?.data;
+  if (!data) return 0;
+  const target = data.daily_plan?.kCal ?? 0;
+  const current = data.calories ?? 0;
+  return target > 0 ? Math.min(current / target, 1) : 0;
+}
+
 const GRAPH_CARD_HEIGHT = 260;
+// Tamaño del anillo circular del calendario semanal (ver renderWeekDays) --
+// mayor que el círculo blanco interior (WEEK_RING_INNER_SIZE) para que el
+// trazo del anillo se dibuje como un halo alrededor, no pegado al borde.
+const WEEK_RING_SIZE = 40;
+const WEEK_RING_STROKE = 3;
+const WEEK_RING_INNER_SIZE = 32;
 
 const MEAL_TYPES: Record<string, string> = {
   breakfast: 'Desayuno',
@@ -135,6 +155,10 @@ export default function PlanScreen(props: any) {
   const [isLoading, setIsLoading] = useState(true);
   const plannedDaysRef = useRef<string[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
+  // % de kcal consumidas por día (fecha YYYY-MM-DD -> 0..1) para el relleno
+  // del anillo circular del calendario semanal (ver renderWeekDays y los dos
+  // efectos más abajo que lo alimentan).
+  const [weekKcalProgress, setWeekKcalProgress] = useState<Record<string, number>>({});
 
   const [addMealFor, setAddMealFor] = useState<{ key: string; label: string } | null>(null);
   const [addMealTab, setAddMealTab] = useState<'assigned' | 'recipes'>('assigned');
@@ -275,6 +299,40 @@ export default function PlanScreen(props: any) {
       };
     }, [fetchDailyPlan])
   );
+
+  // Kcal por día para el calendario circular (ver weekKcalProgress arriba):
+  // no hay endpoint de resumen semanal en diet.ts, solo getDailyPlan(date)
+  // por día individual (el mismo que usa fetchDailyPlan para el día
+  // seleccionado) -- se piden los 7 días de la semana visible en paralelo,
+  // mismo patrón Promise.allSettled que ya usa home_screen_modern_v2.tsx.
+  useEffect(() => {
+    let ignore = false;
+    const days = getWeekDays(weekOffset);
+    Promise.allSettled(days.map((d) => dietApi.getDailyPlan(formatDateYMD(d)))).then((results) => {
+      if (ignore) return;
+      setWeekKcalProgress((prev) => {
+        const next = { ...prev };
+        results.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            next[formatDateYMD(days[i])] = extractKcalProgress(res.value.data);
+          }
+        });
+        return next;
+      });
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [weekOffset]);
+
+  // Mantiene al día la entrada del día seleccionado en weekKcalProgress sin
+  // esperar a un cambio de semana -- kcalCurrent/kcalTarget ya reflejan el
+  // dato más fresco (p.ej. justo después de marcar una comida como hecha),
+  // así que se reutilizan directamente en vez de esperar al fetch de arriba.
+  useEffect(() => {
+    const key = formatDateYMD(selectedDay);
+    setWeekKcalProgress((prev) => ({ ...prev, [key]: kcalTarget > 0 ? Math.min(kcalCurrent / kcalTarget, 1) : 0 }));
+  }, [selectedDay, kcalCurrent, kcalTarget]);
 
   const proteinProgress = proteinTarget > 0 ? Math.min(proteinCurrent / proteinTarget, 1) : 0;
   const carbsProgress = carbsTarget > 0 ? Math.min(carbsCurrent / carbsTarget, 1) : 0;
@@ -452,15 +510,17 @@ export default function PlanScreen(props: any) {
     [savingRecipeId]
   );
 
-  // Rediseño de la píldora de día (pedido explícito, con captura de
-  // referencia de otra app): círculo blanco con el número arriba + etiqueta
-  // del día debajo, todo dentro de una píldora que se rellena de color solo
-  // cuando ese día está seleccionado (antes era un simple fondo plano
-  // rectangular). Se usa el naranja de marca (C.orange) para el relleno en
-  // vez del verde de la referencia -- es el único acento de "seleccionado"
-  // que usa el resto de la app (pestañas, botones, chips), así que mantiene
-  // la identidad visual en vez de introducir un color nuevo sin uso en
-  // ningún otro sitio.
+  // Rediseño circular de la píldora de día (pedido explícito, con captura de
+  // referencia de otra app, 2026-08-27): el círculo blanco con el número ya
+  // no lleva solo un borde fijo -- ahora está envuelto en un anillo
+  // (AnimatedRing) que se rellena según el % de kcal consumidas sobre el
+  // objetivo de CADA día (weekKcalProgress), no solo hecho/no hecho. La
+  // etiqueta del día sigue debajo, y la píldora entera se sigue rellenando
+  // de color solo cuando ese día está seleccionado. Se usa el naranja de
+  // marca (C.orange) para el anillo en vez del verde de la referencia -- es
+  // el único acento de "seleccionado" que usa el resto de la app (pestañas,
+  // botones, chips), así que mantiene la identidad visual en vez de
+  // introducir un color nuevo sin uso en ningún otro sitio.
   const renderWeekDays = (offset: number) => {
     const days = getWeekDays(offset);
     return (
@@ -468,15 +528,26 @@ export default function PlanScreen(props: any) {
         {days.map((day) => {
           const isSelected = isSameDay(day, selectedDay);
           const isToday = isSameDay(day, new Date());
+          const dayKey = formatDateYMD(day);
+          const progress = weekKcalProgress[dayKey] ?? 0;
           return (
             <Pressable
-              key={formatDateYMD(day)}
+              key={dayKey}
               style={[s.weekDayPill, isSelected && s.weekDayPillSelected]}
               onPress={() => setSelectedDay(day)}
             >
-              <Box style={[s.weekDayCircle, isToday && !isSelected && s.weekDayCircleToday]}>
-                <Text style={s.weekDayCircleNum}>{formatDay(day)}</Text>
-              </Box>
+              <AnimatedRing
+                size={WEEK_RING_SIZE}
+                strokeWidth={WEEK_RING_STROKE}
+                percent={progress * 100}
+                color={isSelected ? '#FFFFFF' : C.orange}
+                trackColor={isSelected ? 'rgba(255,255,255,0.35)' : C.border}
+                duration={400}
+              >
+                <Box style={[s.weekDayCircle, isToday && !isSelected && s.weekDayCircleToday]}>
+                  <Text style={s.weekDayCircleNum}>{formatDay(day)}</Text>
+                </Box>
+              </AnimatedRing>
               <Text style={[s.weekDayLabel, isSelected && s.weekDayLabelSelected]}>{formatWeekday(day)}</Text>
             </Pressable>
           );
@@ -804,11 +875,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   // Círculo blanco con el número -- se queda igual (blanco, número oscuro)
   // este o no seleccionado el día, tal como la referencia; solo la píldora
-  // de alrededor y la etiqueta cambian de color al seleccionar.
+  // de alrededor, el anillo (ver WEEK_RING_*) y la etiqueta cambian de color
+  // al seleccionar.
   weekDayCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: WEEK_RING_INNER_SIZE,
+    height: WEEK_RING_INNER_SIZE,
+    borderRadius: WEEK_RING_INNER_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',

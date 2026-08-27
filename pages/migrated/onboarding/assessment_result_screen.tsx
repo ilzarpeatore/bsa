@@ -378,7 +378,13 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
 
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF3EC' },
+  // C.bg/C.surface (no '#FFF3EC'/'#FFFFFF' fijos) -- auditoría modo oscuro
+  // (2026-08-27, reportado con capturas): esta pantalla fijaba fondo claro
+  // siempre, pero el texto sí usaba C.textPrimary/C.gray50 (adaptativos, se
+  // vuelven casi blancos en modo oscuro) -- el resultado era texto claro
+  // sobre fondo claro, prácticamente ilegible en modo oscuro. Mismo patrón
+  // que ya usa el resto de onboarding_v2 (container: backgroundColor: C.bg).
+  container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { padding: 20, paddingBottom: 110 + WORKOUT_MINIBAR_CLEARANCE },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   emptyText: { fontFamily: FONT.regular, fontSize: 14, color: C.gray50, textAlign: 'center' },
@@ -414,7 +420,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   goalChipEmoji: { fontSize: 18 },
   goalChipText: { fontFamily: FONT.semiBold, fontSize: 14, color: C.orange },
-  card: { backgroundColor: '#FFFFFF', borderRadius: RADIUS.lg, padding: 20, marginBottom: 16 },
+  card: { backgroundColor: C.surface, borderRadius: RADIUS.lg, padding: 20, marginBottom: 16 },
   cardTitle: { fontFamily: FONT.bold, fontSize: 18, lineHeight: 23, color: C.textPrimary, marginBottom: 18 },
   cardNote: { fontFamily: FONT.regular, fontSize: 12.5, color: C.gray50, marginTop: 14 },
   macrosRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -445,7 +451,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   mealItem: { alignItems: 'center', gap: 8 },
   mealImage: { width: 84, height: 84, borderRadius: 42, backgroundColor: C.gray10 },
   mealLabel: { fontFamily: FONT.semiBold, fontSize: 13, color: C.textPrimary },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: '#FFF3EC' },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 30, backgroundColor: C.bg },
   continueBtn: { paddingVertical: 17, borderRadius: RADIUS.xl, alignItems: 'center', backgroundColor: C.orange },
   continueBtnText: { fontFamily: FONT.bold, fontSize: 16, color: '#FFFFFF' },
   });
