@@ -2333,3 +2333,24 @@ Pedido explícito del usuario con captura de referencia de otra app ("Symmetry")
 Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **El `project.pbxproj`/Swift no se pueden verificar en este entorno** (sin Xcode/macOS) — la única prueba real es el próximo build de IPA en CI, con razonable probabilidad de necesitar más de un intento dado que es la primera vez que se edita el `pbxproj` a mano para añadir un target nuevo completo (no solo referencias de archivo sueltas).
 
 Push a `master` como fast-forward (`d2a9027..0d0ba8c`) y build lanzado inmediatamente después: **run #50**, `https://github.com/ilzarpeatore/bsa/actions/runs/32993709013` (`ios_path: "ios"`, `configuration: "Release"`) — **terminó en éxito a la primera**, sin necesitar ningún ajuste al `project.pbxproj`/Swift editados a mano. El IPA de ese run ya lleva el Live Activity.
+
+---
+
+## Sesión 2026-08-26 (continuación) — IMP-013/014/015 + BUG-048 a BUG-051 + build #51
+
+Tras el Live Activity (run #50), el usuario pidió explícitamente no lanzar ningún build hasta acumular más arreglos ("No hagad el build del ipa cuando termine, tenemos que solucionar mas cosas"). Se acumularon en 3 commits sobre `claude/lectura-contexto-hrz50s` (fast-forward a `master` tras cada uno, `tsc --noEmit -p .` completo limpio antes de cada push):
+
+- **IMP-013**: Live Activity ampliada con foto del ejercicio, métricas de la serie objetivo (reps/carga/RIR-RPE) y datos de transición al siguiente ejercicio (ver `IMPROVEMENTS.md`).
+- **BUG-048**: número de serie y check de completar desalineados respecto a las celdas de métrica en `workout_session_screen.tsx` (`items-center` → `items-start` + `marginTop` puntual).
+- **IMP-014**: Home v2 — fondo fijo (no se desplaza con el scroll) con oscurecido progresivo por scroll, respetando modo claro/oscuro (experimento pedido explícitamente, con capturas de referencia de otra app).
+- **IMP-015**: en `MigratedWorkoutPreview`, la miniatura y el título de cada ejercicio navegan al detalle (`MigratedExerciseInfo`).
+- **BUG-049**: el menú "+" de accesos rápidos (`NavigationTab.tsx`) se veía siempre claro, ignorando el modo oscuro real de la app — mismo patrón puntual que BUG-044/045 pero en un componente `StyleSheet` puro, no Tailwind.
+
+Lanzado el build inmediatamente después, con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #51**, `https://github.com/ilzarpeatore/bsa/actions/runs/33020185153` — **terminó en éxito** (`master` @ `3b99b7c`, ~22 min).
+
+Con el build ya lanzado, llegaron 2 reportes más con captura, resueltos y pusheados por separado (fast-forward a `master` en cada uno, no forman parte del run #51):
+
+- **BUG-050**: `WorkoutMinimizedBar` (píldora flotante global de entrenamiento en curso, montada junto a `NavigationContainer`) podía tapar el último elemento de cualquier pantalla al hacer scroll hasta el final, porque cada pantalla reserva su propio `paddingBottom` sin saber que este overlay puede aparecer encima. Nueva constante compartida `WORKOUT_MINIBAR_CLEARANCE` (`components/WorkoutMinimizedBar.tsx`) aplicada en un barrido de 44 pantallas — mismo patrón que `TAB_BAR_CLEARANCE` ya usaba para la barra de pestañas. Barrido delegado a un agente en background (verificado después con `eslint`/`tsc` propios antes de comitear). Detalle completo y lista de archivos en `BUGS_AND_FIXES.md`.
+- **BUG-051**: en `MigratedCommunity`, un tinte gris fijo (`rgba(128,128,128,0.1)`) sin relación con el tema dejaba el fondo casi idéntico al color de las tarjetas de publicaciones en modo oscuro — quitado, ahora se ve el `C.bg` real.
+
+Todo lo de este bloque queda 🔵 pendiente de confirmación visual real en dispositivo, salvo el propio build (que sí compiló) — ninguno de los 2 últimos bugs (BUG-050/051) se lanzó todavía en un build de IPA nuevo.
