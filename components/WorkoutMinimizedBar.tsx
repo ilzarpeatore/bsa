@@ -15,6 +15,24 @@ interface Props {
   navigationRef: any;
 }
 
+// Espacio que CUALQUIER pantalla con contenido desplazable (ScrollView,
+// FlatList...) debe sumar a su paddingBottom/contentContainerStyle para que
+// su ultimo elemento no quede tapado por esta barra -- es un overlay GLOBAL
+// (montado una vez junto a NavigationContainer en App.tsx, ver comentario
+// del componente) que puede aparecer sobre CUALQUIER pantalla mientras haya
+// un entrenamiento en curso minimizado, tenga o no esa pantalla la barra de
+// pestañas (reportado con captura, 2026-08-26: en Estadisticas, una pantalla
+// sin tab bar, el ultimo item de la lista quedaba debajo de la barra al
+// hacer scroll hasta el final). No incluye insets.bottom -- cada pantalla ya
+// reserva su propio inset fisico por su cuenta (SafeAreaView/insets.bottom a
+// mano), igual que TAB_BAR_CLEARANCE. Valor: TAB_BAR_CLEARANCE (mismo hueco
+// que ya reserva la barra flotante para posicionarse) + la altura real
+// renderizada de la barra (padding 12+12, fila de icono/texto ~34, barra de
+// progreso 10+3) + un margen -- pensado para cubrir el peor caso (con tab
+// bar Y minimizador visibles a la vez), asi que sobra un poco en pantallas
+// que solo tienen uno de los dos.
+export const WORKOUT_MINIBAR_CLEARANCE = TAB_BAR_CLEARANCE + 90;
+
 function formatTimer(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
   const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
