@@ -22,7 +22,6 @@ import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import Animated, {
   useAnimatedScrollHandler,
-  useAnimatedProps,
   useAnimatedStyle,
   useAnimatedReaction,
   useSharedValue,
@@ -75,35 +74,26 @@ import { useAuth } from '../../store/AuthContext';
 const FIGMA_W = 375;
 const FIGMA_H = 812;
 
-// Modulo-scope, igual que AnimatedImage en NavigationTab -- evita recrear el
-// wrapper animado de BlurView en cada render.
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-// Recorrido de scroll (px) sobre el que el header pasa de nitido a
-// glass-effect total, estilo KOTCHA: 0 = arriba del todo (foto con toda su
-// claridad), HERO_BLUR_SCROLL_RANGE = la foto ya no se distingue -- blur al
-// máximo (casi opaco de por sí) + oscurecido animado por encima que la tapa
-// del todo, para que "desaparezca" de verdad y no se quede a medias. Subido
-// de 160 a 280 (pedido explícito: el oscurecido se notaba "de golpe"), y
-// ahora de 280 a 420 (mismo pedido repetido: seguía notándose demasiado
-// rápido nada más empezar a hacer scroll) para repartir el mismo recorrido
-// de opacidad en todavía más scroll.
-const HERO_BLUR_SCROLL_RANGE = 420;
-const HERO_BLUR_MAX_INTENSITY = 100;
-const HERO_DARKEN_MAX_OPACITY = 0.92;
-// Antes de hacer scroll (scrollY=0) el oscurecido animado partía de 0 -- la
-// foto se veía "demasiado clara" en reposo. Con este suelo, ya arranca algo
-// oscurecida en reposo y sube hasta HERO_DARKEN_MAX_OPACITY con el scroll.
-const HERO_DARKEN_MIN_OPACITY = 0.18;
-
 // Fondo fijo de Home v2 (pedido explícito 2026-08-26, con 2 capturas de
 // referencia de otra app): la misma foto del hero, pero FUERA del
 // ScrollView -- no se desplaza con el contenido, se queda detrás de toda la
-// pantalla, y un oscurecido se va cerrando encima a medida que se hace
-// scroll para que el contenido (tarjetas, títulos de sección) se mantenga
-// legible cuanto más abajo se llegue. Recorrido bastante más largo que
-// HERO_BLUR_SCROLL_RANGE (esa es solo la cabecera; esta cubre varias
+// pantalla, y un ÚNICO oscurecido progresivo se va cerrando encima a medida
+// que se hace scroll para que el contenido (tarjetas, títulos de sección) se
+// mantenga legible cuanto más abajo se llegue. Recorrido largo (varias
 // pantallas de contenido) para que la foto se note un buen trecho, no solo
 // en los primeros píxeles.
+//
+// Antes había AQUÍ TAMBIÉN un blur+oscurecido local propio de la cabecera
+// (heroBlurAnimatedProps/heroDarkenAnimatedStyle, recorrido de solo 420px),
+// heredado de cuando la foto vivía dentro de la propia cabecera. Al mover la
+// foto a esta capa fija global (ver más abajo homeBgFixedLayer), ese
+// mecanismo local quedó DUPLICADO sobre la misma imagen y con un recorrido
+// mucho más corto que el de esta capa -- el resultado visible era que la
+// cabecera se oscurecía/desenfocaba del todo en los primeros 420px y, justo
+// al salir de la pantalla, dejaba ver la MISMA foto de fondo pero con el
+// oscurecido global (mucho más suave a esa altura de scroll) -- un salto de
+// brillo que se leía como "reaparece otro fondo" (reportado con capturas,
+// 2026-08-27). Eliminado: ahora solo existe esta única progresión.
 const HOME_BG_FADE_SCROLL_RANGE = 1100;
 const HOME_BG_MIN_OPACITY = 0.15;
 const HOME_BG_MAX_OPACITY = 0.94;
@@ -289,19 +279,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       if (collapsed !== prevCollapsed) runOnJS(reportScrollY)(scrollY.value);
     }
   );
-  const heroBlurAnimatedProps = useAnimatedProps(() => ({
-    intensity: interpolate(scrollY.value, [0, HERO_BLUR_SCROLL_RANGE], [0, HERO_BLUR_MAX_INTENSITY], Extrapolation.CLAMP),
-  }));
-  // El blur solo desenfoca -- no basta para que la foto "desaparezca" del
-  // todo (sigue habiendo luz/color de fondo). Un oscurecido animado encima,
-  // que sube de 0 a casi opaco en el mismo recorrido, es lo que de verdad la
-  // tapa hasta el punto de no verse.
-  const heroDarkenAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, HERO_BLUR_SCROLL_RANGE], [HERO_DARKEN_MIN_OPACITY, HERO_DARKEN_MAX_OPACITY], Extrapolation.CLAMP),
-  }));
   // Oscurecido del fondo fijo de toda la pantalla (ver HOME_BG_* arriba) --
-  // mismo mecanismo que heroDarkenAnimatedStyle pero con un recorrido mucho
-  // más largo, para toda la altura de contenido, no solo la cabecera.
+  // ÚNICA progresión de oscurecido de la pantalla completa, ver comentario
+  // junto a HOME_BG_FADE_SCROLL_RANGE.
   const homeBgDarkenAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, HOME_BG_FADE_SCROLL_RANGE], [HOME_BG_MIN_OPACITY, HOME_BG_MAX_OPACITY], Extrapolation.CLAMP),
   }));
@@ -407,7 +387,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       paddingHorizontal: r(20),
       overflow: 'hidden' as const,
     },
-    heroDarkenLayer: { backgroundColor: heroGradient.darken },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
     // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
     // para poder quedar estática al hacer scroll. heroTopBar ya no forma
@@ -935,9 +914,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* La foto de fondo (amanecer/atardecer, día o noche) ya no vive
               aquí -- ahora es homeBgFixedLayer, fuera del ScrollView, fija
               para toda la pantalla (ver más arriba). Este Box se queda
-              transparente y deja verla a través; el resto de capas de abajo
-              (scrim/blur/oscurecido) siguen dándole al texto de la cabecera
-              el contraste extra que necesita en su propia zona. */}
+              transparente y deja verla a través; el scrim de abajo le da al
+              texto de la cabecera el contraste extra que necesita en su
+              propia zona (el oscurecido progresivo es uno solo, el de
+              homeBgDarkenAnimatedStyle -- ver comentario junto a
+              HOME_BG_FADE_SCROLL_RANGE). */}
           {/* Scrim oscuro sobre la foto -- el texto/iconos en blanco de la
               cabecera necesitan contraste real, la foto sola (sobre todo
               día/amanecer, cielo muy claro) no lo da. Color a juego con el
@@ -948,23 +929,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           <LinearGradient
             colors={heroGradient.scrim}
             style={StyleSheet.absoluteFill}
-          />
-          {/* Glass-effect progresivo (estilo KOTCHA): el fondo del hero se
-              desenfoca a medida que se hace scroll -- se renderiza primero
-              para quedar detrás del contenido (texto/iconos), que se
-              mantiene nítido encima. */}
-          <AnimatedBlurView
-            style={StyleSheet.absoluteFill}
-            animatedProps={heroBlurAnimatedProps}
-            tint="dark"
-            pointerEvents="none"
-          />
-          {/* Oscurecido animado: sube junto con el blur hasta tapar la foto
-              casi del todo -- sin esto el blur por sí solo no llega a "no
-              verse", se queda en una foto borrosa pero reconocible. */}
-          <Animated.View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, styles.heroDarkenLayer, heroDarkenAnimatedStyle]}
           />
 
           {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin

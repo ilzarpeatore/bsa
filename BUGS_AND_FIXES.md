@@ -2107,3 +2107,32 @@ Se quita el `backgroundColor` fijo del `Box` contenedor — sin él, se ve direc
 ## Verificación
 
 `eslint --quiet` limpio. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-052 — Home v2: el fondo se oscurece, "reaparece" más claro y vuelve a oscurecerse
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (reportado por el usuario con 3 capturas, sobre IMP-014, 2026-08-27)
+
+## Problema
+
+Tras IMP-014 (fondo fijo con oscurecido progresivo por scroll), el usuario reportó que al hacer scroll el fondo se oscurece, luego "reaparece" un fondo distinto (más claro) que vuelve a oscurecerse — en vez de una única progresión suave. Pedido explícito: "Solo debe estar el primero y su progresión de opacidad debe ir poco a poco."
+
+## Causa
+
+La cabecera (`heroHeader`) conservaba su propio mecanismo de blur + oscurecido animado (`heroBlurAnimatedProps`/`heroDarkenAnimatedStyle`, recorrido de solo 420px) heredado de **antes** de IMP-014, cuando la foto vivía dentro de la propia cabecera. Al mover la foto a la nueva capa fija global (`homeBgFixedLayer`, recorrido de 1100px), ese mecanismo local quedó actuando en paralelo sobre la MISMA imagen, con un recorrido mucho más corto: en los primeros ~420px de scroll, la cabecera se oscurecía/desenfocaba hasta casi el máximo (mecanismo local, rápido) mientras que el oscurecido global apenas iba por un ~38% de su recorrido (mucho más lento). Al superar esos 420px, la cabecera sale de la pantalla y su oscurecido local desaparece de golpe, dejando ver la misma foto de fondo pero solo con el oscurecido global (bastante más clara en ese punto) — un salto de brillo que se leía como "reaparece otro fondo distinto", que luego seguía oscureciéndose con el resto del scroll (el global, hasta los 1100px).
+
+## Fix
+
+Se elimina el mecanismo local de la cabecera (`heroBlurAnimatedProps`, `heroDarkenAnimatedStyle`, capa `heroDarkenLayer`, constantes `HERO_BLUR_SCROLL_RANGE`/`HERO_BLUR_MAX_INTENSITY`/`HERO_DARKEN_MIN_OPACITY`/`HERO_DARKEN_MAX_OPACITY`) — queda solo el scrim estático (`heroGradient.scrim`, sin animar) para el contraste del texto de la cabecera. Ahora hay una única progresión de principio a fin: `homeBgDarkenAnimatedStyle`, sobre los 1100px completos.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de comportamiento de scroll puramente visual — **pendiente de confirmación visual real en dispositivo** (mismo criterio que el resto de IMP-014).
