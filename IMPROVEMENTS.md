@@ -584,3 +584,112 @@ Tras IMP-017 (círculos en vez de recuadros), el usuario pidió ir más allá: q
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de comportamiento real (no solo visual) en hábitos con objetivo numérico — **pendiente de confirmación con datos reales en dispositivo** (no se ha podido probar con un hábito de objetivo numérico real desde este entorno).
+
+---
+
+# IMP-019 — Home v2: fondo fijo con oscurecido progresivo (reintroducido y ajustado)
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-27)
+
+## Contexto
+
+Sobre IMP-014 (fondo fijo con oscurecido progresivo por scroll), el usuario pidió primero eliminar por completo el efecto glass/opacidad sobre la foto de fondo ("vamos a eliminar el efecto glass o opacidad que hay aplicado a la imagen de fondo") y, más adelante en el mismo hilo, pidió reintroducirlo con un comportamiento más preciso: opacidad de 0.20 al principio de la pantalla, subiendo hasta un tope al llegar a la sección "Mi plan de hoy", quedándose fija ahí el resto del scroll — antes el tope se alcanzaba con un nº de píxeles de scroll fijo (`HOME_BG_FADE_SCROLL_RANGE = 1100`), sin relación real con dónde caía esa sección en pantalla.
+
+## Qué se construyó
+
+- **Eliminación** (commit intermedio): se quitan el scrim estático (que se aplicaba DOS veces sobre la misma imagen — una en la capa fija global, otra dentro de `heroHeader`, sumando opacidades) y el oscurecido animado por completo, junto con las constantes/estilos que solo servían a ese mecanismo.
+- **Reintroducción** con un nuevo mecanismo: `miPlanOffsetY` (shared value de Reanimated) medido en tiempo real vía `onLayout` sobre la fila de "Mi plan de hoy" (`handleMiPlanLayout`), en vez de un nº de scroll fijo — se adapta sola a la altura real de lo que hay antes (banner de error condicional, `StartupChecklist` con 7 pasos, ambos de altura variable).
+- `homeBgDarkenAnimatedStyle`: interpola `scrollY` en el rango `[0, miPlanOffsetY]` hacia `[HOME_BG_MIN_OPACITY, HOME_BG_MAX_OPACITY]` con `Extrapolation.CLAMP` (fijo en el máximo a partir de ahí).
+- Color del oscurecido: `HERO_DARKEN[heroMood]` en modo oscuro (un tono cálido/frío/casi negro por mood de la foto), `C.bg` en modo claro.
+- El tope inicial (0.90) resultó demasiado agresivo en modo claro tras verse en dispositivo real — ver BUG-054, que lo deja en 0.45.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet`/`tsc --noEmit -p .` limpios en cada commit. Aplicado en build de IPA real (run #54) — el ajuste de opacidad de BUG-054, posterior a ese build, aún no se ha visto en dispositivo.
+
+---
+
+# IMP-020 — Cumplimiento semanal y hábitos: un solo anillo, relleno por % real
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / Home v2 + MigratedHabits
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-27)
+
+## Contexto
+
+Sobre IMP-017/018 (`WeekComplianceRow` con `AnimatedRing` opcional vía `progressDays`), el usuario pidió ir más allá en dos frentes: que TODOS los círculos usen siempre el anillo (quitar la variante de recuadro binario que quedaba como fallback cuando no se pasaba `progressDays`), y que "Cumplimiento semanal" (entrenamientos, no solo hábitos) también se rellene por fracción real — su ejemplo explícito: "si hay dos entrenamientos asignados en un día y solo se ha hecho uno, que se rellene la mitad".
+
+## Qué se construyó
+
+- **`WeekComplianceRow`**: se quita la rama condicional `progressDays ? <AnimatedRing/> : <View dot/>` — ahora siempre renderiza `AnimatedRing`, usando `completedDays` como fallback binario (0/1) cuando no se pasa `progressDays`.
+- **`home_screen_modern_v2.tsx`**: nuevo estado `weeklyWorkoutsProgress` (fracción `completados/asignados` por día, calculado en `fetchData` junto al booleano `weeklyWorkouts` ya existente, sin tocar la semántica de este último) — la tarjeta "Cumplimiento semanal" ahora pasa también `progressDays={weeklyWorkoutsProgress}` (antes solo `completedDays`, sin fracciones intermedias).
+- **Hábitos** (Home y `habits_list_screen.tsx`): se pasa siempre `progressDays={computeWeekProgress(logs, target_value)}` (antes solo cuando `target_value` era verdadero, cayendo al binario para el resto) — `computeWeekProgress` ya traía el fallback binario integrado desde IMP-018, así que no hizo falta tocarla.
+
+## Archivos modificados
+
+- `components/WeekComplianceRow.tsx`
+- `pages/migrated/home_screen_modern_v2.tsx`
+- `pages/migrated/habits_list_screen.tsx`
+
+## Verificación
+
+`eslint --quiet`/`tsc --noEmit -p .` limpios. Aplicado en build de IPA real (run #54) — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# IMP-021 — Calendario circular de kcal en Plan diario (MigratedPlan)
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / MigratedPlan
+**Fase:** Post-sesión (pedido explícito del usuario, con captura de referencia, 2026-08-27)
+
+## Contexto
+
+El usuario pidió modernizar la píldora de día del calendario semanal de `plan_screen.tsx` a un formato circular, con el círculo del número relleno según el % de kcal consumidas sobre el objetivo de CADA día — mismo lenguaje visual que ya usa `AnimatedRing` en Recovery/Strain de Home, hábitos, etc. Pedido "al 100%" el diseño de la captura de referencia (una app de tracking de pasos con círculos por día de la semana).
+
+## Qué se construyó
+
+- Cada día de la píldora semanal envuelve el círculo del número en un `AnimatedRing` (`WEEK_RING_SIZE`/`WEEK_RING_STROKE`/`WEEK_RING_INNER_SIZE`), coloreado en naranja de marca (blanco, sobre pista translúcida, cuando el día está seleccionado y la píldora se rellena de naranja).
+- `dietApi` no tiene endpoint de resumen semanal (solo `getDailyPlan(date)` por día individual, el mismo que ya usaba `fetchDailyPlan` para el día seleccionado) — se piden los 7 días de la semana visible en paralelo (`Promise.allSettled`) al montar y en cada cambio de semana (`weekOffset`), guardados en `weekKcalProgress` (fecha `YYYY-MM-DD` → fracción 0..1, vía `extractKcalProgress`).
+- El día seleccionado se mantiene sincronizado al instante con `kcalCurrent`/`kcalTarget` (que ya se refrescan tras marcar una comida o añadir una receta) en un efecto aparte, sin esperar al fetch semanal de arriba — evita que el anillo del día activo quede desactualizado justo después de una acción del usuario.
+
+## Archivos modificados
+
+- `pages/migrated/plan_screen.tsx`
+
+## Verificación
+
+`eslint --quiet`/`tsc --noEmit -p .` limpios. **Pendiente de confirmación visual real en dispositivo**, sobre todo el caso de un día sin plan asignado (`daily_plan.kCal` en 0 → anillo vacío) y la carga inicial antes de que resuelva el fetch semanal.
+
+---
+
+# IMP-022 — Calendario de Mi programa: anillo de estado por color (Semana y Mes)
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / MigratedMyProgramCalendar
+**Fase:** Post-sesión (pedido explícito del usuario, con captura de referencia, 2026-08-27)
+
+## Contexto
+
+Mismo pedido de modernizar a formato circular, esta vez para `my_program_calendar_screen.tsx` (vistas Semana y Mes) — pero con lógica de color por **estado discreto** en vez de % continuo, pedido explícito del usuario: naranja si el día tiene entrenamiento o tarea asignada, verde si ya se completó, gris/neutro si no tiene nada asignado.
+
+## Qué se construyó
+
+- Nueva función `dayStatusFor(day)` → `'completed' | 'assigned' | 'none'`, sustituye el cálculo disperso de `hasCompletedWorkout`/`hasCheckinTasks` que antes solo alimentaba un puntito de 5px debajo del número del día.
+- El número del día pasa de texto suelto a vivir dentro de un círculo (`dayNumberRing` en Mes, `dayNumberRingBig` en Semana) con borde de color según el estado — sin arco parcial tipo %, ya que "asignado/completado/nada" es un estado discreto, no una fracción continua como en IMP-021.
+- Se elimina el 3er color (warning/amarillo) que antes distinguía check-in-only del resto de días con algo asignado — con el pedido explícito del usuario, tarea y entrenamiento cuentan igual (naranja).
+- La celda exterior (selección, "hoy", día marcado no disponible, drop-target al reorganizar) no se toca — sigue siendo el borde de la celda como antes; el anillo nuevo es solo el indicador de estado del día, independiente de esa lógica más compleja de drag & drop/modo selección, para no arriesgarla.
+
+## Archivos modificados
+
+- `pages/migrated/my_program_calendar_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. `tsc` no se pudo ejecutar en este entorno (sin `node_modules`) — verificado balanceo de llaves/paréntesis/corchetes del archivo completo a mano como comprobación estructural mínima. **Pendiente de confirmación visual real en dispositivo**, en particular que los anillos (28px en Semana, 26px en Mes) no desborden las celdas en pantallas estrechas.

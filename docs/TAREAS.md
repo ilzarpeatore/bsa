@@ -2368,3 +2368,31 @@ Tras el run #52, el usuario reportó 3 veces seguidas (con captura) que los camb
 En paralelo, se reportó y arregló **BUG-053**: el glass de la barra de navegación flotante no llegaba hasta el borde físico inferior de la pantalla (el margen de `safearea.bottom` quedaba sin ningún fondo de cristal, mostrando la foto de fondo de Home v2 sin difuminar ahí). Fix: nueva capa `bottomGlassBackdrop` a todo el ancho, con altura `barHeight + safearea.bottom` (mismo `useScale` que ya usa la propia píldora) — se adapta sola a cualquier dispositivo. Detalle en `BUGS_AND_FIXES.md`.
 
 Build lanzado con todos los cambios acumulados: **run #53**, `https://github.com/ilzarpeatore/bsa/actions/runs/33085215429` — **terminó en éxito** (`master` @ `062ac1e`, incluye BUG-053 además de todo lo anterior).
+
+---
+
+## Sesión 2026-08-27 (continuación) — IMP-019 a 022 + BUG-054/055 + runs #54 y #55
+
+Continuación directa de la sesión anterior (run #53). Detalle línea a línea de cada bloque en `IMPROVEMENTS.md` (IMP-019 a IMP-022) y `BUGS_AND_FIXES.md` (BUG-054/055) — aquí solo el resumen ejecutivo, en el mismo orden en que se pidieron.
+
+**IMP-019 — Home v2, fondo con oscurecido progresivo, ida y vuelta**: el usuario pidió primero eliminar del todo el efecto glass/opacidad sobre la foto de fondo fijo de Home v2 (se quitan scrim duplicado + oscurecido animado por completo). En el mismo hilo pidió reintroducirlo, pero mejor especificado: opacidad 0.20→0.90, con el tope alcanzado justo al llegar a la sección "Mi plan de hoy" (medido en tiempo real vía `onLayout`, `miPlanOffsetY`, no con un nº de píxeles de scroll fijo como antes) y fijo desde ahí hasta el final.
+
+**IMP-020 — Cumplimiento semanal y hábitos, un solo anillo por % real**: `WeekComplianceRow` deja de tener una variante de recuadro binario como fallback — siempre usa el anillo `AnimatedRing`. "Cumplimiento semanal" (entrenamientos) pasa a rellenarse por fracción real completados/asignados por día (antes solo hecho/no-hecho si había al menos uno completado); los hábitos pasan siempre el % real, no solo cuando tienen objetivo numérico.
+
+**IMP-021 — Calendario circular de kcal en Plan diario**: la píldora de día de `plan_screen.tsx` pasa a formato circular (captura de referencia de otra app), con el círculo de cada día relleno según kcal consumidas/objetivo de ESE día — 7 peticiones en paralelo (`Promise.allSettled`, `dietApi.getDailyPlan` no tiene resumen semanal) por cada semana visible, con el día seleccionado sincronizado al instante aparte.
+
+**IMP-022 — Calendario de Mi programa, anillo de estado por color**: mismo formato circular para `my_program_calendar_screen.tsx` (Semana y Mes), pero con color por estado discreto en vez de %: naranja = entrenamiento o tarea asignada, verde = completado, gris/neutro = nada asignado. Sustituye el puntito de 5px que había antes.
+
+Tras el primer build de esta ronda, el usuario reportó dos bugs más con captura, resueltos y pusheados aparte:
+
+- **BUG-054** — el tope de 0.90 de IMP-019 resultó demasiado agresivo en modo claro: la foto quedaba prácticamente tapada por un bloque gris plano en toda la parte baja de la pantalla. Bajado a 0.45.
+- **BUG-055** — `MigratedAssessmentResult` (resumen final del onboarding) prácticamente ilegible en modo oscuro: fondo fijado a colores claros hardcodeados (`#FFF3EC`/`#FFFFFF`) mientras el texto sí usaba tokens adaptativos (casi blancos en oscuro) — texto claro sobre fondo que seguía siendo claro siempre. Corregido a `C.bg`/`C.surface`.
+
+Cada bloque verificado con `eslint`/`tsc` propio antes de comitear (salvo IMP-022, donde `tsc` no se pudo ejecutar por falta de `node_modules` en este entorno — se verificó a mano el balanceo de llaves/paréntesis/corchetes del archivo completo como comprobación estructural mínima). Todos los commits, push a `master` directo (ya no hubo rama intermedia — la sesión se quedó trabajando sobre `master` desde el primer merge).
+
+Dos builds en esta ronda:
+
+- **Run #54**, `https://github.com/ilzarpeatore/bsa/actions/runs/33112529860` (`master` @ `9b5b739`, incluye IMP-019 a 021) — **terminó en éxito**.
+- **Run #55**, `https://github.com/ilzarpeatore/bsa/actions/runs/33124168826` (`master` @ `ac6c7d6`, incluye además IMP-022, BUG-054 y BUG-055) — lanzado al pedido explícito del usuario ("merge todo a master y lanza el build del ipa"), **en curso en el momento de escribir esto** — confirmar resultado en el propio Actions antes de dar la ronda por cerrada.
+
+**Pendiente**: confirmación visual real en dispositivo de todo lo de esta ronda (ninguno de los 6 bloques tiene trabajo de código pendiente) — recomendado como prioridad del próximo repaso, en particular BUG-054 (ajuste de opacidad no visto aún en dispositivo) e IMP-022 (tamaños de anillo en pantallas estrechas, sin poder probarse desde este entorno).

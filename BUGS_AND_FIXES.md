@@ -2165,3 +2165,61 @@ Nueva capa `bottomGlassBackdrop`: un `GlassView` a todo el ancho de la pantalla 
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de layout/glass puro — **pendiente de confirmación visual real en dispositivo** (el hueco solo es visible sobre un fondo con foto, como el nuevo Home v2).
+
+---
+
+# BUG-054 — Home v2: el oscurecido de fondo tapaba la foto en la parte baja de la pantalla
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-27)
+
+## Problema
+
+Tras reintroducir el oscurecido progresivo del fondo fijo de Home v2 (IMP-019, rango de opacidad 0.20 → 0.90 con tope al llegar a "Mi plan de hoy"), el usuario reportó que la parte baja de la pantalla (Blog, Sueño, tarjeta de soporte, incluso detrás de la barra de pestañas) se veía como un bloque gris plano, sin la foto de fondo detrás, durante el resto del scroll.
+
+## Causa
+
+En modo claro, `homeBgDarkenLayer` funde hacia `C.bg` (`#F4F4F7`, color opaco). Al 90% de opacidad (el tope pedido, alcanzado al llegar a "Mi plan de hoy" y mantenido fijo el resto de la pantalla), la foto quedaba prácticamente tapada del todo — el 10% restante de foto visible, ya de por sí oscura, se leía como gris plano.
+
+## Fix
+
+Se baja `HOME_BG_MAX_OPACITY` de 0.9 a 0.45. La foto se sigue viendo (atenuada) en todo el recorrido del scroll; las tarjetas de contenido (`Card`, `blogCard`, etc.) no se ven afectadas porque tienen su propio fondo sólido, independiente de esta capa.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de una constante numérica, sin impacto de tipos — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-055 — AssessmentResultScreen prácticamente ilegible en modo oscuro
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (bloquea la lectura de una pantalla completa del flujo de onboarding en modo oscuro)
+**Categoría:** UI / dark mode / onboarding
+**Fase:** Post-sesión (reportado por el usuario con 5 capturas, 2026-08-27)
+
+## Problema
+
+El resumen final del onboarding (`MigratedAssessmentResult`, pantalla "Tu coach preparará tu plan personalizado") se veía prácticamente ilegible en modo oscuro — títulos, cifras (kcal, ml) y textos de las tarjetas casi invisibles sobre el fondo.
+
+## Causa
+
+El fondo (contenedor de pantalla, tarjetas, barra inferior) estaba fijado a colores claros hardcodeados (`'#FFF3EC'`, `'#FFFFFF'`) sin mirar el tema, mientras que el texto sí usaba los tokens adaptativos (`C.textPrimary`, `C.gray50`), que en modo oscuro se vuelven casi blancos — el resultado era texto claro sobre un fondo que seguía siendo claro siempre, sea cual sea el tema real de la app.
+
+## Fix
+
+Los 3 fondos hardcodeados pasan a `C.bg`/`C.surface` — mismos tokens adaptativos que ya usa el resto de `onboarding_v2` (p.ej. `onboarding_v2_screen.tsx`, `container: { backgroundColor: C.bg }`). Resto del archivo auditado: los 2 únicos `'#FFFFFF'` que quedan son texto/icono blanco sobre un badge/botón de fondo `C.orange` (mismo naranja en ambos temas), donde el blanco fijo sigue siendo correcto en los dos modos.
+
+## Archivos modificados
+
+- `pages/migrated/onboarding/assessment_result_screen.tsx`
+
+## Verificación
+
+Cambio de color puro (3 `backgroundColor`) — **pendiente de confirmación visual real en dispositivo**, en ambos modos.
