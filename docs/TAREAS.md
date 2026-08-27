@@ -2354,3 +2354,11 @@ Con el build ya lanzado, llegaron 2 reportes más con captura, resueltos y pushe
 - **BUG-051**: en `MigratedCommunity`, un tinte gris fijo (`rgba(128,128,128,0.1)`) sin relación con el tema dejaba el fondo casi idéntico al color de las tarjetas de publicaciones en modo oscuro — quitado, ahora se ve el `C.bg` real.
 
 Todo lo de este bloque queda 🔵 pendiente de confirmación visual real en dispositivo, salvo el propio build (que sí compiló) — ninguno de los 2 últimos bugs (BUG-050/051) se lanzó todavía en un build de IPA nuevo.
+
+---
+
+## Sesión 2026-08-27 — BUG-052 + IMP-016/017/018 + run #52
+
+Continuación: fondo de Home v2 con doble oscurecido (BUG-052, ver `BUGS_AND_FIXES.md`), calendario semanal y píldoras de cumplimiento semanal modernizados a diseño de píldora/círculo con captura de referencia (IMP-016/017), y el círculo de cumplimiento se rellena por % real en hábitos con objetivo numérico en vez de solo hecho/no-hecho (IMP-018, reutiliza `AnimatedRing`). Cada bloque verificado con `eslint`/`tsc` propio antes de comitear, push a `master` como fast-forward tras cada uno.
+
+Build lanzado a petición explícita del usuario con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #52**, `https://github.com/ilzarpeatore/bsa/actions/runs/33073457387` — **terminó en éxito** (`master` @ `889d42b`, incluye BUG-048 a 052 e IMP-013 a 018).
