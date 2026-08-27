@@ -2136,3 +2136,32 @@ Se elimina el mecanismo local de la cabecera (`heroBlurAnimatedProps`, `heroDark
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de comportamiento de scroll puramente visual — **pendiente de confirmación visual real en dispositivo** (mismo criterio que el resto de IMP-014).
+
+---
+
+# BUG-053 — El glass de la barra de navegación no llegaba hasta el borde inferior real
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / glass
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-27)
+
+## Problema
+
+La píldora flotante de navegación (`NavigationTab.tsx`) se posiciona con `bottom: 0` más un `marginBottom: safearea.bottom` para no invadir el home indicator. Ese margen (variable según el dispositivo) queda por debajo de la propia píldora, sin ningún fondo de cristal — con el fondo fijo de foto de Home v2 (IMP-014) detrás, ese hueco se veía como un tramo de foto sin difuminar entre la píldora y el borde físico de abajo.
+
+## Causa
+
+Nunca existió ninguna capa que cubriera ese margen: la píldora (`navigationBlur`) es la única superficie con `GlassView`, y solo ocupa su propia altura fija (`64@ratio`), no el `safearea.bottom` que se añade aparte como margen.
+
+## Fix
+
+Nueva capa `bottomGlassBackdrop`: un `GlassView` a todo el ancho de la pantalla (no solo el ancho recortado de la píldora), posicionado detrás de la barra (`pointerEvents="none"`), con una altura calculada como `barHeight + safearea.bottom` — `barHeight` se calcula con el mismo `useScale()` que ya usa `useResponsiveStyleSheet` internamente para la propia píldora, así que coincide exactamente con su altura real en cualquier dispositivo, y `safearea.bottom` es el inset real de cada dispositivo (no un valor fijo) — cubre el hueco completo, se adapta sola al tamaño de pantalla.
+
+## Archivos modificados
+
+- `components/NavigationTab.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de layout/glass puro — **pendiente de confirmación visual real en dispositivo** (el hueco solo es visible sobre un fondo con foto, como el nuevo Home v2).
