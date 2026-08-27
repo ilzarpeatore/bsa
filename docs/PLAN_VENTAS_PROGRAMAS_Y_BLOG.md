@@ -47,19 +47,24 @@ Con el motor de cumplimiento ya confirmado, el hueco real es mucho más pequeño
 
 Campos ya disponibles en `Subscription` para registrar la pasarela usada (sin migraciones nuevas): `payment_type` (string — p. ej. `'stripe_card'`, `'stripe_bizum'`, `'stripe_link'`, `'paypal'`), `txn_id` (ID de la transacción/orden de la pasarela), `transaction_detail` (JSON — el payload completo del evento, para auditoría), `callback` (libre).
 
-### Diseño técnico propuesto
+### Diseño técnico — Stripe: IMPLEMENTADO en el backend (2026-08-27)
 
 **Stripe** — una única Checkout Session con `payment_method_types: ['card', 'bizum', 'link']`; Stripe muestra las 3 opciones y el cliente elige una en su propia UI de checkout (no hace falta construir 3 flujos distintos, es una sola integración).
 
-- `POST v1/checkout/stripe/create-session` (auth): recibe `package_id`, crea la Checkout Session (metadata: `user_id`, `package_id`), devuelve la URL de Stripe a la que redirigir.
-- `POST webhooks/stripe` (público, verificado por firma — `Stripe-Signature` header, sin `auth:sanctum`, sin CSRF): en `checkout.session.completed`, crea la `Subscription` con `payment_type` según el método real usado (Stripe lo informa en el evento), `status='active'`, `payment_status='paid'`, `txn_id` = el `payment_intent`.
-- Backend: instalar `stripe/stripe-php` (no está en `composer.json` todavía), añadir `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` a `.env` (no en `.env.example` todavía).
+- `POST v1/checkout/stripe/create-session` (auth): recibe `package_id`, crea la Checkout Session (metadata: `user_id`, `package_id`), devuelve la URL de Stripe a la que redirigir. ✅ Implementado: `App\Http\Controllers\API\V1\CheckoutController::createStripeSession()`.
+- `POST webhooks/stripe` (público, verificado por firma — `Stripe-Signature` header, sin `auth:sanctum`, sin CSRF): en `checkout.session.completed`, crea la `Subscription` con `payment_type` según el método real usado (Stripe lo informa en el evento), `status='active'`, `payment_status='paid'`, `txn_id` = el ID de la Checkout Session (usado también para idempotencia — reintentos de Stripe no duplican la Subscription). ✅ Implementado: `CheckoutController::stripeWebhook()`/`fulfillStripeSession()`.
+- `GET package-catalog` (público, sin login): mismo listado que `package-list` pero accesible sin sesión, para que la web muestre precios antes de que el usuario inicie sesión. ✅ Implementado, reutiliza `PackageController::getList()`.
+- Backend: `stripe/stripe-php` (`^21.3`) instalado en `composer.json`/`composer.lock`. `config/services.php` y `.env.example` documentan `STRIPE_SECRET_KEY`/`STRIPE_PUBLIC_KEY`/`STRIPE_WEBHOOK_SECRET` (todavía vacíos — sin credenciales reales en ningún archivo del repo). Commit `cdf1cba` en `bckbs`, pusheado a `main`.
+- **Pendiente antes de poder probar de verdad**: claves de prueba/sandbox de Stripe (el usuario dijo que las buscaría), un `.env` local en `bckbs` con esas claves + credenciales de base de datos (no committeado, nunca se sube), y añadir el dominio de producción de `webbs` a `config/cors.php`.
 
-**PayPal** — el SDK (`paypal/paypal-server-sdk`) ya está instalado, sin usar.
+### Diseño técnico — PayPal: IMPLEMENTADO en el backend (2026-08-27)
 
-- `POST v1/checkout/paypal/create-order` (auth): recibe `package_id`, crea la orden PayPal, devuelve el ID/URL de aprobación.
-- `POST v1/checkout/paypal/capture-order` (auth, llamado por el frontend tras la aprobación del cliente en PayPal) **o** un webhook de PayPal (`POST webhooks/paypal`, verificado con el header de verificación de PayPal) — cualquiera de los dos crea la `Subscription` igual que en el caso de Stripe.
-- Backend: añadir `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE` (`sandbox`/`live`) a `.env`.
+**PayPal** — el SDK (`paypal/paypal-server-sdk`) ya estaba instalado, sin usar; ahora sí está cableado.
+
+- `POST v1/checkout/paypal/create-order` (auth): recibe `package_id`, crea la orden PayPal (`custom_id` = `user_id:package_id`, PayPal no tiene un campo "metadata" libre como Stripe), devuelve `order_id` + `approve_url` (el link `rel=approve` de PayPal al que redirigir al cliente). ✅ Implementado: `CheckoutController::createPaypalOrder()`.
+- `POST v1/checkout/paypal/capture-order` (auth, llamado por el frontend tras la aprobación del cliente en PayPal — no hay webhook de PayPal, a diferencia de Stripe, porque aquí es el propio frontend quien recibe la vuelta desde paypal.com y dispara la confirmación): captura la orden, valida `status === 'COMPLETED'`, crea la `Subscription` igual que en el caso de Stripe (idempotente por `txn_id` = order id de PayPal). ✅ Implementado: `CheckoutController::capturePaypalOrder()`.
+- Backend: `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE` (`sandbox`/`live`) documentados en `.env.example`, `config/services.php` ya los expone. Commit `e660f75` en `bckbs`, pusheado a `main`.
+- **Pendiente antes de poder probar de verdad**: credenciales sandbox de PayPal (aún no pedidas al usuario — Stripe fue lo primero). El flujo de `capture-order` en la web (`webbs`) necesita una página `/checkout/paypal-retorno` que lea `order_id` de la query string que PayPal añade a `return_url` y llame a este endpoint.
 
 ### Resto del flujo (sin cambios respecto a la versión anterior de este documento)
 
@@ -69,7 +74,15 @@ Campos ya disponibles en `Subscription` para registrar la pasarela usada (sin mi
 
 ## Siguiente paso recomendado
 
-1. Cuentas/credenciales reales (o de prueba/sandbox para empezar) de Stripe y PayPal — hacen falta antes de escribir el código de checkout, no después.
-2. Empezar por lo que no depende de ninguna pasarela: la página `/blog` en `webbs` (ya alcanzable hoy) y la página de catálogo de programas (`package-list`).
-3. En paralelo, construir los 4 endpoints nuevos en `bckbs` (2 de creación de sesión/orden + 2 de confirmación) en cuanto haya credenciales de prueba.
-4. Añadir el dominio de producción de `webbs` a `cors.php`.
+**Backend (`bckbs`) — hecho**: los 4 endpoints de checkout (Stripe: create-session + webhook; PayPal: create-order + capture-order) están implementados, verificados (`php -l`, resolución de clases del SDK) y pusheados a `main` (commits `cdf1cba`, `e660f75`). Sin credenciales reales en ningún archivo — todo vía `env()`.
+
+Pendiente ahora:
+
+1. **Credenciales de prueba/sandbox** de Stripe y PayPal — sin esto no se puede probar el flujo end-to-end (el usuario dijo que buscaría las de Stripe; las de PayPal aún no se han pedido).
+2. **Web (`webbs`)** — nada empezado todavía:
+   - `/blog` y `/blog/[slug]` (ya alcanzable hoy, sin depender de ninguna pasarela — consume `post-list`/`post-detail`).
+   - `/programas` (catálogo, consume `package-catalog`, ya público).
+   - Login/registro obligatorio antes de pagar (decisión ya tomada).
+   - Botón "Comprar" → llama a `checkout/stripe/create-session` o `checkout/paypal/create-order` según el método elegido, redirige a la URL/link devuelto.
+   - `/checkout/exito` (Stripe), `/checkout/paypal-retorno` (llama a `capture-order` con el `order_id` de la query string) y `/checkout/cancelado`.
+3. **CORS**: añadir el dominio de producción de `webbs` a `config/cors.php` en cuanto se conozca (hoy solo `localhost:3000/5173/5174`).
