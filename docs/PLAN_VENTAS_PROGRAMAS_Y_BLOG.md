@@ -39,20 +39,37 @@ Como `post-list`/`post-detail`/`blog-category-list` **ya son públicas**, la web
 
 ## Parte 2 — Venta de programas individuales: lo que realmente falta construir
 
-Con el motor de cumplimiento ya confirmado, el hueco real es mucho más pequeño de lo que parecía:
+Con el motor de cumplimiento ya confirmado, el hueco real es mucho más pequeño de lo que parecía. **Decisión tomada con el usuario: ambas pasarelas — Stripe (tarjeta + Bizum + Link) y PayPal, ambas disponibles como opción en el mismo checkout.**
 
-1. **Elegir pasarela de pago** (Stripe o PayPal) — decisión de negocio pendiente, ver pregunta más abajo. Nada está conectado todavía, así que se puede elegir sin arrastrar trabajo previo.
-2. **Backend**: un endpoint nuevo (p. ej. `POST v1/checkout/create-session`, autenticado) que, dado un `package_id`, cree la sesión de pago con la pasarela elegida, y un endpoint de confirmación (webhook de la pasarela, o un endpoint de "confirmar tras redirect" si se evita el webhook) que **cree la fila `Subscription`** con `user_id`+`package_id`+`subscription_start_date` — en cuanto esa fila se guarda, `PackageFulfillmentService` hace el resto solo.
-3. **Web (`webbs`)**: página de catálogo de programas (leyendo `package-list`, ya existe autenticado — puede necesitar una variante pública de solo-listado para mostrar precio/descripción sin login, y exigir login solo al pulsar "Comprar"), flujo de login/registro obligatorio antes de pagar (decisión ya tomada), y la integración del checkout de la pasarela elegida.
-4. **App (`bsa`)**: no hace falta ninguna pantalla nueva de "Mis programas" — el `TrainingProgram` asignado ya se ve exactamente igual que cualquier otro plan asignado por el coach en "Mi plan de hoy" / el calendario (`ProgramClientAssignment` es el mismo mecanismo que ya consume `workoutHistoryApi.getMyCalendarDayDetail`). Opcional: una notificación push en el momento de la compra (tipo nuevo, o reutilizar el tipo `subscription` que la bandeja de notificaciones ya reconoce).
+### El punto exacto donde conecta cualquier pasarela
 
-## Decisión pendiente
+`Subscription::boot()` (línea 27-40 de `app/Models/Subscription.php`) dispara `PackageFulfillmentService::fulfill()` automáticamente en cuanto se guarda una fila con `status === config('constant.SUBSCRIPTION_STATUS.ACTIVE')` **y** `payment_status === 'paid'`. El propio comentario del código (línea 22-26) dice textualmente que este mecanismo se diseñó para funcionar igual "sin importar quién cree/edite la Subscription (admin de prueba hoy, gateway de pago real más adelante)" — **está construido a propósito para esto**. No hay que tocar `Subscription`, `Package` ni `PackageFulfillmentService` para nada de lo que sigue; solo hay que crear correctamente esa fila desde cada pasarela.
 
-¿Stripe o PayPal? El backend ya trae instalado el SDK de PayPal (`paypal/paypal-server-sdk`) pero solo placeholders vacíos de Stripe en la config — ninguno de los dos está realmente conectado, así que la elección es libre.
+Campos ya disponibles en `Subscription` para registrar la pasarela usada (sin migraciones nuevas): `payment_type` (string — p. ej. `'stripe_card'`, `'stripe_bizum'`, `'stripe_link'`, `'paypal'`), `txn_id` (ID de la transacción/orden de la pasarela), `transaction_detail` (JSON — el payload completo del evento, para auditoría), `callback` (libre).
+
+### Diseño técnico propuesto
+
+**Stripe** — una única Checkout Session con `payment_method_types: ['card', 'bizum', 'link']`; Stripe muestra las 3 opciones y el cliente elige una en su propia UI de checkout (no hace falta construir 3 flujos distintos, es una sola integración).
+
+- `POST v1/checkout/stripe/create-session` (auth): recibe `package_id`, crea la Checkout Session (metadata: `user_id`, `package_id`), devuelve la URL de Stripe a la que redirigir.
+- `POST webhooks/stripe` (público, verificado por firma — `Stripe-Signature` header, sin `auth:sanctum`, sin CSRF): en `checkout.session.completed`, crea la `Subscription` con `payment_type` según el método real usado (Stripe lo informa en el evento), `status='active'`, `payment_status='paid'`, `txn_id` = el `payment_intent`.
+- Backend: instalar `stripe/stripe-php` (no está en `composer.json` todavía), añadir `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` a `.env` (no en `.env.example` todavía).
+
+**PayPal** — el SDK (`paypal/paypal-server-sdk`) ya está instalado, sin usar.
+
+- `POST v1/checkout/paypal/create-order` (auth): recibe `package_id`, crea la orden PayPal, devuelve el ID/URL de aprobación.
+- `POST v1/checkout/paypal/capture-order` (auth, llamado por el frontend tras la aprobación del cliente en PayPal) **o** un webhook de PayPal (`POST webhooks/paypal`, verificado con el header de verificación de PayPal) — cualquiera de los dos crea la `Subscription` igual que en el caso de Stripe.
+- Backend: añadir `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE` (`sandbox`/`live`) a `.env`.
+
+### Resto del flujo (sin cambios respecto a la versión anterior de este documento)
+
+- **Web (`webbs`)**: catálogo de programas (`package-list`, con variante pública de solo-listado si se quiere mostrar precio sin login), login/registro obligatorio antes de pagar, botones "Pagar con tarjeta/Bizum" (Stripe) y "Pagar con PayPal" en el mismo checkout.
+- **App (`bsa`)**: no hace falta ninguna pantalla nueva — el programa comprado se ve como cualquier otro plan asignado por el coach, vía el mismo `ProgramClientAssignment`/calendario que ya existe.
+- **CORS**: añadir el dominio final de `webbs` a `config/cors.php` en cuanto se conozca.
 
 ## Siguiente paso recomendado
 
-1. Decidir la pasarela de pago.
-2. Confirmar el dominio final de `webbs` en producción para añadirlo a `cors.php`.
-3. Empezar por lo que no depende de la pasarela: la página `/blog` en `webbs` (ya alcanzable hoy) y la página de catálogo de programas (con `package-list`).
-4. En paralelo, construir el endpoint de checkout + confirmación en `bckbs` una vez elegida la pasarela.
+1. Cuentas/credenciales reales (o de prueba/sandbox para empezar) de Stripe y PayPal — hacen falta antes de escribir el código de checkout, no después.
+2. Empezar por lo que no depende de ninguna pasarela: la página `/blog` en `webbs` (ya alcanzable hoy) y la página de catálogo de programas (`package-list`).
+3. En paralelo, construir los 4 endpoints nuevos en `bckbs` (2 de creación de sesión/orden + 2 de confirmación) en cuanto haya credenciales de prueba.
+4. Añadir el dominio de producción de `webbs` a `cors.php`.
