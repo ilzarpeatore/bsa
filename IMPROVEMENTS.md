@@ -501,3 +501,57 @@ Se envolvió el `HStack` con la miniatura (`ExerciseThumbMem`) y el título/subt
 ## Verificación
 
 `eslint --quiet` limpio. Navegación con la misma firma de params ya probada en otra pantalla — pendiente de confirmación visual/funcional en dispositivo real.
+
+---
+
+# IMP-016 — `plan_screen.tsx`: calendario semanal modernizado (píldora + círculo)
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / Plan diario
+**Fase:** Post-sesión (pedido explícito del usuario, con captura de referencia de otra app, 2026-08-27)
+
+## Contexto
+
+El selector de día de la semana en `MigratedPlan` (arriba del todo, con flechas `<`/`>` para cambiar de semana) usaba un diseño plano: etiqueta del día + número, con un fondo rectangular sutil (`C.brand5`) solo en el día seleccionado. El usuario pidió modernizarlo para que sea igual a la referencia: cada día en una píldora vertical, con el número dentro de un círculo blanco y la etiqueta del día debajo, rellenando la píldora de color solo en el día seleccionado.
+
+## Qué se construyó
+
+`renderWeekDays()` reescrito: cada día es ahora una píldora (`RADIUS.pill`) con un círculo blanco (`weekDayCircle`, número siempre en oscuro, seleccionado o no — igual que la referencia) y la etiqueta del día en mayúsculas debajo. Al seleccionar un día, la píldora se rellena de color y gana una sombra de color a juego (`weekDayPillSelected`), y la etiqueta pasa a blanco. El día de hoy (sin estar seleccionado) se distingue con el borde del círculo en color de marca, en vez del texto tintado de antes.
+
+Se usa **el naranja de marca (`C.orange`)** para el relleno de la píldora seleccionada en vez del verde de la captura de referencia — es el único acento de "seleccionado" que ya usa el resto de la app (pestañas, botones, chips, menú "+"), así que mantiene la identidad visual en vez de introducir un color sin uso en ningún otro sitio de la app.
+
+**Detalle evitado**: la etiqueta seleccionada usaba antes `color: C.white` — en `theme.ts` ese token en realidad es texto que INVIERTE con el modo (oscuro en modo claro, claro en modo oscuro), pensado para superficies neutras, no para texto sobre un relleno naranja sólido fijo. Se cambia a `'#FFFFFF'` literal, para que el contraste sea correcto en los dos modos.
+
+## Archivos modificados
+
+- `pages/migrated/plan_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puramente visual — **pendiente de confirmación visual real en dispositivo**, y de que el naranja en vez del verde de la referencia le parezca bien al usuario.
+
+---
+
+# IMP-017 — `WeekComplianceRow`: círculos en vez de recuadros, etiqueta debajo
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / componente compartido
+**Fase:** Post-sesión (pedido explícito del usuario, con captura de referencia de otra app, 2026-08-27)
+
+## Contexto
+
+`components/WeekComplianceRow.tsx` es el componente compartido de la fila de "cumplimiento semanal" (L M X J V S D con un indicador de hecho/no hecho por día), usado en 3 sitios: la tarjeta "Cumplimiento semanal" de Home v2, la mini-fila de cada hábito en esa misma pantalla, y `habits_list_screen.tsx`. El diseño anterior usaba un recuadro redondeado (no círculo) con un check de texto plano (`✓`) y la etiqueta del día ENCIMA del recuadro. El usuario pidió modernizarlo con una captura de referencia: círculos, con la etiqueta del día DEBAJO.
+
+## Qué se construyó
+
+Recuadro redondeado → círculo real (`borderRadius: size / 2`, antes calculado a ~28% del tamaño). Etiqueta del día movida de encima a debajo del círculo (orden invertido en el JSX). El check de texto plano (`Text style={{fontSize:12}}>✓`) se sustituye por `<Icon name="checkmark" />` — mismo icono vectorial que ya usa `DayCell` en `habit_detail_screen.tsx` para el mismo concepto, en vez de un carácter de texto suelto.
+
+**Fuera de alcance a propósito**: `DayCell` (`habit_detail_screen.tsx`) no se toca — es un widget distinto (rejilla mensual, tocable, con fechas y estados "futuro"), no esta fila de resumen semanal de solo lectura, así que no forma parte del mismo pedido aunque comparta un cálculo de radio parecido.
+
+## Archivos modificados
+
+- `components/WeekComplianceRow.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puramente visual, en un componente compartido por 3 pantallas — **pendiente de confirmación visual real en dispositivo** en las 3.

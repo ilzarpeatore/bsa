@@ -452,6 +452,15 @@ export default function PlanScreen(props: any) {
     [savingRecipeId]
   );
 
+  // Rediseño de la píldora de día (pedido explícito, con captura de
+  // referencia de otra app): círculo blanco con el número arriba + etiqueta
+  // del día debajo, todo dentro de una píldora que se rellena de color solo
+  // cuando ese día está seleccionado (antes era un simple fondo plano
+  // rectangular). Se usa el naranja de marca (C.orange) para el relleno en
+  // vez del verde de la referencia -- es el único acento de "seleccionado"
+  // que usa el resto de la app (pestañas, botones, chips), así que mantiene
+  // la identidad visual en vez de introducir un color nuevo sin uso en
+  // ningún otro sitio.
   const renderWeekDays = (offset: number) => {
     const days = getWeekDays(offset);
     return (
@@ -462,11 +471,13 @@ export default function PlanScreen(props: any) {
           return (
             <Pressable
               key={formatDateYMD(day)}
-              style={[s.weekDayItem, isSelected && s.weekDayItemSelected]}
+              style={[s.weekDayPill, isSelected && s.weekDayPillSelected]}
               onPress={() => setSelectedDay(day)}
             >
+              <Box style={[s.weekDayCircle, isToday && !isSelected && s.weekDayCircleToday]}>
+                <Text style={s.weekDayCircleNum}>{formatDay(day)}</Text>
+              </Box>
               <Text style={[s.weekDayLabel, isSelected && s.weekDayLabelSelected]}>{formatWeekday(day)}</Text>
-              <Text style={[s.weekDayNum, isSelected && s.weekDayNumSelected, isToday && !isSelected && s.weekDayToday]}>{formatDay(day)}</Text>
             </Pressable>
           );
         })}
@@ -775,13 +786,47 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   weekdayPickerGlassWrap: { width: '100%' },
   weekNavBtn: { paddingHorizontal: 4, paddingVertical: 8 },
   weekStrip: { flex: 1, justifyContent: 'space-around' },
-  weekDayItem: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 6, borderRadius: RADIUS.sm },
-  weekDayItemSelected: { backgroundColor: C.brand5 },
-  weekDayLabel: { fontSize: 11, fontFamily: FONT.medium, color: C.gray40, marginBottom: 4 },
-  weekDayLabelSelected: { color: C.white },
-  weekDayNum: { fontSize: 16, fontFamily: FONT.semiBold, color: C.gray40 },
-  weekDayNumSelected: { color: C.white },
-  weekDayToday: { color: C.textPrimary },
+  weekDayPill: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: RADIUS.pill,
+    gap: 6,
+  },
+  weekDayPillSelected: {
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  // Círculo blanco con el número -- se queda igual (blanco, número oscuro)
+  // este o no seleccionado el día, tal como la referencia; solo la píldora
+  // de alrededor y la etiqueta cambian de color al seleccionar.
+  weekDayCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: C.border,
+  },
+  // Día de hoy (sin estar seleccionado): el círculo lleva el borde en color
+  // de marca para distinguirlo del resto de la semana sin necesitar
+  // seleccionarlo.
+  weekDayCircleToday: { borderColor: C.orange },
+  weekDayCircleNum: { fontSize: 14, fontFamily: FONT.bold, color: '#1C1C1E' },
+  weekDayLabel: { fontSize: 10, fontFamily: FONT.semiBold, color: C.gray40, textTransform: 'uppercase', letterSpacing: 0.3 },
+  // C.white en este theme es un token de texto que INVIERTE con el modo
+  // (oscuro en claro, claro en oscuro, ver theme.ts) -- pensado para texto
+  // sobre superficies neutras, no sirve aquí: la píldora seleccionada
+  // siempre es naranja solido, así que el texto necesita ser blanco
+  // literal siempre, sea cual sea el tema.
+  weekDayLabelSelected: { color: '#FFFFFF' },
   compactBar: { marginHorizontal: 16, marginTop: 8, marginBottom: 8 },
   compactStat: { alignItems: 'flex-start' },
   compactStatLabel: { fontSize: 10, color: C.gray40, fontFamily: FONT.regular },

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Icon } from '@components/ui/icon';
 import { FONT } from '../pages/migrated/theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 
@@ -16,31 +17,34 @@ interface Props {
   size?: number;
 }
 
-/** Fila de 7 recuadros de cumplimiento semanal (L M X J V S D) — mismo estilo (recuadro
- * redondeado, no círculo) en Actividad Semanal, Hábitos y MigratedHabitDetail. */
+/** Fila de 7 círculos de cumplimiento semanal (pedido explícito, con captura
+ * de referencia de otra app, 2026-08-27: círculo con check en vez del
+ * recuadro redondeado de antes, y la etiqueta del día debajo en vez de
+ * encima) — mismo componente en Actividad Semanal, Hábitos (Home) y
+ * `habits_list_screen.tsx`, para que las 3 pantallas se vean idénticas. No
+ * incluye `DayCell` de `habit_detail_screen.tsx` a propósito: ese es un
+ * widget distinto (rejilla mensual/tocable con fechas), no esta fila de
+ * resumen semanal de solo lectura. */
 export default function WeekComplianceRow({ completedDays, color, size = 28 }: Props) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
   const resolvedColor = color ?? C.orange;
-  // Mismo cálculo de radio que DayCell en habit_detail_screen.tsx — recuadro
-  // redondeado, no círculo, para que las 3 pantallas se vean idénticas.
-  const radius = size >= 24 ? size * 0.28 : 4;
   return (
     <View style={styles.row}>
       {DAY_LABELS.map((label, i) => {
         const done = !!completedDays[i];
         return (
           <View key={label} style={styles.day}>
-            <Text style={styles.label}>{label}</Text>
             <View
               style={[
                 styles.dot,
-                { width: size, height: size, borderRadius: radius },
+                { width: size, height: size, borderRadius: size / 2 },
                 done && { backgroundColor: resolvedColor, borderColor: resolvedColor },
               ]}
             >
-              {done && <Text style={styles.check}>✓</Text>}
+              {done && <Icon name="checkmark" size={Math.min(16, size * 0.55)} color="#FFFFFF" />}
             </View>
+            <Text style={styles.label}>{label}</Text>
           </View>
         );
       })}
@@ -52,8 +56,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
     row: { flexDirection: 'row', justifyContent: 'space-between' },
     day: { alignItems: 'center' },
-    label: { fontSize: 10, color: C.textSecondary, marginBottom: 4, fontFamily: FONT.regular },
-    dot: { borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    check: { fontSize: 12, color: '#FFFFFF' },
+    dot: { borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+    label: { fontSize: 11, color: C.textSecondary, fontFamily: FONT.medium },
   });
 }
