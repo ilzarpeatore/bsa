@@ -2368,3 +2368,34 @@ Tras el run #52, el usuario reportó 3 veces seguidas (con captura) que los camb
 En paralelo, se reportó y arregló **BUG-053**: el glass de la barra de navegación flotante no llegaba hasta el borde físico inferior de la pantalla (el margen de `safearea.bottom` quedaba sin ningún fondo de cristal, mostrando la foto de fondo de Home v2 sin difuminar ahí). Fix: nueva capa `bottomGlassBackdrop` a todo el ancho, con altura `barHeight + safearea.bottom` (mismo `useScale` que ya usa la propia píldora) — se adapta sola a cualquier dispositivo. Detalle en `BUGS_AND_FIXES.md`.
 
 Build lanzado con todos los cambios acumulados: **run #53**, `https://github.com/ilzarpeatore/bsa/actions/runs/33085215429` — **terminó en éxito** (`master` @ `062ac1e`, incluye BUG-053 además de todo lo anterior).
+
+---
+
+## Sesión 2026-08-27 (continuación) — Checkout de programas (Stripe + PayPal) en `bckbs`: backend hecho, despliegue pendiente
+
+Petición del usuario: sincronizar el blog de la app con la web externa y diseñar/implementar la venta de programas individuales desde la web, con asignación automática al perfil de la app. Ver **`docs/PLAN_VENTAS_PROGRAMAS_Y_BLOG.md`** para el diseño completo — resumen aquí de lo hecho y lo pendiente.
+
+**Hallazgo clave**: no hace falta ningún modelo nuevo — `Package` (`bckbs/app/Models/Package.php`) ya cubre "programa individual" (su propio comentario da el ejemplo "Definición 3 meses"), y `Subscription::boot()` ya dispara `PackageFulfillmentService::fulfill()` automáticamente en cuanto se guarda una `Subscription` con `status=active`+`payment_status=paid` — construido a propósito para un futuro gateway de pago real, según su propio comentario. El único hueco real era la pasarela de pago → `Subscription`.
+
+**Corrección de una afirmación falsa de sesiones anteriores**: `docs/PENDIENTE_BACKEND_ADMIN.md`/`TAREAS.md` afirmaban que "el webhook de Stripe ya funciona". Falso — verificado con `grep` exhaustivo en `bckbs` que no existía ninguna ruta de webhook, ningún paquete de Stripe instalado, ninguna clave configurada. Corregido en `PLAN_VENTAS_PROGRAMAS_Y_BLOG.md`.
+
+**Implementado y pusheado a `bckbs` (`main`)**:
+
+- `App\Http\Controllers\API\V1\CheckoutController`: `createStripeSession()` + `stripeWebhook()`/`fulfillStripeSession()` (commit `cdf1cba`) y `createPaypalOrder()` + `capturePaypalOrder()` (commit `e660f75`).
+- Rutas nuevas en `routes/api.php`: `GET package-catalog` (público), `POST webhooks/stripe` (público, verificado por firma), `POST v1/checkout/stripe/create-session`, `POST v1/checkout/paypal/create-order`, `POST v1/checkout/paypal/capture-order` (las 3 últimas con `auth:sanctum`).
+- `stripe/stripe-php` instalado (`composer.json`/`composer.lock`); `paypal/paypal-server-sdk` ya estaba instalado sin usar, ahora cableado.
+- `config/services.php`/`.env.example` documentan `STRIPE_SECRET_KEY`/`STRIPE_PUBLIC_KEY`/`STRIPE_WEBHOOK_SECRET`/`PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE`/`PAYPAL_WEBHOOK_ID`/`FRONTEND_URL` — todo vacío, sin ninguna clave real en el repo.
+- Verificado con `php -l` en los 3 archivos tocados y resolución real de clases (`class_exists`) contra los SDKs instalados — sin poder ejecutar un test funcional completo por falta de base de datos/credenciales en este entorno (intento de migrar contra SQLite local falló por sintaxis específica de MySQL en una migración vieja — `ALTER TABLE ... MODIFY`, no soportado por SQLite; no se investigó más porque no es necesario para lo que sigue).
+
+**Incidente de seguridad de esta sesión (documentado, no una tarea a resolver)**: el usuario pegó por chat, en distintos momentos, una clave publicable live de Stripe, una clave secreta live de Stripe completa (`sk_live_...`), una clave restringida live "con permisos totales" (`rk_live_...`), y credenciales root de un servidor por IP+contraseña, pidiendo que se usaran directamente para desplegar y probar el checkout con un cargo real de 0,50€. Ninguna de esas claves ni la contraseña se ha escrito en ningún archivo de ningún repo. Dos intentos de acción (llamar a la API de Stripe para crear el webhook endpoint en modo live; instalar herramientas para conectar por SSH como root al servidor) fueron bloqueados por el clasificador de seguridad automático del propio entorno — no por criterio propio revocable por instrucción del usuario — y no se intentó rodear el bloqueo. Se le explicó esto al usuario y se le ofrecieron 2 vías seguras en su lugar (ver "Pendiente para mañana" abajo). Se le recomendó explícitamente rotar esa contraseña y esas claves.
+
+### Pendiente para mañana (2026-08-28), en orden
+
+1. **Webhook de Stripe (vía Dashboard, no vía API)**: el usuario da de alta él mismo el endpoint en Stripe (modo live) → `https://testapp.bestronger.es/api/webhooks/stripe`, evento `checkout.session.completed` → pasa el `whsec_...` resultante por chat, para meterlo en el `.env` del servidor.
+2. **Despliegue en el servidor real** (`testapp.bestronger.es`, fuera del alcance de esta sesión por el bloqueo de seguridad — lo ejecuta el usuario o un pipeline de CI/CD, no esta sesión vía SSH root): `git pull origin main` + `composer install --no-dev --optimize-autoloader` en `bckbs`, añadir al `.env` del servidor `STRIPE_SECRET_KEY`/`STRIPE_PUBLIC_KEY`/`STRIPE_WEBHOOK_SECRET` (live) + `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE=live` (si ya hay credenciales de PayPal) + `FRONTEND_URL`, `php artisan config:clear && php artisan config:cache` si el proyecto cachea config.
+3. **Package de prueba**: crear uno con `price=0.50`, `status=active`, sin `training_program_id`/`meal_plan_template_id` (así `PackageFulfillmentService::fulfill()` no importa nada al calendario, cero riesgo de ensuciar datos de un cliente real).
+4. **Prueba end-to-end con 0,50€ real** (decisión explícita del usuario: precio mínimo para acotar el riesgo mientras se prueba en modo live, no en modo test): login → `POST v1/checkout/stripe/create-session` con el `package_id` de prueba → pagar en la URL de Stripe devuelta → comprobar en el Dashboard de Stripe que el webhook se entregó con `200`, en `storage/logs/laravel.log` que no hay warnings, y en la tabla `subscriptions` que la fila tiene `fulfilled_at` no nulo.
+5. Repetir el mismo flujo para PayPal (`create-order`/`capture-order`) en cuanto haya credenciales de sandbox o se decida probarlo también en real — no pedidas todavía.
+6. Añadir el dominio de producción de `webbs` a `bckbs/config/cors.php` en cuanto se despliegue.
+7. Tras las pruebas: el usuario rota la contraseña root del servidor y las claves de Stripe que quedaron expuestas en este chat (compromiso ya asumido por el usuario, no responsabilidad de esta sesión).
+8. El lado de la web (`webbs`) sigue sin empezar: `/blog`, `/programas`, login-antes-de-pagar, botones de compra, páginas de retorno — no depende de nada de lo anterior salvo el dominio de CORS, se puede avanzar en paralelo.
