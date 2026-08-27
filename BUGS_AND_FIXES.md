@@ -2047,3 +2047,32 @@ Se añade `mode: colorMode` desde `useAppColorMode()` y se aplica como override 
 ## Verificación
 
 `eslint --quiet` limpio. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-051 — `community_screen.tsx`: el fondo se confunde con el color de las publicaciones
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / dark mode
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedCommunity`, el fondo de la pantalla (detrás de las tarjetas de publicaciones) se ve prácticamente del mismo tono que las propias tarjetas — sin contraste real entre una publicación y el espacio vacío alrededor.
+
+## Causa
+
+El `Box` que envuelve la `FlatList` de publicaciones llevaba un tinte fijo `backgroundColor: 'rgba(128,128,128,0.1)'` (gris medio al 10% de opacidad) por encima del `C.bg` real del `SafeAreaView`, sin motivo documentado ni relación con el tema. En modo oscuro, ese tinte mezclado con `C.bg` (`#242529`) da un tono (~`#2D2E32`) casi idéntico al de las tarjetas (`bg-card` → `#2E3037`) — la diferencia entre fondo y tarjeta, que ya existe y es correcta en `theme.ts`/`global.css`, quedaba anulada por esta capa extra.
+
+## Fix
+
+Se quita el `backgroundColor` fijo del `Box` contenedor — sin él, se ve directamente el `C.bg` del `SafeAreaView` de debajo, recuperando el contraste real contra `bg-card` (ya reactivo al modo oscuro real desde BUG-047).
+
+## Archivos modificados
+
+- `pages/migrated/community_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.

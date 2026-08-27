@@ -318,7 +318,7 @@ export default function CommunityScreen(props: any) {
           </Pressable>
         </HStack>
       </HStack>
-      <Box className="flex-1" style={{ backgroundColor: 'rgba(128,128,128,0.1)' }}>
+      <Box className="flex-1">
         {mPostList.length > 0 ? (
           <FlatList
             ref={scrollController}
