@@ -17,7 +17,7 @@ import { hapticLight } from '@helper/haptics';
 import { habitsApi, Habit, HabitSourceType } from '../../api/habits';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '../../components/WeekComplianceRow';
-import { computeWeekCompliance } from '../../components/weekCompliance';
+import { computeWeekCompliance, computeWeekProgress } from '../../components/weekCompliance';
 
 const SOURCE_LABEL: Record<HabitSourceType, string> = {
   coach_assigned: 'De tu coach',
@@ -171,7 +171,12 @@ export default function HabitsListScreen(props: Props) {
             toggleBtn
           )}
         </Box>
-        <WeekComplianceRow completedDays={computeWeekCompliance(habit.logs)} color={C.orange} size={24} />
+        <WeekComplianceRow
+          completedDays={computeWeekCompliance(habit.logs)}
+          progressDays={habit.target_value ? computeWeekProgress(habit.logs, habit.target_value) : undefined}
+          color={C.orange}
+          size={24}
+        />
       </Pressable>
     );
   };

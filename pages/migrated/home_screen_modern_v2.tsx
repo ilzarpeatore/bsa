@@ -68,7 +68,7 @@ import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
 import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '@components/WeekComplianceRow';
-import { computeWeekCompliance } from '@components/weekCompliance';
+import { computeWeekCompliance, computeWeekProgress } from '@components/weekCompliance';
 import { useAuth } from '../../store/AuthContext';
 
 const FIGMA_W = 375;
@@ -1165,7 +1165,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   </VStack>
                   <Icon name="chevron-forward" size={20} color={C.textSecondary} />
                 </HStack>
-                <WeekComplianceRow completedDays={computeWeekCompliance(h.logs)} color={C.orange} size={r(24)} />
+                <WeekComplianceRow
+                  completedDays={computeWeekCompliance(h.logs)}
+                  progressDays={h.target_value ? computeWeekProgress(h.logs, h.target_value) : undefined}
+                  color={C.orange}
+                  size={r(24)}
+                />
               </Pressable>
             ))}
           </Card>

@@ -555,3 +555,32 @@ Recuadro redondeado → círculo real (`borderRadius: size / 2`, antes calculado
 ## Verificación
 
 `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puramente visual, en un componente compartido por 3 pantallas — **pendiente de confirmación visual real en dispositivo** en las 3.
+
+---
+
+# IMP-018 — `WeekComplianceRow`: el círculo se rellena por % real en hábitos con objetivo numérico
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación visual real
+**Categoría:** UI / Hábitos
+**Fase:** Post-sesión (pedido explícito del usuario, con captura de referencia, 2026-08-27)
+
+## Contexto
+
+Tras IMP-017 (círculos en vez de recuadros), el usuario pidió ir más allá: que el círculo de cada día no sea solo hecho/no-hecho, sino que se rellene por el **porcentaje real de cumplimiento** en hábitos con objetivo numérico — su propio ejemplo: "si el hábito es leer 2 libros de 4, que la gráfica se rellene al 50%". Mismo concepto que ya existe en `habit_detail_screen.tsx` (`isGoalHabit`/`target_value`/`value_logged`), pero nunca se reflejaba en `WeekComplianceRow`.
+
+## Qué se construyó
+
+- **`computeWeekProgress(logs, targetValue)`** (nueva, en `components/weekCompliance.ts`, junto a `computeWeekCompliance` ya existente): por cada día de la semana en curso, calcula `value_logged / targetValue` (acotado a 0..1). Sin `targetValue` (hábitos normales de hecho/no-hecho), cae al mismo criterio binario de siempre.
+- **`WeekComplianceRow`**: nueva prop opcional `progressDays?: number[]` (0..1 por día). Cuando se pasa, cada círculo se renderiza con `AnimatedRing` (`components/AnimatedRing.tsx`, el mismo componente SVG ya usado para los anillos Recovery/Strain de Home, `water_tracker_screen.tsx` y el onboarding — reutilizado en vez de construir un anillo nuevo desde cero) en lugar del círculo sólido de antes, con un check solo cuando llega al 100%. Sin `progressDays`, el comportamiento es exactamente el mismo que en IMP-017 (círculo sólido hecho/no-hecho) — cambio 100% aditivo, no rompe ningún otro uso del componente.
+- Cableado en los 2 sitios que ya usaban `WeekComplianceRow` por hábito (mini-fila de "Hábitos" en Home, y cada tarjeta de `habits_list_screen.tsx`): ambos pasan ahora también `progressDays={habit.target_value ? computeWeekProgress(habit.logs, habit.target_value) : undefined}`.
+
+## Archivos modificados
+
+- `components/weekCompliance.ts`
+- `components/WeekComplianceRow.tsx`
+- `pages/migrated/home_screen_modern_v2.tsx`
+- `pages/migrated/habits_list_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de comportamiento real (no solo visual) en hábitos con objetivo numérico — **pendiente de confirmación con datos reales en dispositivo** (no se ha podido probar con un hábito de objetivo numérico real desde este entorno).
