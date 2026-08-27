@@ -173,7 +173,7 @@ export default function HabitsListScreen(props: Props) {
         </Box>
         <WeekComplianceRow
           completedDays={computeWeekCompliance(habit.logs)}
-          progressDays={habit.target_value ? computeWeekProgress(habit.logs, habit.target_value) : undefined}
+          progressDays={computeWeekProgress(habit.logs, habit.target_value)}
           color={C.orange}
           size={24}
         />

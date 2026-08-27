@@ -319,6 +319,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<boolean[]>([]);
+  // Fracción (0..1) de entrenamientos completados sobre los asignados cada
+  // día -- p.ej. 2 asignados y 1 completado -> 0.5, para que el anillo de
+  // WeekComplianceRow se rellene a la mitad en vez de marcar el día entero
+  // como hecho/no hecho (pedido explícito, ver cálculo en fetchData).
+  const [weeklyWorkoutsProgress, setWeeklyWorkoutsProgress] = useState<number[]>([]);
   const [dailyPlan, setDailyPlan] = useState<any>(null);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -572,11 +577,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         const monday = new Date(now);
         monday.setDate(now.getDate() - mondayOffset);
         const weekBools: boolean[] = [];
+        const weekProgress: number[] = [];
         for (let i = 0; i < 7; i++) {
           const d = new Date(monday);
           d.setDate(monday.getDate() + i);
           const dateStr = d.toISOString().split('T')[0];
           const dayData: any = daysByDate.get(dateStr);
+          const dayWorkouts: any[] = dayData?.workouts ?? [];
           // Bug real (reportado con captura, 2026-08-24): antes marcaba el
           // día como cumplido con solo tener un workout ASIGNADO ese día
           // (dayData.workouts.length > 0), sin comprobar si el cliente lo
@@ -585,10 +592,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           // menos uno de los workouts asignados ese día esté en
           // completedAssignmentIdSet (mismas sesiones completadas que ya
           // usa "Mi plan de hoy" para distinguir tarjeta completada/pendiente).
-          const dayCompleted = !!dayData?.workouts?.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
+          const dayCompleted = dayWorkouts.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
           weekBools.push(dayCompleted);
+          // Fracción completados/asignados ese día (pedido explícito, ver
+          // weeklyWorkoutsProgress) -- p.ej. 2 asignados y 1 completado
+          // rellena el anillo a la mitad. 0 si no hay nada asignado ese día.
+          const completedCount = dayWorkouts.filter((w: any) => completedAssignmentIdSet.has(w.assignment_id)).length;
+          weekProgress.push(dayWorkouts.length > 0 ? completedCount / dayWorkouts.length : 0);
         }
         setWeeklyWorkouts(weekBools);
+        setWeeklyWorkoutsProgress(weekProgress);
       } else {
         errors.push('calendario');
       }
@@ -1106,7 +1119,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
             </Text>
           </HStack>
-          <WeekComplianceRow completedDays={weeklyWorkouts} color={C.orange} size={r(28)} />
+          <WeekComplianceRow completedDays={weeklyWorkouts} progressDays={weeklyWorkoutsProgress} color={C.orange} size={r(28)} />
         </Card>
 
         {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
@@ -1141,7 +1154,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </HStack>
                 <WeekComplianceRow
                   completedDays={computeWeekCompliance(h.logs)}
-                  progressDays={h.target_value ? computeWeekProgress(h.logs, h.target_value) : undefined}
+                  progressDays={computeWeekProgress(h.logs, h.target_value)}
                   color={C.orange}
                   size={r(24)}
                 />
