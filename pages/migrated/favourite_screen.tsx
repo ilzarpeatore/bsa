@@ -10,6 +10,7 @@ import {  workoutTemplateApi  } from '../../api/workoutTemplate';
 import {  recipesApi  } from '../../api/recipes';
 import logger from '@helper/logger';
 import {  RADIUS  } from './theme';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 // Fuera del componente para no reconstruir el objeto en cada fila del FlatList.
 const THUMBNAIL_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs };
@@ -24,12 +25,13 @@ interface FavouriteScreenProps {
 }
 
 export default function FavouriteScreen(props: FavouriteScreenProps) {
+  const { colors: C } = useAppColorMode();
   const initialIndex = props.route.params?.index ?? 0;
 
   const [select, setSelect] = useState(() => initialIndex === 0);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       {/* App Bar */}
       <ScreenHeader title="Entrenamientos y recetas favoritas" onBack={() => props.navigation.goBack()} />
 

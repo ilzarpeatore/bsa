@@ -159,7 +159,9 @@ export function TutorialProvider({
     const unsubscribe = navigationRef.current.addListener('state', () => {
       if (!activeStep || activeStep.completion.type !== 'navigate') return;
       const current = navigationRef.current?.getCurrentRoute?.()?.name;
-      if (current === activeStep.completion.screen) advanceOrFinish();
+      const target = activeStep.completion.screen;
+      const matches = Array.isArray(target) ? (current != null && target.includes(current)) : current === target;
+      if (matches) advanceOrFinish();
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps

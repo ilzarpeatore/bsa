@@ -9,9 +9,11 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PostComment } from '../../api/posts';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 
 interface PostUser {
   id?: number;
@@ -71,7 +73,7 @@ export default function PostDetailsScreen(props: any) {
 
   if (!postData) {
     return (
-      <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+      <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
         <ScreenHeader title="" onBack={() => props.navigation?.goBack()} />
         <Box className="flex-1 items-center justify-center">
           <Text muted weight="medium">
@@ -122,10 +124,10 @@ export default function PostDetailsScreen(props: any) {
     if (!postData.id) return;
     try {
       await postsApi.report(postData.id, reason);
-      Alert.alert('Gracias', 'Hemos recibido tu reporte y lo revisaremos.');
+      showToast('Gracias', { description: 'Hemos recibido tu reporte y lo revisaremos.', variant: 'success' });
     } catch (e) {
       logger.error('Error reporting post', e);
-      Alert.alert('Error', 'No se pudo enviar el reporte.');
+      showToast('Error', { description: 'No se pudo enviar el reporte.', variant: 'error' });
     }
   };
 
@@ -163,13 +165,13 @@ export default function PostDetailsScreen(props: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <ScreenHeader title="" onBack={() => props.navigation?.goBack()} />
-        <ScrollView contentContainerStyle={{ padding: 6, paddingBottom: 24 }}>
+        <ScrollView contentContainerStyle={{ padding: 6, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}>
           <Card variant="ghost" style={{ marginBottom: 12 }}>
             <Box className="flex-row items-center justify-between" style={{ marginBottom: 12 }}>
               <Pressable

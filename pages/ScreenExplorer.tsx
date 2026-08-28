@@ -128,7 +128,6 @@ const ALL_SCREENS: ScreenItem[] = [
     // -- es decir, es un alias en vivo a Home Modern V2.
   },
   { name: 'Home Modern V2 (nueva cabecera)', route: 'MigratedHomeModernV2', category: 'Migrated - Dashboard', file: 'home_screen_modern_v2.tsx', gluestackMigrated: true },
-  { name: 'Main Goal', route: 'MigratedMainGoal', category: 'Migrated - Onboarding', file: 'main_goal_screen.tsx' },
   { name: 'Workout Detail (migrated)', route: 'MigratedWorkoutDetail', category: 'Migrated - Workout', file: 'workout_detail_screen.tsx', gluestackMigrated: true },
   { name: 'Workout History', route: 'MigratedWorkoutHistory', category: 'Migrated - Workout', file: 'workout_history_screen.tsx', gluestackMigrated: true },
   { name: 'Session History Detail', route: 'MigratedSessionHistoryDetail', category: 'Migrated - Workout', file: 'session_history_detail_screen.tsx', gluestackMigrated: true },
@@ -179,21 +178,18 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Device Connected', route: 'MigratedDeviceConnected', category: 'Migrated - Home', file: 'device_connected_screen.tsx', gluestackMigrated: true },
   { name: 'Link Device Choice', route: 'MigratedLinkDeviceChoice', category: 'Migrated - Home', file: 'link_device_choice_screen.tsx', gluestackMigrated: true },
   { name: 'Link Device List', route: 'MigratedLinkDeviceList', category: 'Migrated - Home', file: 'link_device_list_screen.tsx', gluestackMigrated: true },
-  { name: 'Fitness Metrics', route: 'MigratedFitnessMetrics', category: 'Migrated - Home', file: 'fitness_metrics_screen.tsx', gluestackMigrated: true },
-  { name: 'Health Metric Insight', route: 'MigratedHealthMetricInsight', category: 'Migrated - Home', file: 'health_metric_insight_screen.tsx', gluestackMigrated: true },
-  { name: 'Manage Health Metrics', route: 'MigratedManageHealthMetrics', category: 'Migrated - Home', file: 'manage_health_metrics_screen.tsx', gluestackMigrated: true },
 
   // === MIGRATED - ONBOARDING ===
   { name: 'Assessment Result', route: 'MigratedAssessmentResult', category: 'Migrated - Onboarding', file: 'assessment_result_screen.tsx' },
 
   // === MIGRATED - AÑADIDAS (estaban registradas en App.tsx pero faltaban aquí) ===
   { name: 'Estadísticas', route: 'MigratedStatistics', category: 'Migrated - Estadísticas', file: 'statistics_screen.tsx', gluestackMigrated: true },
-  { name: 'Distribución de los músculos', route: 'MigratedStatisticsMuscles', category: 'Migrated - Estadísticas', file: 'statistics_muscle_distribution_screen.tsx', gluestackMigrated: true },
-  { name: 'Distribución del cuerpo', route: 'MigratedStatisticsBody', category: 'Migrated - Estadísticas', file: 'statistics_body_distribution_screen.tsx', gluestackMigrated: true },
-  { name: 'Recuento de series', route: 'MigratedStatisticsSeriesCount', category: 'Migrated - Estadísticas', file: 'statistics_series_count_screen.tsx', gluestackMigrated: true },
-  { name: 'Ejercicios principales', route: 'MigratedStatisticsTopExercises', category: 'Migrated - Estadísticas', file: 'statistics_top_exercises_screen.tsx', gluestackMigrated: true },
-  { name: 'Marcas personales', route: 'MigratedStatisticsPersonalRecords', category: 'Migrated - Estadísticas', file: 'statistics_personal_records_screen.tsx', gluestackMigrated: true },
-  { name: 'Informe mensual', route: 'MigratedStatisticsMonthlyReport', category: 'Migrated - Estadísticas', file: 'statistics_monthly_report_screen.tsx', gluestackMigrated: true },
+  { name: 'Balance muscular', route: 'MigratedStatisticsMuscles', category: 'Migrated - Estadísticas', file: 'statistics_muscle_distribution_screen.tsx', gluestackMigrated: true },
+  { name: 'Mapa de calor corporal', route: 'MigratedStatisticsBody', category: 'Migrated - Estadísticas', file: 'statistics_body_distribution_screen.tsx', gluestackMigrated: true },
+  { name: 'Series por grupo muscular', route: 'MigratedStatisticsSeriesCount', category: 'Migrated - Estadísticas', file: 'statistics_series_count_screen.tsx', gluestackMigrated: true },
+  { name: 'Ejercicios más frecuentes', route: 'MigratedStatisticsTopExercises', category: 'Migrated - Estadísticas', file: 'statistics_top_exercises_screen.tsx', gluestackMigrated: true },
+  { name: 'Mejores marcas', route: 'MigratedStatisticsPersonalRecords', category: 'Migrated - Estadísticas', file: 'statistics_personal_records_screen.tsx', gluestackMigrated: true },
+  { name: 'Resumen mensual', route: 'MigratedStatisticsMonthlyReport', category: 'Migrated - Estadísticas', file: 'statistics_monthly_report_screen.tsx', gluestackMigrated: true },
   { name: 'Coming Soon (placeholder)', route: 'MigratedComingSoon', category: 'Migrated - Estadísticas', file: 'coming_soon_screen.tsx', gluestackMigrated: true },
   { name: 'Antropometría', route: 'MigratedBodyMetrics', category: 'Migrated - Estadísticas', file: 'body_metrics_screen.tsx', gluestackMigrated: true },
   { name: 'Progreso muscular', route: 'MigratedMuscleProgress', category: 'Migrated - Exercise', file: 'muscle_progress_screen.tsx', gluestackMigrated: true },

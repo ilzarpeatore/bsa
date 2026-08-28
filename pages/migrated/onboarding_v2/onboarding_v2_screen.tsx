@@ -23,6 +23,7 @@ import RulerPicker from '../../../components/onboarding_v2/RulerPicker';
 import NumberWheelPicker from '../../../components/onboarding_v2/NumberWheelPicker';
 import { FONT, RADIUS } from '../theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 // Motor genérico del nuevo onboarding (4 etapas, ver docs/ONBOARDING_V2.md):
 // UNA sola screen recorre `ONBOARDING_QUESTIONS` con un índice interno (no
@@ -467,7 +468,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE },
   title: { fontSize: 24, lineHeight: 30, fontFamily: FONT.extraBold, color: C.textPrimary, marginBottom: 10 },
   subtitle: { fontSize: 14.5, lineHeight: 20, fontFamily: FONT.regular, color: C.textSecondary, marginBottom: 28 },
   body: { marginTop: 8 },

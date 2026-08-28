@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, ActivityIndicator } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -122,11 +123,11 @@ export default function AddShoppingListScreen({ navigation, route }: any) {
 
   const submit = async () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Introduce un título');
+      showToast('Error', { description: 'Introduce un título', variant: 'error' });
       return;
     }
     if (selectedMealTypes.length === 0) {
-      Alert.alert('Error', 'Selecciona al menos un tipo de comida');
+      showToast('Error', { description: 'Selecciona al menos un tipo de comida', variant: 'error' });
       return;
     }
 
@@ -142,17 +143,17 @@ export default function AddShoppingListScreen({ navigation, route }: any) {
 
     if (isSpecificDate) {
       if (dailyPlanIdRef.current === null && !isFetchingPlan) {
-        Alert.alert('Error', 'No se encontró un plan diario para esta fecha');
+        showToast('Error', { description: 'No se encontró un plan diario para esta fecha', variant: 'error' });
         return;
       }
       if (isFetchingPlan) {
-        Alert.alert('Error', 'Espera a que se cargue el plan diario');
+        showToast('Error', { description: 'Espera a que se cargue el plan diario', variant: 'error' });
         return;
       }
       req.daily_plan_id = dailyPlanIdRef.current;
     } else {
       if (!dateRangeStart || !dateRangeEnd) {
-        Alert.alert('Error', 'Selecciona un rango de fechas');
+        showToast('Error', { description: 'Selecciona un rango de fechas', variant: 'error' });
         return;
       }
       req.start_date = formatDate(dateRangeStart);
@@ -168,7 +169,7 @@ export default function AddShoppingListScreen({ navigation, route }: any) {
     } catch (e: any) {
       loadingRef.current = false;
       const msg = e?.response?.data?.message ?? 'No se pudo guardar la lista de la compra';
-      Alert.alert('Error', msg);
+      showToast('Error', { description: msg, variant: 'error' });
     }
   };
 
@@ -179,7 +180,7 @@ export default function AddShoppingListScreen({ navigation, route }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={isEditMode ? 'Editar lista de la compra' : 'Añadir lista de la compra'}
         onBack={() => navigation.goBack()}

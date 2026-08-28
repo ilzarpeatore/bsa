@@ -11,6 +11,7 @@ import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { FONT } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { statisticsApi, PeriodStats, MonthlySessionItem, MonthlyPrEvent } from '../../api/statistics';
 import { muscleVolumeApi, MuscleVolumeGroup, MuscleVolumeByDate } from '../../api/muscleVolume';
 import { toLocalISODate } from '../../components/dayRange';
@@ -194,7 +195,7 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Text style={styles.appBarTitle} numberOfLines={1}>
-          Informe mensual
+          Resumen mensual
         </Text>
         <Box style={styles.iconBtn} />
       </HStack>
@@ -218,22 +219,22 @@ export default function StatisticsMonthlyReportScreen(props: Props) {
           <>
             {/* KPIs con comparativa vs mes anterior */}
             <HStack space="md" className="flex-wrap" style={{ marginTop: 12 }}>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Entrenamientos</Text>
                 <Text style={styles.kpiValue}>{stats.sessionsCount}</Text>
                 <DeltaText current={stats.sessionsCount} previous={prevStats.sessionsCount} format={(n) => String(Math.round(n))} />
               </Card>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Duración</Text>
                 <Text style={styles.kpiValue}>{formatDuration(stats.durationSeconds)}</Text>
                 <DeltaText current={stats.durationSeconds} previous={prevStats.durationSeconds} format={formatDuration} />
               </Card>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Volumen</Text>
                 <Text style={styles.kpiValue}>{formatVolume(stats.volumeKg)}</Text>
                 <DeltaText current={stats.volumeKg} previous={prevStats.volumeKg} format={formatVolume} />
               </Card>
-              <Card variant="outline" className="bg-muted p-4" style={{ width: '47%' }}>
+              <Card variant="elevated" className="p-4" style={{ width: '47%' }}>
                 <Text style={styles.kpiLabel}>Series</Text>
                 <Text style={styles.kpiValue}>{totalSeries}</Text>
                 <DeltaText current={totalSeries} previous={prevTotalSeries} format={(n) => String(Math.round(n))} />
@@ -416,7 +417,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   container: { flex: 1, backgroundColor: C.bg },
   iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   appBarTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontFamily: FONT.bold, color: C.textPrimary, marginHorizontal: 4 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE },
   monthNavLabel: { fontFamily: FONT.semiBold, fontSize: 16, color: C.textPrimary, minWidth: 150, textAlign: 'center' },
   kpiLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary },
   // lineHeight explícito: Gilroy-ExtraBold/Black recortan el glifo a estos

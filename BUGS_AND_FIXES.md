@@ -1350,3 +1350,1089 @@ No son bugs, se documenta aquí por el mismo motivo que BUG-024: un hallazgo de 
 - `habit_detail_screen.tsx:492` (ternario de 3 vías con una rama `create-outline`) — revisado: esa rama representa una acción distinta (editar un valor numérico del hábito), no el mismo estado "hecho/no hecho" del resto del ternario sin fillear.
 
 Ambos se dejan sin cambio de código.
+
+---
+
+# BUG-031 — El swipe-back (deslizar desde el borde izquierdo) no funciona en `MigratedMyProgramCalendar`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** Navegación / gestos
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26)
+
+## Problema
+
+Deslizar desde el borde izquierdo hacia la derecha (el gesto estándar de iOS para volver a la pantalla anterior) no funcionaba en `my_program_calendar_screen.tsx`, a diferencia del resto de pantallas de la app.
+
+## Causa
+
+`calendarSwipeGesture` (`Gesture.Pan()`, línea ~560) implementa el swipe vertical del propio calendario (arriba/abajo para cambiar entre vista semanal y mensual). Su `GestureDetector` envuelve el grid completo del calendario (línea ~985), que ocupa todo el ancho de la pantalla — incluido el borde izquierdo, exactamente donde arranca el gesto de "volver atrás" de `@react-navigation/stack`. Aunque el gesto ya tenía `failOffsetX([-18, 18])` (debería liberarse en cuanto detecta movimiento horizontal), `react-native-gesture-handler` seguía reteniendo el toque inicial el tiempo suficiente como para robarle la prioridad al gesto de navegación, que necesita activarse con muy poco desplazamiento.
+
+## Fix
+
+Añadido `.hitSlop({ left: -25 })` a `calendarSwipeGesture` — un valor negativo de `hitSlop` en RNGH reduce el área de detección del gesto (documentado en su propia definición de tipos), así que ahora excluye los 25pt más a la izquierda (el mismo `gestureResponseDistance` por defecto que usa `@react-navigation/stack` en iOS, no personalizado en `App.tsx`). El swipe vertical del calendario sigue funcionando igual en el resto de la pantalla; solo se libera la franja exacta donde el swipe-back necesita prioridad.
+
+## Archivos modificados
+
+- `pages/migrated/my_program_calendar_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Pendiente de confirmación visual en dispositivo real** — es un cambio de comportamiento de gestos que solo puede confirmarse tocando la pantalla de verdad (swipe-back debería volver a funcionar, y el swipe vertical arriba/abajo debería seguir funcionando igual que antes en el resto del grid).
+
+---
+
+# BUG-032 — El menú "Ajustes" de Home v2 se cierra/parpadea al tocar dentro (fuera de los botones)
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** UI / componentes compartidos
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+Al abrir el menú "Ajustes" desde `home_screen_modern_v2.tsx`, tocar dentro de la hoja (fuera de un botón concreto) hacía que el diálogo se viera transparente/parpadeara — captura del usuario muestra el contenido de Home bajo el menú, ambos superpuestos, coherente con capturar un fotograma a mitad de la animación de cierre (`animationType="slide"`).
+
+## Causa
+
+`home_screen_modern_v2.tsx` usa en todo el archivo el `Pressable` de `@components/ui/pressable` (envuelve `createPressable` de gluestack-ui sobre `usePress` de `@react-native-aria/utils`, pensado originalmente para web/puntero universal). El patrón overlay-cierra/hoja-bloquea (`<Pressable onPress={cierra}><Pressable onPress={e => e.stopPropagation()}>...`) se aplicó con este mismo `Pressable`, pero `stopPropagation()` no bloquea de forma fiable que el `Pressable` exterior también reciba el toque con esta implementación — a diferencia del `Pressable` nativo de React Native, cuyo sistema de responder sí aísla correctamente los toques anidados. El resultado: cualquier toque dentro de la hoja (no solo en la zona oscura de fuera) también disparaba `setShowMenu(false)`, cerrando el menú.
+
+**Mismo patrón ya usado y funcionando bien en `components/ConfirmDialog.tsx`** — ese componente usa el `Pressable` nativo de `react-native` (no el wrapper compartido) para su par overlay/card, y no presenta este problema. Sirvió de referencia directa para el fix.
+
+## Fix
+
+En `home_screen_modern_v2.tsx`, el par `menuOverlay`/`menuSheet` del modal "Ajustes" pasa a usar `Pressable` nativo de `react-native` (importado como `RNPressable` para no chocar con el `Pressable` compartido ya usado en el resto del archivo), igual que `ConfirmDialog.tsx`. El resto de `Pressable`s dentro de la hoja (los botones/filas del menú) no se tocan — siguen siendo botones normales, no forman parte del par overlay/bloqueo.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Pendiente de confirmación visual en dispositivo real** — confirmar que tocar dentro de la hoja (títulos, espacios entre tarjetas) ya no cierra el menú, que tocar fuera (zona oscura) sí lo cierra, y que los botones/filas de dentro siguen funcionando igual que antes.
+
+---
+
+# BUG-033 — Botón "Ver todas las medidas" sobresale por la derecha respecto a las tarjetas de `progress_screen.tsx`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedProgress` (`progress_screen.tsx`), el botón "Ver todas las medidas (cintura, cadera, pecho...)" se veía más ancho que la cuadrícula 2×2 de tarjetas de composición corporal justo encima, sobresaliendo por el borde derecho.
+
+## Causa
+
+`CompositionTile` usaba `width: '47%'` dentro de un contenedor `flex-row flex-wrap gap-3` — un valor fijo pensado para aproximar "2 columnas con hueco", pero `47%×2 + gap` no llena exactamente el 100% del ancho real del contenedor (React Native/Yoga no resta el `gap` de un `width` en porcentaje, igual que en CSS). El resultado: la cuadrícula quedaba unos píxeles más estrecha que el ancho real disponible, mientras que el `Button` de debajo (sin `width` propio) sí se estira al 100% por defecto — de ahí el desajuste visible en el borde derecho.
+
+## Fix
+
+Sustituido el contenedor único `flex-wrap` por 2 filas explícitas (`Box className="flex-row gap-3"`, una por par de tarjetas) con `CompositionTile` usando `flex: 1` en vez de `width: '47%'`. Con `flex:1` en una fila que NO envuelve, Yoga reparte el ancho disponible de forma exacta y ya tiene en cuenta el `gap` — las 2 tarjetas de cada fila llenan el 100% del ancho real, igual que el `Button` de debajo, quedando alineados en ambos bordes. `COMPOSITION_METRICS` tiene siempre 4 elementos fijos, así que dividir en `slice(0,2)`/`slice(2,4)` es seguro; si se añade un 5º elemento en el futuro, esta estructura necesita revisarse.
+
+## Archivos modificados
+
+- `pages/migrated/progress_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de aritmética de layout, verificable por lectura (Yoga reparte `flex:1` en una fila no-wrap teniendo en cuenta el `gap`, a diferencia de un `width` en porcentaje) — **pendiente de confirmación visual en dispositivo real** para el ajuste fino final.
+
+---
+
+# BUG-034 — `MigratedChatting` se ve roto (cabecera y mensajes ausentes, input arriba del todo)
+
+**Estado:** 🔵 Necesita verificación (fix aplicado, causa raíz no confirmable sin dispositivo)
+**Severidad:** 🔴 Crítico
+**Categoría:** UI / componentes compartidos
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+`chatting_screen.tsx` se veía completamente roto: sin cabecera "FitBot", sin mensajes ni estado vacío, solo la barra de escribir mensaje pegada arriba del todo y el resto de la pantalla en blanco. Confirmado por el usuario: siempre, solo en esta pantalla (no en `chatting_image_screen.tsx`, prácticamente idéntica, ni en ninguna otra).
+
+## Investigación (sin poder reproducir en dispositivo)
+
+Revisión exhaustiva de `chatting_screen.tsx` y su historial de git (múltiples commits que la tocaron: migración de color, ajustes de `SafeAreaView`/`ScreenHeader`, accesibilidad) sin encontrar un error sintáctico ni una diferencia estructural evidente frente a pantallas hermanas que sí funcionan — ni un solo commit de "traducción" toca realmente este archivo (confirmado con `git log`), pese al recuerdo del usuario. `tsc`/`eslint` limpios en todo momento, sin marcadores de conflicto de merge.
+
+**Diferencia real encontrada** frente a `chatting_image_screen.tsx` (misma UI, mismo patrón, confirmado sin problemas): `chatting_screen.tsx` envuelve TODA el área de mensajes (`flex:1`, contenido condicional complejo: spinner/`FlatList`/estado vacío) en el `Pressable` de `@components/ui/pressable` (basado en `usePress` de `react-aria`, no el `Pressable` nativo de React Native) solo para el gesto "tocar fuera para cerrar teclado" — `chatting_image_screen.tsx` no tiene este wrapper en absoluto. Este mismo wrapper personalizado ya se confirmó con comportamiento poco fiable en un rol equivalente (par overlay/bloqueo grande) en BUG-032, en el mismo pase de trabajo.
+
+## Fix aplicado (mejor esfuerzo, no una causa raíz confirmada)
+
+Ese `Pressable` pasa a ser el `Pressable` nativo de `react-native` (`RNPressable`), igual que el fix de BUG-032. Es un cambio mínimo y de bajo riesgo (no quita ninguna funcionalidad, solo cambia la implementación táctil de un envoltorio grande por la más probada). **Honestidad completa**: no se ha podido confirmar en un dispositivo real que esta era la causa exacta — es la evidencia circunstancial más fuerte encontrada tras una investigación a fondo (git log completo del archivo, comparación línea a línea con la pantalla hermana funcional), no una reproducción confirmada.
+
+## Archivos modificados
+
+- `pages/migrated/chatting_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Necesita confirmación real en dispositivo** — si el problema persiste tras este fix, el siguiente paso recomendado es activar "Habilitar diagnósticos" + reproducir + "Enviar registros al desarrollador" (Ajustes) para conseguir un log real, ya que la investigación estática no encontró una causa 100% concluyente.
+
+---
+
+# BUG-035 — Acordeón "Fuente / Bibliografía" desalineado con el bloque de contenido en `blog_detail_screen.tsx`
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedBlogDetail`, el acordeón "Fuente / Bibliografía" no respetaba el mismo margen horizontal que la tarjeta de contenido del blog justo encima, quedando desalineado (más ancho, tocando más cerca de los bordes de la pantalla).
+
+## Causa
+
+La tarjeta de contenido (WebView, línea 352) usa `marginHorizontal: 12` + `overflow: 'hidden'` (necesario para recortar las esquinas redondeadas). El `Accordion` de bibliografía (línea 373, añadido en una sesión distinta) usaba `marginHorizontal: 16` y no tenía `overflow: 'hidden'` — ambos son los únicos 2 bloques de la pantalla con `marginHorizontal` propio (el `ScrollView` no aplica padding horizontal global, cada bloque gestiona el suyo), así que la diferencia de 4px por lado entre ambos era exactamente el desajuste reportado.
+
+## Fix
+
+Unificado el `Accordion` a `marginHorizontal: 12` (igual que la tarjeta de contenido) y añadido `overflow: 'hidden'` para que sus esquinas redondeadas (`rounded-lg`) se recorten igual que en el bloque de arriba.
+
+## Archivos modificados
+
+- `pages/migrated/blog_detail_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio puro de valores de margen/overflow, verificable por lectura — **pendiente de confirmación visual en dispositivo real** para el ajuste fino final.
+
+---
+
+# BUG-036 — Hero de `home_screen_modern_v2.tsx` seguía sin llenar la pantalla completa + degradado de cierre mal resuelto
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con 2 capturas, 2026-08-26 — pedido repetido varias veces sin resolverse hasta ahora)
+
+## Problema
+
+La foto de fondo del hero de `HomeScreenModernV2` seguía sin ocupar el 100% de la pantalla visible al entrar (se veía ya un trozo de "Mi plan de hoy" antes de terminar la foto), y el degradado de cierre entre la foto y el resto del contenido se veía mal resuelto.
+
+## Causa
+
+`heroHeader.height` restaba explícitamente `insets.bottom + TAB_BAR_CLEARANCE` (84px) del alto de ventana para dejar hueco a la barra de pestañas flotante — es decir, por diseño la foto SIEMPRE terminaba antes del borde inferior real de la pantalla, dejando ver contenido posterior en la carga inicial. Además había dos `LinearGradient` decorativos encadenados (`heroCloseGradient` dentro de la foto + `seamGradient` justo debajo, fuera de ella) pensados para disimular ese corte — el propio degradado era la evidencia visual de que la foto no llegaba al final de la pantalla.
+
+## Fix
+
+- `heroHeader.height` pasa a ser `winH` puro (alto de ventana sin restar nada) — la foto ocupa el 100% del viewport visible al entrar, en cualquier tamaño de pantalla.
+- Se elimina por completo el degradado de cierre: `heroCloseGradient` (dentro de la foto) y `seamGradient` (transición hacia "Mi plan de hoy"), junto con las entradas `close`/`seam` de `HERO_GRADIENTS` que ya no se usan. Se mantiene el `scrim` (necesario para el contraste del texto blanco sobre la foto) y el oscurecido animado de scroll (`heroDarkenLayer`, efecto de blur progresivo — funcional, no decorativo).
+- `paddingBottom` del hero baja de 48 a 24 (el valor alto existía solo para dejar hueco visual al degradado de cierre que ya no existe).
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de layout/altura real (afecta cuánta foto se ve al entrar y quita 2 elementos visuales) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de bugs de esta sesión. Si en pantallas muy altas dejar la foto a pantalla completa deja demasiado espacio vacío bajo los anillos/tarjetas (efecto ya advertido y descartado en un intento anterior, ver historial de comentarios en el propio archivo), es un ajuste de valor, no un rediseño — el usuario ha pedido explícitamente priorizar "pantalla completa" sobre ese equilibrio.
+
+---
+
+# BUG-037 — Texto ilegible en la barra flotante de entrenamiento minimizado (`WorkoutMinimizedBar.tsx`)
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟡 Medio
+**Categoría:** UI / contraste
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En la barra flotante que aparece al minimizar un entrenamiento en curso, el título y el contador ("00:34 · 0/21 series") se veían en un tono oscuro casi ilegible sobre un fondo igualmente oscuro/traslúcido.
+
+## Causa
+
+El fix anterior a este mismo componente (nota 2026-08-19, "con texto blanco no se ve nada, ponlo en negro") asumía que el `GlassView` real (Liquid Glass, iOS 26+) sale siempre con material CLARO, así que fijaba el texto en negro (`#1C1C1E`) cuando `hasGlass` es true. Pero `colorScheme` del `GlassView` estaba en su valor por defecto (`'auto'`), que sigue la apariencia calculada por el sistema en ese momento -- sobre el fondo de esta pantalla (foto del hero, con variantes oscuras/nocturnas) el material real podía salir oscuro, dejando el texto negro invisible otra vez. Es el mismo tipo de suposición frágil ya visto en otros bugs de esta sesión (texto fijo asumiendo un fondo que no está garantizado).
+
+## Fix
+
+`colorScheme="dark"` explícito en el `GlassView` -- fuerza el material Liquid Glass a su variante oscura siempre, en vez de dejar que "auto" decida. Con las dos ramas (glass real oscuro forzado, o el fallback ya existente con fondo sólido `#1C1C1E`) siempre oscuras, el texto y los iconos pasan a blanco fijo (`#FFFFFF`) sin ninguna rama condicional por `hasGlass`, eliminando la suposición que ya había fallado dos veces.
+
+## Archivos modificados
+
+- `components/WorkoutMinimizedBar.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de contraste garantizado por diseño (fondo forzado a oscuro en ambas ramas, ya no depende de qué calcule el sistema) -- **pendiente de confirmación visual en dispositivo real** para cerrar del todo, dado que ya hubo un fix previo a este mismo texto que no fue suficiente.
+
+---
+
+# BUG-038 — Casi ninguna pantalla permite volver atrás con el gesto de deslizar desde el borde izquierdo
+
+**Estado:** 🔵 Necesita verificación (cambio de arquitectura de navegación, pendiente de confirmación en dispositivo)
+**Severidad:** 🔴 Crítico
+**Categoría:** Navegación / gestos
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26 — "prácticamente ninguna pantalla te deja volver hacia la pantalla anterior deslizando hacia la derecha")
+
+## Problema
+
+El gesto nativo de "volver atrás" deslizando desde el borde izquierdo de la pantalla no funcionaba de forma fiable en prácticamente ninguna pantalla de la app, no solo en una puntual (el `MigratedMyProgramCalendar` de BUG-031 en este mismo lote era un síntoma aislado de la misma causa raíz, no un caso único).
+
+## Causa raíz
+
+Los 2 navigators de pantalla completa (`RootNavigator` y `MigratedNavigator`, en `App.tsx`) usaban `createStackNavigator` de `@react-navigation/stack` — un stack navigator implementado en JS, cuyo gesto de "swipe-to-go-back" se resuelve con un `PanGestureHandler` (react-native-gesture-handler) a nivel de la propia librería de navegación. Este gesto JS compite en pie de igualdad con CUALQUIER otro gesto horizontal de la pantalla actual (`ScrollView` horizontal, carruseles de imágenes, selectores de chips, listas horizontales...) y, al no ser el gesto nativo real del sistema operativo, pierde el arbitraje de toque con facilidad — de ahí que casi cualquier pantalla con algún elemento deslizable horizontalmente (que son la mayoría: carruseles de blog/recetas/ejercicios, selectores de unidad como en `habit_add_screen.tsx`, etc.) bloqueara el gesto de volver.
+
+## Fix
+
+Migrados ambos navigators de pantalla completa de `createStackNavigator` (`@react-navigation/stack`) a `createNativeStackNavigator` (`@react-navigation/native-stack`, instalado nuevo). `native-stack` delega la navegación y su gesto de "volver" al `UINavigationController` real de iOS (y al equivalente nativo en Android) en vez de reimplementarlo en JS — el arbitraje de gestos nativo del sistema operativo es mucho más robusto frente a gestos hijos (ScrollView, listas, etc.) que cualquier implementación en JS, que es exactamente el mismo mecanismo que ya usa el resto de apps nativas del sistema para este gesto.
+
+Efecto colateral aceptado: `native-stack` no soporta `transitionSpec`/`cardStyleInterpolator` personalizados (la transición "con identidad propia" de Fase 4, con curva de resorte prestada de `NavigationTab.tsx`) — se elimina esa personalización y las pantallas pasan a usar la transición nativa por defecto de la plataforma (en iOS, la misma curva que cualquier pantalla nativa del sistema, ya lograba imitarse con `CardStyleInterpolators.forHorizontalIOS` en JS). Se prioriza que el gesto de volver funcione de verdad sobre mantener una curva de resorte custom. `helper/motion.ts` (la constante de esa curva) se elimina por quedar sin ningún uso.
+
+`@react-navigation/native-stack` es un paquete 100% JS (no añade ningún podspec/módulo nativo nuevo — reutiliza el módulo nativo de `react-native-screens`, ya instalado y enlazado porque `@react-navigation/stack` con `enableScreens()` ya lo usaba internamente), así que este cambio no requiere `pod install` ni recompilar el binario nativo — aplica sobre el bundle JS actual, a diferencia del caso ya documentado de `expo-haptics`.
+
+## Archivos modificados
+
+- `App.tsx` (los 2 navigators de pantalla completa)
+- `package.json` / `package-lock.json` (nueva dependencia `@react-navigation/native-stack`)
+- `helper/motion.ts` (eliminado, sin uso tras el cambio)
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de arquitectura de navegación con efecto en TODAS las pantallas — **pendiente de confirmación real en dispositivo**, tanto del gesto de volver (debería funcionar ahora de forma fiable en cualquier pantalla) como del aspecto de la transición nativa por defecto (se pierde la curva de resorte personalizada de Fase 4).
+
+---
+
+# BUG-039 — `MigratedHabitAdd.tsx`: crear un hábito personalizado fallaba sin indicar el motivo real
+
+**Estado:** 🔵 Necesita verificación (mejora de diagnóstico aplicada, causa raíz de backend no confirmable sin logs/dispositivo)
+**Severidad:** 🔴 Crítico
+**Categoría:** UX / manejo de errores
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26 — "no deja crear hábitos personalizados")
+
+## Investigación
+
+Revisión completa de la pestaña "Crear el mío" de `habit_add_screen.tsx` (formulario, validación, `habitsApi.createPersonal`, tipos de `api/habits.ts`) y de su `ErrorBoundary` (ya existente desde un fix anterior a este mismo fichero, commit `3fa5e2e`, para un crash distinto en la pestaña "Biblioteca"): no se encuentra ningún error sintáctico ni de lógica en el frontend que bloquee la creación de forma incondicional. Sin acceso al backend (vive en la VPS, no accesible desde este entorno) ni a un dispositivo real, no se puede confirmar si el fallo real es una validación del backend rechazando la petición.
+
+**Defecto real sí confirmado**: a diferencia de `adopt()` (adoptar de biblioteca), que ya extraía y mostraba `e?.response?.data?.message` del backend en su alerta de error, `submitPersonal()` (crear hábito propio) descartaba ese mensaje por completo y mostraba siempre el mismo texto genérico ("No se pudo crear el hábito. Inténtalo de nuevo.") — si el backend rechaza la petición por un motivo concreto (p. ej. un campo inválido), el cliente nunca lo ve, y toda esta pantalla (y sus 3 flujos: cargar biblioteca, adoptar, crear) tampoco registraba ningún error con `logger.error`, así que ni siquiera quedaba rastro en "Enviar registros al desarrollador" (Ajustes) para diagnosticarlo después.
+
+## Fix
+
+- `submitPersonal()` ahora extrae y muestra `e?.response?.data?.message` igual que `adopt()`, con el mismo texto genérico solo como último recurso.
+- Los 3 `catch` de la pantalla (`loadLibrary`, `adopt`, `submitPersonal`) y el `componentDidCatch` del `ErrorBoundary` ahora registran con `logger.error`, igual que el resto de pantallas de la app — un fallo aquí queda ahora en el buffer de diagnósticos en vez de perderse en silencio.
+
+## Archivos modificados
+
+- `pages/migrated/habit_add_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **Honestidad completa**: no se ha podido confirmar ni reproducir la causa raíz exacta del fallo de creación sin acceso al backend/dispositivo real — este fix garantiza que, si el problema persiste, el mensaje de error real del backend será visible en el momento (en vez de uno genérico) y quedará registrado para diagnóstico, en vez de resolver a ciegas una causa no confirmada.
+
+---
+
+# BUG-040 — Eliminadas 4 pantallas huérfanas sin punto de entrada real
+
+**Estado:** 🟢 Solucionado
+**Severidad:** 🟢 Bajo (limpieza)
+**Categoría:** Mantenimiento / pantallas huérfanas
+**Fase:** Post-sesión (pedido explícito del usuario, 2026-08-26 — "las siguientes screen son inútiles, borralas")
+
+## Problema
+
+`MigratedManageHealthMetrics`, `MigratedHealthMetricInsight`, `MigratedFitnessMetrics` y `MigratedMainGoal` no tenían ningún punto de entrada real desde la app.
+
+## Verificación antes de borrar
+
+`grep` de `.navigate()`/`.replace()` en todo `pages/` confirmó que ninguna pantalla activa navega a estas 4 rutas — el único enlace encontrado es `fitness_metrics_screen.tsx` navegando a `MigratedHealthMetricInsight` (una pantalla muerta navegando a otra pantalla muerta, cadena completamente aislada del resto de la app). Las 4 ya figuraban como huérfanas en `docs/DEAD_SCREENS.md` (auditoría del 04-08-2026): `MigratedFitnessMetrics`, `MigratedMainGoal` y `MigratedManageHealthMetrics` en B1 (sin enlace entrante), `MigratedHealthMetricInsight` en B2 (solo alcanzable desde otra pantalla muerta).
+
+## Fix
+
+Borrados los 4 archivos (`pages/migrated/main_goal_screen.tsx`, `pages/migrated/home/fitness_metrics_screen.tsx`, `pages/migrated/home/health_metric_insight_screen.tsx`, `pages/migrated/home/manage_health_metrics_screen.tsx`) junto con su registro en `App.tsx` (imports `React.lazy` + `<MStack.Screen>`) y su fila en el catálogo de `pages/ScreenExplorer.tsx`.
+
+## Archivos modificados
+
+- `App.tsx`
+- `pages/ScreenExplorer.tsx`
+- `docs/PANTALLAS.md`, `docs/DEAD_SCREENS.md` (nota de baja, mismo criterio que las anteriores)
+- Borrados: `pages/migrated/main_goal_screen.tsx`, `pages/migrated/home/fitness_metrics_screen.tsx`, `pages/migrated/home/health_metric_insight_screen.tsx`, `pages/migrated/home/manage_health_metrics_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Borrado seguro por diseño: sin ningún punto de entrada real, no hay ninguna ruta de navegación de la app que quede rota.
+
+---
+
+# BUG-041 — Modernización de `MigratedWorkoutSession.tsx`: bloques sin contraste real + fila de acciones con "Progreso"
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / contraste / navegación
+**Fase:** Post-sesión (reportado por el usuario con 2 capturas, 2026-08-26 — pedido de modernizar el estilo y añadir un botón "Progreso")
+
+## Problema
+
+La tarjeta de ejercicio activo en `MigratedWorkoutSession` ("los bloques") se veía plana, casi fundida con el fondo de la pantalla. Además se pidió: modernizar la tabla de series al estilo de una app de referencia (columnas KG antes que REPETICIONES, número de serie en círculo) y añadir un botón "Progreso" junto a "Añadir serie"/"Marcar todas" que abra el análisis histórico de ese ejercicio.
+
+## Causa del contraste
+
+La `Card` de cada ejercicio activo usaba `variant="filled"` (`bg-secondary`). En modo claro, `--secondary` es `rgb(247,247,247)` y `--background` (el fondo de la propia pantalla) es `rgb(244,244,247)` — una diferencia de 3 unidades por canal, invisible en la práctica. Las filas colapsadas de la misma pantalla, en cambio, ya usaban `bg-card` (`rgb(255,255,255)`, con contraste real de verdad contra el fondo) — de ahí que solo el bloque ACTIVO (el que se ve en la captura) pareciera "mal".
+
+## Fix
+
+- `Card` del ejercicio activo pasa de `variant="filled"` a `variant="elevated"` (`bg-card` + `shadow-card`) — mismo fondo blanco con contraste real que ya usan las filas colapsadas, más una sombra sutil de elevación.
+- Borde visible (`borderWidth:1, borderColor: C.border`) en el campo de nota y en cada celda de métrica (kg/reps/descanso/...), que antes solo tenían `bg-card` sin ningún borde -- ahora se recortan con nitidez contra la tarjeta, ya blanca de por sí.
+- Número de serie pasa de texto plano a una insignia circular con borde (mismo criterio visual que la referencia).
+- Orden de columnas fijado con una nueva función `sortMetricKeys()` — pedido explícito del usuario tras ver el primer resultado: `series, repeticiones, carga, rir, descanso` (rpe/tiempo, no mencionados, al final). Es un reordenamiento solo de cara al render; no toca el array `enabledMetrics` real de la plantilla.
+- Fila de acciones (antes "+ AÑADIR SERIE" / "MARCAR TODAS LAS SERIES", 2 botones sin separador) ahora son 3 columnas iguales con separador vertical: **PROGRESO / AÑADIR SERIE / MARCAR TODAS**.
+- "Progreso" reutiliza `openExerciseInfo(ex)`, una función que YA EXISTÍA en este mismo fichero (usada por el thumbnail/título del ejercicio) y que YA navegaba a `MigratedExerciseInfo` con `initialTab: 'analysis'` — no hizo falta ninguna navegación nueva, solo exponer un segundo punto de entrada explícito a la misma función.
+
+## Archivos modificados
+
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio visual real (contraste de las tarjetas, orden de columnas, nueva fila de botones) — **pendiente de confirmación visual en dispositivo real**, mismo criterio que el resto de cambios de esta sesión.
+
+---
+
+# BUG-042 — `MigratedWorkoutSummary.tsx`: botón "OK" invisible en modo oscuro
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / contraste / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En la pantalla de resumen de entrenamiento completado (`workout_summary_screen.tsx`), el botón final "OK" se veía como una píldora blanca sin ningún texto visible en modo oscuro.
+
+## Causa
+
+El `Button` usa `variant="default"` (`bg-primary` del sistema de diseño compartido, `components/ui/button/index.tsx`), cuyo `ButtonText` ya trae por defecto la clase `text-primary-foreground` — pensada precisamente para invertirse junto con `--primary` según el tema (`global.css`: en modo oscuro `--primary` pasa a blanco y `--primary-foreground` a negro, y viceversa en claro). Pero el estilo inline `s.doneBtnText` fijaba `color: '#FFFFFF'` a pelo, pisando esa clase — en modo oscuro eso deja texto blanco sobre un botón que también es blanco.
+
+## Fix
+
+Quitado el `color: '#FFFFFF'` hardcodeado de `doneBtnText` — el texto vuelve a heredar `text-primary-foreground` del propio `ButtonText`, que ya resuelve correctamente negro/blanco en ambos modos sin necesitar ningún valor nuevo.
+
+## Archivos modificados
+
+- `pages/migrated/workout_summary_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio visual real (el texto "OK" pasa a verse en modo oscuro) — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-043 — `blog_detail_screen.tsx`: el acordeón "Fuente / Bibliografía" seguía sin alinear con el texto del contenido pese a BUG-035
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26 — persistía tras BUG-035)
+
+## Problema
+
+Tras el fix de BUG-035 (igualar `marginHorizontal` de la caja exterior a 12 en ambos bloques), el usuario reportó que el acordeón de bibliografía seguía sin verse alineado con el bloque de contenido del blog justo encima.
+
+## Causa
+
+BUG-035 igualó el margen de las dos CAJAS exteriores, pero no el padding interno de cada una — que es lo que realmente decide dónde empieza el TEXTO visible. El contenido del blog se renderiza en un `WebView` cuyo `body` tenía `padding:16px 18px` (18px en horizontal); el acordeón usa `paddingHorizontal:16` nativo en su header y su contenido. Con el mismo `marginHorizontal:12` por fuera, ese padding interno distinto (18px vs 16px) seguía desplazando el texto real 2px por lado entre un bloque y otro — la caja medía lo mismo, pero el texto dentro no arrancaba en el mismo sitio.
+
+## Fix
+
+`body { padding:16px 18px; }` → `body { padding:16px; }` en el HTML generado para el `WebView` (`getRenderedHtml()`), igualando el padding horizontal a los 16px que ya usa el acordeón.
+
+## Archivos modificados
+
+- `pages/migrated/blog_detail_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de un valor CSS dentro del HTML embebido — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-044 — `profile_screen.tsx`: fondo de la pantalla incorrecto en modo oscuro (claro por debajo de tarjetas oscuras)
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedProfile`, con el tema en modo oscuro, todas las tarjetas (perfil, Comunidad/Soporte, Cuenta, Actividad) se veían correctamente oscuras, pero el fondo de la propia pantalla detrás de ellas se quedaba en un gris claro — como si la pantalla estuviera en modo claro y solo las tarjetas en oscuro.
+
+## Causa
+
+La app tiene **dos sistemas de tema independientes** que normalmente coinciden pero no están acoplados entre sí:
+
+1. `theme.ts` (`C`/`C_DARK`, vía `useAppColorMode()`) — con su propia preferencia (`auto` por hora del día vía `isNightHour`, o `light`/`dark` fijados a mano en Ajustes → Aspecto), persistida en `@befit_theme_preference`. Es lo que usan explícitamente **todas las tarjetas** de esta pantalla (`backgroundColor: C.surface`, 9 usos en el fichero).
+2. El sistema de diseño Tailwind/NativeWind (`bg-background`, `bg-card`, etc. de `global.css`), que seguía el modo de color del propio dispositivo (`prefers-color-scheme`).
+
+El contenedor raíz de `MigratedProfile` usaba `className="bg-background"` (sistema 2) mientras el resto de la pantalla usa `C.*` (sistema 1). En cuanto ambos sistemas discrepan — el caso más simple: el dispositivo está en modo claro pero la preferencia de la app está en oscuro (manual o por `isNightHour`) — el fondo de la pantalla sigue el tema del SO (claro) mientras las tarjetas siguen el tema de la app (oscuro), exactamente lo que se ve en la captura.
+
+El resto de pantallas de la sesión (`workout_session_screen.tsx`, `habits_list_screen.tsx`, etc.) ya usan `style={{ backgroundColor: C.bg }}` en el contenedor raíz — el patrón mayoritario y correcto — así que este era un caso puntual desalineado con esa convención, no un problema del propio `theme.ts`.
+
+## Fix
+
+`className="bg-background"` → `style={{ backgroundColor: C.bg }}` en el `SafeAreaView` raíz, igualando el resto de la pantalla (y el patrón ya establecido en otras pantallas migradas).
+
+## Actualización — el usuario reportó el mismo bug en `community_screen.tsx`
+
+Se detectaron otras **16 pantallas** con exactamente el mismo patrón (`className="bg-background"` en el `SafeAreaView` raíz + `C.surface`/`C.bg` en el resto de la pantalla): `about_us_screen`, `checkin_fill_screen`, `community_screen`, `muscle_progress_screen`, `notification_screen`, `progress_screen`, `recipe_list_screen_v2`, `recipe_tag_list_screen`, `resource_detail_screen` (3 `SafeAreaView` — loading/error/contenido), `resources_list_screen`, `shopping_list_screen`, `statistics_body_distribution_screen`, `statistics_muscle_distribution_screen`, `statistics_personal_records_screen`, `statistics_series_count_screen`, `statistics_top_exercises_screen`, `view_all_blog_screen`.
+
+Inicialmente se dejaron sin tocar (solo se corrigió la pantalla reportada) documentando el hallazgo para decidir con el usuario. El usuario reportó por separado, con captura, el mismo síntoma exacto en `community_screen.tsx` (fondo claro detrás de tarjetas oscuras) — una de las 16 ya identificadas — confirmando que el patrón reproduce de verdad. Se aplicó entonces el mismo fix a las 17 pantallas (`community_screen.tsx` + las 16 restantes): `className="bg-background"` → `style={{ backgroundColor: C.bg }}` en cada `SafeAreaView` raíz, mismo criterio en todas.
+
+## Segunda actualización — el bug también aparece en pantallas que NO usan `theme.ts` en absoluto
+
+El usuario reportó un tercer caso, `workout_history_screen.tsx` (fondo claro tras las tarjetas de historial, cada una oscura vía `bg-card`) — una pantalla que **no** usaba `useAppColorMode`/`theme.ts` en ningún sitio, solo clases Tailwind (`bg-background` en el contenedor, `bg-card` en cada fila). Esto descarta la teoría inicial de "dos sistemas de tema mezclados" como causa única: el problema real es que `className="bg-background"` en un `SafeAreaView` (de `react-native-safe-area-context`) no refleja de forma fiable el modo oscuro en esta app, tenga o no la pantalla otros elementos con `C.*`. El fix ya usado (pasar el color a `style` en vez de `className`) sí funciona de forma consistente en todos los casos.
+
+Con 3 de 3 pantallas reportadas confirmando el mismo patrón, se barrieron TODAS las pantallas restantes de `pages/migrated/` con el mismo `className="bg-background"` en su `SafeAreaView` raíz (búsqueda exhaustiva, no solo las que ya usaban `theme.ts`): `about_app_screen`, `coming_soon_screen`, `favourite_screen`, `language_screen`, `privacy_policy_screen`, `recipe_category_list_screen`, `session_history_detail_screen`, `terms_and_conditions_screen`, `tips_screen`, `video_detail_screen`, `video_screen`, `view_body_part_screen`, `web_view_screen` y el propio `workout_history_screen`. Ninguna de estas 14 importaba `useAppColorMode` — se añadió el import + `const { colors: C } = useAppColorMode();` en cada una, siguiendo exactamente la misma convención que ya usan el resto de pantallas migradas, y se aplicó el mismo reemplazo de `SafeAreaView`. Confirmado con una búsqueda final: no queda ningún `SafeAreaView` con `className="bg-background"` en todo `pages/migrated/` — las 31 pantallas afectadas (17 de la primera ronda + 14 de esta) quedan cubiertas.
+
+## Archivos modificados
+
+- `pages/migrated/profile_screen.tsx`
+- `pages/migrated/community_screen.tsx`
+- `pages/migrated/about_us_screen.tsx`
+- `pages/migrated/checkin_fill_screen.tsx`
+- `pages/migrated/muscle_progress_screen.tsx`
+- `pages/migrated/notification_screen.tsx`
+- `pages/migrated/progress_screen.tsx`
+- `pages/migrated/recipe_list_screen_v2.tsx`
+- `pages/migrated/recipe_tag_list_screen.tsx`
+- `pages/migrated/resource_detail_screen.tsx`
+- `pages/migrated/resources_list_screen.tsx`
+- `pages/migrated/shopping_list_screen.tsx`
+- `pages/migrated/statistics_body_distribution_screen.tsx`
+- `pages/migrated/statistics_muscle_distribution_screen.tsx`
+- `pages/migrated/statistics_personal_records_screen.tsx`
+- `pages/migrated/statistics_series_count_screen.tsx`
+- `pages/migrated/statistics_top_exercises_screen.tsx`
+- `pages/migrated/view_all_blog_screen.tsx`
+- `pages/migrated/workout_history_screen.tsx`
+- `pages/migrated/about_app_screen.tsx`
+- `pages/migrated/coming_soon_screen.tsx`
+- `pages/migrated/favourite_screen.tsx`
+- `pages/migrated/language_screen.tsx`
+- `pages/migrated/privacy_policy_screen.tsx`
+- `pages/migrated/recipe_category_list_screen.tsx`
+- `pages/migrated/session_history_detail_screen.tsx`
+- `pages/migrated/terms_and_conditions_screen.tsx`
+- `pages/migrated/tips_screen.tsx`
+- `pages/migrated/video_detail_screen.tsx`
+- `pages/migrated/video_screen.tsx`
+- `pages/migrated/view_body_part_screen.tsx`
+- `pages/migrated/web_view_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en las 32 pantallas tocadas en total (18 de la primera ronda + 14 de la segunda). Cambio mecánico e idéntico en cada una (mismo contenedor raíz, mismo reemplazo; en las 14 nuevas además se añadió el import/hook de `useAppColorMode` donde no existía) — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-045 — Texto/iconos blancos invisibles sobre botones "accentBlack" en modo oscuro (bug sistémico, 15 archivos)
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario con captura de `body_metrics_screen.tsx`, 2026-08-26)
+
+## Problema
+
+En `MigratedBodyMetrics`, varios botones ("Añadir primera medida", "Guardar", el chip de tipo de medida seleccionado, el botón "+" circular) se veían como píldoras blancas sin texto ni icono visibles en modo oscuro.
+
+## Causa
+
+`theme.ts` define `accentBlack` como acento neutro para CTAs tipo Bevel — **negro en modo claro, blanco en modo oscuro** (se invierte a propósito, mismo criterio que `--primary`/`--primary-foreground` de Tailwind usado en botones del sistema de diseño). El problema: en al menos 15 archivos, el texto/icono que va ENCIMA de un fondo `C.accentBlack` se dejó hardcodeado a `'#FFFFFF'` en vez de usar un color que se invierta junto con el fondo — funciona en modo claro (blanco sobre negro) pero en modo oscuro el fondo pasa a blanco y el texto se queda blanco también: blanco sobre blanco, invisible. Exactamente el mismo tipo de bug de fondo que BUG-042 (`workout_summary_screen.tsx`, con `--primary`/`--primary-foreground`), pero aquí con el token equivalente del otro sistema (`theme.ts`), y mucho más extendido.
+
+Se incluyen también 2 casos del sistema Tailwind (`Button` sin `variant` = `variant="default"` = `bg-primary`) con el mismo problema: un `Spinner`/`ActivityIndicator` hijo hardcodeado a blanco en vez de heredar el color correcto -- `ButtonText` ya usa la clase `text-primary-foreground` que sí se invierte sola, pero un `Spinner` no es un `ButtonText` y no hereda esa clase.
+
+## Fix
+
+- Nuevo token en `theme.ts`: `accentBlackForeground` — el inverso exacto de `accentBlack` (blanco en claro, negro en oscuro). Cualquier texto/icono/spinner que vaya sobre un fondo `accentBlack` debe usar este token, no un `'#FFFFFF'` fijo.
+- Reemplazados todos los `'#FFFFFF'` que estaban emparejados con un fondo `C.accentBlack` (condicional o fijo) por `C.accentBlackForeground`, en los archivos listados abajo.
+- En `components/ConfirmDialog.tsx`, el mismo `confirmBtnText` se usa tanto para el botón normal (`accentBlack`, necesita invertirse) como para el destructivo (`destructive50`, rojo sólido en ambos temas, blanco siempre correcto) — se dejó el blanco como base y se añade `color: C.accentBlackForeground` solo cuando `!destructive`.
+
+## Casos revisados y descartados (a propósito, sin cambio)
+
+Se auditaron TODOS los usos de `accentBlack` en el repo (15 archivos) y todo texto/icono/spinner blanco hardcodeado cercano — varios casos NO son el mismo bug y se dejaron igual:
+
+- `habit_detail_screen.tsx` (checkmark de `DayCell`, spinner/icono/texto de "Marcar hoy completado"): el fondo real ahí es `C.success50` (verde sólido, `#34C759` en ambos temas), no `accentBlack` — blanco es correcto siempre.
+- `workout_preview_screen.tsx` (chevron-back del header): fondo `rgba(0,0,0,0.35)` fijo sobre la foto de portada, no depende del tema — blanco correcto siempre. El icono de marcador (bookmark) usa `accentBlack` como TINTE (no como fondo) sobre `C.surfaceLight`, que en oscuro es gris oscuro (`#363840`), no blanco — buen contraste, no es un bug.
+- `PainReportSheet.tsx` (icono de radio button): mismo caso, `accentBlack` como tinte sobre `C.gray10` (gris oscuro en modo oscuro, `#3A3A3C`), no sobre blanco.
+- `statistics_monthly_report_screen.tsx` (`expandBtnText`): `Button variant="link"`, sin fondo — `accentBlack` usado como color de texto normal (se invierte con el tema, correcto).
+- `IntensityCheckSheet.tsx`, `workout_session_screen.tsx` (barra de descanso), `resource_detail_screen.tsx`, `workout_summary_screen.tsx` (`dotActive`), `components/onboarding_v2/OnboardingHeader.tsx`: usan colores semánticos sólidos (azul/verde/naranja/rojo) o la clase `text-background` (que ya se invierte sola) — sin blanco fijo sobre fondo `accentBlack`.
+
+## Archivos modificados
+
+- `pages/migrated/theme.ts` (nuevo token `accentBlackForeground`)
+- `pages/migrated/body_metrics_screen.tsx`
+- `pages/migrated/checkin_fill_screen.tsx`
+- `pages/migrated/habit_add_screen.tsx`
+- `pages/migrated/habit_detail_screen.tsx`
+- `pages/migrated/workout_preview_screen.tsx`
+- `pages/migrated/workout_session_screen.tsx`
+- `components/ConfirmDialog.tsx`
+- `components/DaySelectorStrip.tsx`
+- `components/MetricLineChart.tsx`
+- `components/MuscleBodyMap.tsx`
+- `components/PainReportSheet.tsx`
+- `components/ReadinessCheckSheet.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en los 13 archivos. Cambio de color puro, mismo patrón en cada sitio — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+## Tercera actualización — causa raíz real localizada + barrido final completo
+
+El usuario reportó una lista larga y adicional de pantallas con el mismo síntoma (fondo claro/gris rompiendo el resto de la UI oscura), incluyendo `statistics_monthly_report_screen.tsx` ("hay bloques que no respetan el modo oscuro" — un síntoma ligeramente distinto) y `view_body_part_screen.tsx` ("también hay botones e iconos que no concuerdan", ya cubierto por BUG-045 vía `MuscleBodyMap.tsx`).
+
+**Causa raíz real, encontrada al fin**: un comentario ya existente en `blog_detail_screen.tsx` (de una sesión anterior) documentaba que `GluestackUIProvider` (`components/ui/gluestack-ui-provider/index.tsx`) recibe correctamente el `mode` dinámico desde `useAppColorMode()` vía `GluestackModeBridge` (`App.tsx`), pero en la versión NATIVA (no web) de ese provider, lo único que hace con `mode` es `Appearance.setColorScheme(mode)` — no aplica ninguna clase `.dark`/`.light` ni resuelve las variables CSS de `global.css` (`:root.dark`, `@media (prefers-color-scheme: dark)`), que son mecanismos de CSS puro pensados para la build **web**. En la app nativa (iOS/Android), NativeWind no está resolviendo estas clases de fondo (`bg-background`, `bg-card`, `bg-muted`, etc.) contra el modo real de la app de forma fiable — de ahí que **cualquier** `className` con estas clases, en cualquier tipo de componente (`SafeAreaView`, `Box`, `Pressable`, `ActionsheetContent`), pueda quedarse "congelado" en el valor de un modo que no es el actual. No se ha intentado arreglar este mecanismo de raíz (`GluestackUIProvider`/NativeWind) por ser un cambio de altísimo riesgo que afectaría a cientos de usos en toda la app sin forma de probarlo en este entorno (sin Xcode/dispositivo real) — se mantiene el fix ya probado y seguro: sustituir la clase por un `style` inline con el color de `theme.ts` (`C.bg`), que sí se resuelve de forma fiable porque viene de React Context (`useAppColorMode()`), no de CSS.
+
+**Statistics — Resumen mensual** (`statistics_monthly_report_screen.tsx`): distinto al resto — el fondo de la propia pantalla ya estaba bien (`style={styles.container}` con `C.bg` inline, nunca usó `className`). El problema real eran las 4 tarjetas KPI (Entrenamientos/Duración/Volumen/Series), que usaban `<Card variant="outline" className="bg-muted p-4">` — `className` pisa el `bg-card` propio del `variant="outline"` (mismo mecanismo de fusión de clases que ya causó BUG-041 con `bg-secondary`), y `--muted` en oscuro (`rgb(36,36,38)`) es casi idéntico a `--background` (`rgb(36,37,41)`) — la tarjeta se volvía invisible por falta de contraste, no por un fondo "equivocado". Cambiadas a `variant="elevated"` (mismo criterio que la tarjeta "Desglose semanal" de la misma pantalla, que sí contrasta bien). Los 2 usos de `bg-muted` dentro de "Progreso y marcas" se dejan igual a propósito: ahí el `bg-muted` contrasta contra su propia tarjeta padre (`bg-card`), no contra el fondo de pantalla, así que sí funciona en ambos modos.
+
+**Barrido final** — se repitió la búsqueda de `bg-background` (y equivalentes en template literals) por TODO `pages/migrated/`, sin limitarla ya a `SafeAreaView` como en rondas anteriores, encontrando y corrigiendo el mismo patrón en `Box`, `Pressable` y `ActionsheetContent` de otras 27 pantallas: `favourite_recipe_screen`, `assigned_meals_screen` (2 sitios), `view_equipment_screen`, `search_screen`, `shopping_list_detail_screen` (2 sitios), `add_shopping_list_screen`, `home/device_connected_screen`, `home/emparejando_screen`, `home/link_device_choice_screen`, `home/link_device_list_screen`, `add_post_screen`, `chatting_screen`, `chatting_image_screen` (2 sitios), `other_user_profile_screen`, `post_details_screen` (2 sitios), `bookmark_screen`, `workout_template_list_screen`, `statistics_screen` (la pantalla del bug del círculo "Mi" reportado antes — el contenido interno también usaba `bg-background`, no solo el `SafeAreaView`), `checkins_list_screen`, `blog_detail_screen` (2 sitios más, además del padding de BUG-043), `chewie_screen` (4 sitios), `habit_add_screen` (avatar del icono de plantilla), `habits_list_screen` (avatar del icono de hábito), `workout_session_screen` (barra fija de "Finalizar entrenamiento"), `shopping_list_screen` (Actionsheet), `recipe_list_screen_v2` (Actionsheet), `notification_screen` (tarjeta de notificación leída). Confirmado con grep final: cero apariciones de `bg-background` en `pages/migrated/` fuera de esta lista y del comentario explicativo ya citado.
+
+Deliberadamente NO tocados (fuera de alcance, mucho más riesgo): los usos de `bg-background` dentro de los propios componentes base del sistema de diseño (`components/ui/button`, `modal`, `tooltip`, `accordion`, `tabs`, `textarea`, `actionsheet`, `select`) — cambiarlos afectaría potencialmente a cientos de usos en toda la app sin forma de probarlo aquí.
+
+## Archivos modificados (tercera ronda)
+
+`pages/migrated/{statistics_monthly_report_screen,favourite_recipe_screen,assigned_meals_screen,view_equipment_screen,search_screen,shopping_list_detail_screen,add_shopping_list_screen,add_post_screen,chatting_screen,chatting_image_screen,other_user_profile_screen,post_details_screen,bookmark_screen,workout_template_list_screen,statistics_screen,checkins_list_screen,blog_detail_screen,chewie_screen,habit_add_screen,habits_list_screen,workout_session_screen,shopping_list_screen,recipe_list_screen_v2,notification_screen}.tsx`, `pages/migrated/home/{device_connected_screen,emparejando_screen,link_device_choice_screen,link_device_list_screen}.tsx`.
+
+## Verificación
+
+`eslint --quiet` limpio en las 28 pantallas de esta tercera ronda.
+
+---
+
+# BUG-046 — `DietDashboard.tsx`/`DietList.tsx`: siempre en modo claro, sin reaccionar al modo oscuro de la app
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** UI / modo oscuro
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-26)
+
+## Problema
+
+`DietDashboard.tsx` y `DietList.tsx` (pantallas de dieta, en `pages/`, NO en `pages/migrated/`) se veían siempre en modo claro, sin importar el modo real de la app.
+
+## Causa
+
+Estas 2 pantallas son de un estilo de código anterior a la migración a `theme.ts`/`useAppColorMode()`: usan `constants/colors.ts`, un objeto `Colors` que se calculaba **una sola vez, al importar el módulo**, a partir de la paleta CLARA fija (`import { C } from '../pages/migrated/theme'`) — nunca de `C_DARK`, y sin ninguna suscripción a `useAppColorMode()`. A diferencia del bug de `bg-background` (que sí reaccionaba pero de forma poco fiable), aquí el problema es más simple y más severo: el valor **nunca** cambia, sea cual sea el modo real de la app.
+
+Un detalle adicional: ambas pantallas ya usaban `useResponsiveStyleSheet()` para sus estilos, cuyo `StyleSheet.create()` se memoiza solo por `scale` (no por los colores embebidos) — el hook ya tenía preparado un parámetro `extraDeps` pensado exactamente para este caso (comentario ya existente en `helper/responsiveStyleSheet.tsx`: "colores de useAppColorMode() (`C`/`C_DARK`)"), pero nunca se había usado.
+
+## Fix
+
+- `constants/colors.ts`: extraída la construcción del objeto a `buildColors(c)`. El export estático `Colors` se mantiene EXACTAMENTE igual (sigue devolviendo la paleta clara fija, sin cambios de comportamiento) para no afectar a sus otros 24 consumidores (pantallas de auth, `DietCard`, `WorkoutCard`, etc. — fuera de alcance de este reporte). Nuevo hook `useColors()`, que sí lee `useAppColorMode()` y memoiza sobre esa referencia.
+- `DietDashboard.tsx`/`DietList.tsx`: cambiado el import estático por `useColors()`. Declarando `const Colors = useColors();` al principio del componente y de su función `useStyle()` (una función aparte, no ve las variables locales del componente) — el resto del código seguía intacto, ya que `Colors.*` se referencia por el mismo nombre en todo el archivo, y ahora resuelve a la versión reactiva sin renombrar cada uso. Añadido `[Colors]` como `extraDeps` a `useResponsiveStyleSheet()` en ambas pantallas para que el `StyleSheet` memoizado se recalcule cuando cambia el tema. En `DietList.tsx`, el array `CHIP_GRADIENT_COLORS` (antes una constante de módulo fija) pasó a un `useMemo` dentro del componente por el mismo motivo.
+
+## Archivos modificados
+
+- `constants/colors.ts`
+- `pages/DietDashboard.tsx`
+- `pages/DietList.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio en los 3 archivos. **No se tocaron** los otros 24 consumidores de `Colors` (pantallas de auth y varios componentes de tarjeta) — fuera de lo reportado, y varios de ellos (p. ej. `DietCard`) dependen a propósito de que ciertos valores (`CARD_START/END`) se queden fijos en claro. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-047 — Causa raíz REAL de BUG-044: `Appearance.setColorScheme()` no notifica al motor de NativeWind, así que ninguna clase de Tailwind seguía el modo oscuro de la app
+
+**Estado:** 🔴 Fix de alto impacto, sin verificar (nunca antes probado en este entorno — requiere el próximo build de IPA)
+**Severidad:** 🔴 Alto (afecta potencialmente a TODAS las pantallas que usan clases Tailwind dependientes del tema)
+**Categoría:** UI / modo oscuro / infraestructura
+**Fase:** Post-sesión (pedido explícito del usuario: "no tiene sentido ajustar pantalla por pantalla, hay que solucionarlo de raíz", 2026-08-26)
+
+## Contexto
+
+Tras corregir BUG-044 en decenas de pantallas (sustituyendo `className="bg-background"` por `style={{backgroundColor: C.bg}}` una por una), el usuario preguntó, con razón, cuál era el problema real y por qué había que tocar pantalla por pantalla en vez de arreglarlo una sola vez. La respuesta correcta requería localizar el mecanismo exacto, no una teoría — se investigó el código fuente de React Native y de `react-native-css` (el motor real detrás de NativeWind en este proyecto) hasta encontrar la línea exacta.
+
+## Causa raíz (confirmada leyendo el código fuente, no una hipótesis)
+
+`GluestackUIProvider` (`components/ui/gluestack-ui-provider/index.tsx`) recibe el `mode` ('light'/'dark') correctamente desde `useAppColorMode()` vía `GluestackModeBridge` (`App.tsx`), y llama a `Appearance.setColorScheme(mode)` de React Native para propagarlo.
+
+El problema: en `node_modules/react-native/Libraries/Utilities/Appearance.js`, la función `setColorScheme()` actualiza su caché interna (`state.appearance`) pero **nunca emite el evento `'change'`** (`eventEmitter.emit('change', ...)`) — ese evento solo lo dispara el listener nativo `appearanceChanged`, es decir, un cambio REAL del sistema operativo, nunca una llamada programática desde JS.
+
+El motor que resuelve las clases de Tailwind/NativeWind en este proyecto (`react-native-css`, no `nativewind` directamente) mantiene su propio estado de "modo de color" como un observable (`node_modules/react-native-css/src/native/reactivity.ts`):
+
+```js
+export const colorScheme = observable < ColorSchemeName > Appearance.getColorScheme();
+Appearance.addChangeListener((event) => colorScheme.set(event.colorScheme));
+```
+
+Se inicializa **una sola vez**, al arrancar la app (con lo que reporte el sistema operativo en ese instante), y desde ahí **solo** se actualiza escuchando el evento `'change'` de `Appearance` — el mismo que `setColorScheme()` nunca dispara. Resultado: este observable queda congelado para siempre en el tema del sistema operativo al arranque, sin enterarse nunca de ningún cambio posterior — ni de `GluestackModeBridge`, ni de nada.
+
+Esto explica el 100% de los síntomas observados durante toda la sesión:
+
+- `theme.ts`/`C`/`C_DARK` vía `useAppColorMode()`: siempre correcto y reactivo, porque es Context de React puro — no pasa por `Appearance` en ningún momento.
+- Cualquier `className` de Tailwind (`bg-background`, `bg-card`, `bg-muted`, `text-primary-foreground`, etc., en CUALQUIER pantalla, migrada o no, tocada hoy o no): nunca reaccionaba al modo oscuro real de la app, solo al del sistema operativo en el momento del arranque.
+
+## Fix
+
+`react-native-css` expone su propio `colorScheme` con un método `.set()` que sí actualiza ese observable directamente (`node_modules/react-native-css/src/native/api.tsx`) y sí notifica a todos los componentes que usan `className` en tiempo real — es la pieza que faltaba llamar. Añadida la llamada `nativeCssColorScheme.set(mode === 'system' ? null : mode)` en el mismo `useEffect` de `GluestackUIProvider`, junto a la llamada ya existente a `Appearance.setColorScheme()` (que se deja, por si algún otro módulo nativo la necesita — es aditivo, no se quita nada).
+
+## Por qué no se hizo antes en la sesión
+
+Se consideró explícitamente al principio de la investigación de BUG-044 y se descartó por ser "un cambio de altísimo riesgo en la plomería compartida de toda la app, sin forma de probarlo en este entorno". Tras la pregunta del usuario se investigó más a fondo hasta dar con la línea exacta y el mecanismo concreto — con eso, el riesgo real es mucho menor de lo que parecía: es un cambio de una sola línea, puramente aditivo (no se toca ni se quita el código existente), en un único punto ya centralizado. Sigue sin poder probarse en este entorno (sin Xcode/dispositivo real) — es la pieza de mayor impacto y menor certeza de todo lo aplicado hoy, y su verificación real depende del próximo build de IPA.
+
+## Qué significa esto para los fixes de BUG-044/045/046 ya aplicados
+
+No se deshacen ni se revierten — siguen siendo correctos y necesarios como estaban (siguen usando `C.bg`/`C.accentBlackForeground` de `theme.ts`, la fuente de verdad que SIEMPRE funcionó bien). Si este fix de raíz funciona, las clases Tailwind (`bg-background`, etc.) en el RESTO de la app (pantallas no tocadas hoy, tanto las 60+ ya migradas a NativeWind como componentes de sistema de diseño como `Button`/`Modal`/`Actionsheet`) deberían empezar a seguir el modo oscuro real de la app sin necesitar ningún cambio adicional — es el mecanismo que arregla "de golpe" lo que pedía el usuario. Si no funciona (p. ej. si `react-native-css` resuelve un módulo distinto en el build real, o si hay alguna otra capa de caché no descubierta), las pantallas ya migradas a `C.bg` seguirán funcionando igual de bien que ahora, sin depender de este fix.
+
+## Archivos modificados
+
+- `components/ui/gluestack-ui-provider/index.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Tipo verificado contra las declaraciones `.d.ts` compiladas de `react-native-css` (`colorScheme: { get(): ColorSchemeName; set(value: ColorSchemeName): void }`). **No se puede verificar el comportamiento real en este entorno** — la única prueba real es instalar el próximo IPA y comprobar si las pantallas AÚN NO tocadas hoy (p. ej. las que usan `Button`/`Modal`/`Actionsheet` del sistema de diseño sin haber sido migradas a `theme.ts`) ya siguen el modo oscuro real de la app sin más cambios.
+
+---
+
+# BUG-048 — `workout_session_screen.tsx`: número de serie y check de completar desalineados con las celdas de métrica
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En la tabla de series de `MigratedWorkoutSession`, el círculo con el número de serie (izquierda) y el check de completar (derecha) se veían más abajo de lo que tocaba, sin alinear verticalmente con los recuadros rellenables (reps/carga/descanso) de en medio.
+
+## Causa
+
+La fila (`HStack`) usaba `className="items-center"` — centra cada hijo según la altura TOTAL de la fila, que la marca la celda más alta. Las celdas de métrica llevan el `TextInput` MÁS el texto "Obj: X" debajo (cuando el ejercicio tiene un objetivo del coach) — más altas que el simple círculo de 24px o el icono de 26px. Con `items-center`, el círculo y el check se centraban contra esa altura TOTAL (input + texto), no contra el propio recuadro del input, y quedaban desplazados hacia abajo.
+
+## Fix
+
+`items-center` → `items-start` en la fila, con un `marginTop` pequeño en el círculo del número (4px) y en el botón de check (3px) para alinearlos contra la altura real del `TextInput` (`paddingVertical:8` + `fontSize:13` ≈ 32px) en vez de contra la altura completa de la celda.
+
+## Archivos modificados
+
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de alineación puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-049 — Menú "+" de la barra de navegación se ve claro en modo oscuro
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / dark mode
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+Al desplegar el submenu de accesos rápidos ("+" de la barra de navegación flotante, con Perfil/Blog/Comunidad/Métricas/Check-ins), el popup se ve con capa blanca y texto oscuro incluso con la app en modo oscuro — no respeta el tema, a diferencia del resto de la pantalla detrás.
+
+## Causa
+
+`components/NavigationTab.tsx`: `quickMenuTint` (la capa semi-opaca sobre el `GlassView` que da contraste al popup) y `quickMenuLabel` (color del texto de cada acceso) estaban hardcodeados a `rgba(255,255,255,0.85)`/`#1C1C1E` en el `StyleSheet`, sin depender del tema — mismo tipo de bug puntual que BUG-044/045 (un color fijo en vez de tomarlo de `theme.ts`/el modo actual), aquí en un componente que no pasa por Tailwind sino por `StyleSheet` directo.
+
+## Fix
+
+Se añade `mode: colorMode` desde `useAppColorMode()` y se aplica como override inline (mismo patrón ya usado en `quickMenuIconWrap` para el color dependiente de `C.orange`, con el mismo motivo: `useResponsiveStyleSheet` solo memoiza por `scale`, no por estos valores) — capa oscura semi-opaca (`rgba(28,28,30,0.9)`) y texto claro (`#FAFAFA`) en modo oscuro, manteniendo blanco/oscuro como antes en modo claro.
+
+## Archivos modificados
+
+- `components/NavigationTab.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-050 — La barra flotante de entrenamiento minimizado tapa el último contenido de la pantalla
+
+**Estado:** 🔵 Necesita verificación (cambio de layout real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / layout
+**Fase:** Post-sesión (reportado por el usuario con captura en `statistics_screen.tsx`, 2026-08-26)
+
+## Problema
+
+`WorkoutMinimizedBar` (la píldora flotante global de "entrenamiento en curso", montada una sola vez junto a `NavigationContainer` en `App.tsx`) puede aparecer sobre CUALQUIER pantalla mientras haya una sesión minimizada, sin que esa pantalla tenga forma de saberlo. Al hacer scroll hasta el final en pantallas sin barra de pestañas (p. ej. `Estadísticas`), el último elemento de la lista quedaba tapado por esta barra, porque el `ScrollView`/`FlatList` de la pantalla no reservaba ningún hueco pensado para ella (solo un `paddingBottom` fijo pequeño, p. ej. 32).
+
+## Causa
+
+Cada pantalla define su propio `paddingBottom` de forma aislada (no hay un `ScreenScrollView` compartido en el proyecto) sin contar con que este overlay global puede aparecer encima en cualquier momento — mismo tipo de problema estructural que ya resolvía `TAB_BAR_CLEARANCE` para la barra de pestañas, pero sin ningún equivalente para este segundo overlay.
+
+## Fix
+
+Nueva constante exportada `WORKOUT_MINIBAR_CLEARANCE` (`components/WorkoutMinimizedBar.tsx`, `TAB_BAR_CLEARANCE + 90` — cubre el hueco que ya reserva la barra de pestañas más la altura real renderizada de esta píldora). Barrido sobre las 44 pantallas con contenido desplazable que tenían un `paddingBottom` fijo en su contenedor principal: cada una pasa a `N + WORKOUT_MINIBAR_CLEARANCE`, manteniendo su valor base original visible. Las pantallas que ya reservaban `TAB_BAR_CLEARANCE` para lo mismo (p. ej. `plan_screen.tsx`, pantalla raíz de pestaña) cambian a `WORKOUT_MINIBAR_CLEARANCE` directamente, sin sumar ambas constantes (ya la incluye). Pantallas sin contenido desplazable, o donde el `paddingBottom` encontrado no correspondía al contenedor principal (una barra fija, un composer de chat, una fila de chips, etc.), se dejaron sin tocar — no tienen nada que tapar.
+
+## Archivos modificados
+
+`components/WorkoutMinimizedBar.tsx` (nueva constante) + 44 pantallas: `add_post_screen.tsx`, `app_feedback_screen.tsx`, `assigned_meals_screen.tsx`, `blog_detail_screen.tsx`, `body_metrics_screen.tsx`, `checkin_fill_screen.tsx`, `checkins_list_screen.tsx`, `community_screen.tsx`, `diet_detail_screen.tsx`, `edit_profile_screen.tsx`, `exercise_info_screen.tsx`, `habit_add_screen.tsx`, `habit_detail_screen.tsx`, `muscle_progress_screen.tsx`, `onboarding/assessment_result_screen.tsx`, `onboarding_v2/onboarding_v2_screen.tsx`, `other_user_profile_screen.tsx`, `plan_screen.tsx`, `post_details_screen.tsx`, `privacy_policy_screen.tsx`, `progress_screen.tsx`, `recipe_main_screen.tsx`, `recipe_tag_list_screen.tsx`, `resource_detail_screen.tsx`, `resources_list_screen.tsx`, `session_history_detail_screen.tsx`, `shopping_list_detail_screen.tsx`, `statistics_body_distribution_screen.tsx`, `statistics_monthly_report_screen.tsx`, `statistics_muscle_distribution_screen.tsx`, `statistics_personal_records_screen.tsx`, `statistics_screen.tsx`, `statistics_series_count_screen.tsx`, `statistics_top_exercises_screen.tsx`, `terms_and_conditions_screen.tsx`, `tips_screen.tsx`, `video_detail_screen.tsx`, `video_screen.tsx`, `water_tracker_screen.tsx`, `workout_detail_screen.tsx`, `workout_feedback_screen.tsx`, `workout_history_screen.tsx`, `workout_preview_screen.tsx`, `workout_session_screen.tsx`.
+
+**Pantallas revisadas y descartadas explícitamente** (tenían algún `paddingBottom` fijo pero no en su contenedor principal desplazable, o no tienen scroll): `about_us_screen.tsx`, `bookmark_screen.tsx`, `chatting_image_screen.tsx`, `chatting_screen.tsx`, `favourite_screen.tsx`, `home/link_device_choice_screen.tsx`, `home/link_device_list_screen.tsx`, `recipe_list_screen_v2.tsx`, `search_screen.tsx`, `view_body_part_screen.tsx`, `workout_summary_screen.tsx`.
+
+## Verificación
+
+`eslint --quiet` limpio en los 44 archivos. `tsc --noEmit -p .` completo sin errores. Cambio de espaciado puro — **pendiente de confirmación visual en dispositivo real** (el valor de `WORKOUT_MINIBAR_CLEARANCE` está calculado a partir de las medidas del propio componente, no medido en un dispositivo real).
+
+---
+
+# BUG-051 — `community_screen.tsx`: el fondo se confunde con el color de las publicaciones
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / dark mode
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-26)
+
+## Problema
+
+En `MigratedCommunity`, el fondo de la pantalla (detrás de las tarjetas de publicaciones) se ve prácticamente del mismo tono que las propias tarjetas — sin contraste real entre una publicación y el espacio vacío alrededor.
+
+## Causa
+
+El `Box` que envuelve la `FlatList` de publicaciones llevaba un tinte fijo `backgroundColor: 'rgba(128,128,128,0.1)'` (gris medio al 10% de opacidad) por encima del `C.bg` real del `SafeAreaView`, sin motivo documentado ni relación con el tema. En modo oscuro, ese tinte mezclado con `C.bg` (`#242529`) da un tono (~`#2D2E32`) casi idéntico al de las tarjetas (`bg-card` → `#2E3037`) — la diferencia entre fondo y tarjeta, que ya existe y es correcta en `theme.ts`/`global.css`, quedaba anulada por esta capa extra.
+
+## Fix
+
+Se quita el `backgroundColor` fijo del `Box` contenedor — sin él, se ve directamente el `C.bg` del `SafeAreaView` de debajo, recuperando el contraste real contra `bg-card` (ya reactivo al modo oscuro real desde BUG-047).
+
+## Archivos modificados
+
+- `pages/migrated/community_screen.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio. Cambio de color puro — **pendiente de confirmación visual en dispositivo real**.
+
+---
+
+# BUG-052 — Home v2: el fondo se oscurece, "reaparece" más claro y vuelve a oscurecerse
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (reportado por el usuario con 3 capturas, sobre IMP-014, 2026-08-27)
+
+## Problema
+
+Tras IMP-014 (fondo fijo con oscurecido progresivo por scroll), el usuario reportó que al hacer scroll el fondo se oscurece, luego "reaparece" un fondo distinto (más claro) que vuelve a oscurecerse — en vez de una única progresión suave. Pedido explícito: "Solo debe estar el primero y su progresión de opacidad debe ir poco a poco."
+
+## Causa
+
+La cabecera (`heroHeader`) conservaba su propio mecanismo de blur + oscurecido animado (`heroBlurAnimatedProps`/`heroDarkenAnimatedStyle`, recorrido de solo 420px) heredado de **antes** de IMP-014, cuando la foto vivía dentro de la propia cabecera. Al mover la foto a la nueva capa fija global (`homeBgFixedLayer`, recorrido de 1100px), ese mecanismo local quedó actuando en paralelo sobre la MISMA imagen, con un recorrido mucho más corto: en los primeros ~420px de scroll, la cabecera se oscurecía/desenfocaba hasta casi el máximo (mecanismo local, rápido) mientras que el oscurecido global apenas iba por un ~38% de su recorrido (mucho más lento). Al superar esos 420px, la cabecera sale de la pantalla y su oscurecido local desaparece de golpe, dejando ver la misma foto de fondo pero solo con el oscurecido global (bastante más clara en ese punto) — un salto de brillo que se leía como "reaparece otro fondo distinto", que luego seguía oscureciéndose con el resto del scroll (el global, hasta los 1100px).
+
+## Fix
+
+Se elimina el mecanismo local de la cabecera (`heroBlurAnimatedProps`, `heroDarkenAnimatedStyle`, capa `heroDarkenLayer`, constantes `HERO_BLUR_SCROLL_RANGE`/`HERO_BLUR_MAX_INTENSITY`/`HERO_DARKEN_MIN_OPACITY`/`HERO_DARKEN_MAX_OPACITY`) — queda solo el scrim estático (`heroGradient.scrim`, sin animar) para el contraste del texto de la cabecera. Ahora hay una única progresión de principio a fin: `homeBgDarkenAnimatedStyle`, sobre los 1100px completos.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de comportamiento de scroll puramente visual — **pendiente de confirmación visual real en dispositivo** (mismo criterio que el resto de IMP-014).
+
+---
+
+# BUG-053 — El glass de la barra de navegación no llegaba hasta el borde inferior real
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / glass
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-27)
+
+## Problema
+
+La píldora flotante de navegación (`NavigationTab.tsx`) se posiciona con `bottom: 0` más un `marginBottom: safearea.bottom` para no invadir el home indicator. Ese margen (variable según el dispositivo) queda por debajo de la propia píldora, sin ningún fondo de cristal — con el fondo fijo de foto de Home v2 (IMP-014) detrás, ese hueco se veía como un tramo de foto sin difuminar entre la píldora y el borde físico de abajo.
+
+## Causa
+
+Nunca existió ninguna capa que cubriera ese margen: la píldora (`navigationBlur`) es la única superficie con `GlassView`, y solo ocupa su propia altura fija (`64@ratio`), no el `safearea.bottom` que se añade aparte como margen.
+
+## Fix
+
+Nueva capa `bottomGlassBackdrop`: un `GlassView` a todo el ancho de la pantalla (no solo el ancho recortado de la píldora), posicionado detrás de la barra (`pointerEvents="none"`), con una altura calculada como `barHeight + safearea.bottom` — `barHeight` se calcula con el mismo `useScale()` que ya usa `useResponsiveStyleSheet` internamente para la propia píldora, así que coincide exactamente con su altura real en cualquier dispositivo, y `safearea.bottom` es el inset real de cada dispositivo (no un valor fijo) — cubre el hueco completo, se adapta sola al tamaño de pantalla.
+
+## Archivos modificados
+
+- `components/NavigationTab.tsx`
+
+## Verificación
+
+`eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. Cambio de layout/glass puro — **pendiente de confirmación visual real en dispositivo** (el hueco solo es visible sobre un fondo con foto, como el nuevo Home v2).
+
+---
+
+# BUG-054 — Home v2: el oscurecido de fondo tapaba la foto en la parte baja de la pantalla
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (reportado por el usuario con captura, 2026-08-27)
+
+## Problema
+
+Tras reintroducir el oscurecido progresivo del fondo fijo de Home v2 (IMP-019, rango de opacidad 0.20 → 0.90 con tope al llegar a "Mi plan de hoy"), el usuario reportó que la parte baja de la pantalla (Blog, Sueño, tarjeta de soporte, incluso detrás de la barra de pestañas) se veía como un bloque gris plano, sin la foto de fondo detrás, durante el resto del scroll.
+
+## Causa
+
+En modo claro, `homeBgDarkenLayer` funde hacia `C.bg` (`#F4F4F7`, color opaco). Al 90% de opacidad (el tope pedido, alcanzado al llegar a "Mi plan de hoy" y mantenido fijo el resto de la pantalla), la foto quedaba prácticamente tapada del todo — el 10% restante de foto visible, ya de por sí oscura, se leía como gris plano.
+
+## Fix
+
+Se baja `HOME_BG_MAX_OPACITY` de 0.9 a 0.45. La foto se sigue viendo (atenuada) en todo el recorrido del scroll; las tarjetas de contenido (`Card`, `blogCard`, etc.) no se ven afectadas porque tienen su propio fondo sólido, independiente de esta capa.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de una constante numérica, sin impacto de tipos — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-055 — AssessmentResultScreen prácticamente ilegible en modo oscuro
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (bloquea la lectura de una pantalla completa del flujo de onboarding en modo oscuro)
+**Categoría:** UI / dark mode / onboarding
+**Fase:** Post-sesión (reportado por el usuario con 5 capturas, 2026-08-27)
+
+## Problema
+
+El resumen final del onboarding (`MigratedAssessmentResult`, pantalla "Tu coach preparará tu plan personalizado") se veía prácticamente ilegible en modo oscuro — títulos, cifras (kcal, ml) y textos de las tarjetas casi invisibles sobre el fondo.
+
+## Causa
+
+El fondo (contenedor de pantalla, tarjetas, barra inferior) estaba fijado a colores claros hardcodeados (`'#FFF3EC'`, `'#FFFFFF'`) sin mirar el tema, mientras que el texto sí usaba los tokens adaptativos (`C.textPrimary`, `C.gray50`), que en modo oscuro se vuelven casi blancos — el resultado era texto claro sobre un fondo que seguía siendo claro siempre, sea cual sea el tema real de la app.
+
+## Fix
+
+Los 3 fondos hardcodeados pasan a `C.bg`/`C.surface` — mismos tokens adaptativos que ya usa el resto de `onboarding_v2` (p.ej. `onboarding_v2_screen.tsx`, `container: { backgroundColor: C.bg }`). Resto del archivo auditado: los 2 únicos `'#FFFFFF'` que quedan son texto/icono blanco sobre un badge/botón de fondo `C.orange` (mismo naranja en ambos temas), donde el blanco fijo sigue siendo correcto en los dos modos.
+
+## Archivos modificados
+
+- `pages/migrated/onboarding/assessment_result_screen.tsx`
+
+## Verificación
+
+Cambio de color puro (3 `backgroundColor`) — **pendiente de confirmación visual real en dispositivo**, en ambos modos.
+
+---
+
+# BUG-056 — NavigationTab: velo gris fijo detrás del menú inferior en todas las pantallas
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (visible permanentemente, en toda la app, independientemente de la pantalla o el scroll)
+**Categoría:** UI / NavigationTab
+**Fase:** Post-sesión (reportado por el usuario con capturas, 2026-08-28)
+
+## Problema
+
+La franja inferior de la pantalla, detrás de la píldora flotante de navegación, se veía siempre gris/blanquecina — en cualquier pantalla, no solo Home v2 — cuando debería dejar ver el fondo real a través.
+
+## Causa
+
+`bottomGlassBackdrop` (añadido en BUG-053 para extender el glass hasta el borde físico inferior) llevaba, además del `GlassView`, una capa `navigationTint` (blanco al 85%, opacidad 0.5 adicional). `GlassView` solo renderiza material Liquid Glass real en iOS 26+; en cualquier otro dispositivo cae a una `<View>` normal transparente — así que en la práctica esa capa de tinte era lo ÚNICO visible ahí, un velo blanco/gris de borde a borde, fijo, en toda la app.
+
+## Fix
+
+Se elimina la capa `navigationTint` de `bottomGlassBackdrop`, dejando solo el `GlassView` (difumina de verdad en Liquid Glass real, queda transparente en el resto). La píldora interior conserva su propio `navigationTint` — ahí sí hace falta para contraste de iconos/texto sobre fotos de fondo.
+
+## Archivos modificados
+
+- `components/NavigationTab.tsx`
+
+## Verificación
+
+Cambio de capas de View puro, sin impacto de tipos — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-057 — Home v2: oscurecido progresivo del fondo casi imperceptible tras BUG-054
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-28)
+
+## Problema
+
+Tras bajar `HOME_BG_MAX_OPACITY` de 0.9 a 0.45 en BUG-054 (para evitar el bloque gris plano), el usuario reportó que el efecto de oscurecido progresivo al hacer scroll dejó de notarse — "no se aplica la opacidad de forma progresiva".
+
+## Causa
+
+No era un problema de rango (0.20→0.45 sigue siendo progresivo, solo más sutil) sino de color: `homeBgDarkenLayer` fundía hacia `C.bg` (`#F4F4F7`, un tono casi blanco), y una capa casi blanca al 20–45% de opacidad apenas cambia el brillo percibido de una foto — de ahí que pareciera que "no hace nada" al hacer scroll. Fundir hacia un tono opaco casi blanco (en vez de negro) fue también la causa raíz real de BUG-054: al subir la opacidad no se oscurecía la foto, se sustituía por un color sólido plano.
+
+## Fix
+
+`homeBgDarkenLayer` pasa a negro fijo (`#000000`) en ambos modos, y `HOME_BG_MAX_OPACITY` vuelve a 0.9 (spec original del usuario) — con negro nunca se corre el riesgo del bloque plano de BUG-054 (negro semitransparente siempre deja ver algo de la foto, por oscura que se vea), y el rango 0.20→0.9 sí resulta claramente progresivo y visible al hacer scroll.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de color/constante puro — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-058 — MyProgramCalendar: el rediseño circular no seguía el patrón exacto de Plan diario (corrige IMP-022)
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / MyProgramCalendar
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario pidió una copia exacta del calendario semanal de `plan_screen.tsx` para el calendario semanal Y mensual de `my_program_calendar_screen.tsx`. La implementación de IMP-022 se apartó de ese pedido: en vez de un `AnimatedRing` relleno por porcentaje (igual que Plan), usó un diseño propio de tres estados de color por borde (naranja/verde/gris) sin relleno progresivo, con la píldora seleccionada en blanco/borde en vez de naranja sólido.
+
+## Causa
+
+Al implementar IMP-022 se interpretó "aplica este mismo diseño" como "aplica un lenguaje visual similar" en vez de "copia el patrón exacto, componente por componente" — desviación de la instrucción explícita del usuario.
+
+## Fix
+
+Se sustituye el diseño de IMP-022 por el mismo `AnimatedRing` de `plan_screen.tsx` (círculo blanco con el número dentro, relleno por %, píldora naranja sólida al seleccionar, weekday label en mayúsculas debajo del anillo), tanto en vista Semana como en vista Mes. El porcentaje ahora representa "entrenamientos del día completados / asignados" en vez de kcal (adaptación necesaria al dominio de este calendario), con el mismo criterio de anillo vacío cuando no hay nada asignado ese día.
+
+## Archivos modificados
+
+- `pages/migrated/my_program_calendar_screen.tsx`
+
+## Verificación
+
+Balanceo de llaves/paréntesis/corchetes verificado a mano (sin `node_modules` en este entorno) — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-059 — Sistema de retos: challenges de continuación listados sueltos no se activaban
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (parte del tutorial guiado quedaba completamente inutilizable)
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario reportó que "algunos retos no se activan ni comienzan" al tocarlos desde el checklist "Reto para empezar" de Home.
+
+## Causa
+
+`log-first-set` y `mark-meal-done` son retos de CONTINUACIÓN: su primer paso apunta a un elemento (`workout-preview-start-button`, `plan-meal-toggle-first`) que solo existe en una pantalla a la que se llega encadenado desde OTRO reto (`access-workout`/`access-nutrition-plan`, vía `nextChallengeId`), nunca directamente desde Home. Pero ambos se listaban también como entradas sueltas y tocables en el checklist de Home — tocarlos ahí directamente no mostraba nada, porque su target nunca llegaba a registrarse mientras el usuario seguía en Home. Por el mismo motivo, `complete-checkin` (el check-in de preparación) se quedaba "activo" para siempre si ese día no había ningún check-in pendiente que mostrar — su único paso no era `skippable`.
+
+## Fix
+
+Se añade `hidden?: boolean` a `TutorialChallenge`, marcado en `log-first-set` y `mark-meal-done` — el checklist de Home (`startupSteps`) ahora los filtra, y solo se disparan por el encadenado automático real. El paso de `complete-checkin` se marca `skippable: true`, para que si no hay check-in pendiente ese día, el reto se salte solo (y, al ser encadenado con `access-workout`, continúe directamente hacia el flujo de entrenamiento) en vez de quedarse colgado.
+
+## Archivos modificados
+
+- `constants/tutorialChallenges.ts`
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de lógica de filtrado/estado — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-060 — Sistema de retos: el reto de nutrición no hacía scroll automático al activarse
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (dejaba la pantalla bloqueada, solo "Saltar tutorial" disponible)
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario reportó que los retos de nutrición se activaban pero la pantalla no hacía scroll automático hasta la ubicación del botón señalado, dejando el overlay oscuro sobre toda la pantalla sin nada tocable salvo "Saltar tutorial".
+
+## Causa
+
+`<TutorialTarget id="plan-meal-toggle-first">` en `plan_screen.tsx` no pasaba la prop `scrollRef` — a diferencia de `home_screen_modern_v2.tsx`, que sí se la pasa a su target de nutrición. Sin `scrollRef`, `TutorialTarget` no puede desplazar el scroll para traer el elemento señalado a la vista cuando queda por debajo del pliegue inicial.
+
+## Fix
+
+Se pasa `scrollRef={scrollRef as unknown as React.RefObject<ScrollView | null>}` al `TutorialTarget`. El cast es necesario porque el `scrollRef` de esta pantalla es un `useAnimatedRef<Animated.ScrollView>()` de Reanimated (no un `useRef` plano) — expone un `.current` compatible en tiempo de ejecución (mismo `scrollTo` de cualquier `ScrollView`), pero con un tipo TypeScript distinto al `React.RefObject<ScrollView | null>` que espera `TutorialTarget`.
+
+## Archivos modificados
+
+- `pages/migrated/plan_screen.tsx`
+
+## Verificación
+
+Cambio de prop + cast de tipos — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-061 — Sistema de retos: el reto de hábitos no funcionaba sin navegar antes a mano
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (parte del tutorial guiado quedaba completamente inutilizable)
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario reportó que el reto de hábitos "no funciona hasta que no entras de forma manual a la screen de hábitos".
+
+## Causa
+
+`add-habit` y `mark-habit-done` apuntaban directo a `habits-add-button`/`habit-toggle-first`, elementos que solo existen en `habits_list_screen.tsx` (pantalla `MigratedHabits`/`MigratedHabitAdd`) — nunca en Home, que es desde donde se lanza el reto. A diferencia de `access-workout`/`access-nutrition-plan` (que sí arrancan con un target real en Home antes de navegar), estos dos retos no tenían ningún paso puente en Home.
+
+## Fix
+
+Se añade un paso puente nuevo, `home-habits-link`, sobre el enlace de Hábitos que ya existe en Home ("Ver todos"/"Añadir"), como primer paso de ambos retos. Como ese mismo enlace navega a `MigratedHabits` o `MigratedHabitAdd` según si el usuario ya tiene hábitos, `TutorialCompletion` (tipo `navigate`) ahora acepta `screen: string | string[]` — cualquiera de los dos destinos avanza el paso puente. El paso siguiente de `add-habit` (`habits-add-button`) se marca `skippable`, por si el puente aterrizó ya directo en `MigratedHabitAdd` (usuario sin hábitos todavía), donde ese botón no existe.
+
+## Archivos modificados
+
+- `constants/tutorialChallenges.ts`
+- `store/TutorialContext.tsx`
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de lógica de navegación/estado — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-062 — Sistema de retos: orden ilógico e incompleto del tutorial de entrenamiento
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario pidió que el tutorial de entrenamiento siguiera este orden: iniciar entrenamiento > rellenar readiness > introducir reps > introducir carga > introducir rir > marcar serie como hecha > finalizar entrenamiento. El reto real (`log-first-set`) no incluía ningún paso de "carga" (peso) ni de "finalizar", y podía quedarse colgado en el paso de "empieza tu entrenamiento" cuando el gate de readiness estaba pendiente.
+
+## Causa
+
+- La tabla de series ya soporta la métrica `carga` (peso) end-to-end, pero el tutorial nunca la explicaba (excluida a mano de `isTutorialMetric`).
+- El reto terminaba en "marca una serie como hecha", sin ningún paso apuntando al botón real "FINALIZAR ENTRENAMIENTO".
+- El gate de readiness diario (`ReadinessForm` en `workout_preview_screen.tsx`, que sustituye TODA la pantalla de preview mientras está pendiente) no tenía ninguna integración con el tutorial — el primer paso del reto (`workout-preview-start-button`) apuntaba a un botón que ni siquiera llegaba a montarse hasta rellenar ese formulario, así que el tutorial se quedaba esperando algo que no existía todavía en pantalla.
+
+## Fix
+
+- Se añade un paso nuevo `workout-preview-readiness-submit` (skippable — el gate solo aparece una vez al día) como PRIMER paso del reto, con `reportAction('readiness_submitted')` real tras el submit exitoso del formulario.
+- Se añade `workout-session-metric-carga` (misma mecánica genérica que reps/rir/rpe/descanso, solo se incluye `'carga'` en el array `isTutorialMetric`).
+- Se añade un paso final `workout-session-finish-button`, envolviendo el botón real "FINALIZAR ENTRENAMIENTO" (completion por navegación a `MigratedWorkoutFeedback`).
+- Orden final de pasos: iniciar entrenamiento (ya cubierto por `access-workout`, que encadena aquí) → readiness → reps → carga → rir → descanso → rpe → marcar serie → finalizar entrenamiento.
+
+## Archivos modificados
+
+- `constants/tutorialChallenges.ts`
+- `pages/migrated/workout_preview_screen.tsx`
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+Cambio de lógica/wiring de tutorial — **pendiente de confirmación visual real en dispositivo**.

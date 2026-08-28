@@ -6,8 +6,10 @@ import { Heading } from "@components/ui/heading";
 import { HStack } from "@components/ui/hstack";
 import { VStack } from "@components/ui/vstack";
 import { Icon } from "@components/ui/icon";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 export default function EmparejandoScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
   const [pulseAnim] = useState(() => new Animated.Value(1));
   const [dot1] = useState(() => new Animated.Value(0));
   const [dot2] = useState(() => new Animated.Value(0));
@@ -46,7 +48,7 @@ export default function EmparejandoScreen({ navigation }: any) {
   }, [pulseAnim, dot1, dot2, dot3, navigation]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <VStack className="flex-1 items-center justify-center" space="xl">
         <Animated.View
           className="items-center justify-center rounded-pill bg-primary"

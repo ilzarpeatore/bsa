@@ -17,7 +17,7 @@ import { hapticLight } from '@helper/haptics';
 import { habitsApi, Habit, HabitSourceType } from '../../api/habits';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '../../components/WeekComplianceRow';
-import { computeWeekCompliance } from '../../components/weekCompliance';
+import { computeWeekCompliance, computeWeekProgress } from '../../components/weekCompliance';
 
 const SOURCE_LABEL: Record<HabitSourceType, string> = {
   coach_assigned: 'De tu coach',
@@ -142,7 +142,7 @@ export default function HabitsListScreen(props: Props) {
         onPress={() => openDetail(habit)}
       >
         <Box className="flex-row items-center" style={{ gap: 12, marginBottom: 12 }}>
-          <Box className="w-11 h-11 rounded-md bg-background items-center justify-center">
+          <Box className="w-11 h-11 rounded-md items-center justify-center" style={{ backgroundColor: C.bg }}>
             <Icon name={habitIoniconFor(habit.icon)} size={20} className="text-foreground" />
           </Box>
           <Box className="flex-1">
@@ -171,7 +171,12 @@ export default function HabitsListScreen(props: Props) {
             toggleBtn
           )}
         </Box>
-        <WeekComplianceRow completedDays={computeWeekCompliance(habit.logs)} color={C.orange} size={24} />
+        <WeekComplianceRow
+          completedDays={computeWeekCompliance(habit.logs)}
+          progressDays={computeWeekProgress(habit.logs, habit.target_value)}
+          color={C.orange}
+          size={24}
+        />
       </Pressable>
     );
   };

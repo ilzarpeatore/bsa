@@ -72,6 +72,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedNumber: { fontFamily: FONT.bold, fontSize: 15, color: '#FFFFFF' },
+  selectedNumber: { fontFamily: FONT.bold, fontSize: 15, color: C.accentBlackForeground },
   });
 }

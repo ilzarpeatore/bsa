@@ -5,8 +5,8 @@ import {
   Dimensions,
   Platform,
   StatusBar,
-  Alert,
 } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  LinearGradient  } from 'expo-linear-gradient';
@@ -20,8 +20,10 @@ import {  HStack  } from '@components/ui/hstack';
 import {  Divider  } from '@components/ui/divider';
 import {  Button, ButtonText  } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
+import { useTutorial } from '@store/TutorialContext';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  workoutTemplateApi  } from '../../api/workoutTemplate';
 import {  readinessApi, ReadinessValues  } from '../../api/readiness';
@@ -93,6 +95,7 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
   const { colors: C } = useAppColorMode();
   const rs = useMemo(() => createReadinessStyles(C), [C]);
   const insets = useSafeAreaInsets();
+  const { reportAction } = useTutorial();
   const [sleepQuality, setSleepQuality] = useState<number | null>(null);
   const [sorenessLevel, setSorenessLevel] = useState<number | null>(null);
   const [energyLevel, setEnergyLevel] = useState<number | null>(null);
@@ -112,9 +115,10 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
         stress_level: stressLevel!,
       };
       await readinessApi.submit(values);
+      reportAction('readiness_submitted');
       onDone();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -155,18 +159,20 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
 
       <Box style={{ paddingHorizontal: 24, backgroundColor: C.bg, paddingBottom: Math.max(insets.bottom, 12) + 6 }}>
         <Divider style={{ marginBottom: 12 }} />
-        <Button
-          onPress={onSubmit}
-          disabled={!allAnswered || saving}
-          radius="pill"
-          className="py-4"
-        >
-          {saving ? (
-            <Spinner size="small" color="#FFFFFF" />
-          ) : (
-            <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
-          )}
-        </Button>
+        <TutorialTarget id="workout-preview-readiness-submit">
+          <Button
+            onPress={onSubmit}
+            disabled={!allAnswered || saving}
+            radius="pill"
+            className="py-4"
+          >
+            {saving ? (
+              <Spinner size="small" color={C.accentBlackForeground} />
+            ) : (
+              <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
+            )}
+          </Button>
+        </TutorialTarget>
       </Box>
     </SafeAreaView>
   );
@@ -318,7 +324,7 @@ export default function WorkoutPreviewScreen(props: Props) {
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 170 }}
+        contentContainerStyle={{ paddingBottom: 170 + WORKOUT_MINIBAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header image */}
@@ -399,24 +405,33 @@ export default function WorkoutPreviewScreen(props: Props) {
                 const noteExpanded = expandedNoteId === ex.id;
                 return (
                   <Card key={ex.id} variant="elevated" className="p-3.5" style={{ marginBottom: 12 }}>
-                    <HStack className="items-center">
-                      <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} />
-                      <Box style={styles.exerciseInfo}>
-                        <Text style={styles.exerciseTitle} numberOfLines={2}>
-                          {ex.title}
-                        </Text>
-                        <HStack space="sm" className="items-center" style={{ marginTop: 6 }}>
-                          {seriesCount != null && (
-                            <Box style={styles.seriesChip}>
-                              <Text style={styles.seriesChipText}>{seriesCount} series</Text>
-                            </Box>
-                          )}
-                          <Text style={styles.exerciseSubtitle} numberOfLines={1}>
-                            {formatPrescribedSubtitle(ex.prescribed)}
+                    <Pressable
+                      onPress={() =>
+                        navigation?.navigate('MigratedExerciseInfo', {
+                          mExerciseId: ex.exerciseId,
+                          mExerciseName: ex.title,
+                        })
+                      }
+                    >
+                      <HStack className="items-center">
+                        <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} />
+                        <Box style={styles.exerciseInfo}>
+                          <Text style={styles.exerciseTitle} numberOfLines={2}>
+                            {ex.title}
                           </Text>
-                        </HStack>
-                      </Box>
-                    </HStack>
+                          <HStack space="sm" className="items-center" style={{ marginTop: 6 }}>
+                            {seriesCount != null && (
+                              <Box style={styles.seriesChip}>
+                                <Text style={styles.seriesChipText}>{seriesCount} series</Text>
+                              </Box>
+                            )}
+                            <Text style={styles.exerciseSubtitle} numberOfLines={1}>
+                              {formatPrescribedSubtitle(ex.prescribed)}
+                            </Text>
+                          </HStack>
+                        </Box>
+                      </HStack>
+                    </Pressable>
 
                     {lastPerformance && (
                       <>
@@ -634,7 +649,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
 function createReadinessStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  scroll: { paddingHorizontal: 24, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 24, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE },
   badge: {
     width: 52,
     height: 52,
@@ -688,7 +703,7 @@ function createReadinessStyles(C: ReturnType<typeof useAppColorMode>['colors']) 
     color: C.textSecondary,
   },
   scaleChipTextActive: {
-    color: '#FFFFFF',
+    color: C.accentBlackForeground,
   },
   scaleHint: {
     width: '100%',

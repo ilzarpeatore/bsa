@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
-  ScrollView, Alert,
+  ScrollView,
   View,
 } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
@@ -20,6 +21,7 @@ import {  Card  } from '@components/ui/card';
 import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
 import {  Button, ButtonText  } from '@components/ui/button';
+import AnimatedRing from '@components/AnimatedRing';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  workoutHistoryApi, CompletedSessionItem  } from '../../api/workoutHistory';
@@ -156,9 +158,26 @@ function DraggableWorkoutCard({
   );
 }
 
+// Anillo circular del día -- copia exacta del patrón de renderWeekDays en
+// MigratedPlan.tsx (pedido explícito 2026-08-28: "quiero que uses el mismo
+// patron de MigratedPlan.tsx en todos los calendarios independientemente de
+// que sean semanales o mensuales", tras un primer intento con un diseño de
+// tres colores por borde que NO era ese patrón). Mismos colores (C.orange
+// para el anillo, C.border para el track sin rellenar, píldora sólida
+// naranja al seleccionar) y misma estructura (AnimatedRing envolviendo un
+// círculo blanco con el número, weekday label en mayúsculas debajo del
+// anillo). Solo cambia el tamaño: BIG para la vista Semana (una sola fila,
+// igual que Plan, mismas medidas exactas WEEK_RING_* de plan_screen.tsx) y
+// uno más pequeño para la vista Mes (hasta 6 filas de 7 en la misma pantalla).
+const CAL_RING_SIZE = 26;
+const CAL_RING_STROKE = 2;
+const CAL_RING_INNER_SIZE = 21;
+const CAL_RING_SIZE_BIG = 40;
+const CAL_RING_STROKE_BIG = 3;
+const CAL_RING_INNER_SIZE_BIG = 32;
+
 const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const MONTH_NAMES_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 function toDateOnly(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -190,14 +209,6 @@ function startOfMonth(d: Date): Date {
 
 function formatMonthYear(date: Date): string {
   return `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatWeekRange(weekStart: Date): string {
-  const weekEnd = addDays(weekStart, 6);
-  if (weekStart.getMonth() === weekEnd.getMonth()) {
-    return `${weekStart.getDate()} - ${weekEnd.getDate()} ${MONTH_NAMES_SHORT[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
-  }
-  return `${weekStart.getDate()} ${MONTH_NAMES_SHORT[weekStart.getMonth()]} - ${weekEnd.getDate()} ${MONTH_NAMES_SHORT[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
 }
 
 function formatDayLabel(dateKey: string): string {
@@ -413,12 +424,12 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     if (ok) {
       const [yearStr, monthStr] = ym.split('-');
       getData(Number(monthStr), Number(yearStr), ym);
-      Alert.alert(
-        'Guardado',
-        count > 1 ? `Se movieron ${count} entrenamientos de día.` : 'Se movió el entrenamiento de día.'
-      );
+      showToast('Guardado', {
+        description: count > 1 ? `Se movieron ${count} entrenamientos de día.` : 'Se movió el entrenamiento de día.',
+        variant: 'success',
+      });
     } else {
-      Alert.alert('No se pudo guardar', 'Inténtalo de nuevo en unos minutos.');
+      showToast('No se pudo guardar', { description: 'Inténtalo de nuevo en unos minutos.', variant: 'error' });
     }
   };
 
@@ -561,6 +572,13 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     .enabled(!selectionMode)
     .activeOffsetY([-20, 20])
     .failOffsetX([-18, 18])
+    // Excluye el borde izquierdo del area de deteccion (mismo ancho que
+    // gestureResponseDistance por defecto de @react-navigation/stack en iOS,
+    // 25pt) -- sin esto, este gesto vertical competia por el toque inicial
+    // con el swipe-to-go-back del navigator y lo bloqueaba, aunque
+    // failOffsetX lo liberase enseguida en cuanto detectaba movimiento
+    // horizontal.
+    .hitSlop({ left: -25 })
     .onEnd((e) => {
       if (e.translationY <= -CALENDAR_SWIPE_THRESHOLD) {
         runOnJS(applyWeekSwipe)();
@@ -785,37 +803,55 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     cancelSelectionMode();
 
     if (errCount === 0) {
-      Alert.alert(
-        'Solicitud enviada',
-        okCount > 1
-          ? `Se enviaron ${okCount} solicitudes (una por semana). Tu entrenador las revisará antes de que se apliquen.`
-          : 'Tu entrenador la revisará antes de que se aplique a tu calendario.'
-      );
+      showToast('Solicitud enviada', {
+        description:
+          okCount > 1
+            ? `Se enviaron ${okCount} solicitudes (una por semana). Tu entrenador las revisará antes de que se apliquen.`
+            : 'Tu entrenador la revisará antes de que se aplique a tu calendario.',
+        variant: 'success',
+      });
     } else {
-      Alert.alert('Solicitud parcial', `${okCount} semana(s) enviada(s) correctamente, ${errCount} fallaron. Inténtalo de nuevo.`);
+      showToast('Solicitud parcial', { description: `${okCount} semana(s) enviada(s) correctamente, ${errCount} fallaron. Inténtalo de nuevo.`, variant: 'warning' });
     }
+  };
+
+  // Progreso circular del día -- copia exacta del criterio de Plan diario
+  // (weekKcalProgress: % de kcal consumidas sobre el objetivo), trasladado
+  // aquí a "entrenamientos del día completados / entrenamientos del día
+  // asignados". Sin nada asignado el anillo queda vacío (0%), igual que un
+  // día sin comidas registradas en Plan -- no hay un tercer estado especial
+  // por color, solo relleno progresivo del anillo, tal como pide el patrón
+  // original.
+  const dayProgressFor = (day: CalendarDayModel): number => {
+    if (day.workouts.length === 0) return 0;
+    const completedCount = day.workouts.filter((w) => isWorkoutCompleted(w, day.date)).length;
+    return completedCount / day.workouts.length;
   };
 
   const renderDayCell = (day: CalendarDayModel, keyPrefix: string, big: boolean) => {
     const isToday = day.date === todayKey;
     const isSelected = day.date === selectedDayKey;
     const hasWorkout = day.workouts.length > 0;
-    const hasCompletedWorkout = day.workouts.some((w) => isWorkoutCompleted(w, day.date));
-    // Hoy puede tener check-ins/formularios pendientes sin ningún workout —
-    // igual que en el panel del día seleccionado, se refleja con un punto
-    // propio (color warning) para que la celda no se vea como día libre.
-    const hasCheckinTasks = checkinsForDay(day.date).length > 0;
+    const progress = dayProgressFor(day);
     const isMarkedUnavailable = selectionMode && selectedDates.has(day.date);
     const isReorderDropTarget = reorderMode && !!movingWorkout && isCurrentWeekDate(day.date) && day.date !== movingWorkout.fromDate;
     const dateObj = new Date(`${day.date}T00:00:00`);
+    const ringSize = big ? CAL_RING_SIZE_BIG : CAL_RING_SIZE;
+    const ringStroke = big ? CAL_RING_STROKE_BIG : CAL_RING_STROKE;
     return (
       <Pressable
         key={`${keyPrefix}-${day.date}`}
         style={[
-          styles.dayCell,
-          big && styles.dayCellBig,
-          isSelected && !selectionMode && (big ? styles.dayCellBigSelected : styles.dayCellSelected),
-          isToday && !isSelected && styles.dayCellToday,
+          // Vista Semana: weekDayPill es una implementación aparte, sin
+          // relación con dayCell (rejilla del Mes) -- NO hereda flex:1 ni
+          // aspectRatio, se dimensiona solo por su contenido (igual que
+          // weekDayPill en plan_screen.tsx). Reusar dayCell+overrides ya
+          // causó dos bugs de recorte distintos (aspectRatio forzando un
+          // alto insuficiente, luego flex:1 forzando un ancho por división
+          // en vez de por contenido) -- una implementación separada evita
+          // cualquier interacción heredada de la rejilla del mes.
+          big ? styles.weekDayPill : styles.dayCell,
+          isSelected && !selectionMode && (big ? styles.weekDayPillSelected : styles.dayCellSelected),
           isMarkedUnavailable && styles.dayCellUnavailable,
           isReorderDropTarget && styles.dayCellDropTarget,
         ]}
@@ -826,31 +862,32 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           setSelectedDayKey(day.date);
         }}
       >
+        <AnimatedRing
+          size={ringSize}
+          strokeWidth={ringStroke}
+          percent={progress * 100}
+          color={isSelected ? '#FFFFFF' : C.orange}
+          trackColor={isSelected ? 'rgba(255,255,255,0.35)' : C.border}
+          duration={300}
+        >
+          <Box style={[big ? styles.dayNumberCircleBig : styles.dayNumberCircle, isToday && !isSelected && styles.dayNumberCircleToday]}>
+            <Text
+              style={[
+                big ? styles.dayCellTextBig : styles.dayCellText,
+                !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
+              ]}
+            >
+              {dateObj.getDate()}
+            </Text>
+          </Box>
+        </AnimatedRing>
         {big && (
-          <Text style={styles.dayCellLetter}>
+          <Text style={[styles.dayCellLetter, isSelected && styles.dayCellLetterSelected]}>
             {WEEKDAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1]}
           </Text>
         )}
-        <Text
-          style={[
-            styles.dayCellText,
-            !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
-          ]}
-        >
-          {dateObj.getDate()}
-        </Text>
-        {isMarkedUnavailable ? (
-          <Icon name="close-circle" size={12} color={C.destructive} />
-        ) : (
-          (hasWorkout || hasCheckinTasks) && (
-            <Box
-              style={[
-                styles.dayDot,
-                hasCompletedWorkout && styles.dayDotCompleted,
-                !hasWorkout && hasCheckinTasks && styles.dayDotCheckin,
-              ]}
-            />
-          )
+        {isMarkedUnavailable && (
+          <Icon name="close-circle" size={12} color={C.destructive} style={{ marginTop: 2 }} />
         )}
       </Pressable>
     );
@@ -949,17 +986,21 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         </Pressable>
       </HStack>
 
-      <HStack style={styles.monthRow}>
-        <Pressable style={styles.monthBtn} onPress={goPrev}>
-          <Icon name="chevron-back" size={22} color={C.textPrimary} />
-        </Pressable>
-        <Text style={styles.monthText}>
-          {periodMode === 'month' ? formatMonthYear(selectedMonth) : formatWeekRange(weekAnchor)}
-        </Text>
-        <Pressable style={styles.monthBtn} onPress={goNext}>
-          <Icon name="chevron-forward" size={22} color={C.textPrimary} />
-        </Pressable>
-      </HStack>
+      {/* Solo en vista Mes: en Semana las flechas se mudan a la misma fila
+          que las píldoras (ver calendarCard más abajo), igual que
+          weekdayPicker en plan_screen.tsx -- ahí no hay una franja de fecha
+          aparte, las flechas están pegadas a los propios días. */}
+      {periodMode === 'month' && (
+        <HStack style={styles.monthRow}>
+          <Pressable style={styles.monthBtn} onPress={goPrev}>
+            <Icon name="chevron-back" size={22} color={C.textPrimary} />
+          </Pressable>
+          <Text style={styles.monthText}>{formatMonthYear(selectedMonth)}</Text>
+          <Pressable style={styles.monthBtn} onPress={goNext}>
+            <Icon name="chevron-forward" size={22} color={C.textPrimary} />
+          </Pressable>
+        </HStack>
+      )}
 
       {weekBlockedMessage && (
         <Box style={styles.weekBlockedBanner}>
@@ -983,7 +1024,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           scrollEventThrottle={32}
         >
           <GestureDetector gesture={calendarSwipeGesture}>
-            <View>
+            <View style={styles.calendarCard}>
               {periodMode === 'month' && (
                 <HStack style={styles.weekdayHeaderRow}>
                   {WEEKDAY_LABELS.map((l) => (
@@ -999,8 +1040,20 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                   </HStack>
                 ))
               ) : (
-                <HStack style={styles.weekRow}>
-                  {weekDays.map((day) => renderDayCell(day, 'w', true))}
+                // Flechas pegadas a la propia fila de píldoras -- copia
+                // exacta de weekdayPicker en plan_screen.tsx (chevron-back,
+                // los 7 días, chevron-forward, todo en una sola fila), en
+                // vez de una franja de fecha aparte arriba.
+                <HStack style={styles.weekPickerRow}>
+                  <Pressable onPress={goPrev} style={styles.weekNavBtn}>
+                    <Icon name="chevron-back" size={20} color={C.gray30} />
+                  </Pressable>
+                  <HStack style={styles.weekStrip}>
+                    {weekDays.map((day) => renderDayCell(day, 'w', true))}
+                  </HStack>
+                  <Pressable onPress={goNext} style={styles.weekNavBtn}>
+                    <Icon name="chevron-forward" size={20} color={C.gray30} />
+                  </Pressable>
                 </HStack>
               )}
             </View>
@@ -1191,6 +1244,20 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.surfaceLight,
   },
   weekBlockedText: { flex: 1, fontSize: 13, fontFamily: FONT.medium, color: C.textSecondary },
+  // Marco del calendario -- mismo fondo/borde que weekdayPicker en
+  // plan_screen.tsx, pero con C.surface (token de tema) en vez del
+  // 'rgba(255,255,255,0.8)' literal que tiene Plan: ese literal deja el
+  // mismo blanco fijo en modo oscuro (banda clara de borde a borde sobre
+  // el resto de la pantalla oscura, reportado con captura). C.surface ya
+  // resuelve blanco en claro / gris oscuro (#2E3037) en oscuro, igual que
+  // el resto de tarjetas de la pantalla.
+  calendarCard: {
+    backgroundColor: C.surface,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
   weekdayHeaderRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
@@ -1203,40 +1270,78 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontSize: 12,
     color: C.textSecondary,
   },
+  // Solo la rejilla del Mes -- filas sueltas dentro de calendarCard, celdas
+  // flex:1 en contacto (ver dayCell más abajo). La vista Semana usa
+  // weekStrip/weekDayPill, una implementación aparte (ver comentario ahí).
   weekRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
     marginBottom: 4,
   },
+  // Fila de la vista Semana -- copia exacta de weekdayPicker en
+  // plan_screen.tsx, pero sin fondo/borde propios (ya los pone calendarCard
+  // por fuera, porque también envuelve la rejilla del Mes).
+  weekPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  weekNavBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+  },
+  // Tira de píldoras de la vista Semana -- copia exacta de weekStrip en
+  // plan_screen.tsx: flex:1 para rellenar el hueco entre las dos flechas de
+  // weekPickerRow, space-around para que cada píldora se reparta por su
+  // propio ancho de contenido (NO flex:1 por celda, a diferencia de
+  // dayCell/weekRow del grid del Mes).
+  weekStrip: {
+    flex: 1,
+    justifyContent: 'space-around',
+  },
+  // Píldora del día en vista Semana -- copia exacta de weekDayPill/
+  // weekDayPillSelected de plan_screen.tsx. Implementación TOTALMENTE
+  // separada de dayCell (rejilla del Mes): sin flex, sin aspectRatio, sin
+  // marginHorizontal -- se dimensiona solo por su propio contenido (anillo +
+  // gap + etiqueta + padding), igual que en Plan. Reusar dayCell con
+  // overrides para esto causó dos bugs de recorte distintos ya reportados
+  // (aspectRatio forzando un alto insuficiente; luego flex:1 forzando un
+  // ancho por división de fila en vez de por contenido, con la píldora
+  // seleccionada viéndose "cortada" -- captura 2026-08-28).
+  weekDayPill: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: RADIUS.pill,
+    gap: 6,
+  },
+  weekDayPillSelected: {
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  // Píldora del día en la rejilla del Mes -- sin relación con weekDayPill de
+  // arriba (vista Semana), esta sí necesita flex/aspectRatio porque forma la
+  // rejilla de hasta 6 filas x 7 columnas.
   dayCell: {
     flex: 1,
     aspectRatio: 1,
     marginHorizontal: 2,
-    borderRadius: 10,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
-  dayCellBig: {
-    aspectRatio: 0.85,
-    borderWidth: 1,
-    borderColor: C.gray70,
-    paddingVertical: 10,
-    gap: 4,
-  },
-  dayCellBigSelected: {
-    backgroundColor: C.surface,
-    borderColor: C.orange,
-    borderWidth: 1.5,
-  },
   dayCellSelected: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: C.orange,
-  },
-  dayCellToday: {
-    borderWidth: 1.5,
-    borderColor: C.textPrimary,
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   dayCellUnavailable: {
     backgroundColor: C.destructive5,
@@ -1248,31 +1353,59 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     borderWidth: 1.5,
     borderColor: C.orange,
   },
+  // Weekday label -- copia exacta de weekDayLabel/weekDayLabelSelected de
+  // plan_screen.tsx, ahora debajo del anillo (antes vivía encima, orden
+  // distinto al patrón original que se pidió copiar).
   dayCellLetter: {
-    fontFamily: FONT.medium,
-    fontSize: 13,
-    color: C.textSecondary,
+    fontSize: 10,
+    fontFamily: FONT.semiBold,
+    color: C.gray40,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
+  dayCellLetterSelected: { color: '#FFFFFF' },
   dayCellText: {
     fontFamily: FONT.semiBold,
+    fontSize: 11,
+    color: '#1C1C1E',
+  },
+  // Tamaño de fuente igual al weekDayCircleNum de Plan (vista Semana, mismas
+  // medidas de anillo WEEK_RING_* que allí).
+  dayCellTextBig: {
+    fontFamily: FONT.bold,
     fontSize: 14,
-    color: C.textPrimary,
+    color: '#1C1C1E',
   },
   dayCellTextMuted: {
     color: C.textTertiary,
   },
-  dayDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: C.orange,
+  // Círculo blanco con el número dentro del anillo -- copia exacta de
+  // weekDayCircle/weekDayCircleToday de plan_screen.tsx: blanco siempre
+  // (seleccionado o no, tal como la referencia), borde neutro por defecto,
+  // solo el borde cambia a naranja cuando el día es HOY y no está
+  // seleccionado (ver dayNumberCircleToday). El relleno de progreso vive en
+  // el AnimatedRing que lo envuelve (ver renderDayCell), no aquí.
+  dayNumberCircle: {
+    width: CAL_RING_INNER_SIZE,
+    height: CAL_RING_INNER_SIZE,
+    borderRadius: CAL_RING_INNER_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: C.border,
   },
-  dayDotCompleted: {
-    backgroundColor: C.success,
+  dayNumberCircleBig: {
+    width: CAL_RING_INNER_SIZE_BIG,
+    height: CAL_RING_INNER_SIZE_BIG,
+    borderRadius: CAL_RING_INNER_SIZE_BIG / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: C.border,
   },
-  dayDotCheckin: {
-    backgroundColor: C.warning60,
-  },
+  dayNumberCircleToday: { borderColor: C.orange },
   selectedDaySection: {
     marginTop: 16,
     paddingHorizontal: 16,

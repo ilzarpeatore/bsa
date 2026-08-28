@@ -10,6 +10,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import { muscleVolumeApi, MuscleVolumeSeriesGroup } from '../../api/muscleVolume';
 import { toLocalISODate } from '../../components/dayRange';
@@ -133,18 +134,18 @@ export default function StatisticsSeriesCountScreen(props: Props) {
   const maxValue = Math.max(1, ...MACRO_MUSCLE_GROUPS.map((g) => currentTotals[g] ?? 0));
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Recuento de series
+          Series por grupo muscular
         </Heading>
         <Box style={{ width: 36, height: 36 }} />
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Pressable
           className="flex-row items-center self-start bg-card rounded-pill shadow-card gap-2"
           style={{ paddingHorizontal: 18, paddingVertical: 10, marginTop: 12 }}

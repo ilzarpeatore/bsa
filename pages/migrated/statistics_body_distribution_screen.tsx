@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { View, ScrollView } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -12,6 +13,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import DaySelectorStrip, { DaySelectorItem } from '../../components/DaySelectorStrip';
@@ -38,10 +40,11 @@ function weekLabel(days: DaySelectorItem[]): string {
 }
 
 const onHelp = () =>
-  Alert.alert(
-    '¿Qué muestra este mapa?',
-    'El color de cada zona refleja el volumen entrenado en los últimos 7 días terminando en el día seleccionado (igual que el gráfico corporal de la pantalla principal de Estadísticas). La tabla de abajo muestra las series registradas por grupo muscular en esa misma ventana.'
-  );
+  showToast('¿Qué muestra este mapa?', {
+    description: 'El color de cada zona refleja el volumen entrenado en los últimos 7 días terminando en el día seleccionado (igual que el gráfico corporal de la pantalla principal de Estadísticas). La tabla de abajo muestra las series registradas por grupo muscular en esa misma ventana.',
+    variant: 'info',
+    duration: 6000,
+  });
 
 export default function StatisticsBodyDistributionScreen(props: Props) {
   const { navigation } = props;
@@ -137,24 +140,24 @@ export default function StatisticsBodyDistributionScreen(props: Props) {
       const uri = await captureRef(shareRef, { format: 'png', quality: 0.92 });
       const available = await Sharing.isAvailableAsync();
       if (!available) {
-        Alert.alert('No disponible', 'Compartir no está disponible en este dispositivo.');
+        showToast('No disponible', { description: 'Compartir no está disponible en este dispositivo.', variant: 'warning' });
         return;
       }
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir mapa corporal' });
     } catch (e) {
-      Alert.alert('Error', 'No se pudo generar la imagen para compartir.');
+      showToast('Error', { description: 'No se pudo generar la imagen para compartir.', variant: 'error' });
     } finally {
       setIsSharing(false);
     }
   };
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Distribución del cuerpo
+          Mapa de calor corporal
         </Heading>
         <HStack space="sm">
           <Pressable
@@ -185,7 +188,7 @@ export default function StatisticsBodyDistributionScreen(props: Props) {
         </HStack>
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <HStack className="items-center justify-center" style={{ gap: 16, marginTop: 8 }}>
           <Pressable onPress={goPrevWeek} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Icon name="chevron-back" size={18} className="text-muted-foreground" />

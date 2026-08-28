@@ -107,7 +107,7 @@ export default function WorkoutTemplateListScreen(props: any) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }}>
       <Box className="flex-row items-center justify-between p-4">
         <Button variant="ghost" size="icon" onPress={() => props.navigation.goBack()}>
           <Icon name="chevron-back" size={24} className="text-foreground" />

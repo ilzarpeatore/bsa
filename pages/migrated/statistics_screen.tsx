@@ -12,6 +12,7 @@ import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { SHADOW } from './theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
@@ -37,42 +38,42 @@ const ADVANCED_ITEMS: AdvancedItem[] = [
   {
     key: 'series',
     icon: 'bar-chart-outline',
-    title: 'Recuento de series por grupo de músculos',
+    title: 'Series por grupo muscular',
     subtitle: 'Total agregado por zona en un rango (7/30/90 días), comparado con el periodo anterior',
     route: 'MigratedStatisticsSeriesCount',
   },
   {
     key: 'muscles',
     icon: 'analytics-outline',
-    title: 'Distribución de los músculos',
+    title: 'Balance muscular',
     subtitle: 'Compara la distribución actual y previa de tus músculos entrenados',
     route: 'MigratedStatisticsMuscles',
   },
   {
     key: 'body',
     icon: 'body-outline',
-    title: 'Distribución del cuerpo',
+    title: 'Mapa de calor corporal',
     subtitle: 'El mismo heatmap de los últimos 7 días, con navegador para moverte entre semanas',
     route: 'MigratedStatisticsBody',
   },
   {
     key: 'topExercises',
     icon: 'podium-outline',
-    title: 'Ejercicios principales',
+    title: 'Ejercicios más frecuentes',
     subtitle: 'Lista de los ejercicios que realizas con más frecuencia',
     route: 'MigratedStatisticsTopExercises',
   },
   {
     key: 'prs',
     icon: 'trophy-outline',
-    title: 'Marcas personales',
+    title: 'Mejores marcas',
     subtitle: 'Ranking de tus mejores marcas por ejercicio',
     route: 'MigratedStatisticsPersonalRecords',
   },
   {
     key: 'monthly',
     icon: 'document-text-outline',
-    title: 'Informe mensual',
+    title: 'Resumen mensual',
     subtitle: 'Resumen de tus entrenamientos y estadísticas del mes',
     route: 'MigratedStatisticsMonthlyReport',
   },
@@ -119,8 +120,8 @@ export default function StatisticsScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <Box className="bg-background flex-1">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+      <Box className="flex-1">
         <HStack className="items-center justify-between px-3 py-3">
           <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
             <Icon name="chevron-back" size={22} className="text-foreground" />
@@ -129,7 +130,7 @@ export default function StatisticsScreen(props: Props) {
           <Box style={{ width: 36, height: 36 }} />
         </HStack>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
           <HStack className="items-center justify-between px-5" style={{ marginTop: 8, marginBottom: 14 }}>
             <Text weight="semibold" size="sm" className="flex-1" style={{ marginRight: 12 }}>
               Gráfico corporal de los últimos 7 días
@@ -162,7 +163,7 @@ export default function StatisticsScreen(props: Props) {
           </Box>
 
           <Box className="px-5" style={{ marginTop: 28, marginBottom: 12 }}>
-            <Text weight="semibold" size="xs" muted style={{ letterSpacing: 0.5 }}>ESTADÍSTICAS AVANZADAS</Text>
+            <Text weight="semibold" size="xs" muted style={{ letterSpacing: 0.5 }}>ANÁLISIS AVANZADO</Text>
           </Box>
 
           <Box className="px-5 gap-3">

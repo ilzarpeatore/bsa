@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FONT } from '../pages/migrated/theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { showToast } from '@helper/toast';
 import SimpleBottomSheet from './SimpleBottomSheet';
 import { readinessApi, ReadinessValues } from '../api/readiness';
 
@@ -88,7 +89,7 @@ export default function ReadinessCheckSheet({ visible, onClose, onSubmitted }: R
       onSubmitted(values);
       onClose();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +164,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   scaleChipActive: { backgroundColor: C.accentBlack },
   scaleChipText: { fontFamily: FONT.bold, fontSize: 13, color: C.textSecondary },
-  scaleChipTextActive: { color: '#FFFFFF' },
+  scaleChipTextActive: { color: C.accentBlackForeground },
   scaleHint: { width: '100%', marginTop: 6, fontFamily: FONT.medium, fontSize: 12.5, color: C.textSecondary },
   footer: { paddingHorizontal: 24, paddingTop: 14 },
   submitBtn: {
@@ -173,6 +174,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
   },
   submitBtnDisabled: { opacity: 0.35 },
-  submitBtnText: { fontFamily: FONT.bold, fontSize: 14, color: '#FFFFFF', letterSpacing: 0.5 },
+  submitBtnText: { fontFamily: FONT.bold, fontSize: 14, color: C.accentBlackForeground, letterSpacing: 0.5 },
   });
 }

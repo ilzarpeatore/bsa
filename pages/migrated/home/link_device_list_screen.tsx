@@ -8,6 +8,7 @@ import { VStack } from "@components/ui/vstack";
 import { Pressable } from "@components/ui/pressable";
 import { Button, ButtonText } from "@components/ui/button";
 import { Icon } from "@components/ui/icon";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 const DEVICES = [
   { name: "Garmin", icon: "watch", desc: "Garmin smartwatch" },
@@ -17,12 +18,13 @@ const DEVICES = [
 ];
 
 export default function LinkDeviceListScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
   const handleConnect = () => {
     navigation.navigate("MigratedEmparejando");
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <VStack className="flex-1" space="lg" style={{ padding: 20, paddingBottom: 40 }}>
         <Pressable
           className="w-10 h-10 rounded-sm bg-card border border-border items-center justify-center"

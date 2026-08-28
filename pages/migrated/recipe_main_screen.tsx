@@ -12,6 +12,7 @@ import {  VStack  } from '@components/ui/vstack';
 import {  Button  } from '@components/ui/button';
 import {  Badge, BadgeText  } from '@components/ui/badge';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useResponsiveStyleSheet  } from '@helper/responsiveStyleSheet';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
@@ -373,7 +374,7 @@ export default function RecipeMainScreen(props: any) {
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { padding: 16, paddingBottom: 32 },
+  scrollContent: { padding: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE },
   searchWrap: {
     alignItems: 'center',
     backgroundColor: C.surfaceLight,
@@ -435,7 +436,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   tagsLinkText: { flex: 1, fontSize: 13.5, color: C.textSecondary },
   // Resultados de búsqueda: FlatList numColumns=2 en vez del HStack+wrap
   // anterior (necesario para el scroll infinito real vía onEndReached).
-  searchListContent: { paddingHorizontal: 16, paddingBottom: 32 },
+  searchListContent: { paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE },
   gridRow: { justifyContent: 'space-between' },
   recipeCard: { marginBottom: 16 },
   recipeImageWrap: { position: 'relative' },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { showToast } from '@helper/toast';
 import { Image } from 'expo-image';
 import Animated, {
   useAnimatedRef,
@@ -18,6 +18,7 @@ import { Icon } from '@components/ui/icon';
 import { Card } from '@components/ui/card';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
 import { buildDayRange, toLocalISODate } from '../../components/dayRange';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -138,16 +139,16 @@ export default function AssignedMealsScreen(props: any) {
 
   const addRecipeToDay = async (recipe: AssignedMealRecipe) => {
     if (!dailyPlanId) {
-      Alert.alert('Error', 'No se pudo preparar el plan de ese día. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo preparar el plan de ese día. Inténtalo de nuevo.', variant: 'error' });
       return;
     }
     setAddingIds((prev) => new Set(prev).add(recipe.id));
     try {
       await recipesApi.saveDailyPlanRecipe(dailyPlanId, recipe.id, activeTab);
-      Alert.alert('Añadido', `"${recipe.title}" se añadió a ${MEAL_TYPES.find(m => m.key === activeTab)?.label} de ${selectedDayLabel()}. Ya lo verás en tu Plan diario.`);
+      showToast('Añadido', { description: `"${recipe.title}" se añadió a ${MEAL_TYPES.find(m => m.key === activeTab)?.label} de ${selectedDayLabel()}. Ya lo verás en tu Plan diario.`, variant: 'success' });
     } catch (e) {
       logger.error('Add recipe to day error:', e);
-      Alert.alert('Error', 'No se pudo añadir esta comida. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo añadir esta comida. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setAddingIds((prev) => {
         const next = new Set(prev);
@@ -163,11 +164,11 @@ export default function AssignedMealsScreen(props: any) {
     try {
       const recipes = allRecipes.filter((r) => selectedIds.has(r.id));
       await Promise.all(recipes.map((r) => recipesApi.saveDailyPlanRecipe(dailyPlanId, r.id, activeTab)));
-      Alert.alert('Añadido', `${recipes.length} comida(s) añadidas a ${selectedDayLabel()}. Ya las verás en tu Plan diario.`);
+      showToast('Añadido', { description: `${recipes.length} comida(s) añadidas a ${selectedDayLabel()}. Ya las verás en tu Plan diario.`, variant: 'success' });
       setSelectedIds(new Set());
     } catch (e) {
       logger.error('Bulk add to day error:', e);
-      Alert.alert('Error', 'No se pudieron añadir todas las comidas. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudieron añadir todas las comidas. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setIsBulkAdding(false);
     }
@@ -240,7 +241,7 @@ export default function AssignedMealsScreen(props: any) {
       : '';
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title={title} onBack={() => props.navigation.goBack()} />
 
       {isLoading ? (
@@ -257,8 +258,7 @@ export default function AssignedMealsScreen(props: any) {
           {showCompactSummary && (
             <Pressable
               onPress={expandHeader}
-              className="bg-background"
-              style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}
+              style={{ backgroundColor: C.bg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border }}
             >
               <HStack className="items-center justify-between px-4">
                 {!isDietMode ? (
@@ -284,7 +284,7 @@ export default function AssignedMealsScreen(props: any) {
             ref={scrollRef}
             onScroll={scrollHandler}
             scrollEventThrottle={16}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE }}
           >
           {!isDietMode && (
             <Card variant="ghost" style={{ marginTop: 16, marginBottom: 12 }}>

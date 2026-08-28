@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
@@ -8,6 +8,7 @@ import { AuthSocialButton } from "@components/auth/AuthSocialButton";
 import { AuthLinkRow } from "@components/auth/AuthLinkRow";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { Colors } from "@constants/colors";
+import { showToast } from "@helper/toast";
 
 export default function WelcomeAuthScreen() {
   const navigation = useNavigation<any>();
@@ -28,12 +29,12 @@ export default function WelcomeAuthScreen() {
           <AuthSocialButton
             variant="google"
             label="Continuar con Google"
-            onPress={() => Alert.alert("Próximamente", "El inicio de sesión con Google estará disponible pronto.")}
+            onPress={() => showToast("Próximamente", { description: "El inicio de sesión con Google estará disponible pronto.", variant: "info" })}
           />
           <AuthSocialButton
             variant="facebook"
             label="Continuar con Facebook"
-            onPress={() => Alert.alert("Próximamente", "El inicio de sesión con Facebook estará disponible pronto.")}
+            onPress={() => showToast("Próximamente", { description: "El inicio de sesión con Facebook estará disponible pronto.", variant: "info" })}
           />
           <AuthSocialButton
             variant="email"

@@ -158,6 +158,15 @@ No es un incidente, es preventivo:
 - Rotar la contraseña de la cuenta `demo@bestronger.app` si sigue siendo la puesta durante el incidente de recuperación de datos del 2026-08-05.
 - Revisar si hay algún otro usuario con contraseña por defecto/predecible en producción.
 
+### De la auditoría de ciberseguridad del cliente (2026-08-26, ver `SECURITY_AUDIT.md`)
+
+El cliente (esta app) ya se auditó a fondo y se corrigieron 6 problemas reales encontrados (token de sesión sin cifrar, tráfico HTTP en Android, WebView sin restricción, logout incompleto, mensajes de error 5xx sin filtrar, contraseña mínima débil). Lo que queda pendiente depende 100% del backend (Laravel, no está en este repo) y no se ha podido verificar:
+
+- **Sanear los mensajes de error 5xx en origen** — el cliente ya mitiga esto (sobrescribe `message` en cualquier respuesta `status>=500` antes de mostrarla), pero es un parche, no la causa raíz. Confirmar que `APP_DEBUG=false` en producción y que el `Handler` de excepciones de Laravel no devuelve `message`/stack trace crudo en las respuestas JSON de error — si hoy lo hace, cualquier 500 real sigue filtrando detalle interno en los logs del servidor aunque el cliente ya no lo muestre.
+- **Rate limiting en login/registro/recuperación de contraseña/OTP** — no verificable desde el cliente. Confirmar que las rutas de auth tienen `throttle` (o equivalente) aplicado; sin esto, la app es vulnerable a fuerza bruta y credential stuffing.
+- **IDOR / control de acceso real** — confirmar que endpoints como `userpost-detail?id=`, los de hábitos (`habit_id`), métricas corporales, etc. verifican que el recurso solicitado pertenece al usuario autenticado (o a su coach) antes de devolverlo o modificarlo. No se pudo probar sin acceso al backend — el cliente solo confirma que estos IDs viajan como parámetros normales, el control de acceso real tiene que vivir aquí.
+- **Cerrar sesión en todos los dispositivos / revocación de tokens** — hoy no existe ningún mecanismo (el `api_token` no expira ni se puede invalidar remotamente salvo que el usuario haga logout manual en ese mismo dispositivo). Si se quiere ofrecer "cerrar sesión en todos los dispositivos" o revocar un token robado, hace falta un endpoint nuevo + lógica de invalidación en el backend.
+
 ## Auditoría de datos pendiente (no bloqueante)
 
 - Confirmar si algún hábito personalizado real (creado antes del 2026-08-05) se perdió en el incidente `migrate:fresh` que borró la base de datos en vivo ese día, y recrearlo a mano si falta.

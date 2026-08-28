@@ -20,7 +20,7 @@ async function launchUrl(url: string) {
 export default function AboutUsScreen({ navigation }: any) {
   const { colors: C } = useAppColorMode();
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="About Us" onBack={() => navigation.goBack()} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>

@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -16,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@store/AuthContext";
 import { Colors } from "@constants/colors";
 import { authApi } from "../../api/auth";
+import { showToast } from "@helper/toast";
 
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
@@ -55,19 +55,19 @@ export default function RegisterScreen() {
 
   const handleRegister = useCallback(async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Introduce tu nombre");
+      showToast("Error", { description: "Introduce tu nombre", variant: "error" });
       return;
     }
     if (!email.trim()) {
-      Alert.alert("Error", "Introduce tu email");
+      showToast("Error", { description: "Introduce tu email", variant: "error" });
       return;
     }
-    if (password.length < 6) {
-      Alert.alert("Error", "La contraseña debe tener al menos 6 caracteres");
+    if (password.length < 8) {
+      showToast("Error", { description: "La contraseña debe tener al menos 8 caracteres", variant: "error" });
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
+      showToast("Error", { description: "Las contraseñas no coinciden", variant: "error" });
       return;
     }
 
@@ -95,7 +95,7 @@ export default function RegisterScreen() {
         err?.response?.data?.errors?.username?.[0] ||
         err?.message ||
         "No se pudo completar el registro";
-      Alert.alert("Error en el registro", message);
+      showToast("Error en el registro", { description: message, variant: "error" });
     } finally {
       setLoading(false);
     }

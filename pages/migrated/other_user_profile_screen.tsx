@@ -9,6 +9,7 @@ import {  VStack  } from '@components/ui/vstack';
 import {  Pressable  } from '@components/ui/pressable';
 import {  Icon  } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  postsApi  } from '../../api/posts';
 import {  profileApi, UserSocialStats  } from '../../api/profile';
@@ -215,7 +216,7 @@ export default function OtherUserProfileScreen(props: any) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <Box
         className="absolute top-0 left-0 right-0"
         style={{ height: windowHeight * 0.3, backgroundColor: C.brand5 }}
@@ -263,7 +264,7 @@ export default function OtherUserProfileScreen(props: any) {
             </VStack>
           </HStack>
         </Box>
-        <Box style={{ paddingHorizontal: 6, paddingTop: 16, paddingBottom: 24 }}>
+        <Box style={{ paddingHorizontal: 6, paddingTop: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}>
           {postList.length > 0 ? (
             postList.map((item) => renderPostItem(item))
           ) : !isLoading ? (

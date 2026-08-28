@@ -7,6 +7,7 @@ import { Heading } from '@components/ui/heading';
 import { Pressable } from '@components/ui/pressable';
 import { Textarea, TextareaInput } from '@components/ui/textarea';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { workoutHistoryApi } from '../../api/workoutHistory';
 
 interface Props {
@@ -87,7 +88,7 @@ export default function WorkoutFeedbackScreen(props: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

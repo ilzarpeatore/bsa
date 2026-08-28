@@ -114,7 +114,7 @@ export default function FavouriteRecipeScreen(props: FavouriteRecipeScreenProps)
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Recetas favoritas" onBack={() => props.navigation.goBack()} />
 
       <Box className="flex-1">

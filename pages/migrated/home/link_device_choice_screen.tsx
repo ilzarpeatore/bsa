@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Platform, Alert } from "react-native";
+import { Platform } from "react-native";
+import { showToast } from "@helper/toast";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Box } from "@components/ui/box";
 import { Text } from "@components/ui/text";
@@ -59,22 +60,23 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
     try {
       const available = await isHealthAvailable();
       if (!available) {
-        Alert.alert(
-          `${HEALTH_APP_NAME} no disponible`,
-          Platform.OS === "android"
-            ? "Instala la app Health Connect desde Play Store para poder sincronizar tus datos."
-            : "Este dispositivo no tiene Salud disponible."
-        );
+        showToast(`${HEALTH_APP_NAME} no disponible`, {
+          description:
+            Platform.OS === "android"
+              ? "Instala la app Health Connect desde Play Store para poder sincronizar tus datos."
+              : "Este dispositivo no tiene Salud disponible.",
+          variant: "warning",
+        });
         return;
       }
       const result = await requestHealthPermissions();
       if (result.granted) {
         navigation.replace("MigratedDeviceConnected", { source: "health" });
       } else {
-        Alert.alert(
-          "Permiso no concedido",
-          `Puedes activar el acceso más tarde desde los ajustes de ${HEALTH_APP_NAME}.`
-        );
+        showToast("Permiso no concedido", {
+          description: `Puedes activar el acceso más tarde desde los ajustes de ${HEALTH_APP_NAME}.`,
+          variant: "warning",
+        });
       }
     } finally {
       setConnecting(false);
@@ -82,7 +84,7 @@ export default function LinkDeviceChoiceScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <VStack className="flex-1" space="lg" style={{ padding: 20, paddingBottom: 40 }}>
         <Pressable
           className="w-10 h-10 rounded-sm bg-card border border-border items-center justify-center"

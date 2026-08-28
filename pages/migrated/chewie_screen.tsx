@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Spinner } from '@components/ui/spinner';
+import { useAppColorMode } from '@helper/useAppColorMode';
 // @ts-ignore - expo-av removed; fallback to View
 const Video = (props: any) => <Box style={props.style} className="bg-black" />;
 const ResizeMode = { CONTAIN: 'contain' };
@@ -12,6 +13,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ASPECT_RATIO = 12 / 7;
 
 export default function ChewieScreen({ route }: any) {
+  const { colors: C } = useAppColorMode();
   const url = route?.params?.url;
   const image = route?.params?.image;
   const autoPlay = route?.params?.autoPlay ?? false;
@@ -64,7 +66,7 @@ export default function ChewieScreen({ route }: any) {
 
   if (isInitialized && url) {
     return (
-      <Box style={{ width: SCREEN_WIDTH, aspectRatio: ASPECT_RATIO, overflow: 'hidden' }} className="bg-background">
+      <Box style={{ width: SCREEN_WIDTH, aspectRatio: ASPECT_RATIO, overflow: 'hidden', backgroundColor: C.bg }}>
         <Video
           ref={videoRef}
           source={{ uri: url }}
@@ -80,9 +82,9 @@ export default function ChewieScreen({ route }: any) {
   }
 
   return (
-    <Box style={{ width: SCREEN_WIDTH, aspectRatio: ASPECT_RATIO, overflow: 'hidden' }} className="bg-background">
+    <Box style={{ width: SCREEN_WIDTH, aspectRatio: ASPECT_RATIO, overflow: 'hidden', backgroundColor: C.bg }}>
       {isLoading ? (
-        <Box className="flex-1 items-center justify-center bg-background">
+        <Box className="flex-1 items-center justify-center">
           <Spinner size="large" />
         </Box>
       ) : image ? (
@@ -92,7 +94,7 @@ export default function ChewieScreen({ route }: any) {
           contentFit="cover"
         />
       ) : (
-        <Box className="flex-1 items-center justify-center bg-background">
+        <Box className="flex-1 items-center justify-center">
           <Text size="sm" muted>No media available</Text>
         </Box>
       )}

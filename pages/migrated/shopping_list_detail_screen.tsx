@@ -17,9 +17,11 @@ import {
   ActionsheetDragIndicatorWrapper,
 } from '@components/ui/actionsheet';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { shoppingApi, ShoppingListDetail, ShoppingListItemDetail, MeasurementUnit } from '@api/shopping';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 
 export default function ShoppingListDetailScreen(props: any) {
   const { colors: C } = useAppColorMode();
@@ -94,7 +96,7 @@ export default function ShoppingListDetailScreen(props: any) {
                 props.navigation.goBack(true);
               } catch (e: any) {
                 logger.error('Error deleting shopping list:', e);
-                Alert.alert('Error', 'No se pudo borrar la lista');
+                showToast('Error', { description: 'No se pudo borrar la lista', variant: 'error' });
               }
             },
           },
@@ -156,7 +158,7 @@ export default function ShoppingListDetailScreen(props: any) {
       );
     }
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 + WORKOUT_MINIBAR_CLEARANCE }}>
         {items.map((item) => buildItem(item))}
       </ScrollView>
     );
@@ -173,7 +175,7 @@ export default function ShoppingListDetailScreen(props: any) {
       );
     }
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 90 + WORKOUT_MINIBAR_CLEARANCE }}>
         {categories.map((category) => (
           <Box key={category.ingredient_category_id ?? 'uncategorized'}>
             <Text weight="bold" size="lg" style={{ marginBottom: 12 }}>
@@ -188,7 +190,7 @@ export default function ShoppingListDetailScreen(props: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={detailData?.title ?? 'Lista de la compra'}
         onBack={() => props.navigation.goBack()}
@@ -301,7 +303,7 @@ function AddItemSheet({
 
   const submit = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Introduce el nombre del artículo');
+      showToast('Error', { description: 'Introduce el nombre del artículo', variant: 'error' });
       return;
     }
     setSubmitting(true);
@@ -316,7 +318,7 @@ function AddItemSheet({
       onAdded();
     } catch (e: any) {
       logger.error('Error adding shopping list item:', e);
-      Alert.alert('Error', 'No se pudo añadir el item');
+      showToast('Error', { description: 'No se pudo añadir el item', variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -325,7 +327,7 @@ function AddItemSheet({
   return (
     <Actionsheet isOpen={visible} onClose={onClose}>
       <ActionsheetBackdrop />
-      <ActionsheetContent className="items-stretch p-0 bg-background rounded-t-lg" style={{ paddingBottom: 20 }}>
+      <ActionsheetContent className="items-stretch p-0 rounded-t-lg" style={{ paddingBottom: 20, backgroundColor: C.bg }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />

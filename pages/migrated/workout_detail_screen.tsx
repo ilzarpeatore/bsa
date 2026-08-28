@@ -18,6 +18,7 @@ import {  VStack  } from '@components/ui/vstack';
 import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  workoutsApi  } from '../../api/workouts';
 import {  pickWorkoutFallbackImage  } from './workoutViewShared';
 
@@ -415,7 +416,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   },
   contentSheetInner: {
     paddingTop: 16,
-    paddingBottom: 16,
+    paddingBottom: 16 + WORKOUT_MINIBAR_CLEARANCE,
   },
   dataItem: {
     alignItems: 'center',

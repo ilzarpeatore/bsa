@@ -12,7 +12,7 @@ La app **no tiene secretos hardcodeados, ni en el código fuente ni en el histor
 
 El hallazgo más importante es real y de impacto medio-alto: **el token de sesión se guardaba en `AsyncStorage` sin cifrar** (texto plano en disco, recuperable con jailbreak/root o un backup no cifrado) en vez de `expo-secure-store` (Keychain/Keystore). **Ya corregido en esta misma sesión**, con migración automática para no cerrar la sesión de usuarios existentes.
 
-Se encontraron y corrigieron 4 problemas reales más (tráfico HTTP permitido en Android, una WebView sin restricción de navegación, logout que dejaba datos de la cuenta anterior, y mensajes de error 5xx del backend mostrados sin filtrar al usuario), y se documentaron 6 puntos de hardening recomendado que requieren una decisión de producto o una verificación en dispositivo real que este entorno no puede hacer (política de contraseñas, protección anti-capturas, dependencias en alpha/preview, vulnerabilidades de tooling de build, certificate pinning evaluado y descartado, y confirmación de si el dominio de API de producción es realmente el definitivo).
+Se encontraron y corrigieron 5 problemas reales más (tráfico HTTP permitido en Android, una WebView sin restricción de navegación, logout que dejaba datos de la cuenta anterior, mensajes de error 5xx del backend mostrados sin filtrar al usuario, y una política de contraseñas débil). Revisado con el usuario: el dominio de API de producción (`testapp.bestronger.es`) es correcto pese al nombre, y certificate pinning no aporta valor a este modelo de amenaza. Quedan 3 puntos de hardening deliberadamente diferidos a una sesión con rebuild nativo/dispositivo real (protección anti-capturas, dependencias de UI en alpha/preview, resto de vulnerabilidades de tooling de build).
 
 **No se ha podido auditar el backend** (autenticación, RLS/permisos de base de datos, rate limiting, webhooks de Stripe) porque no vive en este repositorio — esa parte queda como "no verificable con el acceso actual" en cada sección aplicable, no como "seguro por defecto".
 
@@ -172,37 +172,49 @@ Se encontraron y corrigieron 4 problemas reales más (tráfico HTTP permitido en
 
 ---
 
-## 5. Hardening recomendado (no implementado — requiere decisión de producto o verificación en dispositivo)
-
 ### SEC-007 — Política de contraseñas débil
 
-**Severidad:** 🟢 Low | **Estado:** 🔴 Pendiente (decisión de producto)
+**Categoría:** Autenticación
+**Severidad:** 🟢 Low
+**Estado:** 🟢 Solucionado
 
-`pages/auth/RegisterScreen.tsx:65` y `pages/migrated/change_pwd_screen.tsx:55` solo exigen 6 caracteres mínimo, sin complejidad obligatoria (`RegisterFlowScreen.tsx` sí calcula una "fuerza" pero solo la muestra como barra de color, no bloquea el registro). No se ha cambiado porque el mínimo real de complejidad es una decisión de producto (¿8 caracteres? ¿exigir número+mayúscula?) que no me corresponde inventar, y la validación real y vinculante debe vivir en el backend de todos modos — el cliente es solo la primera línea de UX.
+**Descripción:** `pages/auth/RegisterScreen.tsx:65` y `pages/migrated/change_pwd_screen.tsx:55` solo exigían 6 caracteres mínimo, sin complejidad obligatoria.
+
+**Decisión con el usuario:** subir el mínimo a 8 caracteres (estándar de industria actual), sin exigir complejidad adicional (mayúsculas/símbolos) para no frustrar el registro con una validación que el backend debe reforzar de todos modos — el cliente es solo la primera línea de UX, no el control real.
+
+**Solución implementada:** `RegisterScreen.tsx` y `change_pwd_screen.tsx` ahora exigen `length >= 8`. No se tocó `RegisterFlowScreen.tsx` (flujo de registro alternativo): su gate `calcStrength(password) < 2` (`types/registration.ts:69-77`) ya rechaza una contraseña de solo 6-9 caracteres sin mayúsculas/dígitos/símbolos (solo 1 punto de 4), así que ya imponía un mínimo real superior a "6 caracteres planos" antes de este fix.
+
+**Archivos modificados:** `pages/auth/RegisterScreen.tsx`, `pages/migrated/change_pwd_screen.tsx`.
+
+**Verificación:** `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores.
+
+---
+
+## 5. Hardening recomendado (revisado con el usuario, deliberadamente diferido)
 
 ### SEC-008 — Sin protección anti-capturas en pantallas de datos de salud
 
-**Severidad:** 🟢 Low | **Estado:** 🔴 Pendiente (requiere decisión + rebuild nativo)
+**Severidad:** 🟢 Low | **Estado:** 🔴 Diferido (decisión del usuario)
 
-No hay `expo-screen-capture` ni overlay de privacidad al pasar a background/app-switcher. Dado que la app muestra HRV, sueño, frecuencia cardíaca y fotos de perfil, sería razonable proteger esas pantallas concretas. No implementado en esta auditoría porque (a) requiere decidir exactamente qué pantallas proteger, y (b) como con `expo-haptics` en la Fase 4 de la auditoría UI/UX de esta misma sesión, instalar un nuevo módulo nativo no tiene efecto real hasta un `pod install`/rebuild nativo que no se puede verificar desde este entorno.
+No hay `expo-screen-capture` ni overlay de privacidad al pasar a background/app-switcher. Dado que la app muestra HRV, sueño, frecuencia cardíaca y fotos de perfil, sería razonable proteger esas pantallas concretas. Revisado con el usuario y diferido deliberadamente: (a) requiere decidir exactamente qué pantallas proteger, y (b) como con `expo-haptics` en la Fase 4 de la auditoría UI/UX de esta misma sesión, instalar un nuevo módulo nativo no tiene efecto real hasta un `pod install`/rebuild nativo que no se puede verificar desde este entorno — mejor abordarlo en una sesión con acceso a dispositivo.
 
 ### SEC-009 — Dependencias de UI en versión alpha/preview en producción
 
-**Severidad:** 🟢 Low | **Estado:** 🔴 Pendiente (requiere plan de actualización dedicado)
+**Severidad:** 🟢 Low | **Estado:** 🔴 Diferido (decisión del usuario)
 
-`@gluestack-ui/core@5.0.0-alpha.0`, `@gluestack-ui/utils@5.0.1-alpha.0` y `nativewind@5.0.0-preview.2` son dependencias **core** de todo el sistema de diseño, en versiones pre-release. No es una vulnerabilidad de seguridad per se, pero sí un riesgo de estabilidad (breaking changes entre alfas) que vale la pena señalar en un contexto de "preparación para producción". No se actualiza aquí — un bump de estas dependencias requiere probar visualmente toda la app, fuera de alcance de esta auditoría.
+`@gluestack-ui/core@5.0.0-alpha.0`, `@gluestack-ui/utils@5.0.1-alpha.0` y `nativewind@5.0.0-preview.2` son dependencias **core** de todo el sistema de diseño, en versiones pre-release. No es una vulnerabilidad de seguridad per se, pero sí un riesgo de estabilidad (breaking changes entre alfas) que vale la pena señalar en un contexto de "preparación para producción". Revisado con el usuario: se difiere a una sesión con rebuild nativo y prueba visual completa — un bump de estas dependencias sin poder verlo renderizado es demasiado riesgo para hacerlo a ciegas.
 
 ### SEC-010 — 21 vulnerabilidades restantes en dependencias (todas de tooling de build)
 
-**Severidad:** 🟡 Medium (impacto real bajo — no llegan a producción) | **Estado:** 🟡 Parcialmente resuelto
+**Severidad:** 🟡 Medium (impacto real bajo — no llegan a producción) | **Estado:** 🟡 Parcialmente resuelto, resto diferido (decisión del usuario)
 
-Ver sección 6 (Dependencias). Se eliminó `react-native-snap-carousel` (no usado en el código, arrastraba 5 CVEs vía `fbjs`/`node-fetch` viejo). Las 21 restantes son de Metro/PostCSS/js-yaml/image-size/uuid — todas build-time, ninguna se ejecuta en el bundle final de la app. No se actualizan porque requieren un bump mayor de Expo/Metro con riesgo de romper el build, no verificable sin un ciclo completo de build+test.
+Ver sección 6 (Dependencias). Se eliminó `react-native-snap-carousel` (no usado en el código, arrastraba 5 CVEs vía `fbjs`/`node-fetch` viejo). Las 21 restantes son de Metro/PostCSS/js-yaml/image-size/uuid — todas build-time, ninguna se ejecuta en el bundle final de la app. Revisado con el usuario: se difieren junto con SEC-009 a una sesión con rebuild nativo, ya que requieren un bump mayor de Expo/Metro con riesgo de romper el build sin poder probarlo aquí.
 
 ### SEC-011 — `apiBaseUrl` de producción apunta a un host llamado "test"
 
-**Severidad:** 🔵 Informational | **Estado:** requiere confirmación del usuario
+**Severidad:** 🔵 Informational | **Estado:** ⚫ Confirmado, no es una vulnerabilidad
 
-`app.json:50` y `api/client.ts:17` apuntan a `https://testapp.bestronger.es/api` como la URL de producción real. Puede ser deliberado (el nombre del dominio no refleja necesariamente su función), pero vale la pena confirmar explícitamente que este es el dominio de producción definitivo y no un entorno de pruebas usado por error en el build de release.
+`app.json:50` y `api/client.ts:17` apuntan a `https://testapp.bestronger.es/api`. **Confirmado con el usuario**: es el dominio de producción real y definitivo — el nombre "testapp" es un resto histórico del nombre del servidor, no un entorno de pruebas colado por error. Sin cambio de código.
 
 ### INFO-001 — Certificate pinning: evaluado, no recomendado por ahora
 
@@ -244,8 +256,8 @@ Antes de esta auditoría: 26 vulnerabilidades (13 high, 13 moderate). Tras elimi
 - [x] Deep links protegidos (no hay superficie de deep link real, `scheme` no configurado).
 - [x] WebViews protegidas (**corregido en esta auditoría**).
 - [x] Permisos del dispositivo son mínimos (todos con consumidor real confirmado, ninguno "por si acaso").
-- [ ] Política de contraseñas robusta — pendiente, decisión de producto (SEC-007).
-- [ ] Protección anti-capturas en pantallas de salud — pendiente, hardening opcional (SEC-008).
+- [x] Política de contraseñas robusta — mínimo 8 caracteres (**corregido en esta auditoría**, SEC-007).
+- [ ] Protección anti-capturas en pantallas de salud — diferido, hardening opcional (SEC-008).
 - [x] Android no permite tráfico HTTP sin cifrar (**corregido en esta auditoría**).
 - [x] No hay logs con tokens/contraseñas (confirmado, sin evidencia de fuga real).
 - [x] No se exponen source maps públicamente (no se genera ninguno para el bundle nativo de producción).
@@ -267,11 +279,11 @@ Antes de esta auditoría: 26 vulnerabilidades (13 high, 13 moderate). Tras elimi
 | 3   | Mensajes de error 5xx sin filtrar                | Medio (fuga de info interna)             | Baja-media, depende del backend         | 🟢 Corregido (SEC-005)                |
 | 4   | WebView sin restricción de navegación            | Medio (phishing dentro de la app)        | Baja (depende de contenido del backend) | 🟢 Corregido (SEC-003)                |
 | 5   | Cleartext traffic permitido en Android           | Medio (MITM si algo cae a HTTP)          | Baja (nada usa HTTP hoy en prod)        | 🟢 Corregido (SEC-002)                |
-| 6   | Sin política de contraseña robusta               | Bajo-medio                               | Media                                   | 🔴 Pendiente (SEC-007)                |
+| 6   | Sin política de contraseña robusta               | Bajo-medio                               | Media                                   | 🟢 Corregido (SEC-007)                |
 | 7   | Logout incompleto                                | Bajo                                     | Baja (solo en dispositivo compartido)   | 🟢 Corregido (SEC-004)                |
 | 8   | 21 vulnerabilidades de dependencias (build-time) | Bajo (no llega a runtime)                | N/A                                     | 🟡 Parcial (SEC-010)                  |
-| 9   | Sin protección anti-capturas en datos de salud   | Bajo                                     | Baja                                    | 🔴 Pendiente, opcional (SEC-008)      |
-| 10  | Dependencias UI en alpha/preview                 | Bajo (estabilidad, no seguridad directa) | N/A                                     | 🔴 Pendiente (SEC-009)                |
+| 9   | Sin protección anti-capturas en datos de salud   | Bajo                                     | Baja                                    | 🔴 Diferido, opcional (SEC-008)       |
+| 10  | Dependencias UI en alpha/preview                 | Bajo (estabilidad, no seguridad directa) | N/A                                     | 🔴 Diferido (SEC-009)                 |
 
 ---
 
@@ -281,8 +293,8 @@ Antes de esta auditoría: 26 vulnerabilidades (13 high, 13 moderate). Tras elimi
 
 ## 🟡 SÍ, PERO CON RIESGOS PENDIENTES
 
-El cliente (este repositorio) no tenía ninguna vulnerabilidad crítica activa, y el hallazgo más serio (token de sesión sin cifrar) ya se ha corregido, verificado por código y por `tsc`/`eslint`, con migración para no romper sesiones existentes. Los 4 problemas reales encontrados (SEC-001 a SEC-005, salvo SEC-006 que es un efecto colateral ya mitigado) están corregidos en esta misma sesión.
+El cliente (este repositorio) no tenía ninguna vulnerabilidad crítica activa, y el hallazgo más serio (token de sesión sin cifrar) ya se ha corregido, verificado por código y por `tsc`/`eslint`, con migración para no romper sesiones existentes. Los 5 problemas reales encontrados (SEC-001 a SEC-005, más SEC-007) están corregidos en esta misma sesión; SEC-006 es un efecto colateral ya mitigado y SEC-011 se confirmó con el usuario que no es una vulnerabilidad.
 
-Los riesgos que quedan pendientes son de dos tipos: (a) **hardening opcional documentado, no bloqueante** (política de contraseñas, anti-capturas, dependencias en alpha) que son decisiones de producto o requieren un ciclo de prueba en dispositivo que no está disponible aquí; y (b) **todo lo que depende del backend** (autenticación del lado servidor, RLS, rate limiting, IDOR real) — que este repositorio no contiene y por tanto no se ha podido auditar. La respuesta "🟡" en vez de "🟢" es precisamente por ese punto (b): ningún cliente móvil, por bien protegido que esté, es seguro si el backend no valida permisos correctamente, y eso no es verificable desde aquí.
+Los riesgos que quedan pendientes son de dos tipos: (a) **hardening opcional, revisado con el usuario y diferido deliberadamente** (anti-capturas, dependencias en alpha/preview, resto de vulnerabilidades de tooling de build) porque requieren un ciclo de prueba en dispositivo/rebuild nativo que no está disponible aquí; y (b) **todo lo que depende del backend** (autenticación del lado servidor, RLS, rate limiting, IDOR real) — que este repositorio no contiene y por tanto no se ha podido auditar. La respuesta "🟡" en vez de "🟢" es precisamente por ese punto (b): ningún cliente móvil, por bien protegido que esté, es seguro si el backend no valida permisos correctamente, y eso no es verificable desde aquí.
 
-**Antes de un lanzamiento real**, se recomienda: (1) confirmar en dispositivo físico los 4 fixes de esta auditoría (login/logout, build Android, navegación de WebView, un error 500 real), (2) auditar el backend por separado con el mismo rigor (RLS, rate limiting, validación de permisos), y (3) decidir sobre los puntos de hardening opcional (SEC-007/008/009) según el apetito de riesgo del producto.
+**Antes de un lanzamiento real**, se recomienda: (1) confirmar en dispositivo físico los fixes de esta auditoría (login/logout, build Android, navegación de WebView, un error 500 real), (2) auditar el backend por separado con el mismo rigor (RLS, rate limiting, validación de permisos), y (3) retomar SEC-008/009/010 en una sesión con rebuild nativo cuando el apetito de riesgo del producto lo pida.

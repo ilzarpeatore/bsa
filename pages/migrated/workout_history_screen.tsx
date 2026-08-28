@@ -14,6 +14,8 @@ import { Spinner } from '@components/ui/spinner';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { pickWorkoutFallbackImage } from './workoutViewShared';
 import logger from '@helper/logger';
+import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 
 function formatDuration(totalSeconds: number | null): string {
   if (!totalSeconds) return '--';
@@ -30,6 +32,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function WorkoutHistoryScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [sessions, setSessions] = useState<CompletedSessionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -83,7 +86,7 @@ export default function WorkoutHistoryScreen(props: any) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => props.navigation?.goBack()}>
           <Icon name="chevron-back" size={24} className="text-foreground" />
@@ -102,7 +105,7 @@ export default function WorkoutHistoryScreen(props: any) {
           <Text size="sm" muted className="text-center">Todavía no has completado ningún entrenamiento</Text>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
           <VStack space="sm">
             {sessions.map(renderItem)}
           </VStack>

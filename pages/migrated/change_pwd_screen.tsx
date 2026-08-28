@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
-import {  ScrollView, Alert, Keyboard, StyleSheet  } from 'react-native';
+import {  ScrollView, Keyboard, StyleSheet  } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Box  } from '@components/ui/box';
 import {  Text  } from '@components/ui/text';
@@ -45,19 +46,19 @@ export default function ChangePwdScreen({ navigation }: any) {
   const changePwd = async () => {
     Keyboard.dismiss();
     if (!oldPassword.trim()) {
-      Alert.alert('Error', 'Introduce tu contraseña actual');
+      showToast('Error', { description: 'Introduce tu contraseña actual', variant: 'error' });
       return;
     }
     if (!newPassword.trim()) {
-      Alert.alert('Error', 'Introduce una contraseña nueva');
+      showToast('Error', { description: 'Introduce una contraseña nueva', variant: 'error' });
       return;
     }
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+    if (newPassword.length < 8) {
+      showToast('Error', { description: 'La contraseña debe tener al menos 8 caracteres', variant: 'error' });
       return;
     }
     if (newPassword.trim() !== confirmPassword.trim()) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      showToast('Error', { description: 'Las contraseñas no coinciden', variant: 'error' });
       return;
     }
 
@@ -65,11 +66,11 @@ export default function ChangePwdScreen({ navigation }: any) {
     try {
       await authApi.changePassword({ old_password: oldPassword.trim(), new_password: newPassword.trim() });
       setLoading(false);
-      Alert.alert('Listo', 'Contraseña cambiada correctamente');
+      showToast('Listo', { description: 'Contraseña cambiada correctamente', variant: 'success' });
       navigation.goBack();
     } catch (e: any) {
       setLoading(false);
-      Alert.alert('Error', e?.message ?? 'No se pudo cambiar la contraseña');
+      showToast('Error', { description: e?.message ?? 'No se pudo cambiar la contraseña', variant: 'error' });
     }
   };
 

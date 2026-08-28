@@ -11,6 +11,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import SimpleBottomSheet from '../../components/SimpleBottomSheet';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 import { exerciseStatsApi, TopExerciseItem } from '../../api/exerciseStats';
@@ -91,20 +92,20 @@ export default function StatisticsTopExercisesScreen(props: Props) {
   }, [range, muscleId]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Ejercicios principales
+          Ejercicios más frecuentes
         </Heading>
         <Button variant="ghost" size="icon" onPress={() => setMuscleSheetVisible(true)}>
           <Icon name="body-outline" size={22} color={muscleId ? C.orange : C.textPrimary} />
         </Button>
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <HStack className="items-center flex-wrap gap-2" style={{ marginTop: 12 }}>
           <Pressable
             className="flex-row items-center self-start bg-card rounded-pill shadow-card gap-2"

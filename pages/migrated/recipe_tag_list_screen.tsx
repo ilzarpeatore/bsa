@@ -15,6 +15,7 @@ import {
   AccordionContent,
 } from '@components/ui/accordion';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { recipesApi } from '../../api/recipes';
 
@@ -210,7 +211,7 @@ export default function RecipeTagListScreen(props: any) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Etiquetas" onBack={() => props.navigation.goBack()} />
 
       <Box className="flex-1">
@@ -224,7 +225,7 @@ export default function RecipeTagListScreen(props: any) {
             <Text weight="medium" muted style={{ marginTop: 12 }}>No se encontraron etiquetas</Text>
           </Box>
         ) : (
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} keyboardShouldPersistTaps="handled">
             <Box
               className="flex-row items-center bg-card rounded-md border border-border"
               style={{ paddingHorizontal: 12, height: 44, marginBottom: 16 }}

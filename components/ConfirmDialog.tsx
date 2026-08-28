@@ -66,7 +66,7 @@ function ConfirmDialog({
               ]}
               onPress={onConfirm}
             >
-              <Text style={styles.confirmBtnText}>{confirmText}</Text>
+              <Text style={[styles.confirmBtnText, !destructive && { color: C.accentBlackForeground }]}>{confirmText}</Text>
             </Pressable>
           </View>
         </Pressable>

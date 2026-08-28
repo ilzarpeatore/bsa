@@ -158,14 +158,14 @@ export default function ChattingImageScreen({ navigation }: any) {
 
   if (!showUI) {
     return (
-      <Box className="flex-1 bg-background items-center justify-center">
+      <Box className="flex-1 items-center justify-center" style={{ backgroundColor: C.bg }}>
         <Spinner size="large" color={C.orange} />
       </Box>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title="FitBot"
         onBack={() => navigation.goBack()}

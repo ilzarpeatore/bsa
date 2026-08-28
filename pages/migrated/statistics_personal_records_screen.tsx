@@ -12,6 +12,7 @@ import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { Input, InputField, InputSlot } from '@components/ui/input';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { exerciseStatsApi, PersonalRecordItem } from '../../api/exerciseStats';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 
@@ -110,20 +111,20 @@ export default function StatisticsPersonalRecordsScreen(props: Props) {
   }, [items, searchText, muscleId]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <HStack className="items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={22} className="text-foreground" />
         </Button>
         <Heading size="sm" className="flex-1 text-center mx-1" numberOfLines={1}>
-          Marcas personales
+          Mejores marcas
         </Heading>
         <Button variant="ghost" size="icon" onPress={() => setShowMuscleSheet(true)}>
           <Icon name="body-outline" size={22} color={muscleId ? C.orange : C.textPrimary} />
         </Button>
       </HStack>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Text size="xs" muted style={{ marginTop: 8, marginBottom: 4 }}>
           Tu mejor peso levantado en cada ejercicio, con el 1RM estimado.
           {!muscleId ? ` Se muestran solo los últimos ${RECENT_LIMIT} ejercicios realizados.` : ` Filtrado por ${muscleName}.`}

@@ -274,7 +274,7 @@ export default function RecipeListScreenV2(props: any) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <HStack style={styles.topBar}>
         <Pressable onPress={() => props.navigation.goBack()} hitSlop={10} style={styles.backBtn}>
           <Icon name="chevron-back" size={24} className="text-foreground" />
@@ -361,7 +361,7 @@ export default function RecipeListScreenV2(props: any) {
         }}
       >
         <ActionsheetBackdrop />
-        <ActionsheetContent className="items-stretch bg-background rounded-t-lg p-6">
+        <ActionsheetContent className="items-stretch rounded-t-lg p-6" style={{ backgroundColor: C.bg }}>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>

@@ -9,6 +9,8 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Vibration,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
@@ -28,11 +30,23 @@ import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { hapticLight, hapticSuccess } from '@helper/haptics';
+import {
+  startWorkoutLiveActivity,
+  updateWorkoutLiveActivity,
+  endWorkoutLiveActivity,
+  WorkoutActivityState,
+} from '@helper/liveActivity';
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  ConfirmDialogMem  } from '../../components/ConfirmDialog';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useTutorial  } from '@store/TutorialContext';
 import PainReportSheet from '../../components/PainReportSheet';
+import WorkoutNoteSheet from '../../components/WorkoutNoteSheet';
+import IntensityCheckSheet, { IntensityMetric } from '../../components/IntensityCheckSheet';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GlassView } from '@components/ui/glass-view';
 import {  useAuth  } from '../../store/AuthContext';
 import {  workoutHistoryApi  } from '../../api/workoutHistory';
 import {  MetricCatalogItem  } from '../../api/workoutTemplate';
@@ -53,7 +67,7 @@ import {
   UnifiedExercise,
 } from './workoutViewShared';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Petición 2026-08-19: al añadir un ejercicio nuevo con "Añadir ejercicio +"
 // debe venir SIEMPRE con series/reps/descanso/rir (o rpe) por defecto, no
 // vacío. Se mantiene 'carga' (peso) aunque la nota no lo mencione
@@ -67,10 +81,44 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // 'rir' como default único entre "rir o rpe" que pide la nota.
 const ADHOC_DEFAULT_METRICS = ['carga', 'reps', 'descanso', 'rir'];
 const ADHOC_DEFAULT_SERIES = 3;
+// Orden pedido explícitamente por el usuario (2026-08-26): series,
+// repeticiones, carga, rir/rpe y descanso -- distinto del orden crudo que a
+// veces trae `enabledMetrics` del backend/plantilla. Solo de cara al
+// render, no reordena el array real de la plantilla. `rir` y `rpe`
+// comparten el mismo rango (mismo "slot" intercambiable, ver
+// getIntensityMode más abajo -- solo uno de los dos aparece a la vez).
+// tiempo (no mencionado) va al final.
+const METRIC_DISPLAY_RANK: Record<string, number> = {
+  series: 0,
+  reps: 1,
+  carga: 2,
+  rir: 3,
+  rpe: 3,
+  descanso: 4,
+  tiempo: 5,
+};
+function sortMetricKeys(keys: string[]): string[] {
+  return [...keys].sort((a, b) => {
+    const ai = METRIC_DISPLAY_RANK[a];
+    const bi = METRIC_DISPLAY_RANK[b];
+    if (ai === undefined && bi === undefined) return a.localeCompare(b);
+    if (ai === undefined) return 1;
+    if (bi === undefined) return -1;
+    return ai - bi;
+  });
+}
 // Estilos del renderItem del picker de "Añadir ejercicio", fuera del
 // componente para no reconstruirlos en cada fila del FlatList.
 const PICKER_RESULT_IMAGE_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 };
 const PICKER_RESULT_PLACEHOLDER_STYLE = { width: 44, height: 44, marginRight: 12 };
+// Preferencia "seguir abriendo la consulta de intensidad (RIR o RPE)
+// automáticamente después de cada serie" (IntensityCheckSheet, pedido
+// explícito 2026-08-26) -- persistida igual que el resto de flags simples
+// de la app (ver DIAGNOSTICS_STORAGE_KEY en helper/logger.ts), local a esta
+// pantalla porque solo se lee/escribe aquí. Una sola preferencia para
+// ambas métricas -- son el mismo "slot" intercambiable, no dos ajustes
+// independientes.
+const INTENSITY_AUTO_OPEN_STORAGE_KEY = 'intensity_check_auto_open';
 const PICKER_RESULT_TITLE_STYLE = { fontSize: 14, marginRight: 8 };
 const RESISTANCE_TRAINING_MET = 5.0;
 const FALLBACK_WEIGHT_KG = 70;
@@ -197,6 +245,438 @@ function parseRestSeconds(raw?: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+interface WorkoutExercisePlayerProps {
+  ex: SessionExercise;
+  exercisePositionLabel: string;
+  positionIndex: number;
+  totalCount: number;
+  elapsedSeconds: number;
+  displayMetrics: string[];
+  metricLabel: (key: string) => string;
+  metricInputType: (key: string) => 'number' | 'text' | 'time';
+  intensityMode: IntensityMetric | null;
+  onToggleIntensityMode: () => void;
+  suggestion?: LoadSuggestion;
+  onChangeCell: (rowIndex: number, key: string, value: string) => void;
+  onToggleRowComplete: (rowIndex: number) => void;
+  onAddRow: () => void;
+  onMarkAllRows: () => void;
+  onOpenProgress: () => void;
+  onOpenNotes: () => void;
+  onOpenPainReport: () => void;
+  onClose: () => void;
+  onBack: () => void;
+  onNext: () => void;
+  canGoBack: boolean;
+  canGoNext: boolean;
+  restBar: React.ReactNode;
+}
+
+// Modo guiado a pantalla completa por ejercicio (pedido explícito
+// 2026-08-27, captura de referencia de otra app): vídeo/gif del ejercicio +
+// registro serie a serie, con la misma tabla de métricas que ya usaba el
+// acordeón (mismos props/callbacks, sin lógica duplicada) y navegación
+// Anterior/Siguiente ejercicio entre bloques. Componente aparte (no inline
+// en WorkoutSessionScreen) porque useVideoPlayer es un hook -- debe montarse
+// y desmontarse entero con el Modal que lo envuelve, nunca llamarse
+// condicionalmente dentro del componente padre (que ya tiene decenas de
+// hooks propios y sigue vivo aunque el reproductor esté cerrado).
+function WorkoutExercisePlayer({
+  ex,
+  exercisePositionLabel,
+  positionIndex,
+  totalCount,
+  elapsedSeconds,
+  displayMetrics,
+  metricLabel,
+  metricInputType,
+  intensityMode,
+  onToggleIntensityMode,
+  suggestion,
+  onChangeCell,
+  onToggleRowComplete,
+  onAddRow,
+  onMarkAllRows,
+  onOpenProgress,
+  onOpenNotes,
+  onOpenPainReport,
+  onClose,
+  onBack,
+  onNext,
+  canGoBack,
+  canGoNext,
+  restBar,
+}: WorkoutExercisePlayerProps) {
+  const { colors: C } = useAppColorMode();
+  const insets = useSafeAreaInsets();
+  const videoSource = ex.videoUrl || null;
+  // useVideoPlayer siempre se llama (con source null si no hay vídeo) --
+  // reglas de los hooks, nunca condicional. play() sí es condicional, en un
+  // efecto aparte, solo cuando hay vídeo real que reproducir.
+  const player = useVideoPlayer(videoSource, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+  useEffect(() => {
+    if (videoSource) player.play();
+  }, [videoSource, player]);
+
+  const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4);
+
+  // Deslizar hacia la derecha cierra el modo guiado y vuelve a la pantalla
+  // anterior (pedido explícito) -- mismo criterio que el gesto de minimizar
+  // ya usado en la pantalla principal (ver minimizeGesture más abajo):
+  // umbral de traslación O de velocidad, failOffsetY cede de inmediato ante
+  // cualquier intento de scroll vertical (la tabla de series se desplaza
+  // verticalmente encima de este mismo gesto).
+  const CLOSE_DRAG_THRESHOLD = 90;
+  const closeDragX = useSharedValue(0);
+  const closeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX(15)
+        .failOffsetY([-15, 15])
+        .onUpdate((e) => {
+          if (e.translationX > 0) closeDragX.value = e.translationX;
+        })
+        .onEnd((e) => {
+          if (e.translationX > CLOSE_DRAG_THRESHOLD || e.velocityX > 800) {
+            runOnJS(hapticLight)();
+            runOnJS(onClose)();
+          }
+          closeDragX.value = withSpring(0);
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+  const closeDragStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: closeDragX.value }],
+  }));
+
+  return (
+    <GestureDetector gesture={closeGesture}>
+      <Animated.View style={[{ flex: 1, backgroundColor: C.bg }, closeDragStyle]}>
+        <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+          {/* Hero a pantalla completa (vídeo o imagen del ejercicio), con
+              overlays flotantes en "glass" -- mismo lenguaje visual que ya
+              usa NavigationTab.tsx (GlassView + recorte propio en un View
+              aparte, ver ese archivo). Modernización pedida explícitamente
+              con captura de referencia de otra app (2026-08-28). */}
+          <Box style={{ width: '100%', height: HERO_HEIGHT, backgroundColor: '#000' }}>
+            {videoSource ? (
+              <VideoView
+                player={player}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                nativeControls={false}
+              />
+            ) : ex.image ? (
+              <Image source={{ uri: ex.image }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+            ) : (
+              <Box className="items-center justify-center" style={{ width: '100%', height: '100%', backgroundColor: C.gray10 }}>
+                <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} size={96} />
+              </Box>
+            )}
+
+            <LinearGradient
+              colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 90 }}
+            />
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 90 }}
+            />
+
+            <Box
+              className="flex-row items-center justify-between px-5"
+              style={{ position: 'absolute', left: 0, right: 0, top: Math.max(insets.top, 12) }}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden' }}>
+                <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+                <Pressable
+                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar modo guiado"
+                >
+                  <Icon name="close" size={22} color="#FFFFFF" />
+                </Pressable>
+              </View>
+
+              <View style={{ borderRadius: 999, overflow: 'hidden' }}>
+                <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+                <Box style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                  <Text weight="semibold" style={{ fontSize: 13, color: '#FFFFFF' }}>
+                    {exercisePositionLabel}
+                  </Text>
+                </Box>
+              </View>
+
+              <Box style={{ width: 40 }} />
+            </Box>
+
+            {/* Cronómetro de la sesión (mismo elapsedSeconds del header
+                original, dato real -- no un botón de pausa decorativo: no
+                existe "pausar sesión" como función en la app, así que solo
+                se muestra el tiempo, sin fingir un control que no hace
+                nada). */}
+            <Box style={{ position: 'absolute', left: 20, bottom: 34 }}>
+              <Text weight="bold" style={{ fontSize: 15, color: '#FFFFFF' }}>
+                {formatTimer(elapsedSeconds)}
+              </Text>
+            </Box>
+
+            {/* Segmentos de progreso -- uno por ejercicio de TODO el
+                entrenamiento (no solo del bloque actual, mismo criterio que
+                flatPositions), relleno hasta el actual. */}
+            <HStack style={{ position: 'absolute', left: 20, right: 20, bottom: 14 }} space="xs">
+              {Array.from({ length: totalCount }).map((_, idx) => (
+                <Box
+                  key={idx}
+                  style={{
+                    flex: 1,
+                    height: 3,
+                    borderRadius: 2,
+                    backgroundColor: idx <= positionIndex ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
+                  }}
+                />
+              ))}
+            </HStack>
+          </Box>
+
+          {/* "Hoja" con el contenido editable -- esquinas superiores
+              redondeadas simulando una sheet (pedido de modernización); el
+              tirador de arriba es solo visual, el cierre real es el gesto de
+              swipe o el botón (✕) de la cabecera. */}
+          <Box className="flex-1 bg-card" style={{ borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, overflow: 'hidden' }}>
+            <Box className="items-center" style={{ paddingTop: 10 }}>
+              <Box style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: C.border }} />
+            </Box>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              <HStack className="items-start justify-between px-5" style={{ marginTop: 14 }}>
+                <Box style={{ flex: 1 }}>
+                  <Heading size="md">{ex.title}</Heading>
+                  <Text muted style={{ fontSize: 13, marginTop: 4 }}>
+                    {formatPrescribedSubtitle(ex.prescribed)}
+                  </Text>
+                </Box>
+                <HStack space="xs" style={{ marginTop: 2 }}>
+                  <Pressable
+                    className="p-2"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={onOpenNotes}
+                    accessibilityRole="button"
+                    accessibilityLabel="Añadir nota para tu entrenador"
+                  >
+                    <Icon name="chatbox-ellipses-outline" size={20} className="text-muted-foreground" />
+                  </Pressable>
+                  <Pressable
+                    className="p-2"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={onOpenProgress}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver progreso de este ejercicio"
+                  >
+                    <Icon name="analytics-outline" size={20} className="text-foreground" />
+                  </Pressable>
+                  <Pressable
+                    className="p-2"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={onOpenPainReport}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reportar dolor"
+                  >
+                    <Icon name="medkit-outline" size={20} className="text-muted-foreground" />
+                  </Pressable>
+                </HStack>
+              </HStack>
+
+              {restBar && <Box className="px-5" style={{ marginTop: 14 }}>{restBar}</Box>}
+
+              {/* Misma tabla de series/métricas que el acordeón de la pantalla
+                  principal (ver renderBlockPage) -- estilos y estructura
+                  idénticos a propósito, solo cambian los callbacks (recibidos
+                  por props en vez de cerrar sobre blockIdx/exIdx
+                  directamente). El check de completar pasa de círculo-outline
+                  a cuadrado relleno en verde al completarse, y se añade una
+                  línea divisoria de descanso entre series (pedido de
+                  modernización, captura de referencia) -- puramente
+                  informativa, no sustituye a la columna "Descanso" editable
+                  si el ejercicio la tiene habilitada. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20 }}>
+                <Box className="px-5">
+                  <HStack className="items-center" style={{ marginBottom: 8 }}>
+                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                      SERIE
+                    </Text>
+                    {displayMetrics.map((key) => {
+                      const isIntensity = key === 'rir' || key === 'rpe';
+                      const label = (
+                        <Text
+                          weight="semibold"
+                          muted={!isIntensity}
+                          className="text-center"
+                          style={[
+                            { fontSize: 11, width: 72, marginHorizontal: 2 },
+                            isIntensity && { color: C.blue },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {metricLabel(key)}
+                        </Text>
+                      );
+                      return isIntensity ? (
+                        <Pressable
+                          key={key}
+                          onPress={onToggleIntensityMode}
+                          hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Cambiar entre RIR y RPE (actual: ${(intensityMode ?? key).toUpperCase()})`}
+                        >
+                          {label}
+                        </Pressable>
+                      ) : (
+                        <Box key={key}>{label}</Box>
+                      );
+                    })}
+                    <Box style={{ width: 34 }} />
+                  </HStack>
+
+                  {ex.rows.map((row, rowIdx) => (
+                    <React.Fragment key={rowIdx}>
+                      <HStack
+                        className="items-start rounded-sm"
+                        style={{
+                          marginBottom: 8,
+                          paddingVertical: row.completed ? 4 : 0,
+                          backgroundColor: row.completed ? C.success5 : 'transparent',
+                        }}
+                      >
+                        <Box
+                          className="items-center justify-center"
+                          style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, marginHorizontal: 5, marginTop: 4 }}
+                        >
+                          <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
+                            {rowIdx + 1}
+                          </Text>
+                        </Box>
+                        {displayMetrics.map((key) => {
+                          const suggestedValue = key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
+                          const hasSuggestion = suggestedValue != null;
+                          const target = hasSuggestion ? suggestedValue : ex.prescribed?.[key];
+                          return (
+                            <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
+                              <TextInput
+                                className="bg-card rounded-sm text-foreground"
+                                style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
+                                value={row.values[key] ?? ''}
+                                onChangeText={(t) => onChangeCell(rowIdx, key, t)}
+                                keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
+                                placeholder="-"
+                                placeholderTextColor={C.textSecondary}
+                              />
+                              {target != null && target !== '' ? (
+                                <Text
+                                  className="text-center"
+                                  style={{
+                                    fontSize: 9.5,
+                                    marginTop: 2,
+                                    fontFamily: hasSuggestion ? FONT.semiBold : FONT.regular,
+                                    color: hasSuggestion ? C.warning60 : C.textSecondary,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {hasSuggestion ? `Sugerido: ${target}` : `Obj: ${target}`}
+                                </Text>
+                              ) : null}
+                            </Box>
+                          );
+                        })}
+                        <Pressable
+                          className="items-center justify-center"
+                          style={{ width: 34, marginTop: 3 }}
+                          onPress={() => onToggleRowComplete(rowIdx)}
+                        >
+                          <Box
+                            className="items-center justify-center"
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: 7,
+                              backgroundColor: row.completed ? C.success : 'transparent',
+                              borderWidth: row.completed ? 0 : 1.5,
+                              borderColor: C.border,
+                            }}
+                          >
+                            {row.completed && <Icon name="checkmark" size={16} color="#FFFFFF" />}
+                          </Box>
+                        </Pressable>
+                      </HStack>
+
+                      {ex.prescribed?.descanso && rowIdx < ex.rows.length - 1 ? (
+                        <HStack className="items-center" style={{ marginBottom: 8 }} space="sm">
+                          <Divider className="flex-1" />
+                          <Text muted style={{ fontSize: 10.5 }}>
+                            Descanso {ex.prescribed.descanso}
+                          </Text>
+                          <Divider className="flex-1" />
+                        </HStack>
+                      ) : null}
+                    </React.Fragment>
+                  ))}
+                </Box>
+              </ScrollView>
+
+              {/* Añadir serie (acción principal) y marcar todas (secundaria)
+                  -- notas/progreso/dolor ya subieron junto al título, así
+                  que esta fila queda solo para lo que actúa sobre las
+                  series. */}
+              <HStack className="items-center justify-between px-5" style={{ marginTop: 22 }} space="sm">
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center rounded-pill border border-border"
+                  style={{ gap: 6, paddingVertical: 12 }}
+                  onPress={onAddRow}
+                >
+                  <Icon name="add" size={18} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 13 }}>
+                    Añadir serie
+                  </Text>
+                </Pressable>
+                <Pressable
+                  className="p-2 items-center"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={onMarkAllRows}
+                  accessibilityRole="button"
+                  accessibilityLabel="Marcar todas las series"
+                >
+                  <Text weight="semibold" className="text-foreground text-center" style={{ fontSize: 12 }}>
+                    Marcar todas
+                  </Text>
+                </Pressable>
+              </HStack>
+            </ScrollView>
+
+            <HStack
+              className="px-5 border-t border-border"
+              style={{ gap: 10, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 14) + 6, backgroundColor: C.bg }}
+            >
+              <Button variant="outline" radius="pill" size="lg" className="flex-1" onPress={onBack} disabled={!canGoBack}>
+                <Icon name="chevron-back" size={16} className="text-foreground" />
+                <ButtonText>Anterior</ButtonText>
+              </Button>
+              <Button radius="pill" size="lg" className="flex-1" onPress={onNext} disabled={!canGoNext}>
+                <ButtonText>Siguiente ejercicio</ButtonText>
+                <Icon name="chevron-forward" size={16} color="#FFFFFF" />
+              </Button>
+            </HStack>
+          </Box>
+        </SafeAreaView>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
 export default function WorkoutSessionScreen(props: Props) {
   const { navigation, route } = props;
   const { colors: C } = useAppColorMode();
@@ -232,6 +712,61 @@ export default function WorkoutSessionScreen(props: Props) {
   const [closeConfirmVisible, setCloseConfirmVisible] = useState(false);
   const [emptyFinishConfirmVisible, setEmptyFinishConfirmVisible] = useState(false);
   const [painReportTarget, setPainReportTarget] = useState<SessionExercise | null>(null);
+  // Nota para el entrenador (WorkoutNoteSheet, sustituye el TextInput fijo
+  // que antes vivía siempre visible dentro del acordeón) y reproductor de
+  // ejercicio a pantalla completa (WorkoutExercisePlayer más abajo en el
+  // JSX) -- ambos guardan coordenadas (blockIdx/exIdx), no el objeto
+  // SessionExercise entero, mismo criterio que intensityCheckTarget: siguen
+  // apuntando a la fila correcta aunque `blocks` cambie mientras están
+  // abiertos (p.ej. autoguardado de otra fila).
+  const [notesTarget, setNotesTarget] = useState<{ blockIdx: number; exIdx: number } | null>(null);
+  const [playerTarget, setPlayerTarget] = useState<{ blockIdx: number; exIdx: number } | null>(null);
+  // Consulta de intensidad (RIR o RPE) tras completar una serie
+  // (IntensityCheckSheet) -- guarda las coordenadas de la fila recién
+  // marcada + qué métrica tocaba en ese momento, no el objeto entero (a
+  // diferencia de painReportTarget), porque necesita seguir apuntando a la
+  // fila correcta aunque `blocks` cambie mientras el sheet está abierto.
+  const [intensityCheckTarget, setIntensityCheckTarget] = useState<{
+    blockIdx: number;
+    exIdx: number;
+    rowIndex: number;
+    metric: IntensityMetric;
+  } | null>(null);
+  const [intensityAutoOpenEnabled, setIntensityAutoOpenEnabled] = useState(true);
+  useEffect(() => {
+    AsyncStorage.getItem(INTENSITY_AUTO_OPEN_STORAGE_KEY).then((v) => {
+      if (v != null) setIntensityAutoOpenEnabled(v === 'true');
+    });
+  }, []);
+  const toggleIntensityAutoOpen = (enabled: boolean) => {
+    setIntensityAutoOpenEnabled(enabled);
+    AsyncStorage.setItem(INTENSITY_AUTO_OPEN_STORAGE_KEY, enabled ? 'true' : 'false').catch(() => {});
+  };
+  // RIR y RPE son la misma "columna de intensidad" vista desde 2 escalas
+  // inversas -- pedido explícito 2026-08-26: "deben de ser reemplazables",
+  // el cliente elige tocando la cabecera de la columna. Por ejercicio (no
+  // global): un mismo entrenamiento puede tener ejercicios donde interese
+  // usar una u otra. Sin entrada aquí -> se usa el default de
+  // getIntensityMode (lo que ya traiga `enabledMetrics` de la plantilla).
+  const [intensityModeOverride, setIntensityModeOverride] = useState<Record<number, IntensityMetric>>({});
+  const getIntensityMode = (ex: SessionExercise): IntensityMetric | null => {
+    const override = intensityModeOverride[ex.exerciseId];
+    if (override) return override;
+    if (ex.enabledMetrics.includes('rir')) return 'rir';
+    if (ex.enabledMetrics.includes('rpe')) return 'rpe';
+    return null;
+  };
+  const toggleIntensityMode = (exerciseId: number, current: IntensityMetric) => {
+    setIntensityModeOverride((prev) => ({ ...prev, [exerciseId]: current === 'rir' ? 'rpe' : 'rir' }));
+  };
+  // Columnas a pintar para este ejercicio: enabledMetrics tal cual, pero con
+  // 'rir'/'rpe' colapsados a un único slot (el que decida getIntensityMode)
+  // en vez de poder aparecer los dos a la vez.
+  const getDisplayMetrics = (ex: SessionExercise): string[] => {
+    const withoutIntensity = ex.enabledMetrics.filter((k) => k !== 'rir' && k !== 'rpe');
+    const mode = getIntensityMode(ex);
+    return sortMetricKeys(mode ? [...withoutIntensity, mode] : withoutIntensity);
+  };
   // Guard "no se puede empezar un workout si ya hay uno empezado" (petición
   // 2026-08-19) -- si al montar esta pantalla YA hay una sesión activa con
   // un identityKey DISTINTO al que se pide aquí, se bloquea por completo
@@ -245,7 +780,19 @@ export default function WorkoutSessionScreen(props: Props) {
   // serie concreta tiene un valor de "descanso" (metrica real del catalogo
   // -- series/reps/carga/tiempo/tempo/descanso/rir/rpe) configurado.
   const [restCountdown, setRestCountdown] = useState<number | null>(null);
+  // epoch ms del fin del descanso -- espejo de restCountdown pero como fecha
+  // absoluta, que es lo que necesita la Live Activity (Text(timerInterval:)
+  // del lado nativo cuenta atras sola, sin que la app le mande un tick cada
+  // segundo).
+  const [restEndDate, setRestEndDate] = useState<number | null>(null);
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Live Activity (Lock Screen/Dynamic Island, pedido explícito 2026-08-26):
+  // como esta pantalla puede tener varios bloques con su propio ejercicio
+  // activo a la vez (accordion por bloque), se usa el ULTIMO ejercicio en el
+  // que el cliente marcó una serie como "el que se está viendo ahora" -- es
+  // la señal más reciente y real de foco, más fiable que asumir el bloque 0.
+  const currentFocusRef = useRef<{ blockIdx: number; exIdx: number }>({ blockIdx: 0, exIdx: 0 });
+  const liveActivityStartedRef = useRef(false);
   // Motor de Auto-Regulacion: sugerencia de carga PENDIENTE (aun no
   // aprobada por el coach) por exerciseId, cargada bajo demanda solo para
   // el ejercicio activo/expandido (ver fetchLoadSuggestion). Las ya
@@ -297,6 +844,12 @@ export default function WorkoutSessionScreen(props: Props) {
   const clearPersistedSession = useCallback(() => {
     AsyncStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY).catch(() => {});
     clearActiveWorkoutSession();
+    // Único choque comun a "finalizar" (navigateToFeedback) y "cerrar/
+    // abandonar" (onClose) -- justo donde la sesion persistida deja de
+    // existir de verdad, a diferencia de minimizar (onMinimize), que no
+    // llama a esto porque el entrenamiento sigue en curso.
+    liveActivityStartedRef.current = false;
+    endWorkoutLiveActivity();
   }, []);
 
   const load = useCallback(
@@ -455,6 +1008,38 @@ export default function WorkoutSessionScreen(props: Props) {
 
   const allExercises = useMemo(() => blocks.flatMap((b) => b.exercises), [blocks]);
 
+  // Orden plano de {blockIdx, exIdx} (mismo criterio de iteración que
+  // allExercises, así que ambos quedan siempre alineados índice a índice) --
+  // usado solo por el reproductor a pantalla completa (WorkoutExercisePlayer)
+  // para "ejercicio anterior"/"siguiente ejercicio", que necesita moverse
+  // entre bloques, no solo dentro de uno.
+  const flatPositions = useMemo(
+    () => blocks.flatMap((b, bIdx) => b.exercises.map((_, eIdx) => ({ blockIdx: bIdx, exIdx: eIdx }))),
+    [blocks]
+  );
+  const playerFlatIdx = playerTarget
+    ? flatPositions.findIndex((p) => p.blockIdx === playerTarget.blockIdx && p.exIdx === playerTarget.exIdx)
+    : -1;
+  const canGoToPreviousExercise = playerFlatIdx > 0;
+  const canGoToNextExercise = playerFlatIdx !== -1 && playerFlatIdx < flatPositions.length - 1;
+  const playerEx = playerTarget ? blocks[playerTarget.blockIdx]?.exercises[playerTarget.exIdx] : null;
+  const notesEx = notesTarget ? blocks[notesTarget.blockIdx]?.exercises[notesTarget.exIdx] : null;
+
+  // Mueve el reproductor a pantalla completa al ejercicio anterior/siguiente
+  // (delta -1/+1) -- actualiza activeIndexByBlock y, si el ejercicio cae en
+  // OTRO bloque, desplaza también el pager horizontal de fondo, para que al
+  // cerrar el reproductor el acordeón de debajo ya esté en el ejercicio
+  // correcto (misma actualización que hace tocar una fila colapsada).
+  const goToRelativeExercise = (delta: number) => {
+    if (playerFlatIdx === -1) return;
+    const pos = flatPositions[playerFlatIdx + delta];
+    if (!pos) return;
+    setActiveIndexByBlock((prev) => ({ ...prev, [pos.blockIdx]: pos.exIdx }));
+    if (pos.blockIdx !== playerTarget?.blockIdx) goToPage(pos.blockIdx);
+    fetchLoadSuggestion(blocks[pos.blockIdx].exercises[pos.exIdx]);
+    setPlayerTarget(pos);
+  };
+
   const volumeKg = useMemo(() => {
     let total = 0;
     allExercises.forEach((ex) => {
@@ -499,14 +1084,22 @@ export default function WorkoutSessionScreen(props: Props) {
         acc.push(clean);
         return acc;
       }, []);
-      if (loggedSets.length === 0) return;
+      const note = ex.note.trim();
+      // Bug real (reportado por el usuario, 2026-08-27): antes se cortaba
+      // aquí sin más si no había NINGUNA serie completada -- una nota sola
+      // (p.ej. "no tengo esta máquina", justo el caso en que el cliente
+      // nunca va a poder marcar ninguna serie de este ejercicio) no llegaba
+      // nunca al entrenador. Ahora también se envía si hay nota, aunque
+      // logged_sets vaya vacío -- solo se corta de verdad cuando no hay
+      // absolutamente nada que guardar.
+      if (loggedSets.length === 0 && !note) return;
       workoutHistoryApi
         .logCalendarSets({
           workout_template_exercise_id: ex.isAdhoc ? undefined : ex.id,
           exercise_id: ex.isAdhoc ? ex.exerciseId : undefined,
           logged_sets: loggedSets,
           program_day_assignment_id: programDayAssignmentId ?? null,
-          notes: ex.note.trim() || undefined,
+          notes: note || undefined,
         })
         .catch(() => {});
     },
@@ -544,6 +1137,7 @@ export default function WorkoutSessionScreen(props: Props) {
   const startRestCountdown = (seconds: number) => {
     if (restIntervalRef.current) clearInterval(restIntervalRef.current);
     setRestCountdown(seconds);
+    setRestEndDate(Date.now() + seconds * 1000);
     restIntervalRef.current = setInterval(() => {
       setRestCountdown((prev) => (prev != null && prev > 1 ? prev - 1 : null));
     }, 1000);
@@ -555,6 +1149,7 @@ export default function WorkoutSessionScreen(props: Props) {
       restIntervalRef.current = null;
     }
     setRestCountdown(null);
+    setRestEndDate(null);
   };
 
   // fires once when the countdown reaches zero on its own (the ref guard
@@ -565,6 +1160,7 @@ export default function WorkoutSessionScreen(props: Props) {
     if (restCountdown === null && restIntervalRef.current) {
       clearInterval(restIntervalRef.current);
       restIntervalRef.current = null;
+      setRestEndDate(null);
       Vibration.vibrate([0, 400, 200, 400]);
     }
   }, [restCountdown]);
@@ -575,7 +1171,78 @@ export default function WorkoutSessionScreen(props: Props) {
     };
   }, []);
 
+  // Live Activity: construye el ContentState actual a partir del ejercicio
+  // con foco (ver currentFocusRef) -- null si aun no hay bloques cargados.
+  // "target" (pedido explícito 2026-08-26, con captura de referencia): la
+  // próxima serie por hacer, con sus datos reales (reps/carga/RIR o RPE) --
+  // el mismo cálculo sirve para "lo que toca ahora" (sin descansar) y para
+  // "lo que viene después del descanso" (descansando), y si el ejercicio
+  // actual ya no tiene series pendientes, salta al primer ejercicio
+  // siguiente en el orden de la plantilla (isNewExercise).
+  const buildLiveActivityState = useCallback((): WorkoutActivityState | null => {
+    const { blockIdx, exIdx } = currentFocusRef.current;
+    const ex = blocks[blockIdx]?.exercises[exIdx];
+    if (!ex) return null;
+
+    const flat: SessionExercise[] = [];
+    blocks.forEach((b) => b.exercises.forEach((e) => flat.push(e)));
+    const currentFlatIdx = flat.indexOf(ex);
+    const exerciseIndex = currentFlatIdx === -1 ? 1 : currentFlatIdx + 1;
+    const totalExercises = flat.length || 1;
+
+    let targetEx = ex;
+    let targetRowIdx = ex.rows.findIndex((r) => !r.completed);
+    let isNewExercise = false;
+    if (targetRowIdx === -1 && currentFlatIdx !== -1) {
+      const nextEx = flat[currentFlatIdx + 1];
+      if (nextEx) {
+        targetEx = nextEx;
+        targetRowIdx = 0;
+        isNewExercise = true;
+      }
+    }
+    const targetRow = targetRowIdx >= 0 ? targetEx.rows[targetRowIdx] : null;
+    const cargaUnit = metricsCatalog.find((c) => c.key === 'carga')?.unit;
+    const intensityMode = getIntensityMode(targetEx);
+    const intensityValue = intensityMode && targetRow ? targetRow.values[intensityMode] : null;
+
+    return {
+      exerciseName: ex.title,
+      exerciseImageURL: ex.image ?? null,
+      exerciseIndex,
+      totalExercises,
+      setLabel: targetRowIdx >= 0 ? `Serie ${targetRowIdx + 1}/${targetEx.rows.length}` : 'Última serie',
+      reps: targetRow?.values.reps || null,
+      load: targetRow?.values.carga ? (cargaUnit ? `${targetRow.values.carga} ${cargaUnit}` : targetRow.values.carga) : null,
+      intensityLabel: intensityMode ? intensityMode.toUpperCase() : null,
+      intensityValue: intensityValue || null,
+      isResting: restCountdown != null,
+      restEndDate: restCountdown != null ? restEndDate : null,
+      nextExerciseName: isNewExercise ? targetEx.title : null,
+    };
+  }, [blocks, restCountdown, restEndDate, metricsCatalog]);
+
+  // Arranca la Live Activity una sola vez, en cuanto la sesion termina de
+  // cargar (real o retomada) -- nunca si conflictingSession bloqueo la
+  // pantalla, porque en ese caso blocks nunca llega a poblarse (ver el
+  // efecto de carga mas arriba).
+  useEffect(() => {
+    if (isLoading || blocks.length === 0 || liveActivityStartedRef.current) return;
+    const initial = buildLiveActivityState();
+    if (!initial) return;
+    liveActivityStartedRef.current = true;
+    startWorkoutLiveActivity(mTitle || 'Entrenamiento', initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, blocks.length]);
+
+  useEffect(() => {
+    if (!liveActivityStartedRef.current) return;
+    const state = buildLiveActivityState();
+    if (state) updateWorkoutLiveActivity(state);
+  }, [buildLiveActivityState]);
+
   const toggleRowComplete = (blockIdx: number, exIdx: number, rowIndex: number) => {
+    currentFocusRef.current = { blockIdx, exIdx };
     const currentEx = blocks[blockIdx].exercises[exIdx];
     const wasCompleted = currentEx.rows[rowIndex].completed;
     const rows = [...currentEx.rows];
@@ -604,6 +1271,13 @@ export default function WorkoutSessionScreen(props: Props) {
     if (!wasCompleted && ex.enabledMetrics.includes('descanso')) {
       const seconds = parseRestSeconds(rows[rowIndex].values.descanso);
       if (seconds != null) startRestCountdown(seconds);
+    }
+    // IntensityCheckSheet (pedido explícito 2026-08-26): solo al MARCAR,
+    // solo si el ejercicio tiene RIR o RPE activo (getIntensityMode), y
+    // solo si el usuario no ha desactivado la apertura automática.
+    const intensityMetric = getIntensityMode(ex);
+    if (!wasCompleted && intensityMetric && intensityAutoOpenEnabled) {
+      setIntensityCheckTarget({ blockIdx, exIdx, rowIndex, metric: intensityMetric });
     }
   };
 
@@ -963,17 +1637,48 @@ export default function WorkoutSessionScreen(props: Props) {
     );
   }
 
+  // Extraído para reutilizarse tal cual dentro del reproductor a pantalla
+  // completa (WorkoutExercisePlayer, ver Modal más abajo) -- mismo
+  // restCountdown/dismissRestCountdown que ya usaba la pantalla principal,
+  // no una copia independiente, así que ambas vistas quedan siempre en
+  // sincronía sin importar desde cuál se marcó la serie.
+  const renderRestCountdownBar = (extraStyle?: object) =>
+    restCountdown != null ? (
+      <HStack
+        space="sm"
+        className="items-center justify-between px-5 rounded-md"
+        style={{
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          backgroundColor: C.accentBlack,
+          ...extraStyle,
+        }}
+      >
+        <HStack space="sm" className="items-center">
+          <Icon name="time-outline" size={18} className="text-background" />
+          <Text weight="bold" className="text-background" style={{ fontSize: 15 }}>
+            Descanso: {formatTimer(restCountdown)}
+          </Text>
+        </HStack>
+        <Pressable onPress={dismissRestCountdown} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text weight="semibold" className="text-background" style={{ fontSize: 13 }}>
+            Saltar
+          </Text>
+        </Pressable>
+      </HStack>
+    ) : null;
+
   const renderBlockPage = ({ item: block, index: blockIdx }: { item: SessionBlock; index: number }) => {
     const activeExIdx = activeIndexByBlock[blockIdx] ?? 0;
     return (
       <ScrollView
         style={{ width: SCREEN_WIDTH }}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}
         showsVerticalScrollIndicator={false}
       >
         {block.exercises.map((ex, exIdx) =>
           exIdx === activeExIdx ? (
-            <Card key={ex.id} variant="filled" className="mx-4" style={{ marginBottom: 10 }}>
+            <Card key={ex.id} variant="elevated" className="mx-4" style={{ marginBottom: 10 }}>
               <HStack className="items-center">
                 <Pressable
                   className="flex-1 flex-row items-center"
@@ -989,6 +1694,38 @@ export default function WorkoutSessionScreen(props: Props) {
                     </Text>
                   </Box>
                 </Pressable>
+                {/* Nota para el entrenador (pedido explícito 2026-08-27):
+                    sustituye el TextInput que antes vivía siempre visible
+                    aquí debajo -- ahora es un diálogo aparte (ver
+                    WorkoutNoteSheet más abajo en el JSX), a la izquierda del
+                    icono de reportar dolor. Un puntito naranja marca si ya
+                    hay una nota escrita, para no tener que abrir el diálogo
+                    solo para comprobarlo. */}
+                <Pressable
+                  className="p-1"
+                  style={{ marginLeft: 8 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={() => setNotesTarget({ blockIdx, exIdx })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Añadir nota para tu entrenador"
+                >
+                  <Box>
+                    <Icon name="chatbox-ellipses-outline" size={20} className="text-muted-foreground" />
+                    {!!ex.note?.trim() && (
+                      <Box
+                        style={{
+                          position: 'absolute',
+                          top: -1,
+                          right: -1,
+                          width: 7,
+                          height: 7,
+                          borderRadius: 3.5,
+                          backgroundColor: C.orange,
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Pressable>
                 <Pressable
                   className="p-1"
                   style={{ marginLeft: 8 }}
@@ -999,13 +1736,21 @@ export default function WorkoutSessionScreen(props: Props) {
                 >
                   <Icon name="medkit-outline" size={20} className="text-muted-foreground" />
                 </Pressable>
+                {/* Reproductor a pantalla completa (pedido explícito
+                    2026-08-27): sustituye el chevron-up de "plegar" -- con
+                    solo un ejercicio activo por bloque a la vez (ver
+                    activeIndexByBlock), "plegar sin activar otro" apenas se
+                    usaba; el hueco lo ocupa ahora la acción principal de
+                    abrir el modo guiado (vídeo + registro serie a serie). */}
                 <Pressable
                   className="p-1"
                   style={{ marginLeft: 8 }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  onPress={() => setActiveIndexByBlock((prev) => ({ ...prev, [blockIdx]: -1 }))}
+                  onPress={() => setPlayerTarget({ blockIdx, exIdx })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Abrir modo guiado del ejercicio"
                 >
-                  <Icon name="chevron-up" size={20} className="text-muted-foreground" />
+                  <Icon name="play-circle" size={22} color={C.orange} />
                 </Pressable>
               </HStack>
 
@@ -1022,61 +1767,95 @@ export default function WorkoutSessionScreen(props: Props) {
                 </HStack>
               ) : null}
 
-              <TextInput
-                className="bg-card rounded-md px-3 py-2.5 text-foreground"
-                style={{ marginTop: 14, fontFamily: FONT.regular, fontSize: 13 }}
-                placeholder="Añadir nota..."
-                placeholderTextColor={C.textSecondary}
-                value={ex.note}
-                onChangeText={(t) => setNoteValue(blockIdx, exIdx, t)}
-                onBlur={() => syncExerciseLog(ex)}
-              />
-
               {/* Con muchas métricas (reps, carga, rir, rpe, tempo, descanso...) las
                   columnas a flex:1 se apretaban tanto que las etiquetas de
                   cabecera envolvían a 2 líneas y se solapaban con la fila de
                   inputs de abajo. Ancho fijo por columna + toda la tabla
                   como una única fila horizontalmente scrolleable (en vez de
-                  comprimir texto) mantiene # / métricas / ✓ siempre alineados. */}
+                  comprimir texto) mantiene # / métricas / ✓ siempre alineados.
+                  Orden de columnas fijo vía getDisplayMetrics/sortMetricKeys
+                  (series, reps, carga, rir/rpe, descanso) -- pedido
+                  explícito 2026-08-26. La columna RIR/RPE es tocable: son
+                  la misma "casilla" de intensidad intercambiable
+                  (getIntensityMode/toggleIntensityMode), el cliente elige
+                  cuál rellenar tocando su título. */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Box style={{ marginTop: 16 }}>
                   <HStack className="items-center" style={{ marginBottom: 8 }}>
-                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 26 }}>
-                      #
+                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                      SERIE
                     </Text>
-                    {ex.enabledMetrics.map((key) => (
-                      <Text
-                        key={key}
-                        weight="semibold"
-                        muted
-                        className="text-center"
-                        style={{ fontSize: 11, width: 72, marginHorizontal: 2 }}
-                        numberOfLines={1}
-                      >
-                        {metricLabel(key)}
-                      </Text>
-                    ))}
+                    {getDisplayMetrics(ex).map((key) => {
+                      const isIntensity = key === 'rir' || key === 'rpe';
+                      const label = (
+                        <Text
+                          weight="semibold"
+                          muted={!isIntensity}
+                          className="text-center"
+                          style={[
+                            { fontSize: 11, width: 72, marginHorizontal: 2 },
+                            isIntensity && { color: C.blue },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {metricLabel(key)}
+                        </Text>
+                      );
+                      return isIntensity ? (
+                        <Pressable
+                          key={key}
+                          onPress={() => toggleIntensityMode(ex.exerciseId, key as IntensityMetric)}
+                          hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Cambiar entre RIR y RPE (actual: ${key.toUpperCase()})`}
+                        >
+                          {label}
+                        </Pressable>
+                      ) : (
+                        <Box key={key}>{label}</Box>
+                      );
+                    })}
                     <Box style={{ width: 34 }} />
                   </HStack>
 
                   {ex.rows.map((row, rowIdx) => (
                     <HStack
                       key={rowIdx}
-                      className="items-center rounded-sm"
+                      className="items-start rounded-sm"
                       style={{
                         marginBottom: 8,
                         paddingVertical: row.completed ? 4 : 0,
                         backgroundColor: row.completed ? C.success5 : 'transparent',
                       }}
                     >
-                      <Text
-                        weight="medium"
-                        className="text-center text-foreground"
-                        style={{ fontSize: 13, width: 26 }}
+                      {/* items-start (no items-center) en el HStack de arriba
+                          -- las celdas de métrica son más altas que este
+                          círculo y el check de más abajo porque llevan
+                          debajo el texto "Obj: X" (ver más abajo); con
+                          items-center, el círculo/check se centraban contra
+                          esa altura TOTAL (input + texto) en vez de contra
+                          el propio recuadro del input, y quedaban más abajo
+                          de lo que tocaba (reportado con captura,
+                          2026-08-26). marginTop aquí los alinea contra la
+                          altura real del TextInput (paddingVertical:8 +
+                          fontSize:13 ≈ 32px). */}
+                      <Box
+                        className="items-center justify-center"
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          borderColor: C.border,
+                          marginHorizontal: 5,
+                          marginTop: 4,
+                        }}
                       >
-                        {rowIdx + 1}
-                      </Text>
-                      {ex.enabledMetrics.map((key) => {
+                        <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
+                          {rowIdx + 1}
+                        </Text>
+                      </Box>
+                      {getDisplayMetrics(ex).map((key) => {
                         // Punto 1 (Motor de Auto-Regulacion de Carga): si hay una
                         // sugerencia PENDIENTE del motor para este ejercicio, esa
                         // es la carga/reps real que hay que usar -- se muestra en
@@ -1096,12 +1875,19 @@ export default function WorkoutSessionScreen(props: Props) {
                           blockIdx === 0 &&
                           exIdx === 0 &&
                           rowIdx === 0 &&
-                          ['reps', 'descanso', 'rir', 'rpe'].includes(key);
+                          ['reps', 'carga', 'descanso', 'rir', 'rpe'].includes(key);
                         const cell = (
                           <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
                             <TextInput
                               className="bg-card rounded-sm text-foreground"
-                              style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center' }}
+                              style={{
+                                paddingVertical: 8,
+                                fontFamily: FONT.regular,
+                                fontSize: 13,
+                                textAlign: 'center',
+                                borderWidth: 1,
+                                borderColor: C.border,
+                              }}
                               value={row.values[key] ?? ''}
                               onChangeText={(t) => setCellValue(blockIdx, exIdx, rowIdx, key, t)}
                               onFocus={isTutorialMetric ? () => reportAction(`metric_focus_${key}`) : undefined}
@@ -1137,7 +1923,7 @@ export default function WorkoutSessionScreen(props: Props) {
                         const toggleBtn = (
                           <Pressable
                             className="items-center"
-                            style={{ width: 34 }}
+                            style={{ width: 34, marginTop: 3 }}
                             onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
                           >
                             <Icon
@@ -1158,20 +1944,47 @@ export default function WorkoutSessionScreen(props: Props) {
                 </Box>
               </ScrollView>
 
-              <HStack className="items-center justify-between" style={{ marginTop: 14 }}>
-                <Pressable onPress={() => addRow(blockIdx, exIdx)}>
-                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                    + AÑADIR SERIE
+              {/* Fila de acciones modernizada (pedido explícito 2026-08-26):
+                  "Progreso" abre el análisis histórico de ESTE ejercicio
+                  (misma navegación que ya usa el thumbnail/título de arriba,
+                  openExerciseInfo -- MigratedExerciseInfo con
+                  initialTab:'analysis'), al lado de "Añadir serie" y
+                  "Marcar todas" (antes en una fila propia de solo 2 botones,
+                  sin icono compartido ni separador). */}
+              <HStack
+                className="items-center justify-between"
+                style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border }}
+              >
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center"
+                  style={{ gap: 5 }}
+                  onPress={() => openExerciseInfo(ex)}
+                >
+                  <Icon name="analytics-outline" size={15} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 11 }}>
+                    PROGRESO
                   </Text>
                 </Pressable>
+                <Box style={{ width: 1, height: 18, backgroundColor: C.border }} />
                 <Pressable
-                  className="flex-row items-center"
-                  style={{ gap: 6 }}
+                  className="flex-1 flex-row items-center justify-center"
+                  style={{ gap: 5 }}
+                  onPress={() => addRow(blockIdx, exIdx)}
+                >
+                  <Icon name="add" size={16} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 11 }}>
+                    AÑADIR SERIE
+                  </Text>
+                </Pressable>
+                <Box style={{ width: 1, height: 18, backgroundColor: C.border }} />
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center"
+                  style={{ gap: 5 }}
                   onPress={() => markAllRows(blockIdx, exIdx)}
                 >
-                  <Icon name="checkmark-done" size={16} className="text-foreground" />
-                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                    MARCAR TODAS LAS SERIES
+                  <Icon name="checkmark-done" size={15} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 11 }}>
+                    MARCAR TODAS
                   </Text>
                 </Pressable>
               </HStack>
@@ -1322,41 +2135,22 @@ export default function WorkoutSessionScreen(props: Props) {
       />
 
       {/* Countdown de descanso — aparece al completar una serie con
-          "descanso" configurado, vibra al llegar a 0. */}
-      {restCountdown != null && (
-        <HStack
-          space="sm"
-          className="items-center justify-between px-5 rounded-md"
-          style={{
-            marginHorizontal: 20,
-            marginBottom: 10,
-            paddingVertical: 10,
-            paddingHorizontal: 14,
-            backgroundColor: C.accentBlack,
-          }}
-        >
-          <HStack space="sm" className="items-center">
-            <Icon name="time-outline" size={18} className="text-background" />
-            <Text weight="bold" className="text-background" style={{ fontSize: 15 }}>
-              Descanso: {formatTimer(restCountdown)}
-            </Text>
-          </HStack>
-          <Pressable onPress={dismissRestCountdown} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text weight="semibold" className="text-background" style={{ fontSize: 13 }}>
-              Saltar
-            </Text>
-          </Pressable>
-        </HStack>
-      )}
+          "descanso" configurado, vibra al llegar a 0. Mismo bloque
+          (renderRestCountdownBar) se reutiliza dentro del reproductor a
+          pantalla completa -- pedido explícito de que el descanso se vea
+          igual ahí que en la pantalla principal. */}
+      {renderRestCountdownBar({ marginHorizontal: 20, marginBottom: 10 })}
 
       {/* Sticky finish button — siempre visible, sin importar el bloque activo */}
       <Box
-        className="px-5 border-t border-border bg-background"
-        style={{ paddingTop: 10, paddingBottom: Math.max(insets.bottom, 14) + 6 }}
+        className="px-5 border-t border-border"
+        style={{ paddingTop: 10, paddingBottom: Math.max(insets.bottom, 14) + 6, backgroundColor: C.bg }}
       >
-        <Button size="lg" radius="pill" onPress={onFinish}>
-          <ButtonText style={{ letterSpacing: 0.5 }}>✓ FINALIZAR ENTRENAMIENTO</ButtonText>
-        </Button>
+        <TutorialTarget id="workout-session-finish-button">
+          <Button size="lg" radius="pill" onPress={onFinish}>
+            <ButtonText style={{ letterSpacing: 0.5 }}>✓ FINALIZAR ENTRENAMIENTO</ButtonText>
+          </Button>
+        </TutorialTarget>
       </Box>
 
       <Modal
@@ -1396,7 +2190,7 @@ export default function WorkoutSessionScreen(props: Props) {
               >
                 <Text
                   weight="semibold"
-                  style={{ fontSize: 12.5, color: selectedBodyPartId === null ? '#FFFFFF' : C.textSecondary }}
+                  style={{ fontSize: 12.5, color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary }}
                 >
                   Todos
                 </Text>
@@ -1410,7 +2204,7 @@ export default function WorkoutSessionScreen(props: Props) {
                 >
                   <Text
                     weight="semibold"
-                    style={{ fontSize: 12.5, color: selectedBodyPartId === bp.id ? '#FFFFFF' : C.textSecondary }}
+                    style={{ fontSize: 12.5, color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary }}
                   >
                     {bp.title}
                   </Text>
@@ -1445,6 +2239,46 @@ export default function WorkoutSessionScreen(props: Props) {
           )}
         </SafeAreaView>
       </Modal>
+
+      {/* Modo guiado a pantalla completa (pedido explícito 2026-08-27) --
+          desmontado del todo (no solo visible=false) al cerrarse, para que
+          useVideoPlayer libere el recurso nativo en vez de seguir
+          decodificando en segundo plano. */}
+      {playerTarget && playerEx && (
+        <Modal visible animationType="slide" onRequestClose={() => setPlayerTarget(null)}>
+          <WorkoutExercisePlayer
+            ex={playerEx}
+            exercisePositionLabel={`Ejercicio ${playerFlatIdx + 1} de ${flatPositions.length}`}
+            positionIndex={playerFlatIdx}
+            totalCount={flatPositions.length}
+            elapsedSeconds={elapsedSeconds}
+            displayMetrics={getDisplayMetrics(playerEx)}
+            metricLabel={metricLabel}
+            metricInputType={metricInputType}
+            intensityMode={getIntensityMode(playerEx)}
+            onToggleIntensityMode={() => {
+              const mode = getIntensityMode(playerEx);
+              if (mode) toggleIntensityMode(playerEx.exerciseId, mode);
+            }}
+            suggestion={pendingLoadSuggestions[playerEx.exerciseId]}
+            onChangeCell={(rowIndex, key, value) =>
+              setCellValue(playerTarget.blockIdx, playerTarget.exIdx, rowIndex, key, value)
+            }
+            onToggleRowComplete={(rowIndex) => toggleRowComplete(playerTarget.blockIdx, playerTarget.exIdx, rowIndex)}
+            onAddRow={() => addRow(playerTarget.blockIdx, playerTarget.exIdx)}
+            onMarkAllRows={() => markAllRows(playerTarget.blockIdx, playerTarget.exIdx)}
+            onOpenProgress={() => openExerciseInfo(playerEx)}
+            onOpenNotes={() => setNotesTarget({ blockIdx: playerTarget.blockIdx, exIdx: playerTarget.exIdx })}
+            onOpenPainReport={() => setPainReportTarget(playerEx)}
+            onClose={() => setPlayerTarget(null)}
+            onBack={() => goToRelativeExercise(-1)}
+            onNext={() => goToRelativeExercise(1)}
+            canGoBack={canGoToPreviousExercise}
+            canGoNext={canGoToNextExercise}
+            restBar={renderRestCountdownBar()}
+          />
+        </Modal>
+      )}
 
       <ConfirmDialogMem
         visible={closeConfirmVisible}
@@ -1484,6 +2318,44 @@ export default function WorkoutSessionScreen(props: Props) {
         isWorkoutTemplate={painReportIsWorkoutTemplate}
         exerciseId={painReportTarget?.exerciseId ?? 0}
         exerciseTitle={painReportTarget?.title}
+      />
+
+      <WorkoutNoteSheet
+        visible={!!notesTarget}
+        onClose={() => setNotesTarget(null)}
+        exerciseTitle={notesEx?.title}
+        value={notesEx?.note ?? ''}
+        onSave={(note) => {
+          if (!notesTarget || !notesEx) return;
+          setNoteValue(notesTarget.blockIdx, notesTarget.exIdx, note);
+          syncExerciseLog({ ...notesEx, note });
+        }}
+      />
+
+      <IntensityCheckSheet
+        visible={!!intensityCheckTarget}
+        metric={intensityCheckTarget?.metric ?? 'rir'}
+        onClose={() => setIntensityCheckTarget(null)}
+        onRegister={(value) => {
+          if (!intensityCheckTarget) return;
+          setCellValue(
+            intensityCheckTarget.blockIdx,
+            intensityCheckTarget.exIdx,
+            intensityCheckTarget.rowIndex,
+            intensityCheckTarget.metric,
+            value
+          );
+          setIntensityCheckTarget(null);
+        }}
+        setLabel={(() => {
+          if (!intensityCheckTarget) return '';
+          const row = blocks[intensityCheckTarget.blockIdx]?.exercises[intensityCheckTarget.exIdx]?.rows[intensityCheckTarget.rowIndex];
+          const reps = row?.values.reps || '-';
+          const carga = row?.values.carga || '-';
+          return `#${intensityCheckTarget.rowIndex + 1} Set: ${reps} x ${carga} kg`;
+        })()}
+        autoOpenEnabled={intensityAutoOpenEnabled}
+        onToggleAutoOpen={toggleIntensityAutoOpen}
       />
     </SafeAreaView>
   );

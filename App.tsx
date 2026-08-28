@@ -11,11 +11,11 @@ import ScreenReviewFab from "@components/ScreenReviewFab";
 import ScreenExplorerFab from "@components/ScreenExplorerFab";
 import WorkoutMinimizedBar from "@components/WorkoutMinimizedBar";
 import TutorialOverlay from "@components/tutorial/TutorialOverlay";
+import ToastHost from "@components/ToastHost";
 import { TutorialProvider } from "@store/TutorialContext";
 import { hydratePersistedWorkoutSession } from "@helper/workoutSessionBus";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator, CardStyleInterpolators } from "@react-navigation/stack";
-import { screenTransitionSpec } from "@helper/motion";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { enableScreens } from "react-native-screens";
 import {
   SafeAreaProvider,
@@ -77,7 +77,6 @@ const HabitsListScreen = React.lazy(() => import('@pages/migrated/habits_list_sc
 const HabitDetailScreen = React.lazy(() => import('@pages/migrated/habit_detail_screen'));
 const HabitAddScreen = React.lazy(() => import('@pages/migrated/habit_add_screen'));
 const LanguageScreen = React.lazy(() => import('@pages/migrated/language_screen'));
-const MainGoalScreen = React.lazy(() => import('@pages/migrated/main_goal_screen'));
 const MuscleProgressScreen = React.lazy(() => import('@pages/migrated/muscle_progress_screen'));
 const MyProgramCalendarScreen = React.lazy(() => import('@pages/migrated/my_program_calendar_screen'));
 const NotificationScreen = React.lazy(() => import('@pages/migrated/notification_screen'));
@@ -130,16 +129,13 @@ const YoutubePlayerScreen = React.lazy(() => import('@pages/migrated/youtube_pla
 
 const DeviceConnectedScreen = React.lazy(() => import('@pages/migrated/home/device_connected_screen'));
 const EmparejandoScreen = React.lazy(() => import('@pages/migrated/home/emparejando_screen'));
-const FitnessMetricsScreen = React.lazy(() => import('@pages/migrated/home/fitness_metrics_screen'));
-const HealthMetricInsightScreen = React.lazy(() => import('@pages/migrated/home/health_metric_insight_screen'));
 const LinkDeviceChoiceScreen = React.lazy(() => import('@pages/migrated/home/link_device_choice_screen'));
 const LinkDeviceListScreen = React.lazy(() => import('@pages/migrated/home/link_device_list_screen'));
-const ManageHealthMetricsScreen = React.lazy(() => import('@pages/migrated/home/manage_health_metrics_screen'));
 
 const AssessmentResultScreen = React.lazy(() => import('@pages/migrated/onboarding/assessment_result_screen'));
 
 enableScreens();
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 const LazyFallback = () => <View style={{ flex: 1, backgroundColor: '#EBEBF0' }} />;
 
 
@@ -222,14 +218,12 @@ function Homenavigator() {
 }
 
 function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: string } } }) {
-  const MStack = createStackNavigator();
+  const MStack = createNativeStackNavigator();
   return (
     <MStack.Navigator
       initialRouteName={route?.params?.initialScreen ?? "MigratedHomeModernV2"}
       screenOptions={{
         headerShown: false,
-        transitionSpec: { open: screenTransitionSpec, close: screenTransitionSpec },
-        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
       }}
     >
       <MStack.Screen name="MigratedAboutApp" component={AboutAppScreen} />
@@ -261,7 +255,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedFavourite" component={FavouriteScreen as any} />
       <MStack.Screen name="MigratedHomeModernV2" component={HomeScreenModernV2} />
       <MStack.Screen name="MigratedLanguage" component={LanguageScreen} />
-      <MStack.Screen name="MigratedMainGoal" component={MainGoalScreen} />
       <MStack.Screen name="MigratedMuscleProgress" component={MuscleProgressScreen} />
       <MStack.Screen name="MigratedMyProgramCalendar" component={MyProgramCalendarScreen} />
       <MStack.Screen name="MigratedNotification" component={NotificationScreen} />
@@ -326,11 +319,8 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedYoutubePlayer" component={YoutubePlayerScreen} />
       <MStack.Screen name="MigratedDeviceConnected" component={DeviceConnectedScreen} />
       <MStack.Screen name="MigratedEmparejando" component={EmparejandoScreen} />
-      <MStack.Screen name="MigratedFitnessMetrics" component={FitnessMetricsScreen} />
-      <MStack.Screen name="MigratedHealthMetricInsight" component={HealthMetricInsightScreen} />
       <MStack.Screen name="MigratedLinkDeviceChoice" component={LinkDeviceChoiceScreen} />
       <MStack.Screen name="MigratedLinkDeviceList" component={LinkDeviceListScreen} />
-      <MStack.Screen name="MigratedManageHealthMetrics" component={ManageHealthMetricsScreen} />
       <MStack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
     </MStack.Navigator>
   );
@@ -348,8 +338,6 @@ function RootNavigator() {
         initialRouteName={!state.isAuthenticated ? 'WelcomeAuth' : !state.onboardingCompleted ? 'MigratedOnboardingV2' : 'Home'}
         screenOptions={{
           headerShown: false,
-          transitionSpec: { open: screenTransitionSpec, close: screenTransitionSpec },
-          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
         }}
       >
         {!state.isAuthenticated ? (
@@ -511,6 +499,7 @@ export default function App() {
                   <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
                   <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
                   <TutorialOverlay />
+                  <ToastHost />
                 </TutorialProvider>
               </AuthProvider>
             </GluestackModeBridge>

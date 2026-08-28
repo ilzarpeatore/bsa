@@ -143,7 +143,7 @@ export default function ProfileScreen(props: any) {
   const isModal = props.route?.name === 'MigratedProfileModal';
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Box className="px-5" style={{ paddingTop: 16 }}>
           {isModal ? (

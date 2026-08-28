@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ScrollView, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Box } from '@components/ui/box';
@@ -9,8 +9,11 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { logger } from '@helper/logger';
+import { showToast } from '@helper/toast';
 import { habitsApi, HabitTemplate, HabitFrequency } from '../../api/habits';
 import { HABIT_ICON_KEYS, habitIoniconFor } from '../../constants/habitIcons';
 
@@ -41,7 +44,7 @@ class HabitAddErrorBoundary extends React.Component<
     return { hasError: true };
   }
   componentDidCatch(error: unknown) {
-    console.error('[HabitAddScreen] Error atrapado por el ErrorBoundary:', error);
+    logger.error('[HabitAddScreen] Error atrapado por el ErrorBoundary:', error);
   }
   render() {
     if (this.state.hasError) {
@@ -96,6 +99,7 @@ function HabitAddScreenInner(props: Props) {
       // un crash de pantalla completa.
       setTemplates(Array.isArray(raw) ? raw.filter((t): t is HabitTemplate => !!t && typeof t === 'object') : []);
     } catch (e) {
+      logger.error('[HabitAdd] Error cargando biblioteca de hábitos:', e);
       setErrorLibrary(true);
     } finally {
       setLoadingLibrary(false);
@@ -117,8 +121,9 @@ function HabitAddScreenInner(props: Props) {
         navigation?.goBack();
       }
     } catch (e: any) {
+      logger.error('[HabitAdd] Error adoptando hábito de biblioteca:', e);
       const msg = e?.response?.data?.message || 'No se pudo añadir este hábito.';
-      Alert.alert('Aviso', msg);
+      showToast('Aviso', { description: msg, variant: 'error' });
     } finally {
       setAdoptingId(null);
     }
@@ -130,7 +135,7 @@ function HabitAddScreenInner(props: Props) {
         className="flex-row items-center bg-card rounded-md"
         style={{ gap: 12, padding: 12, marginBottom: 10 }}
       >
-        <Box className="items-center justify-center bg-background" style={{ width: 42, height: 42, borderRadius: 13 }}>
+        <Box className="items-center justify-center" style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: C.bg }}>
           <Icon name={habitIoniconFor(t.icon)} size={20} className="text-foreground" />
         </Box>
         <Box className="flex-1">
@@ -148,7 +153,7 @@ function HabitAddScreenInner(props: Props) {
           accessibilityRole="button"
           accessibilityLabel={`Añadir hábito ${t.title ?? ''}`.trim()}
         >
-          {adoptingId === t.id ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Icon name="add" size={20} color="#FFFFFF" />}
+          {adoptingId === t.id ? <ActivityIndicator size="small" color={C.accentBlackForeground} /> : <Icon name="add" size={20} color={C.accentBlackForeground} />}
         </Pressable>
       </Box>
     ),
@@ -157,7 +162,7 @@ function HabitAddScreenInner(props: Props) {
 
   const submitPersonal = async () => {
     if (!title.trim()) {
-      Alert.alert('Falta el nombre', 'Ponle un nombre a tu hábito.');
+      showToast('Falta el nombre', { description: 'Ponle un nombre a tu hábito.', variant: 'warning' });
       return;
     }
     setSubmitting(true);
@@ -176,8 +181,16 @@ function HabitAddScreenInner(props: Props) {
       } else {
         navigation?.goBack();
       }
-    } catch (e) {
-      Alert.alert('Error', 'No se pudo crear el hábito. Inténtalo de nuevo.');
+    } catch (e: any) {
+      // Antes se mostraba siempre el mismo mensaje genérico, descartando el
+      // motivo real que devuelve el backend (p. ej. un campo inválido) --
+      // mismo patrón ya usado en adopt() más arriba, para que un fallo de
+      // creación deje de ser una caja negra tanto para el cliente como para
+      // el diagnóstico posterior (logger.error, ver "Enviar registros al
+      // desarrollador" en Ajustes).
+      logger.error('[HabitAdd] Error creando hábito personal:', e);
+      const msg = e?.response?.data?.message || 'No se pudo crear el hábito. Inténtalo de nuevo.';
+      showToast('Error', { description: msg, variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -196,14 +209,14 @@ function HabitAddScreenInner(props: Props) {
           style={{ paddingVertical: 10, backgroundColor: tab === 'library' ? C.accentBlack : 'transparent' }}
           onPress={() => setTab('library')}
         >
-          <Text weight="semibold" size="sm" style={{ color: tab === 'library' ? '#FFFFFF' : C.textSecondary }}>Biblioteca</Text>
+          <Text weight="semibold" size="sm" style={{ color: tab === 'library' ? C.accentBlackForeground : C.textSecondary }}>Biblioteca</Text>
         </Pressable>
         <Pressable
           className="flex-1 rounded-sm items-center"
           style={{ paddingVertical: 10, backgroundColor: tab === 'create' ? C.accentBlack : 'transparent' }}
           onPress={() => setTab('create')}
         >
-          <Text weight="semibold" size="sm" style={{ color: tab === 'create' ? '#FFFFFF' : C.textSecondary }}>Crear el mío</Text>
+          <Text weight="semibold" size="sm" style={{ color: tab === 'create' ? C.accentBlackForeground : C.textSecondary }}>Crear el mío</Text>
         </Pressable>
       </Box>
 
@@ -228,13 +241,13 @@ function HabitAddScreenInner(props: Props) {
             data={templates}
             keyExtractor={(t) => String(t.id)}
             renderItem={renderTemplateItem}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}
             showsVerticalScrollIndicator={false}
           />
         )
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text weight="bold" size="xs" muted className="uppercase" style={{ marginBottom: 8, marginTop: 16, letterSpacing: 0.3 }}>Icono</Text>
             <Box className="flex-row flex-wrap" style={{ gap: 8 }}>
               {HABIT_ICON_KEYS.map((key) => (
@@ -248,7 +261,7 @@ function HabitAddScreenInner(props: Props) {
                   accessibilityLabel={`Icono ${key}`}
                   accessibilityState={{ selected: icon === key }}
                 >
-                  <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? '#FFFFFF' : C.textSecondary} />
+                  <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? C.accentBlackForeground : C.textSecondary} />
                 </Pressable>
               ))}
             </Box>
@@ -283,7 +296,7 @@ function HabitAddScreenInner(props: Props) {
                       style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: targetUnit === u ? C.accentBlack : C.surface }}
                       onPress={() => setTargetUnit(u)}
                     >
-                      <Text weight="semibold" size="sm" style={{ color: targetUnit === u ? '#FFFFFF' : C.textSecondary }}>{u}</Text>
+                      <Text weight="semibold" size="sm" style={{ color: targetUnit === u ? C.accentBlackForeground : C.textSecondary }}>{u}</Text>
                     </Pressable>
                   ))}
                 </Box>
@@ -299,13 +312,13 @@ function HabitAddScreenInner(props: Props) {
                   style={{ paddingVertical: 12, backgroundColor: frequency === f ? C.accentBlack : C.surface }}
                   onPress={() => setFrequency(f)}
                 >
-                  <Text weight="bold" size="sm" style={{ color: frequency === f ? '#FFFFFF' : C.textSecondary }}>{f === 'daily' ? 'Diario' : 'Semanal'}</Text>
+                  <Text weight="bold" size="sm" style={{ color: frequency === f ? C.accentBlackForeground : C.textSecondary }}>{f === 'daily' ? 'Diario' : 'Semanal'}</Text>
                 </Pressable>
               ))}
             </Box>
 
             <Button radius="pill" className="py-4" style={{ marginTop: 28 }} onPress={submitPersonal} disabled={submitting}>
-              {submitting ? <ActivityIndicator size="small" color="#FFFFFF" /> : <ButtonText style={{ letterSpacing: 0.5 }}>CREAR HÁBITO</ButtonText>}
+              {submitting ? <ActivityIndicator size="small" color={C.accentBlackForeground} /> : <ButtonText style={{ letterSpacing: 0.5 }}>CREAR HÁBITO</ButtonText>}
             </Button>
           </ScrollView>
         </KeyboardAvoidingView>

@@ -9,6 +9,7 @@ import {  Pressable  } from '@components/ui/pressable';
 import {  Icon  } from '@components/ui/icon';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  muscleVolumeApi, MuscleVolumeData  } from '../../api/muscleVolume';
 import {  RADIUS  } from './theme';
 
@@ -78,7 +79,7 @@ export default function MuscleProgressScreen(props: Props) {
   const isEmpty = !isLoading && sortedMuscles.length === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       <Box className="flex-row items-center justify-between px-3 py-3">
         <Button variant="ghost" size="icon" onPress={() => navigation?.goBack()}>
           <Icon name="chevron-back" size={24} className="text-foreground" />
@@ -109,7 +110,7 @@ export default function MuscleProgressScreen(props: Props) {
         ))}
       </Box>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Box className="bg-card rounded-md items-center justify-center shadow-card" style={{ paddingVertical: 16, minHeight: 200 }}>
           {isLoading ? (
             <ActivityIndicator size="large" color={C.textSecondary} style={{ paddingVertical: 60 }} />

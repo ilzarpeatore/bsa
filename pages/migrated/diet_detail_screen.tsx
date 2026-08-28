@@ -16,6 +16,7 @@ import {  Badge, BadgeText  } from '@components/ui/badge';
 import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  dietApi  } from '../../api/diet';
 import {  recipesApi, RecipeStep, RecipeIngredient  } from '../../api/recipes';
 import logger from '@helper/logger';
@@ -311,7 +312,7 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
 
       {/* Content Sheet */}
       <Box style={localStyles.contentSheet}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 16 + WORKOUT_MINIBAR_CLEARANCE }}>
           {/* Nutrients Row */}
           <HStack className="items-center justify-around px-2.5 py-2">
             {getVitamins('flame-outline', `${dietState.calories || '0'} Kcal`, 'Calorías')}

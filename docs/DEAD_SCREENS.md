@@ -14,6 +14,8 @@
 > **Los recuentos de "Verificación" de abajo (190/70/120) son del 04-08-2026 y ya no son correctos** — además de estas 27 bajas, `App.tsx` recibió muchas altas y bajas en sesiones intermedias (recetas, calendario, cabeceras Fase 4, etc.) que este documento nunca reflejó. Recalcularlos con precisión requiere rehacer la auditoría completa de alcanzabilidad, fuera del alcance de esta actualización puntual — no se corrigen aquí para no fabricar un número.
 >
 > **Excepción (2026-08-23)**: `MigratedOnboardingComplete`/`onboarding_complete_screen.tsx` (listada abajo en la fila `onboarding/articles_screen` — su único enlace entrante venía de esa pantalla, ya inalcanzable, parte de la cadena vieja del carrusel retirado) se borró de verdad, pedido explícito del usuario ("esta screen que sale después del onboarding es innecesaria, elimínala") — su única lógica real (`completeOnboarding()` + navegar a Home) se movió al botón final de `MigratedAssessmentResult`. Ver `docs/ONBOARDING_V2.md`/`docs/TAREAS.md` para el detalle.
+>
+> **Excepción (2026-08-26)**: `MigratedMainGoal`, `MigratedFitnessMetrics` y `MigratedManageHealthMetrics` (las 3 en B1 abajo, sin enlace entrante) y `MigratedHealthMetricInsight` (en B2, solo navegada desde `MigratedFitnessMetrics`) se borraron de verdad, pedido explícito del usuario ("son inútiles, bórralas"). Confirmado sin ningún enlace entrante real desde el resto de la app (`grep` de `.navigate()`/`.replace()`) antes de borrar. Ver `BUGS_AND_FIXES.md` (BUG-040).
 
 ## Verificación
 

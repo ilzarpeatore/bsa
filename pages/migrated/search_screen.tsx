@@ -391,8 +391,8 @@ export default function SearchScreen(props: any) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <Box className="flex-1 bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+      <Box className="flex-1" style={{ backgroundColor: C.bg }}>
         <FlatList
           ref={scrollRef}
           data={exerciseList}

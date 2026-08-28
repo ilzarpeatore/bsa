@@ -14,7 +14,9 @@ import {  Badge, BadgeText  } from '@components/ui/badge';
 import {  Button, ButtonText  } from '@components/ui/button';
 import {  Modal, ModalBackdrop, ModalContent  } from '@components/ui/modal';
 import {  isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import { showToast } from '@helper/toast';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  habitsApi, Habit, HabitLogEntry, HABIT_HISTORY_DAYS  } from '../../api/habits';
 import {  habitIoniconFor  } from '../../constants/habitIcons';
@@ -178,7 +180,7 @@ export default function HabitDetailScreen(props: Props) {
       await habitsApi.logHabit(habit.id, { date: iso, is_completed: !wasCompleted });
       await load();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo actualizar ese día. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo actualizar ese día. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setPendingDate(null);
     }
@@ -207,7 +209,7 @@ export default function HabitDetailScreen(props: Props) {
     const raw = valueInput.trim();
     const num = raw === '' ? 0 : Number(raw.replace(',', '.'));
     if (Number.isNaN(num) || num < 0) {
-      Alert.alert('Valor no válido', 'Introduce un número válido.');
+      showToast('Valor no válido', { description: 'Introduce un número válido.', variant: 'warning' });
       return;
     }
     setSavingValue(true);
@@ -216,7 +218,7 @@ export default function HabitDetailScreen(props: Props) {
       await load();
       setValueModalDate(null);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar el registro. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo guardar el registro. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSavingValue(false);
     }
@@ -234,7 +236,7 @@ export default function HabitDetailScreen(props: Props) {
             await habitsApi.remove(habit.id);
             navigation?.goBack();
           } catch (e) {
-            Alert.alert('Error', 'No se pudo eliminar el hábito.');
+            showToast('Error', { description: 'No se pudo eliminar el hábito.', variant: 'error' });
           }
         },
       },
@@ -358,7 +360,7 @@ export default function HabitDetailScreen(props: Props) {
                 accessibilityRole="button"
                 accessibilityLabel="Registrar hoy"
               >
-                <Icon name="add" size={22} color="#FFFFFF" />
+                <Icon name="add" size={22} color={C.accentBlackForeground} />
               </Pressable>
             </Box>
 
@@ -536,7 +538,7 @@ export default function HabitDetailScreen(props: Props) {
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </Pressable>
             <Pressable style={styles.modalSaveBtn} onPress={submitValue} disabled={savingValue}>
-              {savingValue ? <Spinner size="small" color="#FFFFFF" /> : <Text style={styles.modalSaveText}>Guardar</Text>}
+              {savingValue ? <Spinner size="small" color={C.accentBlackForeground} /> : <Text style={styles.modalSaveText}>Guardar</Text>}
             </Pressable>
           </Box>
         </ModalContent>
@@ -559,7 +561,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: FONT.bold, fontSize: 16, color: C.textPrimary, marginHorizontal: 8 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyText: { fontFamily: FONT.regular, fontSize: 14, color: C.textSecondary, textAlign: 'center' },
-  scroll: { paddingHorizontal: 20, paddingBottom: 16 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 16 + WORKOUT_MINIBAR_CLEARANCE },
   topSection: { paddingHorizontal: 20 },
   bigArea: { flex: 1, paddingHorizontal: 20, justifyContent: 'center' },
   bigCard: { flex: 1, justifyContent: 'center', marginBottom: 0 },
@@ -583,7 +585,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   tab: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
   tabActive: { backgroundColor: C.accentBlack },
   tabText: { fontFamily: FONT.semiBold, fontSize: 11, color: C.textSecondary },
-  tabTextActive: { color: '#FFFFFF' },
+  tabTextActive: { color: C.accentBlackForeground },
   rangeStat: { fontFamily: FONT.medium, fontSize: 12.5, color: C.textSecondary, marginBottom: 12, textAlign: 'center' },
   weekCard: { backgroundColor: C.surface, borderRadius: 18, padding: 16, marginBottom: 16, ...SHADOW.card },
   weekHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 },
@@ -628,6 +630,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   modalCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.bg },
   modalSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.accentBlack },
   modalCancelText: { fontFamily: FONT.semiBold, fontSize: 14, color: C.textPrimary },
-  modalSaveText: { fontFamily: FONT.bold, fontSize: 14, color: '#FFFFFF' },
+  modalSaveText: { fontFamily: FONT.bold, fontSize: 14, color: C.accentBlackForeground },
   });
 }

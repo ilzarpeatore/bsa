@@ -7,6 +7,7 @@ import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface LanguageData {
   languageCode: string;
@@ -27,6 +28,7 @@ const defaultLanguages: LanguageData[] = [
 ];
 
 export default function LanguageScreen(props: LanguageScreenProps) {
+  const { colors: C } = useAppColorMode();
   const { navigation } = props;
   const [selectedCode, setSelectedCode] = useState('en');
   const [languages] = useState<LanguageData[]>(defaultLanguages);
@@ -62,7 +64,7 @@ export default function LanguageScreen(props: LanguageScreenProps) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Select Language" onBack={() => navigation?.goBack()} />
       <FlatList
         data={languages}

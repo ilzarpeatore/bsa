@@ -133,6 +133,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     toggleBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.xs },
     toggleBtnActive: { backgroundColor: C.accentBlack },
     toggleText: { fontFamily: FONT.semiBold, fontSize: 12, color: C.textSecondary },
-    toggleTextActive: { color: '#FFFFFF' },
+    toggleTextActive: { color: C.accentBlackForeground },
   });
 }

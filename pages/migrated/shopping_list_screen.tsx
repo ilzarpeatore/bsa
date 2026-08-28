@@ -92,7 +92,7 @@ export default function ShoppingListScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title="Listas de la compra"
         onBack={() => props.navigation.goBack()}
@@ -137,7 +137,7 @@ export default function ShoppingListScreen(props: any) {
       {/* Generate Bottom Sheet */}
       <Actionsheet isOpen={showGenerateSheet} onClose={() => setShowGenerateSheet(false)}>
         <ActionsheetBackdrop />
-        <ActionsheetContent className="items-stretch bg-background rounded-t-lg p-5">
+        <ActionsheetContent className="items-stretch rounded-t-lg p-5" style={{ backgroundColor: C.bg }}>
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>

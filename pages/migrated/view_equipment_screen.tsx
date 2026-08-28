@@ -7,6 +7,7 @@ import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
 import ScreenHeader from '@components/ScreenHeader';
 import { exercisesApi } from '../../api/exercises';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 interface EquipmentItem {
   id: number;
@@ -16,6 +17,7 @@ interface EquipmentItem {
 }
 
 export default function ViewEquipmentScreen(props: any) {
+  const { colors: C } = useAppColorMode();
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
   const [page, setPage] = useState(1);
   const numPageRef = useRef<number | null>(null);
@@ -117,7 +119,7 @@ export default function ViewEquipmentScreen(props: any) {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Equipments Exercise" onBack={() => props.navigation?.goBack()} />
 
       <Box className="flex-1">

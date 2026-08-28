@@ -20,7 +20,8 @@
       "bundleIdentifier": "com.pfndesign.befit",
       "infoPlist": {
         "NSHealthShareUsageDescription": "BeFit usa tus datos de Salud (pasos, ritmo cardíaco, sueño) para mostrarte tu progreso real.",
-        "NSHealthUpdateUsageDescription": "BeFit puede registrar entrenamientos y métricas en tu app de Salud."
+        "NSHealthUpdateUsageDescription": "BeFit puede registrar entrenamientos y métricas en tu app de Salud.",
+        "NSSupportsLiveActivities": true
       }
     },
     "android": {

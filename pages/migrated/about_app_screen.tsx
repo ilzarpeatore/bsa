@@ -8,6 +8,7 @@ import { Icon } from '@components/ui/icon';
 import { Divider } from '@components/ui/divider';
 import ScreenHeader from '@components/ScreenHeader';
 import logger from '@helper/logger';
+import { useAppColorMode } from '@helper/useAppColorMode';
 
 const mOption = (icon: string, title: string, onPress: () => void) => (
   <Pressable
@@ -23,6 +24,7 @@ const mOption = (icon: string, title: string, onPress: () => void) => (
 );
 
 export default function AboutAppScreen({ navigation }: any) {
+  const { colors: C } = useAppColorMode();
   const [aboutPages, setAboutPages] = useState<any[]>([]);
   const loadingRef = useRef(true);
 
@@ -45,7 +47,7 @@ export default function AboutAppScreen({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="About App" onBack={() => navigation.goBack()} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 8 }} showsVerticalScrollIndicator={false}>

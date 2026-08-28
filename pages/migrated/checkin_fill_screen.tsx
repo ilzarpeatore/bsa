@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -11,6 +12,7 @@ import { Textarea, TextareaInput } from '@components/ui/textarea';
 import { Card } from '@components/ui/card';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import {
@@ -53,9 +55,9 @@ function ChoiceRow({
             accessibilityState={{ selected: active }}
           >
             {icon ? (
-              <Icon name="star" size={16} color={active ? '#FFFFFF' : C.textSecondary} />
+              <Icon name="star" size={16} color={active ? C.accentBlackForeground : C.textSecondary} />
             ) : (
-              <Text weight="bold" size="sm" style={{ color: active ? '#FFFFFF' : C.textSecondary }}>{n}</Text>
+              <Text weight="bold" size="sm" style={{ color: active ? C.accentBlackForeground : C.textSecondary }}>{n}</Text>
             )}
           </Pressable>
         );
@@ -147,7 +149,7 @@ function QuestionCard({
                 style={{ paddingVertical: 12, backgroundColor: active ? C.accentBlack : C.bg }}
                 onPress={() => onChange(opt)}
               >
-                <Text weight="bold" style={{ color: active ? '#FFFFFF' : C.textSecondary }}>{opt === 'yes' ? 'Sí' : 'No'}</Text>
+                <Text weight="bold" style={{ color: active ? C.accentBlackForeground : C.textSecondary }}>{opt === 'yes' ? 'Sí' : 'No'}</Text>
               </Pressable>
             );
           })}
@@ -174,7 +176,7 @@ function QuestionCard({
                     }
                   }}
                 >
-                  <Text weight="semibold" size="xs" style={{ color: selected ? '#FFFFFF' : C.textSecondary }}>{opt}</Text>
+                  <Text weight="semibold" size="xs" style={{ color: selected ? C.accentBlackForeground : C.textSecondary }}>{opt}</Text>
                 </Pressable>
               );
             });
@@ -252,18 +254,17 @@ export default function CheckInFillScreen(props: Props) {
 
       await checkinsApi.submit(formAssignmentId, payload);
       reportAction('checkin_submitted');
-      Alert.alert('Enviado', 'Tu respuesta se ha guardado correctamente.', [
-        { text: 'OK', onPress: () => navigation?.goBack() },
-      ]);
+      showToast('Enviado', { description: 'Tu respuesta se ha guardado correctamente.', variant: 'success' });
+      navigation?.goBack();
     } catch (e) {
-      Alert.alert('Error', 'No se pudo enviar el formulario. Inténtalo de nuevo.');
+      showToast('Error', { description: 'No se pudo enviar el formulario. Inténtalo de nuevo.', variant: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title={form?.title || fallbackTitle || 'Formulario'} onBack={() => navigation?.goBack()} />
 
       {isLoading ? (
@@ -276,7 +277,7 @@ export default function CheckInFillScreen(props: Props) {
         </Box>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {form.description && (
               <Text muted style={{ fontSize: 13.5, lineHeight: 19, marginBottom: 16 }}>{form.description}</Text>
             )}
@@ -307,7 +308,7 @@ export default function CheckInFillScreen(props: Props) {
               </Text>
             )}
             <Button size="lg" radius="pill" onPress={handleSubmit} disabled={!canSubmit || submitting}>
-              {submitting ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>ENVIAR</ButtonText>}
+              {submitting ? <Spinner size="small" color={C.accentBlackForeground} /> : <ButtonText>ENVIAR</ButtonText>}
             </Button>
           </Box>
         </KeyboardAvoidingView>

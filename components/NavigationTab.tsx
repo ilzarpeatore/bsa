@@ -65,7 +65,7 @@ const QUICK_ACTIONS: QuickAction[] = [
  * central "+" que abre un submenu de accesos rápidos.
  */
 export default function NavigationTab({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { colors: C } = useAppColorMode();
+  const { colors: C, mode: colorMode } = useAppColorMode();
   const styles = useStyle(C);
   const safearea = useSafeAreaInsets();
   /* top bar options */
@@ -307,7 +307,20 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
               ]}
             >
               <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
-              <View style={[StyleSheet.absoluteFill, styles.quickMenuTint]} />
+              {/* Igual que quickMenuIconWrap: el color depende del tema, así
+                  que se aplica como override inline en vez de vivir en el
+                  StyleSheet (memoizado solo por `scale`, ver comentario más
+                  abajo) -- si no, el popup se quedaba siempre con la capa
+                  clara aunque la app estuviera en modo oscuro (reportado con
+                  captura: el menú "+" se veía blanco sobre el resto de la
+                  pantalla en oscuro). */}
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.quickMenuTint,
+                  { backgroundColor: colorMode === 'dark' ? 'rgba(28,28,30,0.9)' : 'rgba(255,255,255,0.85)' },
+                ]}
+              />
               <View style={styles.quickMenuGrid}>
                 {QUICK_ACTIONS.map((action) => (
                   <Pressable
@@ -326,7 +339,12 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                     <View style={[styles.quickMenuIconWrap, { backgroundColor: `${C.orange}1F` }]}>
                       <Icon name={action.icon} size={22} color={C.orange} />
                     </View>
-                    <Text style={styles.quickMenuLabel} numberOfLines={1}>{action.label}</Text>
+                    <Text
+                      style={[styles.quickMenuLabel, { color: colorMode === 'dark' ? '#FAFAFA' : '#1C1C1E' }]}
+                      numberOfLines={1}
+                    >
+                      {action.label}
+                    </Text>
                   </Pressable>
                 ))}
               </View>

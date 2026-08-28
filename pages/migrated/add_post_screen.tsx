@@ -11,9 +11,11 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PickedPostMedia } from '../../api/posts';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 
 function assetToPickedMedia(asset: ImagePicker.ImagePickerAsset): PickedPostMedia {
   const isVideo = asset.type === 'video';
@@ -53,10 +55,7 @@ export default function AddPostScreen({ navigation, route }: any) {
   const pickFromLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso denegado',
-        'Necesitamos acceso a tu galería para añadir fotos/vídeos al post.',
-      );
+      showToast('Permiso denegado', { description: 'Necesitamos acceso a tu galería para añadir fotos/vídeos al post.', variant: 'warning' });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -73,7 +72,7 @@ export default function AddPostScreen({ navigation, route }: any) {
   const pickFromCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu cámara para hacer una foto.');
+      showToast('Permiso denegado', { description: 'Necesitamos acceso a tu cámara para hacer una foto.', variant: 'warning' });
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -87,7 +86,7 @@ export default function AddPostScreen({ navigation, route }: any) {
 
   const pickMedia = () => {
     if (selectedImages.length + existingImages.length >= 4) {
-      Alert.alert('Límite alcanzado', 'Puedes añadir un máximo de 4 fotos/vídeos por publicación.');
+      showToast('Límite alcanzado', { description: 'Puedes añadir un máximo de 4 fotos/vídeos por publicación.', variant: 'warning' });
       return;
     }
     Alert.alert('Añadir foto/vídeo', undefined, [
@@ -99,7 +98,7 @@ export default function AddPostScreen({ navigation, route }: any) {
 
   const submitPost = async () => {
     if (!description.trim() && selectedImages.length === 0 && existingImages.length === 0) {
-      Alert.alert('Error', 'Escribe algo de texto o selecciona imágenes');
+      showToast('Error', { description: 'Escribe algo de texto o selecciona imágenes', variant: 'error' });
       return;
     }
     setLoading(true);
@@ -109,7 +108,7 @@ export default function AddPostScreen({ navigation, route }: any) {
       navigation.goBack();
     } catch (e) {
       logger.error('Error submitting post', e);
-      Alert.alert('Error', 'No se pudo publicar el post');
+      showToast('Error', { description: 'No se pudo publicar el post', variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -117,7 +116,7 @@ export default function AddPostScreen({ navigation, route }: any) {
 
   const editPost = async () => {
     if (!description.trim() && selectedImages.length === 0 && existingImages.length === 0) {
-      Alert.alert('Error', 'Escribe algo de texto o selecciona imágenes');
+      showToast('Error', { description: 'Escribe algo de texto o selecciona imágenes', variant: 'error' });
       return;
     }
     setLoading(true);
@@ -130,21 +129,21 @@ export default function AddPostScreen({ navigation, route }: any) {
       navigation.goBack();
     } catch (e) {
       logger.error('Error editing post', e);
-      Alert.alert('Error', 'No se pudo editar el post');
+      showToast('Error', { description: 'No se pudo editar el post', variant: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={flow === 'EditFlow' ? 'Editar publicación' : 'Nueva publicación'}
         onBack={() => navigation.goBack()}
       />
 
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-        <VStack space="lg" style={{ paddingTop: 16, paddingBottom: 32 }}>
+        <VStack space="lg" style={{ paddingTop: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}>
           {/* Description field */}
           <Textarea className="bg-card rounded-sm border-border h-auto" style={{ minHeight: 140 }}>
             <TextareaInput

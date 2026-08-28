@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
@@ -14,6 +15,7 @@ import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import AppIcon from '@components/AppIcon';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -116,7 +118,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   const pickFromLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para cambiar la foto de perfil.');
+      showToast('Permiso denegado', { description: 'Necesitamos acceso a tu galería para cambiar la foto de perfil.', variant: 'warning' });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -133,7 +135,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   const pickFromCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu cámara para hacer una foto.');
+      showToast('Permiso denegado', { description: 'Necesitamos acceso a tu cámara para hacer una foto.', variant: 'warning' });
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -216,7 +218,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
       }
       props.navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo guardar');
+      showToast('Error', { description: e.message || 'No se pudo guardar', variant: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -524,7 +526,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   scrollContent: {
     paddingTop: 24,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE,
   },
   imageSection: {
     alignItems: 'center',

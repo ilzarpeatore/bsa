@@ -9,6 +9,8 @@ import { Platform ,
   Switch,
   Linking,
   Share,
+  Pressable as RNPressable,
+  LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
@@ -16,12 +18,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Image as ExpoImage } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import Animated, {
   useAnimatedScrollHandler,
-  useAnimatedProps,
   useAnimatedStyle,
   useAnimatedReaction,
   useSharedValue,
@@ -51,6 +51,7 @@ import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
 import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
+import { showToast } from '@helper/toast';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -67,31 +68,60 @@ import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
 import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '@components/WeekComplianceRow';
-import { computeWeekCompliance } from '@components/weekCompliance';
+import { computeWeekCompliance, computeWeekProgress } from '@components/weekCompliance';
 import { useAuth } from '../../store/AuthContext';
 
 const FIGMA_W = 375;
 const FIGMA_H = 812;
 
-// Modulo-scope, igual que AnimatedImage en NavigationTab -- evita recrear el
-// wrapper animado de BlurView en cada render.
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-// Recorrido de scroll (px) sobre el que el header pasa de nitido a
-// glass-effect total, estilo KOTCHA: 0 = arriba del todo (foto con toda su
-// claridad), HERO_BLUR_SCROLL_RANGE = la foto ya no se distingue -- blur al
-// máximo (casi opaco de por sí) + oscurecido animado por encima que la tapa
-// del todo, para que "desaparezca" de verdad y no se quede a medias. Subido
-// de 160 a 280 (pedido explícito: el oscurecido se notaba "de golpe"), y
-// ahora de 280 a 420 (mismo pedido repetido: seguía notándose demasiado
-// rápido nada más empezar a hacer scroll) para repartir el mismo recorrido
-// de opacidad en todavía más scroll.
-const HERO_BLUR_SCROLL_RANGE = 420;
-const HERO_BLUR_MAX_INTENSITY = 100;
-const HERO_DARKEN_MAX_OPACITY = 0.92;
-// Antes de hacer scroll (scrollY=0) el oscurecido animado partía de 0 -- la
-// foto se veía "demasiado clara" en reposo. Con este suelo, ya arranca algo
-// oscurecida en reposo y sube hasta HERO_DARKEN_MAX_OPACITY con el scroll.
-const HERO_DARKEN_MIN_OPACITY = 0.18;
+// Fondo fijo de Home v2 (pedido explícito 2026-08-26, con 2 capturas de
+// referencia de otra app): la misma foto del hero, pero FUERA del
+// ScrollView -- no se desplaza con el contenido, se queda detrás de toda la
+// pantalla. Un oscurecido progresivo (ver homeBgDarkenAnimatedStyle más
+// abajo) se va cerrando encima a medida que se hace scroll, desde
+// HOME_BG_MIN_OPACITY al principio hasta HOME_BG_MAX_OPACITY justo al llegar
+// a "Mi plan de hoy" -- a partir de ahí se queda fijo en el máximo hasta el
+// final de la pantalla (pedido explícito 2026-08-27, reintroducido tras
+// haberse quitado del todo: ver miPlanOffsetY, que mide en tiempo real dónde
+// empieza esa sección en vez de usar un nº de píxeles de scroll fijo).
+//
+// MAX bajado de 0.9 a 0.45 el 2026-08-27 (reportado con captura): en modo
+// claro homeBgDarkenLayer fundía hacia C.bg (#F4F4F7, OPACO), así que al 0.9
+// la foto quedaba prácticamente tapada del todo por debajo de "Mi plan de
+// hoy" -- un bloque gris claro plano sin foto detrás. Bajar el máximo evitó
+// el bloque, pero dejó el efecto casi imperceptible al hacer scroll normal
+// (reportado de nuevo 2026-08-28: "no se aplica la opacidad de forma
+// progresiva") -- 0.2→0.45 sobre un color CASI BLANCO apenas cambia el brillo
+// percibido de la foto. La causa real no era el número, era el color: fundir
+// hacia un tono opaco casi blanco en vez de negro. Con homeBgDarkenLayer
+// ahora en negro semitransparente (ver más abajo) sí se puede volver al 0.9
+// original sin recrear el bloque -- negro al 90% oscurece de verdad la foto
+// (efecto buscado), nunca la sustituye por un color sólido plano.
+// MIN subido de 0.2 a 0.35 (reportado con capturas, 2026-08-28: "la screen
+// en la parte superior debe empezar ya con un poco de opacidad, ahora
+// empieza totalmente clara") -- 0.2 se notaba demasiado poco nada más entrar
+// en la pantalla, antes de tocar el scroll.
+const HOME_BG_MIN_OPACITY = 0.35;
+const HOME_BG_MAX_OPACITY = 0.9;
+
+// Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
+// homeBgDarkenLayer se queda fijo en negro (nunca C.bg -- ver su comentario,
+// evita el bloque plano del BUG-054), así que por sí sola nunca termina de
+// convertirse en el fondo real de la app. homeBgSolidLayer es esa segunda
+// capa, del color de tema real (C.bg, distinto en claro/oscuro).
+//
+// Antes fundía de 0 a 1 en una ventana corta (160px) DESPUÉS de que
+// homeBgDarkenLayer ya hubiera llegado a su máximo -- es decir, primero todo
+// el scroll se veía cada vez más negro, y solo al final, de golpe, viraba a
+// gris en un tramo muy corto. Reportado con capturas (2026-08-28): "la
+// opacidad progresiva es muy agresiva... llega un momento en que la pantalla
+// es totalmente oscura y luego cambia de forma muy radical a gris". La causa
+// era que las dos capas usaban rangos de scroll DISTINTOS (una todo el
+// recorrido, la otra solo el final) en vez del mismo. Ahora ambas capas
+// interpolan sobre el MISMO rango [0, miPlanOffsetY]: el gris empieza a
+// asomar desde el primer scroll (a la vez que el negro, no después) y ambas
+// llegan a su valor final exactamente en el mismo punto ("Mi plan de hoy"),
+// una sola transición continua en vez de dos fases pegadas una a otra.
 
 // Saludo dinamico por hora local del dispositivo (no posicion solar, no hace
 // falta suncalc) -- mismos rangos que usaria cualquier reloj: mañana antes de
@@ -137,38 +167,6 @@ function getHeroMoodForHour(hour: number): HeroMood {
   return 'night';
 }
 
-// Degradados por mood -- antes eran un único marrón cálido fijo
-// (rgba(20,11,6,...)) reutilizado para las 3 fotos, así que desentonaba con
-// el cielo azul de la foto de día y quedaba raro sobre la foto de noche (ya
-// oscura de por sí). Cada mood tiene su propio tono: cálido dorado para
-// amanecer/atardecer, azul frío para día, casi negro/navy para noche.
-// `seam` mantiene el criterio ya establecido (revisión 2026-08-20): el
-// último color SIEMPRE es C.bg, nunca alpha 0, para que la transición acabe
-// en el color de fondo real de la app en vez de un lavado sucio.
-const HERO_GRADIENTS: Record<
-  HeroMood,
-  { scrim: [string, string]; close: [string, string]; darken: string; seam: (bg: string) => [string, string, string, string] }
-> = {
-  sunriseSunset: {
-    scrim: ['rgba(40,20,8,0.22)', 'rgba(28,13,5,0.52)'],
-    close: ['rgba(40,18,6,0)', 'rgba(30,14,6,0.68)'],
-    darken: '#2B1608',
-    seam: (bg) => ['rgba(30,14,6,0.68)', 'rgba(30,14,6,0.42)', 'rgba(30,14,6,0.16)', bg],
-  },
-  day: {
-    scrim: ['rgba(10,22,38,0.18)', 'rgba(8,16,30,0.48)'],
-    close: ['rgba(8,16,30,0)', 'rgba(10,20,34,0.62)'],
-    darken: '#0E1B2E',
-    seam: (bg) => ['rgba(10,20,34,0.62)', 'rgba(10,20,34,0.38)', 'rgba(10,20,34,0.14)', bg],
-  },
-  night: {
-    scrim: ['rgba(0,4,12,0.3)', 'rgba(0,3,9,0.6)'],
-    close: ['rgba(0,3,9,0)', 'rgba(2,4,10,0.7)'],
-    darken: '#04070D',
-    seam: (bg) => ['rgba(2,4,10,0.7)', 'rgba(2,4,10,0.44)', 'rgba(2,4,10,0.16)', bg],
-  },
-};
-
 // Imagen de recurso: todavía no existe `image_url` en el backend (pendiente,
 // ver docs/TAREAS.md), así que mientras tanto se previsualiza con una foto
 // real de internet (LoremFlickr, sin API key) elegida por categoría -- más
@@ -212,13 +210,26 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const scrollRef = useRef<ScrollView>(null);
   const firstLoadDone = useRef(false);
 
-  // Glass-effect progresivo del hero header: a medida que se hace scroll,
-  // la imagen/gradiente de fondo se va desenfocando (como en KOTCHA) en vez
-  // de desaparecer de golpe bajo el resto del contenido.
+  // scrollY alimenta tanto el plegado de la barra de pestañas (ver
+  // reportScrollY más abajo) como el oscurecido progresivo del fondo (ver
+  // homeBgDarkenAnimatedStyle).
   const scrollY = useSharedValue(0);
   const heroScrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
+  // Punto de scroll (en px) donde empieza la sección "Mi plan de hoy" --
+  // medido en tiempo real vía onLayout (ver handleMiPlanLayout) en vez de un
+  // nº de píxeles fijo, porque la altura de todo lo que hay ANTES de esa
+  // sección (banner de error condicional, StartupChecklist con 7 pasos)
+  // varía. El oscurecido progresivo usa esto como tope: sube de
+  // HOME_BG_MIN_OPACITY a HOME_BG_MAX_OPACITY hasta llegar aquí y se queda
+  // fijo en el máximo a partir de ese punto (Extrapolation.CLAMP). Arranca
+  // en 0 -- antes de que onLayout mida el valor real, scrollY también vale 0
+  // así que el resultado sigue siendo HOME_BG_MIN_OPACITY, no hay parpadeo.
+  const miPlanOffsetY = useSharedValue(0);
+  const handleMiPlanLayout = useCallback((e: LayoutChangeEvent) => {
+    miPlanOffsetY.value = e.nativeEvent.layout.y;
+  }, [miPlanOffsetY]);
   // Plegar la barra de pestañas al hacer scroll (pedido explícito, ver
   // store/TabBarScrollContext.tsx) -- reutiliza el mismo scrollY que ya
   // existía para el efecto de blur del hero. Mismo patrón que
@@ -245,13 +256,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleRateApp = useCallback(() => {
     if (Platform.OS === 'ios') {
       if (!APP_STORE_ID) {
-        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en la App Store.');
+        showToast('Aún no disponible', { description: 'BeFit todavía no tiene ficha publicada en la App Store.', variant: 'info' });
         return;
       }
       Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`);
     } else {
       if (!PLAY_STORE_PUBLISHED) {
-        Alert.alert('Aún no disponible', 'BeFit todavía no tiene ficha publicada en Google Play.');
+        showToast('Aún no disponible', { description: 'BeFit todavía no tiene ficha publicada en Google Play.', variant: 'info' });
         return;
       }
       const pkg = Constants.expoConfig?.android?.package;
@@ -263,10 +274,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleSendLogs = useCallback(async () => {
     const report = getDiagnosticsReportText();
     if (!report) {
-      Alert.alert(
-        'No hay registros que enviar',
-        'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.'
-      );
+      showToast('No hay registros que enviar', {
+        description: 'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.',
+        variant: 'warning',
+      });
       return;
     }
     const header = `BeFit ${Constants.expoConfig?.version ?? ''} · ${Platform.OS}\n\n`;
@@ -282,26 +293,38 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       if (collapsed !== prevCollapsed) runOnJS(reportScrollY)(scrollY.value);
     }
   );
-  const heroBlurAnimatedProps = useAnimatedProps(() => ({
-    intensity: interpolate(scrollY.value, [0, HERO_BLUR_SCROLL_RANGE], [0, HERO_BLUR_MAX_INTENSITY], Extrapolation.CLAMP),
+  // Oscurecido progresivo del fondo fijo de toda la pantalla (ver
+  // HOME_BG_MIN/MAX_OPACITY y miPlanOffsetY arriba).
+  const homeBgDarkenAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [0, Math.max(miPlanOffsetY.value, 1)],
+      [HOME_BG_MIN_OPACITY, HOME_BG_MAX_OPACITY],
+      Extrapolation.CLAMP
+    ),
   }));
-  // El blur solo desenfoca -- no basta para que la foto "desaparezca" del
-  // todo (sigue habiendo luz/color de fondo). Un oscurecido animado encima,
-  // que sube de 0 a casi opaco en el mismo recorrido, es lo que de verdad la
-  // tapa hasta el punto de no verse.
-  const heroDarkenAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, HERO_BLUR_SCROLL_RANGE], [HERO_DARKEN_MIN_OPACITY, HERO_DARKEN_MAX_OPACITY], Extrapolation.CLAMP),
+  // Segunda capa, color de tema real -- mismo rango de scroll que
+  // homeBgDarkenAnimatedStyle (ver comentario junto a HOME_BG_MIN_OPACITY),
+  // así que ambas avanzan a la vez en vez de una detrás de la otra.
+  const homeBgSolidAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [0, Math.max(miPlanOffsetY.value, 1)],
+      [0, 1],
+      Extrapolation.CLAMP
+    ),
   }));
-
   // Este bloque ("Reto para empezar") es la entrada al tutorial guiado:
   // cada paso es uno de los 7 retos esenciales (ver constants/tutorialChallenges.ts).
+  // Se excluyen los marcados `hidden` porque su primer paso vive en una
+  // pantalla solo alcanzable encadenada desde otro reto, nunca desde Home.
   // "done" viene de useTutorial() (persistido, se marca solo cuando el
   // usuario completa la acción real -- nunca a mano aquí). Tocar un paso
   // lanza su spotlight (TutorialOverlay) en vez de navegar directamente.
   const { isDone: isTutorialDone, startChallenge } = useTutorial();
   const startupSteps: StartupChecklistStep[] = useMemo(
     () =>
-      TUTORIAL_CHALLENGES.map((challenge) => ({
+      TUTORIAL_CHALLENGES.filter((challenge) => !challenge.hidden).map((challenge) => ({
         id: challenge.id,
         label: challenge.label,
         done: isTutorialDone(challenge.id),
@@ -315,11 +338,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const insets = useSafeAreaInsets();
 
   // Mood del hero (amanecer/atardecer, día o noche) por hora local -- se
-  // recalcula por render (barato, solo lee la hora actual) y sirve tanto
-  // para elegir la foto de fondo como su paleta de degradado a juego (ver
-  // HERO_GRADIENTS más abajo).
+  // recalcula por render (barato, solo lee la hora actual) y elige qué foto
+  // de fondo mostrar (ver HERO_IMAGES arriba).
   const heroMood = getHeroMoodForHour(new Date().getHours());
-  const heroGradient = HERO_GRADIENTS[heroMood];
   const [showMenu, setShowMenu] = useState(false);
   const [appleHealthOn, setAppleHealthOn] = useState(true);
   const [smartWatchOn, setSmartWatchOn] = useState(false);
@@ -337,6 +358,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<boolean[]>([]);
+  // Fracción (0..1) de entrenamientos completados sobre los asignados cada
+  // día -- p.ej. 2 asignados y 1 completado -> 0.5, para que el anillo de
+  // WeekComplianceRow se rellene a la mitad en vez de marcar el día entero
+  // como hecho/no hecho (pedido explícito, ver cálculo en fetchData).
+  const [weeklyWorkoutsProgress, setWeeklyWorkoutsProgress] = useState<number[]>([]);
   const [dailyPlan, setDailyPlan] = useState<any>(null);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -363,37 +389,46 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const [showReadinessSheet, setShowReadinessSheet] = useState(false);
 
   const styles = useMemo(() => StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
+    // Transparente a propósito (antes C.bg opaco): el fondo fijo de la foto
+    // (ver homeBgFixedLayer más abajo) vive por debajo de todo, y necesita
+    // que este contenedor y el ScrollView no lo tapen con un color sólido.
+    container: { flex: 1 },
+    // Oscurecido progresivo: negro fijo en ambos modos, nunca un color de
+    // chrome de la app (C.bg/tono por mood, como se hacía antes). Esta capa
+    // va SOBRE una foto, no sobre UI -- fundir hacia negro es lo único que de
+    // verdad se lee como "la foto se oscurece" al hacer scroll, sea cual sea
+    // el tema. Fundir hacia C.bg (#F4F4F7, opaco) es lo que causó el bloque
+    // gris claro plano del BUG-054: al subir la opacidad, en vez de oscurecer
+    // la foto la sustituía por un color sólido casi blanco. Con negro no hay
+    // ese riesgo: incluso al máximo (HOME_BG_MAX_OPACITY) la foto se ve muy
+    // oscura pero nunca se convierte en un bloque de color plano ajeno a ella.
+    homeBgDarkenLayer: { backgroundColor: '#000000' },
+    // Segunda capa, encima de homeBgDarkenLayer -- ver
+    // homeBgSolidAnimatedStyle. Esta sí es C.bg (el tema real, distinto en
+    // claro/oscuro): avanza en paralelo con homeBgDarkenLayer, del negro
+    // subiendo debajo a la vez, así que cuando el gris empieza a notarse ya
+    // hay foto oscurecida detrás -- no repite el bloque plano de BUG-054,
+    // que pasaba con la foto todavía nítida.
+    homeBgSolidLayer: { backgroundColor: C.bg },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
-    // Con foto real de fondo (amanecer/atardecer, día o noche, ver
-    // getHeroMoodForHour) + scrim oscuro -- antes era un LinearGradient
-    // plano; el texto blanco de encima sigue necesitando fondo oscuro real,
-    // ahora lo da el scrim. Sin border-radius inferior a propósito (revisión
-    // 2026-08-19): el bloque superior se funde con "Mi plan de hoy" mediante
-    // degradado de color (ver seamGradient más abajo), no con una esquina
-    // redondeada -- mismo criterio aplicado ahora a la foto.
-    // paddingBottom subido de 24 a 48 (pedido explícito: "haz la imagen un
-    // poco más vertical") -- más foto real antes de que empiece el
-    // degradado de cierre, no solo un recorrido de gradiente más largo.
-    // height: winH (petición explícita, 2026-08-22 -- "quiero que la imagen
-    // ocupe todo el tamaño de la screen según entras") -- con el 100% de
-    // winH crudo el contenido se quedaba anclado arriba dejando un margen
-    // muerto enorme debajo, porque winH incluye zonas que ya no son
-    // "pantalla visible" (status bar, home indicator, barra flotante de
-    // pestañas). Se probó luego un 64% fijo, pero al ser una fracción fija
-    // el hueco muerto reaparece en pantallas más altas (revisión 2026-08-24,
-    // reportado con captura). Fix real: altura = viewport visible exacto
-    // (winH menos el inset inferior seguro menos la barra flotante), así la
-    // foto llena TODO lo que se ve al entrar en cualquier tamaño de
-    // pantalla, sin cálculo de porcentaje de por medio.
+    // con foto real de fondo (amanecer/atardecer, día o noche, ver
+    // getHeroMoodForHour). Sin border-radius inferior ni degradado de cierre a propósito (revisión 2026-08-26,
+    // pedido explícito repetido: la foto debe llenar la pantalla entera sin
+    // ningún degradado de transición, ni dentro de la foto ni entre esta y
+    // "Mi plan de hoy" -- los intentos anteriores con degradado de cierre
+    // (heroCloseGradient/seamGradient) se han quitado del todo).
+    // height: winH crudo, sin restar inset inferior ni barra de pestañas --
+    // versiones previas restaban esas zonas para dejar hueco a la barra
+    // flotante, pero el resultado seguía sin leerse como "pantalla
+    // completa" (reportado con captura, 2026-08-26); esta vez se prioriza
+    // que la foto ocupe el 100% del viewport visible al entrar, aunque deje
+    // más foto sin contenido de UI encima en pantallas altas.
     heroHeader: {
-      height: Math.max(r(360), winH - insets.bottom - TAB_BAR_CLEARANCE),
-      paddingBottom: r(48),
+      height: winH,
+      paddingBottom: r(24),
       paddingHorizontal: r(20),
       overflow: 'hidden' as const,
     },
-    heroDarkenLayer: { backgroundColor: heroGradient.darken },
-    heroCloseGradient: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: r(120) },
     // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
     // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
     // para poder quedar estática al hacer scroll. heroTopBar ya no forma
@@ -417,15 +452,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     ringLabel: { fontSize: r(10), lineHeight: r(14), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.65)', letterSpacing: 0.5, marginTop: r(2) },
     ringSubLabel: { fontSize: r(9), lineHeight: r(13), color: 'rgba(255,255,255,0.5)' },
     readinessCtaHint: { fontSize: r(11), color: 'rgba(255,255,255,0.6)', textAlign: 'center' as const, marginTop: r(-8) },
-    // Degradado de transición entre el bloque superior y "Mi plan de hoy" —
-    // sustituye el borde redondeado que había antes (petición 2026-08-19).
-    // Revisión 2026-08-20: el degradado quedaba "cutre" (salto duro de solo 2
-    // colores planos, naranja -> bg) y terminaba antes de llegar a la altura
-    // de las tarjetas de Sueño/Balance de carga. Se sube la altura para que
-    // el tramo visible llegue hasta, aproximadamente, la mitad vertical de
-    // esas tarjetas (ver miniCardsRow) — mismo marginTop = -altura/2 de
-    // antes, solo escalado hacia arriba para cubrir más superficie.
-    seamGradient: { height: r(130), marginTop: r(-1) },
     // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
     // de demo, todavía sobre la foto), no a caballo sobre el degradado como
     // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
@@ -532,7 +558,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
     menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
     menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
-  }), [sc, r, C, winH, insets.bottom, heroGradient]);
+  }), [sc, r, C, winH, heroMood]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -602,11 +628,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         const monday = new Date(now);
         monday.setDate(now.getDate() - mondayOffset);
         const weekBools: boolean[] = [];
+        const weekProgress: number[] = [];
         for (let i = 0; i < 7; i++) {
           const d = new Date(monday);
           d.setDate(monday.getDate() + i);
           const dateStr = d.toISOString().split('T')[0];
           const dayData: any = daysByDate.get(dateStr);
+          const dayWorkouts: any[] = dayData?.workouts ?? [];
           // Bug real (reportado con captura, 2026-08-24): antes marcaba el
           // día como cumplido con solo tener un workout ASIGNADO ese día
           // (dayData.workouts.length > 0), sin comprobar si el cliente lo
@@ -615,10 +643,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           // menos uno de los workouts asignados ese día esté en
           // completedAssignmentIdSet (mismas sesiones completadas que ya
           // usa "Mi plan de hoy" para distinguir tarjeta completada/pendiente).
-          const dayCompleted = !!dayData?.workouts?.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
+          const dayCompleted = dayWorkouts.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
           weekBools.push(dayCompleted);
+          // Fracción completados/asignados ese día (pedido explícito, ver
+          // weeklyWorkoutsProgress) -- p.ej. 2 asignados y 1 completado
+          // rellena el anillo a la mitad. 0 si no hay nada asignado ese día.
+          const completedCount = dayWorkouts.filter((w: any) => completedAssignmentIdSet.has(w.assignment_id)).length;
+          weekProgress.push(dayWorkouts.length > 0 ? completedCount / dayWorkouts.length : 0);
         }
         setWeeklyWorkouts(weekBools);
+        setWeeklyWorkoutsProgress(weekProgress);
       } else {
         errors.push('calendario');
       }
@@ -713,8 +747,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   }, []);
 
   if (isLoading) {
+    // Fondo opaco explícito -- a diferencia del render principal (más abajo),
+    // esta pantalla de carga no tiene detrás la capa fija de la foto (ver
+    // homeBgFixedLayer), así que styles.container (transparente a propósito
+    // para dejar ver esa foto) dejaría esto en negro/vacío.
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: C.bg }]}>
         <Box style={styles.loader}>
           <Spinner size="large" color={C.orange} />
         </Box>
@@ -844,6 +882,26 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      {/* Fondo fijo de toda la pantalla (pedido explícito 2026-08-26, con 2
+          capturas de referencia de otra app): la misma foto del hero, pero
+          FUERA del ScrollView -- no se desplaza con el contenido, se queda
+          detrás de todo. Dos capas de oscurecido EN PARALELO al hacer scroll
+          (pedido explícito 2026-08-28, ver comentario junto a
+          HOME_BG_MIN_OPACITY): homeBgDarkenAnimatedStyle (negro) y
+          homeBgSolidAnimatedStyle (C.bg, el tema real) interpolan sobre el
+          mismo rango de scroll [0, "Mi plan de hoy"] a la vez, en vez de una
+          detrás de la otra -- el gris ya se nota desde el principio del
+          scroll, mezclado con el negro que sigue oscureciendo la foto, y las
+          dos llegan a su valor final juntas. El scroll termina de verdad en
+          el fondo real de la app en los dos modos, no en una foto
+          oscurecida indefinida. El "mood" de la foto en sí (heroMood) sigue
+          la hora del día, sin
+          relación con el tema claro/oscuro. */}
+      <Box style={StyleSheet.absoluteFill} pointerEvents="none">
+        <ExpoImage source={HERO_IMAGES[heroMood]} contentFit="cover" style={StyleSheet.absoluteFill} />
+        <Animated.View style={[StyleSheet.absoluteFill, styles.homeBgDarkenLayer, homeBgDarkenAnimatedStyle]} />
+        <Animated.View style={[StyleSheet.absoluteFill, styles.homeBgSolidLayer, homeBgSolidAnimatedStyle]} />
+      </Box>
       {/* Barra fija con efecto glass (calendario / saludo / notificaciones /
           ajustes) — se mantiene estática al hacer scroll, mostrando
           desenfocado lo que pasa por debajo (petición 2026-08-19). Vive fuera
@@ -910,51 +968,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             arriba (stickyHeader, ~r(58)) para que ningún contenido quede
             tapado detrás de ella. */}
         <Box style={[styles.heroHeader, { paddingTop: insets.top + r(64) }]}>
-          {/* Foto real de fondo (amanecer/atardecer, día o noche según la
-              hora) en vez del degradado plano anterior. */}
-          <ExpoImage
-            source={HERO_IMAGES[heroMood]}
-            contentFit="cover"
-            style={StyleSheet.absoluteFill}
-          />
-          {/* Scrim oscuro sobre la foto -- el texto/iconos en blanco de la
-              cabecera necesitan contraste real, la foto sola (sobre todo
-              día/amanecer, cielo muy claro) no lo da. Color a juego con el
-              mood de la foto (ver HERO_GRADIENTS) -- antes era un negro
-              plano fijo para las 3 fotos, por lo que no seguía la tonalidad
-              real de cada una (cálida en amanecer/atardecer, fría en día,
-              casi negra ya en noche). */}
-          <LinearGradient
-            colors={heroGradient.scrim}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* Glass-effect progresivo (estilo KOTCHA): el fondo del hero se
-              desenfoca a medida que se hace scroll -- se renderiza primero
-              para quedar detrás del contenido (texto/iconos), que se
-              mantiene nítido encima. */}
-          <AnimatedBlurView
-            style={StyleSheet.absoluteFill}
-            animatedProps={heroBlurAnimatedProps}
-            tint="dark"
-            pointerEvents="none"
-          />
-          {/* Oscurecido animado: sube junto con el blur hasta tapar la foto
-              casi del todo -- sin esto el blur por sí solo no llega a "no
-              verse", se queda en una foto borrosa pero reconocible. */}
-          <Animated.View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, styles.heroDarkenLayer, heroDarkenAnimatedStyle]}
-          />
-          {/* Degradado de cierre, fijo (no animado): sin él, el límite
-              inferior de la foto contra el resto del contenido se nota como
-              un corte -- este remate suaviza esa transición siempre, esté o
-              no en marcha el efecto de scroll. Color a juego con el mood de
-              la foto, mismo criterio que el scrim de arriba. */}
-          <LinearGradient
-            colors={heroGradient.close}
-            style={styles.heroCloseGradient}
-            pointerEvents="none"
-          />
+          {/* La foto de fondo (amanecer/atardecer, día o noche) ya no vive
+              aquí -- ahora es homeBgFixedLayer, fuera del ScrollView, fija
+              para toda la pantalla (ver más arriba). Este Box se queda
+              transparente y deja verla a través, sin ningún scrim/oscurecido
+              encima (pedido explícito 2026-08-27: quitar el efecto glass que
+              había sobre la foto). */}
 
           {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin
               fuente de datos real todavía (necesitaría el ACWR que ya
@@ -1084,29 +1103,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </HStack>
         </Box>
 
-        {/* Degradado de transición hacia "Mi plan de hoy" (petición
-            2026-08-19: fusión por color, no por borde redondeado; revisión
-            2026-08-20: varios pasos intermedios de opacidad en vez de saltar
-            de golpe entre 2 colores planos, para que la costura no se vea
-            como un corte duro). Recoloreado de naranja a la misma paleta
-            oscura/cálida del heroCloseGradient de arriba -- con foto de fondo
-            real el remate ya no es naranja, tiene que continuar el mismo
-            tono para que ambos degradados se lean como uno solo. Termina en
-            C.bg opaco (no en alpha 0): desvanecer un color oscuro sobre un
-            fondo claro dejaba un lavado grisáceo/sucio en vez de una
-            transición limpia -- pedido explícito de que la imagen "termine
-            con un degradado hacia el color de fondo del resto de la
-            pantalla", literal. Revisión 2026-08-24: el tono ya no es un
-            marrón fijo para las 3 fotos -- sigue el mismo mood (heroGradient)
-            que el scrim y el heroCloseGradient de arriba, para que las 3
-            franjas horarias se lean como una sola transición coherente en
-            vez de un remate genérico desconectado de la foto real. */}
-        <LinearGradient
-          colors={heroGradient.seam(C.bg)}
-          locations={[0, 0.3, 0.6, 1]}
-          style={styles.seamGradient}
-        />
-
         {errorMessage && (
           <HStack style={styles.errorBanner}>
             <Icon name="warning" size={16} color={C.destructive} />
@@ -1129,8 +1125,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             calculado por el backend) en un solo bloque — antes eran dos
             secciones separadas. Máximo 3 items visibles; con más, un botón
             lleva al calendario completo (que ya abre en el día de hoy por
-            defecto, sin necesidad de parámetros). */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+            defecto, sin necesidad de parámetros). onLayout mide dónde
+            empieza esta sección para el oscurecido progresivo del fondo (ver
+            miPlanOffsetY). */}
+        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }} onLayout={handleMiPlanLayout}>
           <Text style={styles.sectionTitle}>
             {state.user?.is_personal_client ? 'Mi plan de hoy' : 'Actividad de Hoy'}
           </Text>
@@ -1180,7 +1178,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
             </Text>
           </HStack>
-          <WeekComplianceRow completedDays={weeklyWorkouts} color={C.orange} size={r(28)} />
+          <WeekComplianceRow completedDays={weeklyWorkouts} progressDays={weeklyWorkoutsProgress} color={C.orange} size={r(28)} />
         </Card>
 
         {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
@@ -1191,9 +1189,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
         <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Hábitos</Text>
-          <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
-            <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
-          </Pressable>
+          <TutorialTarget id="home-habits-link">
+            <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
+              <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
+            </Pressable>
+          </TutorialTarget>
         </HStack>
         {habits.length > 0 ? (
           <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
@@ -1213,7 +1213,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   </VStack>
                   <Icon name="chevron-forward" size={20} color={C.textSecondary} />
                 </HStack>
-                <WeekComplianceRow completedDays={computeWeekCompliance(h.logs)} color={C.orange} size={r(24)} />
+                <WeekComplianceRow
+                  completedDays={computeWeekCompliance(h.logs)}
+                  progressDays={computeWeekProgress(h.logs, h.target_value)}
+                  color={C.orange}
+                  size={r(24)}
+                />
               </Pressable>
             ))}
           </Card>
@@ -1528,8 +1533,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           barra superior fija (cerrar + título "Ajustes"), igual que el
           "Ajustes" real de Bevel. */}
       <Modal visible={showMenu} transparent animationType="slide" onRequestClose={() => setShowMenu(false)}>
-        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
-          <Pressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
+        {/* RNPressable nativo aqui a proposito, no el wrapper @components/ui/pressable
+            (basado en usePress de react-aria) -- ese wrapper no bloquea de forma
+            fiable la propagacion del toque al padre via stopPropagation, asi que
+            cualquier toque dentro de la hoja tambien cerraba el menu (mismo patron
+            ya usado y verificado en ConfirmDialog.tsx). */}
+        <RNPressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
+          <RNPressable style={styles.menuSheet} onPress={(e) => e.stopPropagation()}>
             <Box style={styles.menuHandle} />
             <Box style={styles.menuHeaderBar}>
               <Pressable style={styles.menuCloseBtn} onPress={() => setShowMenu(false)}>
@@ -1787,8 +1797,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Text style={styles.menuLogoutText}>Cerrar sesión</Text>
               </Pressable>
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </RNPressable>
+        </RNPressable>
       </Modal>
     </SafeAreaView>
   );

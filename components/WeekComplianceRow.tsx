@@ -1,46 +1,59 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Icon } from '@components/ui/icon';
+import AnimatedRing from '@components/AnimatedRing';
 import { FONT } from '../pages/migrated/theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-// HabitLogLike/computeWeekCompliance viven en ./weekCompliance.ts (no en este
-// archivo) para que este módulo solo exporte el componente y así Fast Refresh
-// pueda preservar su estado.
+// HabitLogLike/computeWeekCompliance/computeWeekProgress viven en
+// ./weekCompliance.ts (no en este archivo) para que este módulo solo exporte
+// el componente y así Fast Refresh pueda preservar su estado.
 
 interface Props {
-  /** 7 booleanos, Lunes a Domingo de la semana actual. */
+  /** 7 booleanos, Lunes a Domingo de la semana actual -- fallback binario
+   * (1/0) cuando no se pasa `progressDays`. */
   completedDays: boolean[];
+  /** 7 fracciones (0..1), Lunes a Domingo -- el % real de cumplimiento de
+   * cada día (p.ej. entrenamientos completados / asignados ese día, o valor
+   * registrado / objetivo numérico de un hábito, ver computeWeekProgress),
+   * usado para rellenar cada anillo proporcionalmente en vez de solo
+   * hecho/no hecho (pedido explícito: "si el hábito es leer 2 libros de 4
+   * que la gráfica se rellene al 50%", o "si hay 2 entrenamientos asignados
+   * en un día y solo se ha hecho 1, que se rellene la mitad"). Opcional solo
+   * por si algún llamador no tiene aún el dato -- cae a `completedDays`. */
+  progressDays?: number[];
   color?: string;
   size?: number;
 }
 
-/** Fila de 7 recuadros de cumplimiento semanal (L M X J V S D) — mismo estilo (recuadro
- * redondeado, no círculo) en Actividad Semanal, Hábitos y MigratedHabitDetail. */
-export default function WeekComplianceRow({ completedDays, color, size = 28 }: Props) {
+/** Fila de 7 anillos de cumplimiento semanal (pedido explícito, con captura
+ * de referencia de otra app, 2026-08-27: anillo que se rellena por % real de
+ * cumplimiento en vez de un check binario hecho/no hecho -- si un día tiene
+ * 2 entrenamientos asignados y solo se hizo 1, o un hábito con objetivo
+ * numérico va al 50%, el anillo de ese día se rellena hasta la mitad, no de
+ * golpe) — mismo componente en Actividad Semanal, Hábitos (Home) y
+ * `habits_list_screen.tsx`, para que las 3 pantallas se vean idénticas. No
+ * incluye `DayCell` de `habit_detail_screen.tsx` a propósito: ese es un
+ * widget distinto (rejilla mensual/tocable con fechas), no esta fila de
+ * resumen semanal de solo lectura. */
+export default function WeekComplianceRow({ completedDays, progressDays, color, size = 28 }: Props) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
   const resolvedColor = color ?? C.orange;
-  // Mismo cálculo de radio que DayCell en habit_detail_screen.tsx — recuadro
-  // redondeado, no círculo, para que las 3 pantallas se vean idénticas.
-  const radius = size >= 24 ? size * 0.28 : 4;
+  const strokeWidth = Math.max(2, Math.round(size * 0.12));
   return (
     <View style={styles.row}>
       {DAY_LABELS.map((label, i) => {
         const done = !!completedDays[i];
+        const progress = progressDays?.[i] ?? (done ? 1 : 0);
         return (
           <View key={label} style={styles.day}>
+            <AnimatedRing size={size} strokeWidth={strokeWidth} percent={progress * 100} color={resolvedColor} trackColor={C.border} style={styles.dotSpacing}>
+              {progress >= 1 && <Icon name="checkmark" size={Math.min(16, size * 0.5)} color={resolvedColor} />}
+            </AnimatedRing>
             <Text style={styles.label}>{label}</Text>
-            <View
-              style={[
-                styles.dot,
-                { width: size, height: size, borderRadius: radius },
-                done && { backgroundColor: resolvedColor, borderColor: resolvedColor },
-              ]}
-            >
-              {done && <Text style={styles.check}>✓</Text>}
-            </View>
           </View>
         );
       })}
@@ -52,8 +65,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
     row: { flexDirection: 'row', justifyContent: 'space-between' },
     day: { alignItems: 'center' },
-    label: { fontSize: 10, color: C.textSecondary, marginBottom: 4, fontFamily: FONT.regular },
-    dot: { borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    check: { fontSize: 12, color: '#FFFFFF' },
+    dotSpacing: { marginBottom: 6 },
+    label: { fontSize: 11, color: C.textSecondary, fontFamily: FONT.medium },
   });
 }

@@ -8,6 +8,7 @@ import { Button, ButtonText } from '@components/ui/button';
 import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem } from '../../api/resources';
 
@@ -145,7 +146,7 @@ export default function ResourceDetailScreen(props: Props) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
         <ScreenHeader title="" onBack={() => navigation?.goBack()} />
         <Box className="flex-1 items-center justify-center px-8">
           <Spinner size="large" color={C.textPrimary} />
@@ -156,7 +157,7 @@ export default function ResourceDetailScreen(props: Props) {
 
   if (error || !resource) {
     return (
-      <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
         <ScreenHeader title="" onBack={() => navigation?.goBack()} />
         <Box className="flex-1 items-center justify-center px-8">
           <Text muted className="text-center">No se pudo cargar el recurso.</Text>
@@ -168,7 +169,7 @@ export default function ResourceDetailScreen(props: Props) {
   const isExternalType = resource.type === 'video' || resource.type === 'link';
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title={resource.title || fallbackTitle || ''} onBack={() => navigation?.goBack()} />
 
       {isExternalType ? (
@@ -186,7 +187,7 @@ export default function ResourceDetailScreen(props: Props) {
           </Button>
         </Box>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32, paddingTop: 12 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE, paddingTop: 12 }}>
           {resource.content ? (
             <WebView
               source={{

@@ -78,5 +78,7 @@
     <string>Permite a BeFit acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.</string>
     <key>NSCameraUsageDescription</key>
     <string>Permite a BeFit usar la cámara para que puedas añadir una foto a tus publicaciones.</string>
+    <key>NSSupportsLiveActivities</key>
+    <true/>
   </dict>
 </plist>

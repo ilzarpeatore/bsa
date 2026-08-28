@@ -5,10 +5,10 @@ import {
   FlatList,
   Image,
   ScrollView,
-  Alert,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Ionicons  } from '@expo/vector-icons';
 import {  captureRef  } from 'react-native-view-shot';
@@ -260,12 +260,12 @@ export default function WorkoutSummaryScreen(props: Props) {
       if (!uri) return;
       const available = await Sharing.isAvailableAsync();
       if (!available) {
-        Alert.alert('No disponible', 'Compartir no está disponible en este dispositivo.');
+        showToast('No disponible', { description: 'Compartir no está disponible en este dispositivo.', variant: 'warning' });
         return;
       }
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir entrenamiento' });
     } catch (e) {
-      Alert.alert('Error', 'No se pudo generar la imagen para compartir.');
+      showToast('Error', { description: 'No se pudo generar la imagen para compartir.', variant: 'error' });
     } finally {
       setIsSharing(false);
     }
@@ -277,15 +277,15 @@ export default function WorkoutSummaryScreen(props: Props) {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permiso necesario', 'Activa el acceso a tu galería para poder guardar la imagen.');
+        showToast('Permiso necesario', { description: 'Activa el acceso a tu galería para poder guardar la imagen.', variant: 'warning' });
         return;
       }
       const uri = await captureCard();
       if (!uri) return;
       await MediaLibrary.saveToLibraryAsync(uri);
-      Alert.alert('Guardado', 'La imagen se ha guardado en tu galería.');
+      showToast('Guardado', { description: 'La imagen se ha guardado en tu galería.', variant: 'success' });
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar la imagen.');
+      showToast('Error', { description: 'No se pudo guardar la imagen.', variant: 'error' });
     } finally {
       setIsSharing(false);
     }
@@ -305,7 +305,7 @@ export default function WorkoutSummaryScreen(props: Props) {
     } catch (e: any) {
       // El usuario cancelando el share no es un error real.
       if (e?.message && !/cancel/i.test(e.message)) {
-        Alert.alert('Instagram no disponible', '¿Tienes Instagram instalada? No se pudo abrir Stories.');
+        showToast('Instagram no disponible', { description: '¿Tienes Instagram instalada? No se pudo abrir Stories.', variant: 'warning' });
       }
     } finally {
       setIsSharing(false);
@@ -547,7 +547,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   shareItemLabel: { fontFamily: FONT.regular, fontSize: 9.5, color: C.textSecondary, marginTop: 5, textAlign: 'center' },
 
   footer: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 6 },
-  doneBtnText: { fontFamily: FONT.bold, fontSize: 15, color: '#FFFFFF', letterSpacing: 0.5 },
+  // Sin color aqui a proposito: ButtonText ya trae "text-primary-foreground"
+  // por el variant="default" del Button (button/index.tsx), que invierte
+  // negro/blanco segun el tema -- un color fijo lo pisaba y dejaba el boton
+  // "OK" invisible (blanco sobre blanco) en modo oscuro, donde bg-primary
+  // pasa a ser blanco (ver --primary en global.css).
+  doneBtnText: { fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 },
 
   pageFill: { flex: 1 },
 

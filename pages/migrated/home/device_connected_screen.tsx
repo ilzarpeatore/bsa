@@ -6,12 +6,14 @@ import { Heading } from "@components/ui/heading";
 import { VStack } from "@components/ui/vstack";
 import { Button, ButtonText } from "@components/ui/button";
 import { Icon } from "@components/ui/icon";
+import { useAppColorMode } from "@helper/useAppColorMode";
 
 export default function DeviceConnectedScreen({ navigation, route }: any) {
+  const { colors: C } = useAppColorMode();
   const isHealthSource = route?.params?.source === "health";
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <VStack className="flex-1 items-center justify-center px-8" space="2xl">
         <Box className="items-center justify-center rounded-pill bg-success" style={{ width: 96, height: 96 }}>
           <Icon name="checkmark" size={56} className="text-success-foreground" />

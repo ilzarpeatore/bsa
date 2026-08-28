@@ -13,7 +13,9 @@ import {  Icon  } from '@components/ui/icon';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  postsApi  } from '../../api/posts';
 import logger from '@helper/logger';
+import { showToast } from '@helper/toast';
 import { hapticLight } from '@helper/haptics';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  RADIUS  } from './theme';
 
 interface PostData {
@@ -187,7 +189,7 @@ export default function CommunityScreen(props: any) {
             setMPostList((prev) => prev.filter((p) => p.id !== item.id));
           } catch (e) {
             logger.error('Error deleting post', e);
-            Alert.alert('Error', 'No se pudo eliminar la publicación');
+            showToast('Error', { description: 'No se pudo eliminar la publicación', variant: 'error' });
           }
         },
       },
@@ -296,7 +298,7 @@ export default function CommunityScreen(props: any) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       <HStack className="items-center justify-between px-4 py-3">
         <Heading size="md">Comunidad</Heading>
         <HStack space="md" className="items-center">
@@ -317,7 +319,7 @@ export default function CommunityScreen(props: any) {
           </Pressable>
         </HStack>
       </HStack>
-      <Box className="flex-1" style={{ backgroundColor: 'rgba(128,128,128,0.1)' }}>
+      <Box className="flex-1">
         {mPostList.length > 0 ? (
           <FlatList
             ref={scrollController}
@@ -333,7 +335,7 @@ export default function CommunityScreen(props: any) {
                 tintColor={C.orange}
               />
             }
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: 20 + WORKOUT_MINIBAR_CLEARANCE }}
           />
         ) : (
           renderEmptyList()

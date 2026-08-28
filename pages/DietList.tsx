@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
-import { Colors } from "@constants/colors";
+import { useColors } from "@constants/colors";
 import { dietApi, DietListItem, DietCategory } from "../api/diet";
 import { DietCardMem } from "../components/DietCard";
 import { EmptyStateMem } from "../components/EmptyState";
@@ -23,13 +23,19 @@ interface Props {
 }
 
 // Constantes del gradiente del chip activo, fuera del componente para no
-// reconstruir el objeto/array en cada render de cada fila del FlatList.
+// reconstruir el objeto en cada render de cada fila del FlatList -- los
+// colores (que si dependen del tema) se calculan aparte, dentro del
+// componente, via useMemo (ver CHIP_GRADIENT_COLORS mas abajo).
 const CHIP_GRADIENT_START = { x: 0.24, y: -0.09 };
 const CHIP_GRADIENT_END = { x: 0.78, y: 0.93 };
-const CHIP_GRADIENT_COLORS: [string, string] = [Colors.ACCENT_START, Colors.ACCENT_END];
 const ALL_CATEGORY: DietCategory = { id: 0, title: "All", categorydiet_image: "" } as DietCategory;
 
 export default function DietList({ navigation }: Props) {
+  const Colors = useColors();
+  const CHIP_GRADIENT_COLORS = useMemo<[string, string]>(
+    () => [Colors.ACCENT_START, Colors.ACCENT_END],
+    [Colors]
+  );
   const styles = useStyle();
   const [data, setData] = useState<DietListItem[]>([]);
   const [categories, setCategories] = useState<DietCategory[]>([]);
@@ -349,6 +355,7 @@ export default function DietList({ navigation }: Props) {
 }
 
 function useStyle() {
+  const Colors = useColors();
   return useResponsiveStyleSheet({
     bg: {
       width: "100%",
@@ -439,5 +446,5 @@ function useStyle() {
       paddingHorizontal: "16@ratio",
       paddingTop: "16@ratio",
     },
-  });
+  }, [Colors]);
 }

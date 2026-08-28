@@ -2269,3 +2269,179 @@ Pedido explícito del usuario: auditoría profesional de seguridad de la app (cl
 Detalle completo (resumen ejecutivo, threat model, cada vulnerabilidad con severidad/evidencia/impacto/solución, dependencias vulnerables, checklist de producción, top 10 riesgos, y veredicto final) en `SECURITY_AUDIT.md` (nuevo, raíz del repo). **Veredicto: 🟡 SÍ, PERO CON RIESGOS PENDIENTES** — nada crítico activo en el cliente tras los fixes, pero el backend (RLS, rate limiting, IDOR real) no se ha podido auditar desde este repositorio. 6 puntos de hardening quedan documentados sin implementar (política de contraseñas, protección anti-capturas, dependencias de UI en alpha/preview, resto de vulnerabilidades de tooling de build, certificate pinning evaluado y descartado, confirmación del dominio de API de producción).
 
 Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores.
+
+## Sesión 2026-08-26 (continuación) — Ronda de bugs reportados uno a uno tras el build de IPA
+
+Tras el build de IPA y la auditoría de seguridad, el usuario reportó 10 bugs/peticiones concretas uno a uno (con capturas en la mayoría), resueltos en el mismo orden. Detalle línea a línea de cada uno en `BUGS_AND_FIXES.md` (BUG-031 a BUG-040) e `IMPROVEMENTS.md` (IMP-009) — aquí solo el resumen ejecutivo.
+
+**Fixes puntuales, alta confianza** (evidencia de código concreta, no verificación visual pendiente más allá del criterio ya establecido en la sesión):
+
+- **BUG-031** — swipe lateral del calendario (`my_program_calendar_screen.tsx`) competía con el gesto de volver atrás del navigator; excluido con `hitSlop({left: -25})` el margen de 25pt que usa el gesto nativo de iOS.
+- **BUG-032** — diálogo de ajustes de Home v2 se volvía transparente al tocar dentro; el `Pressable` del wrapper compartido (`@components/ui/pressable`, basado en `react-aria`) no propagaba bien `stopPropagation()` en el patrón overlay/sheet — cambiado a `Pressable` nativo.
+- **BUG-033** — botón "ver todas las métricas" en Progress sobresalía por la derecha; `width: '47%'` dentro de un contenedor con `gap` no descuenta el gap del porcentaje (aritmética de Yoga/flexbox) — arreglado con `flex: 1` en filas explícitas sin wrap.
+- **IMP-009** — renombrados los títulos de las 6 secciones de "Estadísticas avanzadas" por coincidir literalmente con los de la app de referencia.
+- **BUG-035** — acordeón de bibliografía en Blog Detail no alineaba con el bloque de contenido; unificado el `marginHorizontal` (16→12) + `overflow: hidden`.
+- **BUG-040** — borradas 4 pantallas sin ningún punto de entrada real (`MigratedMainGoal`, `MigratedFitnessMetrics`, `MigratedHealthMetricInsight`, `MigratedManageHealthMetrics`), confirmado con `grep` de navegación antes de borrar.
+
+**Fixes de mejor esfuerzo, causa raíz no confirmada** (sin acceso a backend/dispositivo desde este entorno):
+
+- **BUG-034** — `MigratedChatting` se veía roto (sin cabecera, sin mensajes, input arriba del todo). Investigación exhaustiva (git log completo, comparación con `chatting_image_screen.tsx`) sin encontrar la causa exacta; aplicado el mismo tipo de fix que BUG-032 (mismo wrapper de `Pressable` implicado) como evidencia circunstancial, no confirmada.
+- **BUG-039** — crear un hábito personalizado (`MigratedHabitAdd`) fallaba sin indicar el motivo. No se encontró ningún bloqueo de frontend; se corrigió una inconsistencia real (el error del backend se descartaba en vez de mostrarse, a diferencia de `adopt()` en el mismo fichero) y se añadió `logger.error` a los 3 `catch` de la pantalla para que un fallo real quede registrado.
+
+**Cambios grandes, pendientes de confirmación real en dispositivo**:
+
+- **BUG-036** — la imagen del hero de Home v2 seguía sin llenar la pantalla completa pese a pedirse varias veces en sesiones anteriores; la altura restaba explícitamente el hueco de la barra de pestañas flotante. Cambiado a `height: winH` puro y **eliminados por completo** los 2 degradados de cierre (`heroCloseGradient`/`seamGradient`) que disimulaban ese corte, pedido explícito del usuario ("el degradado tampoco está bien hecho, quítalo").
+- **BUG-037** — texto ilegible en el minimizador de entrenamiento (`WorkoutMinimizedBar.tsx`), segundo intento sobre este mismo bug (el fix anterior, de otra sesión, asumía que el `GlassView` real siempre sale claro). Fix real: `colorScheme="dark"` explícito en vez de dejar que el sistema decida, con texto blanco fijo en ambas ramas (glass real u fallback).
+- **BUG-038**, el más grande del lote — causa raíz real de "casi ninguna pantalla deja volver atrás deslizando": los 2 navigators de pantalla completa usaban `createStackNavigator` (`@react-navigation/stack`, gesto de volver implementado en JS, pierde el arbitraje de toque contra cualquier scroll horizontal de la pantalla). Migrados a `createNativeStackNavigator` (`@react-navigation/native-stack`, nueva dependencia), que delega el gesto al `UINavigationController` real de iOS. No requiere `pod install` (reutiliza el módulo nativo de `react-native-screens`, ya enlazado). Efecto colateral aceptado: se pierde la transición de resorte personalizada de Fase 4 (`helper/motion.ts`, eliminado) — pasa a la transición nativa por defecto de la plataforma.
+
+Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores (esta corrida en particular tardó notablemente más de lo habitual — ~20 min frente a los 5-10 min normales de la sesión — atribuible al mayor coste de inferencia de tipos genéricos de `native-stack` sobre las ~150 pantallas registradas, no a contención de recursos: la carga del sistema se mantuvo normal durante toda la corrida).
+
+**Pendiente**: confirmación visual/funcional real en dispositivo de los 3 cambios grandes (BUG-036, 037, 038) antes de darlos por cerrados del todo — recomendado como prioridad #1 del próximo build de IPA, empezando por BUG-038 al ser el de mayor superficie (afecta a toda la navegación de la app).
+
+## Sesión 2026-08-26 (continuación) — `pod install` (investigado, no ejecutable aquí) + migración de Alert.alert a Toast
+
+Pedido explícito del usuario tras la ronda de bugs anterior: "haz pod install, luego migra los 70-75 alert.alert". Detalle en `docs/BUILD_IPA.md` (nota de `pod install`) e `IMPROVEMENTS.md` (IMP-010) — resumen aquí.
+
+**`pod install`**: probado explícitamente (`gem install cocoapods` funciona en este sandbox Linux, pero `pod install` sobre `ios/Podfile` falla siempre porque `use_react_native!` invoca `xcodebuild`, inexistente fuera de macOS con Xcode). No es un problema del proyecto — es una limitación de plataforma sin solución posible desde este entorno de agente. No hace falta ningún workaround: `ios-build.yml` ya ejecuta `pod install` en cada build sobre un runner macOS real con Xcode, así que cualquier dependencia nativa nueva (haptics, HealthKit, SecureStore) se resuelve sola en el próximo build lanzado.
+
+**Migración de `Alert.alert` a Toast**: de los 107 `Alert.alert` del repo, 90 (feedback simple de una sola dirección: validaciones, errores, éxitos, avisos) se migraron a un sistema de toast global nuevo (`helper/toast.ts` + `components/ToastHost.tsx`, montado en `App.tsx`) construido sobre los componentes visuales `Toast`/`ToastTitle`/`ToastDescription` que ya existían desde Fase 3 sin consumidor real. Los otros 17 (confirmaciones destructivas con Cancelar/acción, menús de elección real) se dejan como `Alert.alert` a propósito — un toast no bloquea ni sustituye una decisión real. `tsc` detectó y permitió corregir un error de JSX real introducido al montar `ToastHost` (`</TutorialProvider>` sin cerrar en `App.tsx`) antes de llegar a commitear.
+
+**Backend**: nada de este bloque de trabajo requería tocar el backend — es 100% frontend (mecanismo de feedback visual) y config nativa ya resuelta por CI. El resto de puntos pendientes con dependencia de backend (rate limiting, saneado de errores 5xx en origen, revocación de sesión, IDOR) siguen tal cual en `docs/PENDIENTE_BACKEND_ADMIN.md`, sin cambios en esta sesión.
+
+Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores.
+
+## Sesión 2026-08-26 (continuación) — Modernización de MigratedWorkoutSession + selector de intensidad RIR/RPE
+
+**BUG-041**: "los bloques" de `MigratedWorkoutSession` (tarjeta del ejercicio activo) se veían planos, casi fundidos con el fondo. Causa real: la `Card` usaba `variant="filled"` (`bg-secondary`, `rgb(247,247,247)`) contra un fondo de pantalla `rgb(244,244,247)` — 3 unidades de diferencia por canal, invisible en la práctica; las filas colapsadas de la misma pantalla ya usaban `bg-card` (blanco real) y por eso se veían bien. Cambiado a `variant="elevated"` (blanco + sombra), con borde visible en cada celda de métrica/nota y el número de serie en insignia circular. Fila de acciones rehecha: **PROGRESO / AÑADIR SERIE / MARCAR TODAS** (antes solo 2 botones sin separador) — "Progreso" reutiliza `openExerciseInfo(ex)`, función ya existente que ya abría `MigratedExerciseInfo` con `initialTab:'analysis'`. Orden de columnas fijado (pedido explícito, ajustado una vez tras ver el primer resultado): **series, repeticiones, carga, RIR/RPE, descanso**.
+
+**IMP-011**: selector guiado de intensidad tras completar una serie, pedido en 2 pasos (RIR primero, RPE después con el criterio "deben ser reemplazables"). Un único componente `IntensityCheckSheet.tsx` parametrizado por `metric:'rir'|'rpe'` (no dos casi-duplicados: RIR y RPE son la misma escala de 5 tramos vista al revés — RIR 0 = RPE 10). RIR y RPE dejan de ser dos columnas posibles independientes: ahora comparten un único "slot" en la tabla, y el cliente elige cuál rellenar tocando el título de la columna (`getIntensityMode`/`toggleIntensityMode`/`getDisplayMetrics`, por ejercicio). Al completar una serie con esa métrica activa (y la preferencia de apertura automática encendida, persistida en `AsyncStorage`), se abre el sheet con la escala de 5 opciones coloreadas; el valor elegido se escribe con la misma `setCellValue` que ya usaba la celda de texto libre.
+
+Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo del proyecto sin errores en ambos bloques.
+
+### Push a `master` y build de IPA tras esta ronda (2026-08-26)
+
+Con BUG-041 e IMP-011 verificados (`tsc --noEmit -p .` limpio, `eslint --quiet` limpio), `origin/master` era ancestro estricto de la rama de esta sesión — push directo como fast-forward, sin conflictos ni merge commit (`e142056..d0dad57`).
+
+Build lanzado inmediatamente después vía `mcp__github__actions_run_trigger` (`run_workflow`, `ios-build.yml`, `ref: master`) con los inputs correctos de `docs/BUILD_IPA.md` — `ios_path: "ios"`, `configuration: "Release"`, `build_id: "befit-20260826-1541-d0dad57"` — evitando explícitamente el default (`ios_path: "."`, `configuration: "Debug"`) que causó el incidente ya documentado más arriba. Run #48: `https://github.com/ilzarpeatore/bsa/actions/runs/32985848821`.
+
+**Incidente run #48**: terminó en `startup_failure` (0 jobs, fallo puro de infraestructura de GitHub Actions, no del código). Se relanzó vía `rerun_workflow_run`, pero ese rerun se quedó indefinidamente en `status: queued` con 0 jobs — muy por encima de los ~15-25 min que tardan históricamente el resto de runs de este workflow en, como mínimo, empezar. Al intentar cancelarlo para liberar el hueco, la API de GitHub devolvió `409 Cannot cancel a workflow re-run that has not yet queued` — confirma que el propio mecanismo de rerun quedó en un estado roto (probablemente porque el run original nunca llegó a crear jobs reales que reintentar), no que fuera solo lento. Solución: nuevo `run_workflow` (no rerun) sobre el mismo commit (`master @ d2a9027`) — **run #49**, `https://github.com/ilzarpeatore/bsa/actions/runs/32990423765`, arrancó (`in_progress`) de inmediato y terminó en **éxito**, cerrando el incidente.
+
+## Sesión 2026-08-26 (continuación) — Live Activity de iOS para el entrenamiento en curso
+
+Pedido explícito del usuario con captura de referencia de otra app ("Symmetry"): una notificación/popup en la pantalla de bloqueo mostrando el entrenamiento en curso. Se le indicó inicialmente que esto requería Xcode y no se podría verificar desde aquí; el usuario corrigió correctamente que su propio PC tampoco tiene Xcode (es Windows) y que **toda** la app se ha construido siempre así, a ciegas, verificando solo vía el build de CI — este feature se hizo con el mismo método. Detalle técnico completo en `IMPROVEMENTS.md` (IMP-012): nuevo target de extensión WidgetKit (`befitWidgetsExtension`) añadido a mano en `project.pbxproj` (sin App Group, sin `@available` — el deployment target 16.4 ya cubre ActivityKit), puente nativo `LiveActivityModule.swift`/`.m`, wrapper JS `helper/liveActivity.ts`, y wiring en `workout_session_screen.tsx` (arranca al cargar la sesión, se actualiza con el ejercicio/serie/descanso en curso, se cierra solo al finalizar o cerrar el entrenamiento — nunca al minimizar).
+
+Verificado: `eslint --quiet` limpio, `tsc --noEmit -p .` completo sin errores. **El `project.pbxproj`/Swift no se pueden verificar en este entorno** (sin Xcode/macOS) — la única prueba real es el próximo build de IPA en CI, con razonable probabilidad de necesitar más de un intento dado que es la primera vez que se edita el `pbxproj` a mano para añadir un target nuevo completo (no solo referencias de archivo sueltas).
+
+Push a `master` como fast-forward (`d2a9027..0d0ba8c`) y build lanzado inmediatamente después: **run #50**, `https://github.com/ilzarpeatore/bsa/actions/runs/32993709013` (`ios_path: "ios"`, `configuration: "Release"`) — **terminó en éxito a la primera**, sin necesitar ningún ajuste al `project.pbxproj`/Swift editados a mano. El IPA de ese run ya lleva el Live Activity.
+
+---
+
+## Sesión 2026-08-26 (continuación) — IMP-013/014/015 + BUG-048 a BUG-051 + build #51
+
+Tras el Live Activity (run #50), el usuario pidió explícitamente no lanzar ningún build hasta acumular más arreglos ("No hagad el build del ipa cuando termine, tenemos que solucionar mas cosas"). Se acumularon en 3 commits sobre `claude/lectura-contexto-hrz50s` (fast-forward a `master` tras cada uno, `tsc --noEmit -p .` completo limpio antes de cada push):
+
+- **IMP-013**: Live Activity ampliada con foto del ejercicio, métricas de la serie objetivo (reps/carga/RIR-RPE) y datos de transición al siguiente ejercicio (ver `IMPROVEMENTS.md`).
+- **BUG-048**: número de serie y check de completar desalineados respecto a las celdas de métrica en `workout_session_screen.tsx` (`items-center` → `items-start` + `marginTop` puntual).
+- **IMP-014**: Home v2 — fondo fijo (no se desplaza con el scroll) con oscurecido progresivo por scroll, respetando modo claro/oscuro (experimento pedido explícitamente, con capturas de referencia de otra app).
+- **IMP-015**: en `MigratedWorkoutPreview`, la miniatura y el título de cada ejercicio navegan al detalle (`MigratedExerciseInfo`).
+- **BUG-049**: el menú "+" de accesos rápidos (`NavigationTab.tsx`) se veía siempre claro, ignorando el modo oscuro real de la app — mismo patrón puntual que BUG-044/045 pero en un componente `StyleSheet` puro, no Tailwind.
+
+Lanzado el build inmediatamente después, con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #51**, `https://github.com/ilzarpeatore/bsa/actions/runs/33020185153` — **terminó en éxito** (`master` @ `3b99b7c`, ~22 min).
+
+Con el build ya lanzado, llegaron 2 reportes más con captura, resueltos y pusheados por separado (fast-forward a `master` en cada uno, no forman parte del run #51):
+
+- **BUG-050**: `WorkoutMinimizedBar` (píldora flotante global de entrenamiento en curso, montada junto a `NavigationContainer`) podía tapar el último elemento de cualquier pantalla al hacer scroll hasta el final, porque cada pantalla reserva su propio `paddingBottom` sin saber que este overlay puede aparecer encima. Nueva constante compartida `WORKOUT_MINIBAR_CLEARANCE` (`components/WorkoutMinimizedBar.tsx`) aplicada en un barrido de 44 pantallas — mismo patrón que `TAB_BAR_CLEARANCE` ya usaba para la barra de pestañas. Barrido delegado a un agente en background (verificado después con `eslint`/`tsc` propios antes de comitear). Detalle completo y lista de archivos en `BUGS_AND_FIXES.md`.
+- **BUG-051**: en `MigratedCommunity`, un tinte gris fijo (`rgba(128,128,128,0.1)`) sin relación con el tema dejaba el fondo casi idéntico al color de las tarjetas de publicaciones en modo oscuro — quitado, ahora se ve el `C.bg` real.
+
+Todo lo de este bloque queda 🔵 pendiente de confirmación visual real en dispositivo, salvo el propio build (que sí compiló) — ninguno de los 2 últimos bugs (BUG-050/051) se lanzó todavía en un build de IPA nuevo.
+
+---
+
+## Sesión 2026-08-27 — BUG-052 + IMP-016/017/018 + run #52
+
+Continuación: fondo de Home v2 con doble oscurecido (BUG-052, ver `BUGS_AND_FIXES.md`), calendario semanal y píldoras de cumplimiento semanal modernizados a diseño de píldora/círculo con captura de referencia (IMP-016/017), y el círculo de cumplimiento se rellena por % real en hábitos con objetivo numérico en vez de solo hecho/no-hecho (IMP-018, reutiliza `AnimatedRing`). Cada bloque verificado con `eslint`/`tsc` propio antes de comitear, push a `master` como fast-forward tras cada uno.
+
+Build lanzado a petición explícita del usuario con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #52**, `https://github.com/ilzarpeatore/bsa/actions/runs/33073457387` — **terminó en éxito** (`master` @ `889d42b`, incluye BUG-048 a 052 e IMP-013 a 018).
+
+Tras el run #52, el usuario reportó 3 veces seguidas (con captura) que los cambios de hábitos/calendario/oscurecido "no se aplicaban" en el IPA instalado — verificado con `git merge-base --is-ancestor` que los 3 commits SÍ son antecesores del commit construido, y que el paso de bundling del proyecto tiene `alwaysOutOfDate = 1` (siempre regenera el JS desde cero, sin caché posible). Diagnóstico entregado al usuario: instalación desactualizada en el dispositivo (probable fallo de la herramienta de sideload al "actualizar" en vez de reinstalar limpio), no un bug de código — pendiente de que el usuario confirme la versión que ve en Ajustes.
+
+En paralelo, se reportó y arregló **BUG-053**: el glass de la barra de navegación flotante no llegaba hasta el borde físico inferior de la pantalla (el margen de `safearea.bottom` quedaba sin ningún fondo de cristal, mostrando la foto de fondo de Home v2 sin difuminar ahí). Fix: nueva capa `bottomGlassBackdrop` a todo el ancho, con altura `barHeight + safearea.bottom` (mismo `useScale` que ya usa la propia píldora) — se adapta sola a cualquier dispositivo. Detalle en `BUGS_AND_FIXES.md`.
+
+Build lanzado con todos los cambios acumulados: **run #53**, `https://github.com/ilzarpeatore/bsa/actions/runs/33085215429` — **terminó en éxito** (`master` @ `062ac1e`, incluye BUG-053 además de todo lo anterior).
+
+---
+
+## Sesión 2026-08-27 (continuación) — Checkout de programas (Stripe + PayPal) en `bckbs`: backend hecho, despliegue pendiente
+
+Petición del usuario: sincronizar el blog de la app con la web externa y diseñar/implementar la venta de programas individuales desde la web, con asignación automática al perfil de la app. Ver **`docs/PLAN_VENTAS_PROGRAMAS_Y_BLOG.md`** para el diseño completo — resumen aquí de lo hecho y lo pendiente.
+
+**Hallazgo clave**: no hace falta ningún modelo nuevo — `Package` (`bckbs/app/Models/Package.php`) ya cubre "programa individual" (su propio comentario da el ejemplo "Definición 3 meses"), y `Subscription::boot()` ya dispara `PackageFulfillmentService::fulfill()` automáticamente en cuanto se guarda una `Subscription` con `status=active`+`payment_status=paid` — construido a propósito para un futuro gateway de pago real, según su propio comentario. El único hueco real era la pasarela de pago → `Subscription`.
+
+**Corrección de una afirmación falsa de sesiones anteriores**: `docs/PENDIENTE_BACKEND_ADMIN.md`/`TAREAS.md` afirmaban que "el webhook de Stripe ya funciona". Falso — verificado con `grep` exhaustivo en `bckbs` que no existía ninguna ruta de webhook, ningún paquete de Stripe instalado, ninguna clave configurada. Corregido en `PLAN_VENTAS_PROGRAMAS_Y_BLOG.md`.
+
+**Implementado y pusheado a `bckbs` (`main`)**:
+
+- `App\Http\Controllers\API\V1\CheckoutController`: `createStripeSession()` + `stripeWebhook()`/`fulfillStripeSession()` (commit `cdf1cba`) y `createPaypalOrder()` + `capturePaypalOrder()` (commit `e660f75`).
+- Rutas nuevas en `routes/api.php`: `GET package-catalog` (público), `POST webhooks/stripe` (público, verificado por firma), `POST v1/checkout/stripe/create-session`, `POST v1/checkout/paypal/create-order`, `POST v1/checkout/paypal/capture-order` (las 3 últimas con `auth:sanctum`).
+- `stripe/stripe-php` instalado (`composer.json`/`composer.lock`); `paypal/paypal-server-sdk` ya estaba instalado sin usar, ahora cableado.
+- `config/services.php`/`.env.example` documentan `STRIPE_SECRET_KEY`/`STRIPE_PUBLIC_KEY`/`STRIPE_WEBHOOK_SECRET`/`PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE`/`PAYPAL_WEBHOOK_ID`/`FRONTEND_URL` — todo vacío, sin ninguna clave real en el repo.
+- Verificado con `php -l` en los 3 archivos tocados y resolución real de clases (`class_exists`) contra los SDKs instalados — sin poder ejecutar un test funcional completo por falta de base de datos/credenciales en este entorno (intento de migrar contra SQLite local falló por sintaxis específica de MySQL en una migración vieja — `ALTER TABLE ... MODIFY`, no soportado por SQLite; no se investigó más porque no es necesario para lo que sigue).
+
+**Incidente de seguridad de esta sesión (documentado, no una tarea a resolver)**: el usuario pegó por chat, en distintos momentos, una clave publicable live de Stripe, una clave secreta live de Stripe completa (`sk_live_...`), una clave restringida live "con permisos totales" (`rk_live_...`), y credenciales root de un servidor por IP+contraseña, pidiendo que se usaran directamente para desplegar y probar el checkout con un cargo real de 0,50€. Ninguna de esas claves ni la contraseña se ha escrito en ningún archivo de ningún repo. Dos intentos de acción (llamar a la API de Stripe para crear el webhook endpoint en modo live; instalar herramientas para conectar por SSH como root al servidor) fueron bloqueados por el clasificador de seguridad automático del propio entorno — no por criterio propio revocable por instrucción del usuario — y no se intentó rodear el bloqueo. Se le explicó esto al usuario y se le ofrecieron 2 vías seguras en su lugar (ver "Pendiente para mañana" abajo). Se le recomendó explícitamente rotar esa contraseña y esas claves.
+
+### Pendiente para mañana (2026-08-28), en orden
+
+1. **Webhook de Stripe (vía Dashboard, no vía API)**: el usuario da de alta él mismo el endpoint en Stripe (modo live) → `https://testapp.bestronger.es/api/webhooks/stripe`, evento `checkout.session.completed` → pasa el `whsec_...` resultante por chat, para meterlo en el `.env` del servidor.
+2. **Despliegue en el servidor real** (`testapp.bestronger.es`, fuera del alcance de esta sesión por el bloqueo de seguridad — lo ejecuta el usuario o un pipeline de CI/CD, no esta sesión vía SSH root): `git pull origin main` + `composer install --no-dev --optimize-autoloader` en `bckbs`, añadir al `.env` del servidor `STRIPE_SECRET_KEY`/`STRIPE_PUBLIC_KEY`/`STRIPE_WEBHOOK_SECRET` (live) + `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`PAYPAL_MODE=live` (si ya hay credenciales de PayPal) + `FRONTEND_URL`, `php artisan config:clear && php artisan config:cache` si el proyecto cachea config.
+3. **Package de prueba**: crear uno con `price=0.50`, `status=active`, sin `training_program_id`/`meal_plan_template_id` (así `PackageFulfillmentService::fulfill()` no importa nada al calendario, cero riesgo de ensuciar datos de un cliente real).
+4. **Prueba end-to-end con 0,50€ real** (decisión explícita del usuario: precio mínimo para acotar el riesgo mientras se prueba en modo live, no en modo test): login → `POST v1/checkout/stripe/create-session` con el `package_id` de prueba → pagar en la URL de Stripe devuelta → comprobar en el Dashboard de Stripe que el webhook se entregó con `200`, en `storage/logs/laravel.log` que no hay warnings, y en la tabla `subscriptions` que la fila tiene `fulfilled_at` no nulo.
+5. Repetir el mismo flujo para PayPal (`create-order`/`capture-order`) en cuanto haya credenciales de sandbox o se decida probarlo también en real — no pedidas todavía.
+6. Añadir el dominio de producción de `webbs` a `bckbs/config/cors.php` en cuanto se despliegue.
+7. Tras las pruebas: el usuario rota la contraseña root del servidor y las claves de Stripe que quedaron expuestas en este chat (compromiso ya asumido por el usuario, no responsabilidad de esta sesión).
+8. El lado de la web (`webbs`) sigue sin empezar: `/blog`, `/programas`, login-antes-de-pagar, botones de compra, páginas de retorno — no depende de nada de lo anterior salvo el dominio de CORS, se puede avanzar en paralelo.
+
+---
+
+## Sesión 2026-08-27 (continuación) — IMP-019 a 022 + BUG-054/055 + runs #54 y #55
+
+Continuación directa de la sesión anterior (run #53). Detalle línea a línea de cada bloque en `IMPROVEMENTS.md` (IMP-019 a IMP-022) y `BUGS_AND_FIXES.md` (BUG-054/055) — aquí solo el resumen ejecutivo, en el mismo orden en que se pidieron.
+
+**IMP-019 — Home v2, fondo con oscurecido progresivo, ida y vuelta**: el usuario pidió primero eliminar del todo el efecto glass/opacidad sobre la foto de fondo fijo de Home v2 (se quitan scrim duplicado + oscurecido animado por completo). En el mismo hilo pidió reintroducirlo, pero mejor especificado: opacidad 0.20→0.90, con el tope alcanzado justo al llegar a la sección "Mi plan de hoy" (medido en tiempo real vía `onLayout`, `miPlanOffsetY`, no con un nº de píxeles de scroll fijo como antes) y fijo desde ahí hasta el final.
+
+**IMP-020 — Cumplimiento semanal y hábitos, un solo anillo por % real**: `WeekComplianceRow` deja de tener una variante de recuadro binario como fallback — siempre usa el anillo `AnimatedRing`. "Cumplimiento semanal" (entrenamientos) pasa a rellenarse por fracción real completados/asignados por día (antes solo hecho/no-hecho si había al menos uno completado); los hábitos pasan siempre el % real, no solo cuando tienen objetivo numérico.
+
+**IMP-021 — Calendario circular de kcal en Plan diario**: la píldora de día de `plan_screen.tsx` pasa a formato circular (captura de referencia de otra app), con el círculo de cada día relleno según kcal consumidas/objetivo de ESE día — 7 peticiones en paralelo (`Promise.allSettled`, `dietApi.getDailyPlan` no tiene resumen semanal) por cada semana visible, con el día seleccionado sincronizado al instante aparte.
+
+**IMP-022 — Calendario de Mi programa, anillo de estado por color**: mismo formato circular para `my_program_calendar_screen.tsx` (Semana y Mes), pero con color por estado discreto en vez de %: naranja = entrenamiento o tarea asignada, verde = completado, gris/neutro = nada asignado. Sustituye el puntito de 5px que había antes.
+
+Tras el primer build de esta ronda, el usuario reportó dos bugs más con captura, resueltos y pusheados aparte:
+
+- **BUG-054** — el tope de 0.90 de IMP-019 resultó demasiado agresivo en modo claro: la foto quedaba prácticamente tapada por un bloque gris plano en toda la parte baja de la pantalla. Bajado a 0.45.
+- **BUG-055** — `MigratedAssessmentResult` (resumen final del onboarding) prácticamente ilegible en modo oscuro: fondo fijado a colores claros hardcodeados (`#FFF3EC`/`#FFFFFF`) mientras el texto sí usaba tokens adaptativos (casi blancos en oscuro) — texto claro sobre fondo que seguía siendo claro siempre. Corregido a `C.bg`/`C.surface`.
+
+Cada bloque verificado con `eslint`/`tsc` propio antes de comitear (salvo IMP-022, donde `tsc` no se pudo ejecutar por falta de `node_modules` en este entorno — se verificó a mano el balanceo de llaves/paréntesis/corchetes del archivo completo como comprobación estructural mínima). Todos los commits, push a `master` directo (ya no hubo rama intermedia — la sesión se quedó trabajando sobre `master` desde el primer merge).
+
+Dos builds en esta ronda:
+
+- **Run #54**, `https://github.com/ilzarpeatore/bsa/actions/runs/33112529860` (`master` @ `9b5b739`, incluye IMP-019 a 021) — **terminó en éxito**.
+- **Run #55**, `https://github.com/ilzarpeatore/bsa/actions/runs/33124168826` (`master` @ `ac6c7d6`, incluye además IMP-022, BUG-054 y BUG-055) — lanzado al pedido explícito del usuario ("merge todo a master y lanza el build del ipa") — **terminó en éxito** (confirmado en una sesión posterior).
+
+**Pendiente**: confirmación visual real en dispositivo de todo lo de esta ronda (ninguno de los 6 bloques tiene trabajo de código pendiente) — recomendado como prioridad del próximo repaso, en particular BUG-054 (ajuste de opacidad no visto aún en dispositivo) e IMP-022 (tamaños de anillo en pantallas estrechas, sin poder probarse desde este entorno).
+
+---
+
+## Sesión 2026-08-28 — BUG-056/057 (corrección de BUG-053/054), BUG-058 (corrige IMP-022), auditoría completa del sistema de retos (BUG-059 a 062) + incidente de build (run #56) + fix de lockfile
+
+Continuación directa de la sesión anterior. Tres rondas de trabajo, cada una a partir de un reporte explícito del usuario con capturas.
+
+**Ronda 1 — dos bugs "de una vez" (NavigationTab + Home v2)**: el usuario reportó, con capturas, que (1) la franja inferior de CUALQUIER pantalla se veía siempre gris/blanquecina detrás del menú flotante, y (2) el oscurecido progresivo de Home v2 (BUG-054) ya no se notaba al hacer scroll. Diagnóstico y fix de ambos en `BUGS_AND_FIXES.md` (BUG-056/057): la capa `navigationTint` de `bottomGlassBackdrop` (añadida en BUG-053) era el velo gris — se quita, solo queda el `GlassView`. El oscurecido de Home v2 fundía hacia `C.bg` (casi blanco) en vez de negro, así que subir/bajar la opacidad apenas cambiaba el brillo percibido — se cambia a negro fijo y se restaura `HOME_BG_MAX_OPACITY` a 0.9 (spec original), ya sin riesgo de recrear el bloque plano de BUG-054 porque negro nunca sustituye la foto por un color sólido.
+
+**Ronda 2 — corrección de IMP-022**: el usuario señaló que el calendario de `MigratedMyProgramCalendar` no era una copia exacta del patrón de `MigratedPlan.tsx` como se había pedido — la ronda anterior (IMP-022) se apartó al diseño de tres colores por borde en vez de replicar el `AnimatedRing` relleno por %. Corregido en BUG-058: mismo `AnimatedRing`, círculo blanco con el número, píldora naranja sólida al seleccionar, weekday label debajo del anillo — igual en Semana y en Mes, con el % ahora basado en "entrenamientos completados/asignados ese día" en vez de kcal.
+
+**Ronda 3 — auditoría completa del sistema de retos/tutorial guiado**: pedido explícito, con 4 capturas de referencia de otra app (patrón de tour con paginación y botones Atrás/Siguiente/Omitir) y la instrucción de desplegar agentes especializados y no parar hasta dejarlo sin bugs. Se hizo el diagnóstico completo a mano primero (los 4 síntomas reportados por el usuario resultaron tener 4 causas raíz independientes, todas confirmadas leyendo el código, ninguna simulada — ver BUG-059 a 062 en `BUGS_AND_FIXES.md` para el detalle línea a línea) y después se repartió la implementación mecánica en 4 agentes en paralelo, uno por pantalla independiente (`home_screen_modern_v2.tsx`, `plan_screen.tsx`, `workout_preview_screen.tsx`, `workout_session_screen.tsx`), cada uno con el diff exacto ya especificado para minimizar el riesgo de desviación. Resumen de causas: dos retos de continuación (`log-first-set`/`mark-meal-done`) se listaban sueltos en el checklist de Home sin tener nunca un target ahí (nuevo `hidden` en `TutorialChallenge`); el reto de nutrición no llevaba `scrollRef` en su `TutorialTarget` (a diferencia del de Home); los retos de hábitos apuntaban directo a elementos que solo existen en la pantalla de Hábitos, sin ningún paso puente en Home (nuevo `home-habits-link`, `TutorialCompletion.screen` ahora acepta array); y el tutorial de entrenamiento no cubría "carga" ni "finalizar", y podía colgarse en el gate de readiness diario (`ReadinessForm`), que no tenía ninguna integración con el tutorial. Orden final del tutorial de entrenamiento, tal como se pidió: iniciar entrenamiento → readiness → reps → carga → rir → descanso → rpe → marcar serie → finalizar entrenamiento.
+
+**Incidente de build (run #56)**: lanzado tras el merge de la Ronda 3 (`master` @ `45ba1c3`) con el checklist de `docs/BUILD_IPA.md` — `https://github.com/ilzarpeatore/bsa/actions/runs/33129633487` — **falló** en el paso de bundling de Metro: `Unable to resolve module expo-video`. Causa: `expo-video` se añadió a `package.json` en una sesión anterior (visor de vídeo/gif del modo guiado de `MigratedWorkoutSession`) pero nunca se regeneró `package-lock.json` desde un entorno con acceso real a npm — la caché de `node_modules` de CI (keyed por hash de `package-lock.json`) seguía resolviendo al mismo hash de antes de añadir la dependencia, así que el workflow reutilizaba una caché sin `expo-video` en vez de reinstalar. Corregido regenerando el lockfile (`npm install --package-lock-only`, sí hay red real disponible en este entorno vía el proxy configurado) — el mismo fix ya había sido aplicado de forma independiente y en paralelo por otra sesión trabajando sobre este repo al mismo tiempo (commit `5e8ac9d`, contenido idéntico byte a byte); al hacer `git push` se detectó el commit remoto divergente, se descartó el commit local redundante y se hizo fast-forward al remoto sin perder ningún cambio propio.
+
+Todo lo de esta sesión, 🔵 pendiente de confirmación visual real en dispositivo (sin excepción — es la primera vez que se audita el sistema de retos de principio a fin, así que merece una pasada real por las 7 rutas de tutorial, no solo las que fallaban).
+
+Relanzado tras el fix de lockfile con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #57**, `https://github.com/ilzarpeatore/bsa/actions/runs/33130969497` (`master` @ `b4a0f9d`) — **terminó en éxito**, con `expo-video` resolviendo correctamente (caché de `node_modules` invalidada por el nuevo hash de `package-lock.json`, forzando una instalación real). Este IPA ya incluye BUG-056 a 062 completos.
