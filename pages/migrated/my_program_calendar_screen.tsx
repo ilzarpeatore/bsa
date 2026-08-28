@@ -1213,6 +1213,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginTop: 12,
+    marginBottom: 10,
   },
   periodChip: {
     paddingHorizontal: 16,
