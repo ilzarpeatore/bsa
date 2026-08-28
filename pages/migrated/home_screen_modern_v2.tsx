@@ -117,7 +117,11 @@ const HEALTH_SYNC_ENABLED = false;
 // en la parte superior debe empezar ya con un poco de opacidad, ahora
 // empieza totalmente clara") -- 0.2 se notaba demasiado poco nada más entrar
 // en la pantalla, antes de tocar el scroll.
-const HOME_BG_MIN_OPACITY = 0.35;
+// MIN bajado de 0.35 a 0.28 (pedido explícito, mismo día): la pantalla en
+// reposo debe llevar una opacidad ligera -- algo por debajo del valor con el
+// que arranca el oscurecido de scroll, no igual de fuerte -- que ya ayude a
+// leer el contenido de encima sin oscurecer tanto la foto antes de tocarla.
+const HOME_BG_MIN_OPACITY = 0.28;
 const HOME_BG_MAX_OPACITY = 0.9;
 
 // Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
