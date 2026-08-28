@@ -2223,3 +2223,216 @@ Los 3 fondos hardcodeados pasan a `C.bg`/`C.surface` — mismos tokens adaptativ
 ## Verificación
 
 Cambio de color puro (3 `backgroundColor`) — **pendiente de confirmación visual real en dispositivo**, en ambos modos.
+
+---
+
+# BUG-056 — NavigationTab: velo gris fijo detrás del menú inferior en todas las pantallas
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (visible permanentemente, en toda la app, independientemente de la pantalla o el scroll)
+**Categoría:** UI / NavigationTab
+**Fase:** Post-sesión (reportado por el usuario con capturas, 2026-08-28)
+
+## Problema
+
+La franja inferior de la pantalla, detrás de la píldora flotante de navegación, se veía siempre gris/blanquecina — en cualquier pantalla, no solo Home v2 — cuando debería dejar ver el fondo real a través.
+
+## Causa
+
+`bottomGlassBackdrop` (añadido en BUG-053 para extender el glass hasta el borde físico inferior) llevaba, además del `GlassView`, una capa `navigationTint` (blanco al 85%, opacidad 0.5 adicional). `GlassView` solo renderiza material Liquid Glass real en iOS 26+; en cualquier otro dispositivo cae a una `<View>` normal transparente — así que en la práctica esa capa de tinte era lo ÚNICO visible ahí, un velo blanco/gris de borde a borde, fijo, en toda la app.
+
+## Fix
+
+Se elimina la capa `navigationTint` de `bottomGlassBackdrop`, dejando solo el `GlassView` (difumina de verdad en Liquid Glass real, queda transparente en el resto). La píldora interior conserva su propio `navigationTint` — ahí sí hace falta para contraste de iconos/texto sobre fotos de fondo.
+
+## Archivos modificados
+
+- `components/NavigationTab.tsx`
+
+## Verificación
+
+Cambio de capas de View puro, sin impacto de tipos — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-057 — Home v2: oscurecido progresivo del fondo casi imperceptible tras BUG-054
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / Home v2
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-28)
+
+## Problema
+
+Tras bajar `HOME_BG_MAX_OPACITY` de 0.9 a 0.45 en BUG-054 (para evitar el bloque gris plano), el usuario reportó que el efecto de oscurecido progresivo al hacer scroll dejó de notarse — "no se aplica la opacidad de forma progresiva".
+
+## Causa
+
+No era un problema de rango (0.20→0.45 sigue siendo progresivo, solo más sutil) sino de color: `homeBgDarkenLayer` fundía hacia `C.bg` (`#F4F4F7`, un tono casi blanco), y una capa casi blanca al 20–45% de opacidad apenas cambia el brillo percibido de una foto — de ahí que pareciera que "no hace nada" al hacer scroll. Fundir hacia un tono opaco casi blanco (en vez de negro) fue también la causa raíz real de BUG-054: al subir la opacidad no se oscurecía la foto, se sustituía por un color sólido plano.
+
+## Fix
+
+`homeBgDarkenLayer` pasa a negro fijo (`#000000`) en ambos modos, y `HOME_BG_MAX_OPACITY` vuelve a 0.9 (spec original del usuario) — con negro nunca se corre el riesgo del bloque plano de BUG-054 (negro semitransparente siempre deja ver algo de la foto, por oscura que se vea), y el rango 0.20→0.9 sí resulta claramente progresivo y visible al hacer scroll.
+
+## Archivos modificados
+
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de color/constante puro — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-058 — MyProgramCalendar: el rediseño circular no seguía el patrón exacto de Plan diario (corrige IMP-022)
+
+**Estado:** 🔵 Necesita verificación (cambio visual real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / MyProgramCalendar
+**Fase:** Post-sesión (reportado por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario pidió una copia exacta del calendario semanal de `plan_screen.tsx` para el calendario semanal Y mensual de `my_program_calendar_screen.tsx`. La implementación de IMP-022 se apartó de ese pedido: en vez de un `AnimatedRing` relleno por porcentaje (igual que Plan), usó un diseño propio de tres estados de color por borde (naranja/verde/gris) sin relleno progresivo, con la píldora seleccionada en blanco/borde en vez de naranja sólido.
+
+## Causa
+
+Al implementar IMP-022 se interpretó "aplica este mismo diseño" como "aplica un lenguaje visual similar" en vez de "copia el patrón exacto, componente por componente" — desviación de la instrucción explícita del usuario.
+
+## Fix
+
+Se sustituye el diseño de IMP-022 por el mismo `AnimatedRing` de `plan_screen.tsx` (círculo blanco con el número dentro, relleno por %, píldora naranja sólida al seleccionar, weekday label en mayúsculas debajo del anillo), tanto en vista Semana como en vista Mes. El porcentaje ahora representa "entrenamientos del día completados / asignados" en vez de kcal (adaptación necesaria al dominio de este calendario), con el mismo criterio de anillo vacío cuando no hay nada asignado ese día.
+
+## Archivos modificados
+
+- `pages/migrated/my_program_calendar_screen.tsx`
+
+## Verificación
+
+Balanceo de llaves/paréntesis/corchetes verificado a mano (sin `node_modules` en este entorno) — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-059 — Sistema de retos: challenges de continuación listados sueltos no se activaban
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (parte del tutorial guiado quedaba completamente inutilizable)
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario reportó que "algunos retos no se activan ni comienzan" al tocarlos desde el checklist "Reto para empezar" de Home.
+
+## Causa
+
+`log-first-set` y `mark-meal-done` son retos de CONTINUACIÓN: su primer paso apunta a un elemento (`workout-preview-start-button`, `plan-meal-toggle-first`) que solo existe en una pantalla a la que se llega encadenado desde OTRO reto (`access-workout`/`access-nutrition-plan`, vía `nextChallengeId`), nunca directamente desde Home. Pero ambos se listaban también como entradas sueltas y tocables en el checklist de Home — tocarlos ahí directamente no mostraba nada, porque su target nunca llegaba a registrarse mientras el usuario seguía en Home. Por el mismo motivo, `complete-checkin` (el check-in de preparación) se quedaba "activo" para siempre si ese día no había ningún check-in pendiente que mostrar — su único paso no era `skippable`.
+
+## Fix
+
+Se añade `hidden?: boolean` a `TutorialChallenge`, marcado en `log-first-set` y `mark-meal-done` — el checklist de Home (`startupSteps`) ahora los filtra, y solo se disparan por el encadenado automático real. El paso de `complete-checkin` se marca `skippable: true`, para que si no hay check-in pendiente ese día, el reto se salte solo (y, al ser encadenado con `access-workout`, continúe directamente hacia el flujo de entrenamiento) en vez de quedarse colgado.
+
+## Archivos modificados
+
+- `constants/tutorialChallenges.ts`
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de lógica de filtrado/estado — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-060 — Sistema de retos: el reto de nutrición no hacía scroll automático al activarse
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (dejaba la pantalla bloqueada, solo "Saltar tutorial" disponible)
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario reportó que los retos de nutrición se activaban pero la pantalla no hacía scroll automático hasta la ubicación del botón señalado, dejando el overlay oscuro sobre toda la pantalla sin nada tocable salvo "Saltar tutorial".
+
+## Causa
+
+`<TutorialTarget id="plan-meal-toggle-first">` en `plan_screen.tsx` no pasaba la prop `scrollRef` — a diferencia de `home_screen_modern_v2.tsx`, que sí se la pasa a su target de nutrición. Sin `scrollRef`, `TutorialTarget` no puede desplazar el scroll para traer el elemento señalado a la vista cuando queda por debajo del pliegue inicial.
+
+## Fix
+
+Se pasa `scrollRef={scrollRef as unknown as React.RefObject<ScrollView | null>}` al `TutorialTarget`. El cast es necesario porque el `scrollRef` de esta pantalla es un `useAnimatedRef<Animated.ScrollView>()` de Reanimated (no un `useRef` plano) — expone un `.current` compatible en tiempo de ejecución (mismo `scrollTo` de cualquier `ScrollView`), pero con un tipo TypeScript distinto al `React.RefObject<ScrollView | null>` que espera `TutorialTarget`.
+
+## Archivos modificados
+
+- `pages/migrated/plan_screen.tsx`
+
+## Verificación
+
+Cambio de prop + cast de tipos — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-061 — Sistema de retos: el reto de hábitos no funcionaba sin navegar antes a mano
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio (parte del tutorial guiado quedaba completamente inutilizable)
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario reportó que el reto de hábitos "no funciona hasta que no entras de forma manual a la screen de hábitos".
+
+## Causa
+
+`add-habit` y `mark-habit-done` apuntaban directo a `habits-add-button`/`habit-toggle-first`, elementos que solo existen en `habits_list_screen.tsx` (pantalla `MigratedHabits`/`MigratedHabitAdd`) — nunca en Home, que es desde donde se lanza el reto. A diferencia de `access-workout`/`access-nutrition-plan` (que sí arrancan con un target real en Home antes de navegar), estos dos retos no tenían ningún paso puente en Home.
+
+## Fix
+
+Se añade un paso puente nuevo, `home-habits-link`, sobre el enlace de Hábitos que ya existe en Home ("Ver todos"/"Añadir"), como primer paso de ambos retos. Como ese mismo enlace navega a `MigratedHabits` o `MigratedHabitAdd` según si el usuario ya tiene hábitos, `TutorialCompletion` (tipo `navigate`) ahora acepta `screen: string | string[]` — cualquiera de los dos destinos avanza el paso puente. El paso siguiente de `add-habit` (`habits-add-button`) se marca `skippable`, por si el puente aterrizó ya directo en `MigratedHabitAdd` (usuario sin hábitos todavía), donde ese botón no existe.
+
+## Archivos modificados
+
+- `constants/tutorialChallenges.ts`
+- `store/TutorialContext.tsx`
+- `pages/migrated/home_screen_modern_v2.tsx`
+
+## Verificación
+
+Cambio de lógica de navegación/estado — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-062 — Sistema de retos: orden ilógico e incompleto del tutorial de entrenamiento
+
+**Estado:** 🔵 Necesita verificación (cambio de lógica real, pendiente de confirmación en dispositivo)
+**Severidad:** 🟡 Medio
+**Categoría:** Lógica / Tutorial guiado (retos)
+**Fase:** Post-sesión (auditoría completa pedida por el usuario, 2026-08-28)
+
+## Problema
+
+El usuario pidió que el tutorial de entrenamiento siguiera este orden: iniciar entrenamiento > rellenar readiness > introducir reps > introducir carga > introducir rir > marcar serie como hecha > finalizar entrenamiento. El reto real (`log-first-set`) no incluía ningún paso de "carga" (peso) ni de "finalizar", y podía quedarse colgado en el paso de "empieza tu entrenamiento" cuando el gate de readiness estaba pendiente.
+
+## Causa
+
+- La tabla de series ya soporta la métrica `carga` (peso) end-to-end, pero el tutorial nunca la explicaba (excluida a mano de `isTutorialMetric`).
+- El reto terminaba en "marca una serie como hecha", sin ningún paso apuntando al botón real "FINALIZAR ENTRENAMIENTO".
+- El gate de readiness diario (`ReadinessForm` en `workout_preview_screen.tsx`, que sustituye TODA la pantalla de preview mientras está pendiente) no tenía ninguna integración con el tutorial — el primer paso del reto (`workout-preview-start-button`) apuntaba a un botón que ni siquiera llegaba a montarse hasta rellenar ese formulario, así que el tutorial se quedaba esperando algo que no existía todavía en pantalla.
+
+## Fix
+
+- Se añade un paso nuevo `workout-preview-readiness-submit` (skippable — el gate solo aparece una vez al día) como PRIMER paso del reto, con `reportAction('readiness_submitted')` real tras el submit exitoso del formulario.
+- Se añade `workout-session-metric-carga` (misma mecánica genérica que reps/rir/rpe/descanso, solo se incluye `'carga'` en el array `isTutorialMetric`).
+- Se añade un paso final `workout-session-finish-button`, envolviendo el botón real "FINALIZAR ENTRENAMIENTO" (completion por navegación a `MigratedWorkoutFeedback`).
+- Orden final de pasos: iniciar entrenamiento (ya cubierto por `access-workout`, que encadena aquí) → readiness → reps → carga → rir → descanso → rpe → marcar serie → finalizar entrenamiento.
+
+## Archivos modificados
+
+- `constants/tutorialChallenges.ts`
+- `pages/migrated/workout_preview_screen.tsx`
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+Cambio de lógica/wiring de tutorial — **pendiente de confirmación visual real en dispositivo**.
