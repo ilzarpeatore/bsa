@@ -1262,8 +1262,13 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     justifyContent: 'center',
     gap: 2,
   },
+  // Sin aspectRatio: con el anillo grande (CAL_RING_SIZE_BIG=40) + label
+  // debajo, un alto forzado por aspectRatio (celda estrecha en la fila de 7)
+  // quedaba más bajo que el contenido real y el anillo se veía cortado por
+  // arriba. Alto libre, se ajusta al contenido (ring + gap + label +
+  // padding), igual que weekDayPill en plan_screen.tsx.
   dayCellBig: {
-    aspectRatio: 0.85,
+    aspectRatio: undefined,
     paddingVertical: 8,
     gap: 6,
   },
