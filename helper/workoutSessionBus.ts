@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // hydratePersistedWorkoutSession) para poder mostrar la barra flotante de
 // entrenamiento minimizado incluso si el cliente aun no volvio a entrar a
 // la pantalla de sesion en este arranque de la app.
-export const ACTIVE_SESSION_STORAGE_KEY = '@befit/active_workout_session';
+export const ACTIVE_SESSION_STORAGE_KEY = '@bestronger/active_workout_session';
 
 export interface ActiveWorkoutSession {
   identityKey: string;

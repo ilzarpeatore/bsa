@@ -32,7 +32,7 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 // Las respuestas se guardan en AsyncStorage en cada paso (permite reanudar
 // si la app se cierra a medias) y se envían a la API al terminar cada etapa.
 
-const ANSWERS_STORAGE_KEY = '@befit_onboarding_v2_answers';
+const ANSWERS_STORAGE_KEY = '@bestronger_onboarding_v2_answers';
 
 function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
   if (question.required === false) return true;

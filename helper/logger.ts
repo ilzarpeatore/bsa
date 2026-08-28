@@ -46,7 +46,7 @@ export default logger;
 // Share.share() (API nativa de React Native, sin dependencia nueva) -- si
 // el diagnóstico nunca se activó no hay nada que enviar, y el botón lo
 // dice en vez de mandar un reporte vacío.
-const DIAGNOSTICS_STORAGE_KEY = '@befit_diagnostics_enabled';
+const DIAGNOSTICS_STORAGE_KEY = '@bestronger_diagnostics_enabled';
 const MAX_BUFFERED_LOGS = 300;
 
 let diagnosticsEnabled = false;

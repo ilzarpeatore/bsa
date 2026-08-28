@@ -48,5 +48,5 @@ export interface SocialLink {
 // lleva a ninguna URL real sería el mismo problema que about_us_screen.tsx.
 // La fila de redes sociales en Ajustes no se muestra hasta que este array
 // tenga al menos una entrada. Ejemplo de cómo rellenar una:
-// { name: 'Instagram', icon: 'logo-instagram', url: 'https://instagram.com/befit' }
+// { name: 'Instagram', icon: 'logo-instagram', url: 'https://instagram.com/tu_cuenta' }
 export const SOCIAL_LINKS: SocialLink[] = [];

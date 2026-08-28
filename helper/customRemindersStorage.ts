@@ -4,7 +4,7 @@ import { TimeOfDay } from './reminderNotifications';
 // No existe una tabla de backend para recordatorios personalizados (solo agua/comida
 // se guardan en el perfil vía set-reminder-settings) — se quedan 100% en el dispositivo,
 // junto a los ids de notificación local para poder cancelarlos al borrar.
-const STORAGE_KEY = 'befit.customReminders';
+const STORAGE_KEY = 'bestronger.customReminders';
 
 export interface CustomReminder {
   id: string;

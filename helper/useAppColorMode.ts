@@ -5,7 +5,7 @@ import { C, C_DARK, isNightHour } from '../pages/migrated/theme';
 
 export type ThemePreference = 'auto' | 'light' | 'dark';
 
-const STORAGE_KEY = '@befit_theme_preference';
+const STORAGE_KEY = '@bestronger_theme_preference';
 
 interface AppColorModeContextValue {
   preference: ThemePreference;

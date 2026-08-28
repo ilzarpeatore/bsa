@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useCallback, useMemo, useR
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TUTORIAL_CHALLENGES, TutorialChallenge, TutorialStep } from '../constants/tutorialChallenges';
 
-const STORAGE_KEY = '@befit_tutorial_done_challenges';
+const STORAGE_KEY = '@bestronger_tutorial_done_challenges';
 
 export interface TargetRect {
   x: number;

@@ -48,11 +48,11 @@ export const carouseldata = [
       "Health meaning of health has evolved over time. In keeping with the biomedical perspective, early definitions of health.",
   },
   {
-    source: require("@assets/slider/befit.png"),
+    source: require("@assets/slider/fit.png"),
     sources: {
-      2: require('@assets/slider/befit-2x.png'),
-      3: require('@assets/slider/befit-3x.png'),
-      4: require('@assets/slider/befit-4x.png'),
+      2: require('@assets/slider/fit-2x.png'),
+      3: require('@assets/slider/fit-3x.png'),
+      4: require('@assets/slider/fit-4x.png'),
     },
     titlel: "Be",
     title: "Fit!",
