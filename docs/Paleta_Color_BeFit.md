@@ -52,7 +52,7 @@ Presentes en las capturas de referencia pero sin mapear a un token existente —
 
 | Color | Hex                                    | Dónde aparece                                                                                                                                                                         | Fuente |
 | ----- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 🟠    | `#EB4F27`                              | Icono/barra de "Energía" (rayo) — más rojo que `orange` (`#FF6B35`) actual                                                                                                            | Medido |
+| 🟠    | `#EB4F27`                              | Icono/barra de "Energía" (rayo) — más rojo que `orange` (`#A2CDD4`) actual                                                                                                            | Medido |
 | 🔵    | `#C7DCED` (claro) / `#DFF6FE` (oscuro) | Círculo de avatar con iniciales — nótese que es MÁS CLARO en oscuro que en claro (invertido respecto al resto de la paleta)                                                           | Medido |
 | 🟢    | `#7BC390`                              | Punto de estado junto a "Estrés de hoy" — igual en ambos modos (coherente con que los semánticos no cambian entre claro/oscuro), pero más apagado que el `success` actual (`#34C759`) | Medido |
 
@@ -140,7 +140,7 @@ Colores decorativos con un solo uso puntual — no forman parte del sistema sem�
 
 | Hex       | Nombre             | Alias                 | Uso                                                            |
 | --------- | ------------------ | --------------------- | -------------------------------------------------------------- |
-| `#FF6B35` | Naranja decorativo | `orange`              | Degradado de rachas / iconos de fuego                          |
+| `#A2CDD4` | Naranja decorativo | `orange`              | Degradado de rachas / iconos de fuego                          |
 | `#A78BFA` | Lila secundario    | `purple` · `purple50` | Único resto de tono morado en la app — decorativo, no de marca |
 | `#FB558B` | Rosa de marca      | `pink`                | Distinto del `statusCycle` (grupo 03) — más saturado           |
 
