@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>befit</string>
+    <string>Be Stronger</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.pfndesign.befit</string>
+          <string>com.pfndesign.bestronger</string>
         </array>
       </dict>
     </array>
@@ -71,13 +71,13 @@
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
     <key>NSHealthShareUsageDescription</key>
-    <string>BeFit usa tus datos de Salud (pasos, ritmo cardíaco, sueño) para mostrarte tu progreso real.</string>
+    <string>Be Stronger usa tus datos de Salud (pasos, ritmo cardíaco, sueño) para mostrarte tu progreso real.</string>
     <key>NSHealthUpdateUsageDescription</key>
-    <string>BeFit puede registrar entrenamientos y métricas en tu app de Salud.</string>
+    <string>Be Stronger puede registrar entrenamientos y métricas en tu app de Salud.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Permite a BeFit acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.</string>
+    <string>Permite a Be Stronger acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.</string>
     <key>NSCameraUsageDescription</key>
-    <string>Permite a BeFit usar la cámara para que puedas añadir una foto a tus publicaciones.</string>
+    <string>Permite a Be Stronger usar la cámara para que puedas añadir una foto a tus publicaciones.</string>
     <key>NSSupportsLiveActivities</key>
     <true/>
   </dict>

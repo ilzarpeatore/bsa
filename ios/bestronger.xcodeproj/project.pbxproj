@@ -12,30 +12,30 @@
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 		03551DC8BC08E186C232094E /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEF0B7F30AEB8C51E665B37 /* WorkoutActivityAttributes.swift */; };
-		F33DCA6224173F34E34FAC03 /* BefitWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C390EA8F353DDA7CAFF68BCB /* BefitWidgetsBundle.swift */; };
+		F33DCA6224173F34E34FAC03 /* BeStrongerWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C390EA8F353DDA7CAFF68BCB /* BeStrongerWidgetsBundle.swift */; };
 		484626E2FE206F042FEEC508 /* WorkoutLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAADAB5D1841B54FC7A076A4 /* WorkoutLiveActivityView.swift */; };
 		4783156362AA57DBB45B3356 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEF0B7F30AEB8C51E665B37 /* WorkoutActivityAttributes.swift */; };
 		8950E9E3F3D533AAB31012E1 /* LiveActivityModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A22515FF7667DE4D6732BBB /* LiveActivityModule.swift */; };
 		9B35A28F733CE54462DB5E0C /* LiveActivityModule.m in Sources */ = {isa = PBXBuildFile; fileRef = C7296F5439EB8858398DA5B3 /* LiveActivityModule.m */; };
-		90D9E36D8F5077F39248B3A3 /* befitWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 483E2BE22D5A9CE73A15FA73 /* befitWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		90D9E36D8F5077F39248B3A3 /* bestrongerWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 483E2BE22D5A9CE73A15FA73 /* bestrongerWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* befit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = befit.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = befit/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = befit/Info.plist; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = befit/SplashScreen.storyboard; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* bestronger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bestronger.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = bestronger/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = bestronger/Info.plist; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = bestronger/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = befit/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* befit-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "befit-Bridging-Header.h"; path = "befit/befit-Bridging-Header.h"; sourceTree = "<group>"; };
-		483E2BE22D5A9CE73A15FA73 /* befitWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = befitWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = bestronger/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* bestronger-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "bestronger-Bridging-Header.h"; path = "bestronger/bestronger-Bridging-Header.h"; sourceTree = "<group>"; };
+		483E2BE22D5A9CE73A15FA73 /* bestrongerWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = bestrongerWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBEF0B7F30AEB8C51E665B37 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
-		C390EA8F353DDA7CAFF68BCB /* BefitWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BefitWidgetsBundle.swift; sourceTree = "<group>"; };
+		C390EA8F353DDA7CAFF68BCB /* BeStrongerWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeStrongerWidgetsBundle.swift; sourceTree = "<group>"; };
 		EAADAB5D1841B54FC7A076A4 /* WorkoutLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityView.swift; sourceTree = "<group>"; };
 		4E057ED584464CD5EFE3E9B2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0A22515FF7667DE4D6732BBB /* LiveActivityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityModule.swift; path = befit/LiveActivityModule.swift; sourceTree = "<group>"; };
-		C7296F5439EB8858398DA5B3 /* LiveActivityModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = LiveActivityModule.m; path = befit/LiveActivityModule.m; sourceTree = "<group>"; };
+		0A22515FF7667DE4D6732BBB /* LiveActivityModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityModule.swift; path = bestronger/LiveActivityModule.swift; sourceTree = "<group>"; };
+		C7296F5439EB8858398DA5B3 /* LiveActivityModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = LiveActivityModule.m; path = bestronger/LiveActivityModule.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,11 +56,11 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* befit */ = {
+		13B07FAE1A68108700A75B9A /* bestronger */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* befit-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* bestronger-Bridging-Header.h */,
 				0A22515FF7667DE4D6732BBB /* LiveActivityModule.swift */,
 				C7296F5439EB8858398DA5B3 /* LiveActivityModule.m */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
@@ -68,18 +68,18 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 			);
-			name = befit;
+			name = bestronger;
 			sourceTree = "<group>";
 		};
-		62448EC1AA00A12616BF3DF9 /* befitWidgets */ = {
+		62448EC1AA00A12616BF3DF9 /* bestrongerWidgets */ = {
 			isa = PBXGroup;
 			children = (
 				DBEF0B7F30AEB8C51E665B37 /* WorkoutActivityAttributes.swift */,
-				C390EA8F353DDA7CAFF68BCB /* BefitWidgetsBundle.swift */,
+				C390EA8F353DDA7CAFF68BCB /* BeStrongerWidgetsBundle.swift */,
 				EAADAB5D1841B54FC7A076A4 /* WorkoutLiveActivityView.swift */,
 				4E057ED584464CD5EFE3E9B2 /* Info.plist */,
 			);
-			path = befitWidgets;
+			path = bestrongerWidgets;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
@@ -100,8 +100,8 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* befit */,
-				62448EC1AA00A12616BF3DF9 /* befitWidgets */,
+				13B07FAE1A68108700A75B9A /* bestronger */,
+				62448EC1AA00A12616BF3DF9 /* bestrongerWidgets */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -114,8 +114,8 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* befit.app */,
-				483E2BE22D5A9CE73A15FA73 /* befitWidgets.appex */,
+				13B07F961A680F5B00A75B9A /* bestronger.app */,
+				483E2BE22D5A9CE73A15FA73 /* bestrongerWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -126,15 +126,15 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = befit/Supporting;
+			path = bestronger/Supporting;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* befit */ = {
+		13B07F861A680F5B00A75B9A /* bestronger */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "befit" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "bestronger" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
@@ -149,14 +149,14 @@
 			dependencies = (
 				2441E14C55129148F4AD4FC5 /* PBXTargetDependency */,
 			);
-			name = befit;
-			productName = befit;
-			productReference = 13B07F961A680F5B00A75B9A /* befit.app */;
+			name = bestronger;
+			productName = bestronger;
+			productReference = 13B07F961A680F5B00A75B9A /* bestronger.app */;
 			productType = "com.apple.product-type.application";
 		};
-		F6D398C061F60F1D9597DE68 /* befitWidgetsExtension */ = {
+		F6D398C061F60F1D9597DE68 /* bestrongerWidgetsExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BC1AC2E1ACDFCE458CB31E74 /* Build configuration list for PBXNativeTarget "befitWidgetsExtension" */;
+			buildConfigurationList = BC1AC2E1ACDFCE458CB31E74 /* Build configuration list for PBXNativeTarget "bestrongerWidgetsExtension" */;
 			buildPhases = (
 				112FAD4DDC664E6A582FA0A0 /* Sources */,
 				E855B053FF0D1A3819BC681E /* Frameworks */,
@@ -166,9 +166,9 @@
 			);
 			dependencies = (
 			);
-			name = befitWidgetsExtension;
-			productName = befitWidgetsExtension;
-			productReference = 483E2BE22D5A9CE73A15FA73 /* befitWidgets.appex */;
+			name = bestrongerWidgetsExtension;
+			productName = bestrongerWidgetsExtension;
+			productReference = 483E2BE22D5A9CE73A15FA73 /* bestrongerWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -187,7 +187,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "befit" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "bestronger" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -200,8 +200,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* befit */,
-				F6D398C061F60F1D9597DE68 /* befitWidgetsExtension */,
+				13B07F861A680F5B00A75B9A /* bestronger */,
+				F6D398C061F60F1D9597DE68 /* bestrongerWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -259,7 +259,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-befit-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-bestronger-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -272,7 +272,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-befit/Pods-befit-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-bestronger/Pods-bestronger-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXUpdates/EXUpdates.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/RCTI18nStrings.bundle",
@@ -285,7 +285,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-befit/Pods-befit-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-bestronger/Pods-bestronger-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -297,7 +297,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				90D9E36D8F5077F39248B3A3 /* befitWidgets.appex in Embed Foundation Extensions */,
+				90D9E36D8F5077F39248B3A3 /* bestrongerWidgets.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -310,14 +310,14 @@
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = F6D398C061F60F1D9597DE68;
-			remoteInfo = befitWidgetsExtension;
+			remoteInfo = bestrongerWidgetsExtension;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
 		2441E14C55129148F4AD4FC5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = F6D398C061F60F1D9597DE68 /* befitWidgetsExtension */;
+			target = F6D398C061F60F1D9597DE68 /* bestrongerWidgetsExtension */;
 			targetProxy = E686337D8D27D9713024B69D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -339,7 +339,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				03551DC8BC08E186C232094E /* WorkoutActivityAttributes.swift in Sources */,
-				F33DCA6224173F34E34FAC03 /* BefitWidgetsBundle.swift in Sources */,
+				F33DCA6224173F34E34FAC03 /* BeStrongerWidgetsBundle.swift in Sources */,
 				484626E2FE206F042FEEC508 /* WorkoutLiveActivityView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -358,7 +358,7 @@
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = befit/Info.plist;
+				INFOPLIST_FILE = bestronger/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -371,14 +371,14 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.befit";
-				PRODUCT_NAME = "befit";
-				SWIFT_OBJC_BRIDGING_HEADER = "befit/befit-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.bestronger";
+				PRODUCT_NAME = "bestronger";
+				SWIFT_OBJC_BRIDGING_HEADER = "bestronger/bestronger-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				CODE_SIGN_ENTITLEMENTS = befit/befit.entitlements;
+				CODE_SIGN_ENTITLEMENTS = bestronger/bestronger.entitlements;
 			};
 			name = Debug;
 		};
@@ -388,7 +388,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = befit/Info.plist;
+				INFOPLIST_FILE = bestronger/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -401,13 +401,13 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.befit";
-				PRODUCT_NAME = "befit";
-				SWIFT_OBJC_BRIDGING_HEADER = "befit/befit-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.bestronger";
+				PRODUCT_NAME = "bestronger";
+				SWIFT_OBJC_BRIDGING_HEADER = "bestronger/bestronger-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				TARGETED_DEVICE_FAMILY = "1,2";
-				CODE_SIGN_ENTITLEMENTS = befit/befit.entitlements;
+				CODE_SIGN_ENTITLEMENTS = bestronger/bestronger.entitlements;
 			};
 			name = Release;
 		};
@@ -529,8 +529,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = befitWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "BeFit Widgets";
+				INFOPLIST_FILE = bestrongerWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Be Stronger Widgets";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -539,7 +539,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.befit.befitWidgets";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.bestronger.bestrongerWidgets";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -556,8 +556,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = befitWidgets/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "BeFit Widgets";
+				INFOPLIST_FILE = bestrongerWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Be Stronger Widgets";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -566,7 +566,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.befit.befitWidgets";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pfndesign.bestronger.bestrongerWidgets";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -578,7 +578,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "befit" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "bestronger" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -587,7 +587,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "befit" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "bestronger" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
@@ -596,7 +596,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BC1AC2E1ACDFCE458CB31E74 /* Build configuration list for PBXNativeTarget "befitWidgetsExtension" */ = {
+		BC1AC2E1ACDFCE458CB31E74 /* Build configuration list for PBXNativeTarget "bestrongerWidgetsExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				301E0B60F2C242B07BF71333 /* Debug */,

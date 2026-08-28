@@ -1,4 +1,4 @@
-// Envoltorio común de respuestas de la API BeFit.
+// Envoltorio común de respuestas de la API Be Stronger.
 // La mayoría de endpoints responden { data, message, status }.
 // Usado para tipar llamadas cuyo cuerpo no se consume (fire-and-forget).
 

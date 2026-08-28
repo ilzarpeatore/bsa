@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "befit",
-    "slug": "befit",
+    "name": "Be Stronger",
+    "slug": "bestronger",
     "description": "A Product By OneRed",
     "version": "1.2.0",
     "orientation": "portrait",
@@ -17,7 +17,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pfndesign.befit",
+      "bundleIdentifier": "com.pfndesign.bestronger",
       "buildNumber": "1",
       "infoPlist": {
         "NSSupportsLiveActivities": true
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/applogo.png",
         "backgroundColor": "#1A1735"
       },
-      "package": "com.pfndesign.befit",
+      "package": "com.pfndesign.bestronger",
       "versionCode": 1
     },
     "web": {
@@ -75,15 +75,15 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Permite a BeFit guardar la imagen de tu resumen de entrenamiento en tu galería.",
-          "savePhotosPermission": "Permite a BeFit guardar la imagen de tu resumen de entrenamiento en tu galería."
+          "photosPermission": "Permite a Be Stronger guardar la imagen de tu resumen de entrenamiento en tu galería.",
+          "savePhotosPermission": "Permite a Be Stronger guardar la imagen de tu resumen de entrenamiento en tu galería."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permite a BeFit acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.",
-          "cameraPermission": "Permite a BeFit usar la cámara para que puedas añadir una foto a tus publicaciones."
+          "photosPermission": "Permite a Be Stronger acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.",
+          "cameraPermission": "Permite a Be Stronger usar la cámara para que puedas añadir una foto a tus publicaciones."
         }
       ]
     ]

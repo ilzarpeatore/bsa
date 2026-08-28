@@ -4,7 +4,7 @@ import Foundation
 // Puente nativo para RN (LiveActivityModule.m expone estos 3 métodos vía
 // RCT_EXTERN_METHOD). Sin App Group ni entitlement especial: esta clase
 // vive en el target de la app y es la única que llama a Activity.request/
-// update/end -- la extensión de widgets (befitWidgets) solo RENDERIZA el
+// update/end -- la extensión de widgets (bestrongerWidgets) solo RENDERIZA el
 // ContentState que el sistema le entrega, no necesita leer nada de aquí
 // directamente.
 @objc(LiveActivityModule)

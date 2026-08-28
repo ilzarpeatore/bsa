@@ -2,7 +2,7 @@ import SwiftUI
 import WidgetKit
 
 @main
-struct BefitWidgetsBundle: WidgetBundle {
+struct BeStrongerWidgetsBundle: WidgetBundle {
     var body: some Widget {
         WorkoutLiveActivityWidget()
     }

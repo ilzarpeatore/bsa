@@ -272,13 +272,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleRateApp = useCallback(() => {
     if (Platform.OS === 'ios') {
       if (!APP_STORE_ID) {
-        showToast('Aún no disponible', { description: 'BeFit todavía no tiene ficha publicada en la App Store.', variant: 'info' });
+        showToast('Aún no disponible', { description: 'Be Stronger todavía no tiene ficha publicada en la App Store.', variant: 'info' });
         return;
       }
       Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`);
     } else {
       if (!PLAY_STORE_PUBLISHED) {
-        showToast('Aún no disponible', { description: 'BeFit todavía no tiene ficha publicada en Google Play.', variant: 'info' });
+        showToast('Aún no disponible', { description: 'Be Stronger todavía no tiene ficha publicada en Google Play.', variant: 'info' });
         return;
       }
       const pkg = Constants.expoConfig?.android?.package;
@@ -296,7 +296,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       });
       return;
     }
-    const header = `BeFit ${Constants.expoConfig?.version ?? ''} · ${Platform.OS}\n\n`;
+    const header = `Be Stronger ${Constants.expoConfig?.version ?? ''} · ${Platform.OS}\n\n`;
     try {
       await Share.share({ message: header + report });
     } catch {
@@ -1729,7 +1729,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Pressable onPress={handleRateApp}>
                   <HStack className="items-center px-4 py-3">
                     <AppIcon name="star-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>Valora BeFit en la tienda</Text>
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Valora Be Stronger en la tienda</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
                 </Pressable>
@@ -1824,7 +1824,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               {/* Logo + versión real (Constants.expoConfig), no hardcodeada. */}
               <Box className="items-center" style={{ marginTop: r(24), marginBottom: r(8) }}>
                 <ExpoImage source={require('../../assets/applogo.png')} style={{ width: r(32), height: r(32), borderRadius: r(8) }} contentFit="cover" />
-                <Text style={styles.menuFooterText}>BeFit {Constants.expoConfig?.version ?? ''}</Text>
+                <Text style={styles.menuFooterText}>Be Stronger {Constants.expoConfig?.version ?? ''}</Text>
               </Box>
 
               <Pressable style={styles.menuLogoutBtn} onPress={handleLogout}>

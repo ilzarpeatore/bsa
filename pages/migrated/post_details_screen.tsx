@@ -114,7 +114,7 @@ export default function PostDetailsScreen(props: any) {
 
   const handleShare = async () => {
     try {
-      await Share.share({ message: postData.content || 'Mira esta publicación en BeFit' });
+      await Share.share({ message: postData.content || 'Mira esta publicación en Be Stronger' });
     } catch (e) {
       logger.error('Error sharing post', e);
     }

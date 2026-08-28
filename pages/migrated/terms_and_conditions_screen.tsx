@@ -17,9 +17,9 @@ export default function TermsAndConditionsScreen(props: any) {
         <Card variant="outline">
           <Text muted className="leading-6">
             {`Terms and Conditions\n\n` +
-              `Welcome to BeFit. By using our application, you agree to the following terms and conditions.\n\n` +
+              `Welcome to Be Stronger. By using our application, you agree to the following terms and conditions.\n\n` +
               `1. Acceptance of Terms\n` +
-              `By accessing or using the BeFit application, you agree to be bound by these Terms and Conditions.\n\n` +
+              `By accessing or using the Be Stronger application, you agree to be bound by these Terms and Conditions.\n\n` +
               `2. Use of the Application\n` +
               `You may use this application for personal, non-commercial purposes only.\n\n` +
               `3. User Accounts\n` +

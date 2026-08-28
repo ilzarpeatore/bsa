@@ -1,7 +1,7 @@
 import { NativeModules, Platform } from 'react-native';
 
 /**
- * Puente a LiveActivityModule (ios/befit/LiveActivityModule.swift). Solo
+ * Puente a LiveActivityModule (ios/bestronger/LiveActivityModule.swift). Solo
  * existe en iOS -- en Android (y en Expo Go, donde el módulo nativo no está
  * compilado) todas las funciones son no-op seguras.
  */

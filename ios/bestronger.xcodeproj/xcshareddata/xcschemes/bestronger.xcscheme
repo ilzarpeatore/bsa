@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "befit.app"
-               BlueprintName = "befit"
-               ReferencedContainer = "container:befit.xcodeproj">
+               BuildableName = "bestronger.app"
+               BlueprintName = "bestronger"
+               ReferencedContainer = "container:bestronger.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "befitTests.xctest"
-               BlueprintName = "befitTests"
-               ReferencedContainer = "container:befit.xcodeproj">
+               BuildableName = "bestrongerTests.xctest"
+               BlueprintName = "bestrongerTests"
+               ReferencedContainer = "container:bestronger.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "befit.app"
-            BlueprintName = "befit"
-            ReferencedContainer = "container:befit.xcodeproj">
+            BuildableName = "bestronger.app"
+            BlueprintName = "bestronger"
+            ReferencedContainer = "container:bestronger.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "befit.app"
-            BlueprintName = "befit"
-            ReferencedContainer = "container:befit.xcodeproj">
+            BuildableName = "bestronger.app"
+            BlueprintName = "bestronger"
+            ReferencedContainer = "container:bestronger.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
