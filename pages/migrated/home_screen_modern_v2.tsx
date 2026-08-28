@@ -157,6 +157,21 @@ function greetingForHour(hour: number): string {
   return 'Buenas noches';
 }
 
+// "Hoy" en fecha LOCAL del dispositivo, como YYYY-MM-DD -- NO usar
+// toISOString().split('T')[0] para esto: toISOString() siempre da la fecha
+// en UTC, así que en cualquier huso horario por delante de UTC (España
+// incluida) sigue devolviendo el día de AYER durante las primeras horas de
+// la madrugada. Bug real (reportado con captura a la 1:41, ya día 29 en
+// local): "Actividad de Hoy" seguía mostrando las tareas del día 28 porque
+// buscaba en el calendario con la fecha UTC, no la local. Mismo patrón que
+// toDateKey en my_program_calendar_screen.tsx.
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // Recovery del hero -- estimación 100% cliente a partir del chequeo
 // subjetivo diario que el cliente ya rellena (daily_readiness_checks, mismo
 // dato que consume workout_preview_screen.tsx). NO es el `combined_score`
@@ -599,7 +614,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     setErrorMessage(null);
     try {
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
+      const todayStr = localDateKey(now);
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
 
@@ -664,7 +679,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         for (let i = 0; i < 7; i++) {
           const d = new Date(monday);
           d.setDate(monday.getDate() + i);
-          const dateStr = d.toISOString().split('T')[0];
+          const dateStr = localDateKey(d);
           const dayData: any = daysByDate.get(dateStr);
           const dayWorkouts: any[] = dayData?.workouts ?? [];
           // Bug real (reportado con captura, 2026-08-24): antes marcaba el
@@ -751,7 +766,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
     (async () => {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localDateKey(new Date());
         const lastSync = await AsyncStorage.getItem(LAST_SYNC_KEY);
         if (lastSync === today) return;
 
