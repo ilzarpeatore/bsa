@@ -21,6 +21,7 @@ import {  Card  } from '@components/ui/card';
 import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
 import {  Button, ButtonText  } from '@components/ui/button';
+import AnimatedRing from '@components/AnimatedRing';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  workoutHistoryApi, CompletedSessionItem  } from '../../api/workoutHistory';
@@ -156,6 +157,24 @@ function DraggableWorkoutCard({
     </Animated.View>
   );
 }
+
+// Anillo circular del día -- copia exacta del patrón de renderWeekDays en
+// MigratedPlan.tsx (pedido explícito 2026-08-28: "quiero que uses el mismo
+// patron de MigratedPlan.tsx en todos los calendarios independientemente de
+// que sean semanales o mensuales", tras un primer intento con un diseño de
+// tres colores por borde que NO era ese patrón). Mismos colores (C.orange
+// para el anillo, C.border para el track sin rellenar, píldora sólida
+// naranja al seleccionar) y misma estructura (AnimatedRing envolviendo un
+// círculo blanco con el número, weekday label en mayúsculas debajo del
+// anillo). Solo cambia el tamaño: BIG para la vista Semana (una sola fila,
+// igual que Plan, mismas medidas exactas WEEK_RING_* de plan_screen.tsx) y
+// uno más pequeño para la vista Mes (hasta 6 filas de 7 en la misma pantalla).
+const CAL_RING_SIZE = 26;
+const CAL_RING_STROKE = 2;
+const CAL_RING_INNER_SIZE = 21;
+const CAL_RING_SIZE_BIG = 40;
+const CAL_RING_STROKE_BIG = 3;
+const CAL_RING_INNER_SIZE_BIG = 32;
 
 const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -805,29 +824,29 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     }
   };
 
-  // Estado circular del día (pedido explícito, con captura de referencia del
-  // calendario de Plan diario, 2026-08-27): el número de cada día vive dentro
-  // de un círculo con borde de color en vez del recuadro plano + puntito de
-  // antes -- naranja si hay entrenamiento o tarea asignada ese día, verde si
-  // ya se completó, gris/neutro (C.border) si el día no tiene nada asignado.
-  // A diferencia del puntito anterior (que distinguía check-in-only con un
-  // tercer color warning), aquí "tarea asignada" cuenta igual que
-  // "entrenamiento asignado" -- mismo naranja para ambas, tal como se pidió.
-  const dayStatusFor = (day: CalendarDayModel): 'completed' | 'assigned' | 'none' => {
-    const hasCompletedWorkout = day.workouts.some((w) => isWorkoutCompleted(w, day.date));
-    if (hasCompletedWorkout) return 'completed';
-    if (day.workouts.length > 0 || checkinsForDay(day.date).length > 0) return 'assigned';
-    return 'none';
+  // Progreso circular del día -- copia exacta del criterio de Plan diario
+  // (weekKcalProgress: % de kcal consumidas sobre el objetivo), trasladado
+  // aquí a "entrenamientos del día completados / entrenamientos del día
+  // asignados". Sin nada asignado el anillo queda vacío (0%), igual que un
+  // día sin comidas registradas en Plan -- no hay un tercer estado especial
+  // por color, solo relleno progresivo del anillo, tal como pide el patrón
+  // original.
+  const dayProgressFor = (day: CalendarDayModel): number => {
+    if (day.workouts.length === 0) return 0;
+    const completedCount = day.workouts.filter((w) => isWorkoutCompleted(w, day.date)).length;
+    return completedCount / day.workouts.length;
   };
 
   const renderDayCell = (day: CalendarDayModel, keyPrefix: string, big: boolean) => {
     const isToday = day.date === todayKey;
     const isSelected = day.date === selectedDayKey;
     const hasWorkout = day.workouts.length > 0;
-    const dayStatus = dayStatusFor(day);
+    const progress = dayProgressFor(day);
     const isMarkedUnavailable = selectionMode && selectedDates.has(day.date);
     const isReorderDropTarget = reorderMode && !!movingWorkout && isCurrentWeekDate(day.date) && day.date !== movingWorkout.fromDate;
     const dateObj = new Date(`${day.date}T00:00:00`);
+    const ringSize = big ? CAL_RING_SIZE_BIG : CAL_RING_SIZE;
+    const ringStroke = big ? CAL_RING_STROKE_BIG : CAL_RING_STROKE;
     return (
       <Pressable
         key={`${keyPrefix}-${day.date}`}
@@ -835,7 +854,6 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           styles.dayCell,
           big && styles.dayCellBig,
           isSelected && !selectionMode && (big ? styles.dayCellBigSelected : styles.dayCellSelected),
-          isToday && !isSelected && styles.dayCellToday,
           isMarkedUnavailable && styles.dayCellUnavailable,
           isReorderDropTarget && styles.dayCellDropTarget,
         ]}
@@ -846,27 +864,30 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           setSelectedDayKey(day.date);
         }}
       >
+        <AnimatedRing
+          size={ringSize}
+          strokeWidth={ringStroke}
+          percent={progress * 100}
+          color={isSelected ? '#FFFFFF' : C.orange}
+          trackColor={isSelected ? 'rgba(255,255,255,0.35)' : C.border}
+          duration={300}
+        >
+          <Box style={[big ? styles.dayNumberCircleBig : styles.dayNumberCircle, isToday && !isSelected && styles.dayNumberCircleToday]}>
+            <Text
+              style={[
+                big ? styles.dayCellTextBig : styles.dayCellText,
+                !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
+              ]}
+            >
+              {dateObj.getDate()}
+            </Text>
+          </Box>
+        </AnimatedRing>
         {big && (
-          <Text style={styles.dayCellLetter}>
+          <Text style={[styles.dayCellLetter, isSelected && styles.dayCellLetterSelected]}>
             {WEEKDAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1]}
           </Text>
         )}
-        <Box
-          style={[
-            big ? styles.dayNumberRingBig : styles.dayNumberRing,
-            dayStatus === 'assigned' && styles.dayNumberRingAssigned,
-            dayStatus === 'completed' && styles.dayNumberRingCompleted,
-          ]}
-        >
-          <Text
-            style={[
-              styles.dayCellText,
-              !day.inMonth && periodMode === 'month' && styles.dayCellTextMuted,
-            ]}
-          >
-            {dateObj.getDate()}
-          </Text>
-        </Box>
         {isMarkedUnavailable && (
           <Icon name="close-circle" size={12} color={C.destructive} style={{ marginTop: 2 }} />
         )}
@@ -1226,35 +1247,41 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     paddingHorizontal: 12,
     marginBottom: 4,
   },
+  // Píldora del día -- copia exacta de weekDayPill/weekDayPillSelected de
+  // plan_screen.tsx: sin borde propio cuando no está seleccionada (el
+  // anillo/círculo interior ya da la estructura visual), fondo naranja
+  // sólido al seleccionar. flex/aspectRatio se mantienen (a diferencia de
+  // Plan, que no los necesita en su fila única) porque aquí la misma píldora
+  // también forma la rejilla del mes.
   dayCell: {
     flex: 1,
     aspectRatio: 1,
     marginHorizontal: 2,
-    borderRadius: 10,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
   dayCellBig: {
     aspectRatio: 0.85,
-    borderWidth: 1,
-    borderColor: C.gray70,
-    paddingVertical: 10,
-    gap: 4,
+    paddingVertical: 8,
+    gap: 6,
   },
   dayCellBigSelected: {
-    backgroundColor: C.surface,
-    borderColor: C.orange,
-    borderWidth: 1.5,
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   dayCellSelected: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: C.orange,
-  },
-  dayCellToday: {
-    borderWidth: 1.5,
-    borderColor: C.textPrimary,
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   dayCellUnavailable: {
     backgroundColor: C.destructive5,
@@ -1266,48 +1293,59 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     borderWidth: 1.5,
     borderColor: C.orange,
   },
+  // Weekday label -- copia exacta de weekDayLabel/weekDayLabelSelected de
+  // plan_screen.tsx, ahora debajo del anillo (antes vivía encima, orden
+  // distinto al patrón original que se pidió copiar).
   dayCellLetter: {
-    fontFamily: FONT.medium,
-    fontSize: 13,
-    color: C.textSecondary,
+    fontSize: 10,
+    fontFamily: FONT.semiBold,
+    color: C.gray40,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
+  dayCellLetterSelected: { color: '#FFFFFF' },
   dayCellText: {
     fontFamily: FONT.semiBold,
+    fontSize: 11,
+    color: '#1C1C1E',
+  },
+  // Tamaño de fuente igual al weekDayCircleNum de Plan (vista Semana, mismas
+  // medidas de anillo WEEK_RING_* que allí).
+  dayCellTextBig: {
+    fontFamily: FONT.bold,
     fontSize: 14,
-    color: C.textPrimary,
+    color: '#1C1C1E',
   },
   dayCellTextMuted: {
     color: C.textTertiary,
   },
-  // Anillo alrededor del número del día (ver dayStatusFor) -- neutro por
-  // defecto (día sin nada asignado), se recolorea a naranja/verde con
-  // dayNumberRingAssigned/Completed. borderRadius grande a propósito (mayor
-  // que la mitad de cualquier tamaño real que vaya a tener) para forzar
-  // círculo perfecto sin depender de calcular width/2 a mano.
-  dayNumberRing: {
-    width: 26,
-    height: 26,
-    borderRadius: 999,
+  // Círculo blanco con el número dentro del anillo -- copia exacta de
+  // weekDayCircle/weekDayCircleToday de plan_screen.tsx: blanco siempre
+  // (seleccionado o no, tal como la referencia), borde neutro por defecto,
+  // solo el borde cambia a naranja cuando el día es HOY y no está
+  // seleccionado (ver dayNumberCircleToday). El relleno de progreso vive en
+  // el AnimatedRing que lo envuelve (ver renderDayCell), no aquí.
+  dayNumberCircle: {
+    width: CAL_RING_INNER_SIZE,
+    height: CAL_RING_INNER_SIZE,
+    borderRadius: CAL_RING_INNER_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: C.border,
+  },
+  dayNumberCircleBig: {
+    width: CAL_RING_INNER_SIZE_BIG,
+    height: CAL_RING_INNER_SIZE_BIG,
+    borderRadius: CAL_RING_INNER_SIZE_BIG / 2,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  // Ligeramente más grande que dayNumberRing (vista Semana, celdas más
-  // altas), pero sin pasarse -- las celdas "big" tienen aspectRatio 0.85 y ya
-  // llevan la letra del día encima, así que un anillo demasiado grande
-  // desbordaría la celda en pantallas estrechas.
-  dayNumberRingBig: {
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    borderWidth: 2,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
     borderColor: C.border,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  dayNumberRingAssigned: { borderColor: C.orange },
-  dayNumberRingCompleted: { borderColor: C.success },
+  dayNumberCircleToday: { borderColor: C.orange },
   selectedDaySection: {
     marginTop: 16,
     paddingHorizontal: 16,
