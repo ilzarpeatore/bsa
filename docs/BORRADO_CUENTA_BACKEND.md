@@ -26,31 +26,23 @@ Respuesta: { "message": "Cuenta eliminada correctamente." }
 - Igual que el resto de endpoints "de mi cuenta" (`update-profile`, `change-password`), el usuario objetivo sale del token autenticado — **no** recibe un `user_id` en el payload. Esto evita que un cliente pueda borrar la cuenta de otro.
 - Debe funcionar para cualquier `user_type` normal (cliente de entrenamiento), pero **ver la sección 4 sobre coaches** antes de dejarlo abierto a todos los roles.
 
-## 2. Qué hacer con los datos — decisión de producto necesaria
+## 2. Qué hacer con los datos — ya decidido por la política de privacidad publicada
 
-Hay dos estrategias válidas según GDPR (aplica: usuarios en España) y ambas cumplen el requisito de Apple/Google, pero tienen implicaciones de negocio distintas. **Se necesita decidir cuál usar antes de implementar** — no es una decisión que se pueda tomar solo desde el código:
+**Actualización 2026-08-28: esto ya NO es una decisión abierta.** El texto real de la política de privacidad (`docs/PRIVACY_POLICY_ES.md`, la misma que se publica en `bestronger.es/privacy-policy`) ya compromete explícitamente, por escrito y de cara al usuario:
 
-### Opción A — Borrado inmediato y total (más simple, más arriesgado)
+> "Al confirmar la eliminación, tu cuenta y tus datos personales (incluidos los del cuestionario de salud y los sincronizados desde Apple Health/Health Connect) se borran de forma definitiva, salvo la información que estemos obligados a conservar por ley durante el plazo legal correspondiente (por ejemplo, facturas por obligaciones fiscales)."
 
-Al llamar al endpoint: borrar en cascada todas las filas del usuario en todas las tablas que lo referencian (ver lista en la sección 3), sin posibilidad de recuperación.
+Esto fija dos cosas que la implementación tiene que respetar tal cual:
 
-- Riesgo real: un usuario que pulsa el botón por error (o un coach que gestiona la cuenta de un cliente y se equivoca) pierde el historial de entrenamiento del cliente sin ninguna vía de recuperación, y el coach pierde ese historial también (relevante para un negocio de entrenamiento personal, donde ese historial tiene valor de negocio más allá del propio usuario).
-- Cumple igualmente el requisito de Apple/Google (ellos no exigen periodo de gracia, solo que el borrado sea real y no dependa de contactar soporte).
+1. **Nada de "periodo de gracia" ofrecido al usuario ni a soporte.** No cabe una versión de la antigua "Opción B" de este documento que ofreciera recuperar una cuenta borrada por error — la política promete borrado definitivo al confirmar, no "recuperable durante 30 días si escribes a soporte". Si soporte quiere ese margen, tiene que ser un detalle interno invisible (ver punto 3), nunca algo que se le diga al usuario.
+2. **Lo único que sobrevive es lo exigido por ley** (ejemplo textual de la propia política: facturas por obligaciones fiscales) — y en este proyecto esas facturas ni siquiera viven aquí: el checkout/pago es 100% externo en `bestronger.es` (Stripe/PayPal, ver `docs/PENDIENTE_BACKEND_ADMIN.md`), así que lo que este backend conserva por obligación legal debería ser mínimo o inexistente. Todo lo demás — cuestionario de salud, HRV/sueño de Health, entrenamientos, chat, posts — se borra de verdad.
 
-### Opción B — Soft-delete inmediato + purga real diferida (recomendado)
+### Implementación recomendada
 
-Al llamar al endpoint, **inmediatamente**:
-
-1. Revocar todos los `personal_access_tokens` del usuario (cierra sesión en todos los dispositivos al instante — igual de "borrado" desde el punto de vista del usuario y de la revisión de Apple/Google, que solo miran que la cuenta deje de ser usable).
-2. Marcar `users.status = 'deleted'` (o columna nueva `deleted_at`, soft-delete estilo Laravel `SoftDeletes`) — el login con esa cuenta deja de funcionar inmediatamente.
-3. Anonimizar los campos directamente identificativos: `email` → algo tipo `deleted-{id}@deleted.bestronger.es` (único, para no romper el `unique` de la columna si el usuario quisiera crear una cuenta nueva con el mismo email real), `first_name`/`last_name` → `"Usuario eliminado"`, `phone_number` → null, borrar `profile_image` del storage.
-4. Sacar al usuario de la lista de clientes activos del coach (para que no siga apareciendo en el panel del entrenador como cliente real).
-
-Y **en un job programado** (ej. `php artisan schedule`, corriendo cada noche), pasados N días (sugerido: 30) desde `deleted_at`, purgar de verdad las filas de las tablas de la sección 3 para las cuentas marcadas `deleted` desde hace más de N días.
-
-Esto es compatible con Apple/Google (la cuenta deja de ser utilizable al instante, que es lo que revisan) y da un margen de seguridad ante un borrado accidental o un caso de soporte ("me arrepentí, ¿podéis recuperar mi cuenta?"), muy relevante en una app donde los clientes pagan a un coach y el error de un cliente no debería poder borrar sin remedio el trabajo del coach.
-
-**Recomendación de esta nota:** Opción B. Pero es una decisión de producto/negocio, confirmar con el usuario antes de implementar.
+1. Al recibir la petición: revocar todos los `personal_access_tokens` del usuario (cierra sesión en todos los dispositivos al instante) y devolver éxito al cliente — desde el punto de vista del usuario, ya está hecho.
+2. **En el mismo request o en un job que corra en segundos/minutos (no días):** borrar de verdad las filas de las tablas de la sección 3, o anonimizar irreversiblemente lo que por eficiencia se prefiera anonimizar en vez de borrar en cascada (ej. filas que el coach necesita conservar por integridad referencial de su propio histórico — anonimizar el `user_id` a un id sin PII, no dejar rastro identificable).
+3. Un margen técnico interno de horas (no días, y nunca ofrecido como "recuperable") antes de la purga física de storage/backups es aceptable por motivos puramente operativos (ej. que un job nocturno de borrado de ficheros no compita con el tráfico en horario punta) — pero no debe ser una feature de recuperación de cara al usuario ni a soporte, porque contradice directamente lo ya publicado.
+4. Sacar al usuario de la lista de clientes activos del coach de inmediato.
 
 ## 3. Tablas afectadas — qué borrar/anonimizar
 
