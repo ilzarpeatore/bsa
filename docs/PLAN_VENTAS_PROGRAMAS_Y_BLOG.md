@@ -33,9 +33,14 @@ Esto es el hallazgo más importante: **no hace falta diseñar un modelo nuevo pa
 - **Admin**: `subscriptions-grant-package` (alta manual desde el panel — la vía "admin" que se usa hoy en vez de un pago automático).
 - **CORS** (`config/cors.php`): `allowed_origins` solo incluye `localhost:3000/5173/5174` (orígenes de desarrollo) — **el dominio real de la web (`bestronger.es` o el dominio final de despliegue) todavía no está en la lista.** Cambio de una línea cuando se sepa el dominio de producción.
 
-## Parte 1 — Blog: ya no hace falta nada nuevo en el backend
+## Parte 1 — Blog: IMPLEMENTADO en `webbs` (2026-08-28)
 
-Como `post-list`/`post-detail`/`blog-category-list` **ya son públicas**, la web puede consumirlas hoy mismo, sin tocar el backend (salvo añadir su dominio a `cors.php` cuando se despliegue). Recomendación sin cambios: la web NO debe tener su propio blog — construir `/blog` y `/blog/[slug]` en `webbs` con `fetch` server-side contra `https://testapp.bestronger.es/api/post-list` / `.../post-detail` (URL de producción confirmada en `api/client.ts` de la app), reutilizando el mismo contenido que ya ve la app.
+`/blog` y `/blog/[slug]` construidos en `webbs` (commit `8f4877d`, mergeado con las páginas de servicio de otra sesión y pusheado a `main`), consumiendo `post-list`/`blog-category-list`/`post-detail` server-side (Server Components de Next.js) — la petición nunca sale del navegador del visitante, así que no hace falta tocar `cors.php` para esto (el CORS del dominio de producción sigue pendiente solo por si algún día se necesita fetch client-side).
+
+- **`/blog`**: listado con filtro por categoría (`?category=slug`, resuelto contra `blog-category-list`) y paginación (`?page=N`), grid de tarjetas (imagen, categoría, título, extracto, fecha).
+- **`/blog/[slug]`**: artículo completo. Requirió un cambio pequeño en `bckbs` (commit `61cc547`, pusheado a `main`): `PostController::getDetail()` ahora acepta `slug` además de `id` (el slug ya existía y es único por post vía `Post::getSlugOptions()`, autogenerado al crear — sin migraciones nuevas), sin tocar el uso por `id` que ya hace la app (`bsa/api/blog.ts`).
+- **No confirmado**: si `content`/`bibliography` en el admin panel real se guardan como HTML o texto plano — la validación del backend (`API\Admin\PostController::getValidationRules()`) solo exige `nullable|string`, sin pista del editor real. Se resolvió con un renderer adaptativo (`src/components/blog/RichText.tsx` en `webbs`): si detecta una etiqueta HTML la renderiza como HTML, si no, como texto plano con saltos de línea — funciona correctamente en ambos casos, verificado con un mock local de ambas variantes.
+- **Verificación real hecha**: `tsc --noEmit` y `npm run build` limpios en `webbs`, más un servidor mock local reproduciendo exactamente las formas de `PostResource`/`BlogCategory` (leídas del código real de `bckbs`) para probar listado, filtro por categoría, ambas ramas de `RichText`, y slug inexistente (404 correcto). **No verificado**: contra la API real (`testapp.bestronger.es`) ni con datos reales del admin panel — el host está bloqueado por la política de red de este entorno (403 del proxy), pendiente de comprobar en un entorno con esa conectividad o directamente en producción.
 
 ## Parte 2 — Venta de programas individuales: lo que realmente falta construir
 
@@ -79,8 +84,8 @@ Campos ya disponibles en `Subscription` para registrar la pasarela usada (sin mi
 Pendiente ahora:
 
 1. **Credenciales de prueba/sandbox** de Stripe y PayPal — sin esto no se puede probar el flujo end-to-end (el usuario dijo que buscaría las de Stripe; las de PayPal aún no se han pedido).
-2. **Web (`webbs`)** — nada empezado todavía:
-   - `/blog` y `/blog/[slug]` (ya alcanzable hoy, sin depender de ninguna pasarela — consume `post-list`/`post-detail`).
+2. **Web (`webbs`)** — el blog ya está hecho (ver Parte 1 arriba), falta el resto:
+   - ~~`/blog` y `/blog/[slug]`~~ — hecho.
    - `/programas` (catálogo, consume `package-catalog`, ya público).
    - Login/registro obligatorio antes de pagar (decisión ya tomada).
    - Botón "Comprar" → llama a `checkout/stripe/create-session` o `checkout/paypal/create-order` según el método elegido, redirige a la URL/link devuelto.
