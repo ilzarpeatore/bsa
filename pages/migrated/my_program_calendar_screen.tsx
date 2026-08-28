@@ -1466,7 +1466,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontSize: 12,
     color: C.textSecondary,
     paddingHorizontal: 20,
-    marginTop: -8,
+    marginTop: 4,
     marginBottom: 8,
   },
   unavailableBar: {
