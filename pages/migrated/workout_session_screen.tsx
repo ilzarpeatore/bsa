@@ -9,6 +9,8 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Vibration,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
@@ -43,6 +45,8 @@ import PainReportSheet from '../../components/PainReportSheet';
 import WorkoutNoteSheet from '../../components/WorkoutNoteSheet';
 import IntensityCheckSheet, { IntensityMetric } from '../../components/IntensityCheckSheet';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GlassView } from '@components/ui/glass-view';
 import {  useAuth  } from '../../store/AuthContext';
 import {  workoutHistoryApi  } from '../../api/workoutHistory';
 import {  MetricCatalogItem  } from '../../api/workoutTemplate';
@@ -63,7 +67,7 @@ import {
   UnifiedExercise,
 } from './workoutViewShared';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Petición 2026-08-19: al añadir un ejercicio nuevo con "Añadir ejercicio +"
 // debe venir SIEMPRE con series/reps/descanso/rir (o rpe) por defecto, no
 // vacío. Se mantiene 'carga' (peso) aunque la nota no lo mencione
@@ -244,6 +248,9 @@ function parseRestSeconds(raw?: string): number | null {
 interface WorkoutExercisePlayerProps {
   ex: SessionExercise;
   exercisePositionLabel: string;
+  positionIndex: number;
+  totalCount: number;
+  elapsedSeconds: number;
   displayMetrics: string[];
   metricLabel: (key: string) => string;
   metricInputType: (key: string) => 'number' | 'text' | 'time';
@@ -277,6 +284,9 @@ interface WorkoutExercisePlayerProps {
 function WorkoutExercisePlayer({
   ex,
   exercisePositionLabel,
+  positionIndex,
+  totalCount,
+  elapsedSeconds,
   displayMetrics,
   metricLabel,
   metricInputType,
@@ -311,218 +321,359 @@ function WorkoutExercisePlayer({
     if (videoSource) player.play();
   }, [videoSource, player]);
 
+  const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4);
+
+  // Deslizar hacia la derecha cierra el modo guiado y vuelve a la pantalla
+  // anterior (pedido explícito) -- mismo criterio que el gesto de minimizar
+  // ya usado en la pantalla principal (ver minimizeGesture más abajo):
+  // umbral de traslación O de velocidad, failOffsetY cede de inmediato ante
+  // cualquier intento de scroll vertical (la tabla de series se desplaza
+  // verticalmente encima de este mismo gesto).
+  const CLOSE_DRAG_THRESHOLD = 90;
+  const closeDragX = useSharedValue(0);
+  const closeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX(15)
+        .failOffsetY([-15, 15])
+        .onUpdate((e) => {
+          if (e.translationX > 0) closeDragX.value = e.translationX;
+        })
+        .onEnd((e) => {
+          if (e.translationX > CLOSE_DRAG_THRESHOLD || e.velocityX > 800) {
+            runOnJS(hapticLight)();
+            runOnJS(onClose)();
+          }
+          closeDragX.value = withSpring(0);
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+  const closeDragStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: closeDragX.value }],
+  }));
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-      <Box
-        className="flex-row items-center justify-between px-5"
-        style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
-      >
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar modo guiado">
-          <Icon name="close" size={26} className="text-foreground" />
-        </Pressable>
-        <Text weight="semibold" muted style={{ fontSize: 13 }}>
-          {exercisePositionLabel}
-        </Text>
-        <Box style={{ width: 26 }} />
-      </Box>
+    <GestureDetector gesture={closeGesture}>
+      <Animated.View style={[{ flex: 1, backgroundColor: C.bg }, closeDragStyle]}>
+        <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+          {/* Hero a pantalla completa (vídeo o imagen del ejercicio), con
+              overlays flotantes en "glass" -- mismo lenguaje visual que ya
+              usa NavigationTab.tsx (GlassView + recorte propio en un View
+              aparte, ver ese archivo). Modernización pedida explícitamente
+              con captura de referencia de otra app (2026-08-28). */}
+          <Box style={{ width: '100%', height: HERO_HEIGHT, backgroundColor: '#000' }}>
+            {videoSource ? (
+              <VideoView
+                player={player}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                nativeControls={false}
+              />
+            ) : ex.image ? (
+              <Image source={{ uri: ex.image }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+            ) : (
+              <Box className="items-center justify-center" style={{ width: '100%', height: '100%', backgroundColor: C.gray10 }}>
+                <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} size={96} />
+              </Box>
+            )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-        {videoSource ? (
-          <VideoView
-            player={player}
-            style={{ width: '100%', height: 240, backgroundColor: '#000' }}
-            contentFit="cover"
-            nativeControls={false}
-          />
-        ) : (
-          <Box className="items-center justify-center" style={{ width: '100%', height: 240, backgroundColor: C.gray10 }}>
-            <ExerciseThumbMem image={ex.image} bodyPartId={ex.bodyPartId} size={96} />
-          </Box>
-        )}
+            <LinearGradient
+              colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0)']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 90 }}
+            />
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 90 }}
+            />
 
-        <Box className="px-5" style={{ marginTop: 16 }}>
-          <Heading size="md">{ex.title}</Heading>
-          <Text muted style={{ fontSize: 13, marginTop: 4 }}>
-            {formatPrescribedSubtitle(ex.prescribed)}
-          </Text>
-        </Box>
-
-        {restBar && <Box className="px-5" style={{ marginTop: 14 }}>{restBar}</Box>}
-
-        {/* Misma tabla de series/métricas que el acordeón de la pantalla
-            principal (ver renderBlockPage) -- estilos y estructura
-            idénticos a propósito, solo cambian los callbacks (recibidos por
-            props en vez de cerrar sobre blockIdx/exIdx directamente). */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20 }}>
-          <Box className="px-5">
-            <HStack className="items-center" style={{ marginBottom: 8 }}>
-              <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
-                SERIE
-              </Text>
-              {displayMetrics.map((key) => {
-                const isIntensity = key === 'rir' || key === 'rpe';
-                const label = (
-                  <Text
-                    weight="semibold"
-                    muted={!isIntensity}
-                    className="text-center"
-                    style={[
-                      { fontSize: 11, width: 72, marginHorizontal: 2 },
-                      isIntensity && { color: C.blue },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {metricLabel(key)}
-                  </Text>
-                );
-                return isIntensity ? (
-                  <Pressable
-                    key={key}
-                    onPress={onToggleIntensityMode}
-                    hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Cambiar entre RIR y RPE (actual: ${(intensityMode ?? key).toUpperCase()})`}
-                  >
-                    {label}
-                  </Pressable>
-                ) : (
-                  <Box key={key}>{label}</Box>
-                );
-              })}
-              <Box style={{ width: 34 }} />
-            </HStack>
-
-            {ex.rows.map((row, rowIdx) => (
-              <HStack
-                key={rowIdx}
-                className="items-start rounded-sm"
-                style={{
-                  marginBottom: 8,
-                  paddingVertical: row.completed ? 4 : 0,
-                  backgroundColor: row.completed ? C.success5 : 'transparent',
-                }}
-              >
-                <Box
-                  className="items-center justify-center"
-                  style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, marginHorizontal: 5, marginTop: 4 }}
+            <Box
+              className="flex-row items-center justify-between px-5"
+              style={{ position: 'absolute', left: 0, right: 0, top: Math.max(insets.top, 12) }}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden' }}>
+                <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+                <Pressable
+                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar modo guiado"
                 >
-                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                    {rowIdx + 1}
+                  <Icon name="close" size={22} color="#FFFFFF" />
+                </Pressable>
+              </View>
+
+              <View style={{ borderRadius: 999, overflow: 'hidden' }}>
+                <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
+                <Box style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                  <Text weight="semibold" style={{ fontSize: 13, color: '#FFFFFF' }}>
+                    {exercisePositionLabel}
                   </Text>
                 </Box>
-                {displayMetrics.map((key) => {
-                  const suggestedValue = key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
-                  const hasSuggestion = suggestedValue != null;
-                  const target = hasSuggestion ? suggestedValue : ex.prescribed?.[key];
-                  return (
-                    <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
-                      <TextInput
-                        className="bg-card rounded-sm text-foreground"
-                        style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
-                        value={row.values[key] ?? ''}
-                        onChangeText={(t) => onChangeCell(rowIdx, key, t)}
-                        keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
-                        placeholder="-"
-                        placeholderTextColor={C.textSecondary}
-                      />
-                      {target != null && target !== '' ? (
+              </View>
+
+              <Box style={{ width: 40 }} />
+            </Box>
+
+            {/* Cronómetro de la sesión (mismo elapsedSeconds del header
+                original, dato real -- no un botón de pausa decorativo: no
+                existe "pausar sesión" como función en la app, así que solo
+                se muestra el tiempo, sin fingir un control que no hace
+                nada). */}
+            <Box style={{ position: 'absolute', left: 20, bottom: 34 }}>
+              <Text weight="bold" style={{ fontSize: 15, color: '#FFFFFF' }}>
+                {formatTimer(elapsedSeconds)}
+              </Text>
+            </Box>
+
+            {/* Segmentos de progreso -- uno por ejercicio de TODO el
+                entrenamiento (no solo del bloque actual, mismo criterio que
+                flatPositions), relleno hasta el actual. */}
+            <HStack style={{ position: 'absolute', left: 20, right: 20, bottom: 14 }} space="xs">
+              {Array.from({ length: totalCount }).map((_, idx) => (
+                <Box
+                  key={idx}
+                  style={{
+                    flex: 1,
+                    height: 3,
+                    borderRadius: 2,
+                    backgroundColor: idx <= positionIndex ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
+                  }}
+                />
+              ))}
+            </HStack>
+          </Box>
+
+          {/* "Hoja" con el contenido editable -- esquinas superiores
+              redondeadas simulando una sheet (pedido de modernización); el
+              tirador de arriba es solo visual, el cierre real es el gesto de
+              swipe o el botón (✕) de la cabecera. */}
+          <Box className="flex-1 bg-card" style={{ borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, overflow: 'hidden' }}>
+            <Box className="items-center" style={{ paddingTop: 10 }}>
+              <Box style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: C.border }} />
+            </Box>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              <HStack className="items-start justify-between px-5" style={{ marginTop: 14 }}>
+                <Box style={{ flex: 1 }}>
+                  <Heading size="md">{ex.title}</Heading>
+                  <Text muted style={{ fontSize: 13, marginTop: 4 }}>
+                    {formatPrescribedSubtitle(ex.prescribed)}
+                  </Text>
+                </Box>
+                <HStack space="xs" style={{ marginTop: 2 }}>
+                  <Pressable
+                    className="p-2"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={onOpenNotes}
+                    accessibilityRole="button"
+                    accessibilityLabel="Añadir nota para tu entrenador"
+                  >
+                    <Icon name="chatbox-ellipses-outline" size={20} className="text-muted-foreground" />
+                  </Pressable>
+                  <Pressable
+                    className="p-2"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={onOpenProgress}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver progreso de este ejercicio"
+                  >
+                    <Icon name="analytics-outline" size={20} className="text-foreground" />
+                  </Pressable>
+                  <Pressable
+                    className="p-2"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={onOpenPainReport}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reportar dolor"
+                  >
+                    <Icon name="medkit-outline" size={20} className="text-muted-foreground" />
+                  </Pressable>
+                </HStack>
+              </HStack>
+
+              {restBar && <Box className="px-5" style={{ marginTop: 14 }}>{restBar}</Box>}
+
+              {/* Misma tabla de series/métricas que el acordeón de la pantalla
+                  principal (ver renderBlockPage) -- estilos y estructura
+                  idénticos a propósito, solo cambian los callbacks (recibidos
+                  por props en vez de cerrar sobre blockIdx/exIdx
+                  directamente). El check de completar pasa de círculo-outline
+                  a cuadrado relleno en verde al completarse, y se añade una
+                  línea divisoria de descanso entre series (pedido de
+                  modernización, captura de referencia) -- puramente
+                  informativa, no sustituye a la columna "Descanso" editable
+                  si el ejercicio la tiene habilitada. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20 }}>
+                <Box className="px-5">
+                  <HStack className="items-center" style={{ marginBottom: 8 }}>
+                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                      SERIE
+                    </Text>
+                    {displayMetrics.map((key) => {
+                      const isIntensity = key === 'rir' || key === 'rpe';
+                      const label = (
                         <Text
+                          weight="semibold"
+                          muted={!isIntensity}
                           className="text-center"
-                          style={{
-                            fontSize: 9.5,
-                            marginTop: 2,
-                            fontFamily: hasSuggestion ? FONT.semiBold : FONT.regular,
-                            color: hasSuggestion ? C.warning60 : C.textSecondary,
-                          }}
+                          style={[
+                            { fontSize: 11, width: 72, marginHorizontal: 2 },
+                            isIntensity && { color: C.blue },
+                          ]}
                           numberOfLines={1}
                         >
-                          {hasSuggestion ? `Sugerido: ${target}` : `Obj: ${target}`}
+                          {metricLabel(key)}
                         </Text>
+                      );
+                      return isIntensity ? (
+                        <Pressable
+                          key={key}
+                          onPress={onToggleIntensityMode}
+                          hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Cambiar entre RIR y RPE (actual: ${(intensityMode ?? key).toUpperCase()})`}
+                        >
+                          {label}
+                        </Pressable>
+                      ) : (
+                        <Box key={key}>{label}</Box>
+                      );
+                    })}
+                    <Box style={{ width: 34 }} />
+                  </HStack>
+
+                  {ex.rows.map((row, rowIdx) => (
+                    <React.Fragment key={rowIdx}>
+                      <HStack
+                        className="items-start rounded-sm"
+                        style={{
+                          marginBottom: 8,
+                          paddingVertical: row.completed ? 4 : 0,
+                          backgroundColor: row.completed ? C.success5 : 'transparent',
+                        }}
+                      >
+                        <Box
+                          className="items-center justify-center"
+                          style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, marginHorizontal: 5, marginTop: 4 }}
+                        >
+                          <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
+                            {rowIdx + 1}
+                          </Text>
+                        </Box>
+                        {displayMetrics.map((key) => {
+                          const suggestedValue = key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
+                          const hasSuggestion = suggestedValue != null;
+                          const target = hasSuggestion ? suggestedValue : ex.prescribed?.[key];
+                          return (
+                            <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
+                              <TextInput
+                                className="bg-card rounded-sm text-foreground"
+                                style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
+                                value={row.values[key] ?? ''}
+                                onChangeText={(t) => onChangeCell(rowIdx, key, t)}
+                                keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
+                                placeholder="-"
+                                placeholderTextColor={C.textSecondary}
+                              />
+                              {target != null && target !== '' ? (
+                                <Text
+                                  className="text-center"
+                                  style={{
+                                    fontSize: 9.5,
+                                    marginTop: 2,
+                                    fontFamily: hasSuggestion ? FONT.semiBold : FONT.regular,
+                                    color: hasSuggestion ? C.warning60 : C.textSecondary,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {hasSuggestion ? `Sugerido: ${target}` : `Obj: ${target}`}
+                                </Text>
+                              ) : null}
+                            </Box>
+                          );
+                        })}
+                        <Pressable
+                          className="items-center justify-center"
+                          style={{ width: 34, marginTop: 3 }}
+                          onPress={() => onToggleRowComplete(rowIdx)}
+                        >
+                          <Box
+                            className="items-center justify-center"
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: 7,
+                              backgroundColor: row.completed ? C.success : 'transparent',
+                              borderWidth: row.completed ? 0 : 1.5,
+                              borderColor: C.border,
+                            }}
+                          >
+                            {row.completed && <Icon name="checkmark" size={16} color="#FFFFFF" />}
+                          </Box>
+                        </Pressable>
+                      </HStack>
+
+                      {ex.prescribed?.descanso && rowIdx < ex.rows.length - 1 ? (
+                        <HStack className="items-center" style={{ marginBottom: 8 }} space="sm">
+                          <Divider className="flex-1" />
+                          <Text muted style={{ fontSize: 10.5 }}>
+                            Descanso {ex.prescribed.descanso}
+                          </Text>
+                          <Divider className="flex-1" />
+                        </HStack>
                       ) : null}
-                    </Box>
-                  );
-                })}
-                <Pressable className="items-center" style={{ width: 34, marginTop: 3 }} onPress={() => onToggleRowComplete(rowIdx)}>
-                  <Icon
-                    name={row.completed ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                    size={26}
-                    color={row.completed ? C.success : C.textSecondary}
-                  />
+                    </React.Fragment>
+                  ))}
+                </Box>
+              </ScrollView>
+
+              {/* Añadir serie (acción principal) y marcar todas (secundaria)
+                  -- notas/progreso/dolor ya subieron junto al título, así
+                  que esta fila queda solo para lo que actúa sobre las
+                  series. */}
+              <HStack className="items-center justify-between px-5" style={{ marginTop: 22 }} space="sm">
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center rounded-pill border border-border"
+                  style={{ gap: 6, paddingVertical: 12 }}
+                  onPress={onAddRow}
+                >
+                  <Icon name="add" size={18} className="text-foreground" />
+                  <Text weight="semibold" className="text-foreground" style={{ fontSize: 13 }}>
+                    Añadir serie
+                  </Text>
+                </Pressable>
+                <Pressable
+                  className="p-2 items-center"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={onMarkAllRows}
+                  accessibilityRole="button"
+                  accessibilityLabel="Marcar todas las series"
+                >
+                  <Text weight="semibold" className="text-foreground text-center" style={{ fontSize: 12 }}>
+                    Marcar todas
+                  </Text>
                 </Pressable>
               </HStack>
-            ))}
+            </ScrollView>
+
+            <HStack
+              className="px-5 border-t border-border"
+              style={{ gap: 10, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 14) + 6, backgroundColor: C.bg }}
+            >
+              <Button variant="outline" radius="pill" size="lg" className="flex-1" onPress={onBack} disabled={!canGoBack}>
+                <Icon name="chevron-back" size={16} className="text-foreground" />
+                <ButtonText>Anterior</ButtonText>
+              </Button>
+              <Button radius="pill" size="lg" className="flex-1" onPress={onNext} disabled={!canGoNext}>
+                <ButtonText>Siguiente ejercicio</ButtonText>
+                <Icon name="chevron-forward" size={16} color="#FFFFFF" />
+              </Button>
+            </HStack>
           </Box>
-        </ScrollView>
-
-        {/* Fila de acciones (pedido explícito): notas a la izquierda del
-            todo, progreso, "Añadir serie" como acción central, marcar todas
-            en texto, maletín a la derecha del todo. */}
-        <HStack className="items-center justify-between px-5" style={{ marginTop: 22 }}>
-          <Pressable
-            className="p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={onOpenNotes}
-            accessibilityRole="button"
-            accessibilityLabel="Añadir nota para tu entrenador"
-          >
-            <Icon name="chatbox-ellipses-outline" size={22} className="text-muted-foreground" />
-          </Pressable>
-          <Pressable
-            className="p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={onOpenProgress}
-            accessibilityRole="button"
-            accessibilityLabel="Ver progreso de este ejercicio"
-          >
-            <Icon name="analytics-outline" size={22} className="text-foreground" />
-          </Pressable>
-          <Pressable
-            className="flex-row items-center rounded-pill border border-border"
-            style={{ gap: 6, paddingHorizontal: 18, paddingVertical: 10 }}
-            onPress={onAddRow}
-          >
-            <Icon name="add" size={18} className="text-foreground" />
-            <Text weight="semibold" className="text-foreground" style={{ fontSize: 13 }}>
-              Añadir serie
-            </Text>
-          </Pressable>
-          <Pressable
-            className="p-2 items-center"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={onMarkAllRows}
-            accessibilityRole="button"
-            accessibilityLabel="Marcar todas las series"
-          >
-            <Text weight="semibold" className="text-foreground text-center" style={{ fontSize: 11, lineHeight: 14 }}>
-              Marcar{'\n'}todas
-            </Text>
-          </Pressable>
-          <Pressable
-            className="p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            onPress={onOpenPainReport}
-            accessibilityRole="button"
-            accessibilityLabel="Reportar dolor"
-          >
-            <Icon name="medkit-outline" size={22} className="text-muted-foreground" />
-          </Pressable>
-        </HStack>
-      </ScrollView>
-
-      <HStack
-        className="px-5 border-t border-border"
-        style={{ gap: 10, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 14) + 6, backgroundColor: C.bg }}
-      >
-        <Button variant="outline" radius="pill" size="lg" className="flex-1" onPress={onBack} disabled={!canGoBack}>
-          <Icon name="chevron-back" size={16} className="text-foreground" />
-          <ButtonText>Anterior</ButtonText>
-        </Button>
-        <Button radius="pill" size="lg" className="flex-1" onPress={onNext} disabled={!canGoNext}>
-          <ButtonText>Siguiente ejercicio</ButtonText>
-          <Icon name="chevron-forward" size={16} color="#FFFFFF" />
-        </Button>
-      </HStack>
-    </SafeAreaView>
+        </SafeAreaView>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -2098,6 +2249,9 @@ export default function WorkoutSessionScreen(props: Props) {
           <WorkoutExercisePlayer
             ex={playerEx}
             exercisePositionLabel={`Ejercicio ${playerFlatIdx + 1} de ${flatPositions.length}`}
+            positionIndex={playerFlatIdx}
+            totalCount={flatPositions.length}
+            elapsedSeconds={elapsedSeconds}
             displayMetrics={getDisplayMetrics(playerEx)}
             metricLabel={metricLabel}
             metricInputType={metricInputType}
