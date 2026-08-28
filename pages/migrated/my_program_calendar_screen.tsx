@@ -178,7 +178,6 @@ const CAL_RING_INNER_SIZE_BIG = 32;
 
 const WEEKDAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const MONTH_NAMES_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 function toDateOnly(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -210,14 +209,6 @@ function startOfMonth(d: Date): Date {
 
 function formatMonthYear(date: Date): string {
   return `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatWeekRange(weekStart: Date): string {
-  const weekEnd = addDays(weekStart, 6);
-  if (weekStart.getMonth() === weekEnd.getMonth()) {
-    return `${weekStart.getDate()} - ${weekEnd.getDate()} ${MONTH_NAMES_SHORT[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
-  }
-  return `${weekStart.getDate()} ${MONTH_NAMES_SHORT[weekStart.getMonth()]} - ${weekEnd.getDate()} ${MONTH_NAMES_SHORT[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
 }
 
 function formatDayLabel(dateKey: string): string {
@@ -988,17 +979,21 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         </Pressable>
       </HStack>
 
-      <HStack style={styles.monthRow}>
-        <Pressable style={styles.monthBtn} onPress={goPrev}>
-          <Icon name="chevron-back" size={22} color={C.textPrimary} />
-        </Pressable>
-        <Text style={styles.monthText}>
-          {periodMode === 'month' ? formatMonthYear(selectedMonth) : formatWeekRange(weekAnchor)}
-        </Text>
-        <Pressable style={styles.monthBtn} onPress={goNext}>
-          <Icon name="chevron-forward" size={22} color={C.textPrimary} />
-        </Pressable>
-      </HStack>
+      {/* Solo en vista Mes: en Semana las flechas se mudan a la misma fila
+          que las píldoras (ver calendarCard más abajo), igual que
+          weekdayPicker en plan_screen.tsx -- ahí no hay una franja de fecha
+          aparte, las flechas están pegadas a los propios días. */}
+      {periodMode === 'month' && (
+        <HStack style={styles.monthRow}>
+          <Pressable style={styles.monthBtn} onPress={goPrev}>
+            <Icon name="chevron-back" size={22} color={C.textPrimary} />
+          </Pressable>
+          <Text style={styles.monthText}>{formatMonthYear(selectedMonth)}</Text>
+          <Pressable style={styles.monthBtn} onPress={goNext}>
+            <Icon name="chevron-forward" size={22} color={C.textPrimary} />
+          </Pressable>
+        </HStack>
+      )}
 
       {weekBlockedMessage && (
         <Box style={styles.weekBlockedBanner}>
@@ -1038,8 +1033,20 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                   </HStack>
                 ))
               ) : (
-                <HStack style={styles.weekRow}>
-                  {weekDays.map((day) => renderDayCell(day, 'w', true))}
+                // Flechas pegadas a la propia fila de píldoras -- copia
+                // exacta de weekdayPicker en plan_screen.tsx (chevron-back,
+                // los 7 días, chevron-forward, todo en una sola fila), en
+                // vez de una franja de fecha aparte arriba.
+                <HStack style={styles.weekPickerRow}>
+                  <Pressable onPress={goPrev} style={styles.weekNavBtn}>
+                    <Icon name="chevron-back" size={20} color={C.gray30} />
+                  </Pressable>
+                  <HStack style={styles.weekRow}>
+                    {weekDays.map((day) => renderDayCell(day, 'w', true))}
+                  </HStack>
+                  <Pressable onPress={goNext} style={styles.weekNavBtn}>
+                    <Icon name="chevron-forward" size={20} color={C.gray30} />
+                  </Pressable>
                 </HStack>
               )}
             </View>
@@ -1253,10 +1260,27 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontSize: 12,
     color: C.textSecondary,
   },
+  // flex:1 para que, dentro de weekPickerRow (vista Semana, flechas a los
+  // lados), rellene el espacio entre las dos flechas -- mismo criterio que
+  // weekStrip en plan_screen.tsx. En la rejilla del Mes (fila suelta dentro
+  // de calendarCard, sin flechas al lado) no cambia nada visualmente, ya
+  // ocupaba el 100% del ancho por su cuenta.
   weekRow: {
+    flex: 1,
     flexDirection: 'row',
     paddingHorizontal: 12,
     marginBottom: 4,
+  },
+  // Fila de la vista Semana -- copia exacta de weekdayPicker en
+  // plan_screen.tsx, pero sin fondo/borde propios (ya los pone calendarCard
+  // por fuera, porque también envuelve la rejilla del Mes).
+  weekPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  weekNavBtn: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   // Píldora del día -- copia exacta de weekDayPill/weekDayPillSelected de
   // plan_screen.tsx: sin borde propio cuando no está seleccionada (el
