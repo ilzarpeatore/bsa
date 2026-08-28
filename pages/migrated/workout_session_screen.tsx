@@ -11,12 +11,13 @@ import {
   Vibration,
   StyleSheet,
   View,
+  BackHandler,
 } from 'react-native';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
 import {  Box  } from '@components/ui/box';
 import {  HStack  } from '@components/ui/hstack';
 import {  Text  } from '@components/ui/text';
@@ -321,7 +322,29 @@ function WorkoutExercisePlayer({
     if (videoSource) player.play();
   }, [videoSource, player]);
 
+  // Botón físico Atrás en Android -- antes lo resolvía gratis el <Modal> que
+  // envolvía este componente (onRequestClose); al pasar a una vista normal
+  // superpuesta (ver comentario junto al Modal eliminado, en el punto de
+  // montaje) hay que engancharlo a mano para no perder el comportamiento.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [onClose]);
+
   const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4);
+
+  // Entrada deslizando desde abajo -- reemplaza el animationType="slide" que
+  // traía gratis el <Modal> eliminado (ver comentario en el punto de
+  // montaje). Un solo withTiming al montar, igual de una sola vez que antes
+  // (este componente se desmonta del todo al cerrar, nunca se reutiliza).
+  const enterY = useSharedValue(SCREEN_HEIGHT);
+  useEffect(() => {
+    enterY.value = withTiming(0, { duration: 280 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Deslizar hacia la derecha cierra el modo guiado y vuelve a la pantalla
   // anterior (pedido explícito) -- mismo criterio que el gesto de minimizar
@@ -350,7 +373,7 @@ function WorkoutExercisePlayer({
     []
   );
   const closeDragStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: closeDragX.value }],
+    transform: [{ translateX: closeDragX.value }, { translateY: enterY.value }],
   }));
 
   return (
@@ -2243,9 +2266,27 @@ export default function WorkoutSessionScreen(props: Props) {
       {/* Modo guiado a pantalla completa (pedido explícito 2026-08-27) --
           desmontado del todo (no solo visible=false) al cerrarse, para que
           useVideoPlayer libere el recurso nativo en vez de seguir
-          decodificando en segundo plano. */}
+          decodificando en segundo plano.
+          Vista normal superpuesta, NO <Modal> (cambiado, reportado con
+          captura: al marcar una serie o pasar de ejercicio con Anterior/
+          Siguiente dentro del modo guiado, el cambio se aplicaba de verdad
+          -- se veía bien al volver a la pantalla principal -- pero no se
+          repintaba AQUÍ hasta salir y reabrir). <Modal> monta su contenido
+          en una superficie/surface nativa aparte de la pantalla que lo
+          abre; en New Architecture (Fabric, siempre activa desde RN 0.76,
+          ver package.json) esa superficie no siempre recibe a tiempo los
+          commits de una actualización de estado que se origina fuera de
+          ella, aunque el estado en sí sea correcto -- de ahí que la
+          pantalla principal (que SÍ vive en la superficie normal) mostrase
+          el dato bien y este modo guiado no. Una View absoluta normal vive
+          en la MISMA superficie que el resto de la pantalla, así que se
+          repinta en el mismo commit que cualquier otro estado de este
+          componente -- sin ambigüedad posible. A cambio hay que reponer a
+          mano dos cosas que <Modal> daba gratis: el slide de entrada (ver
+          enterY en WorkoutExercisePlayer) y el botón físico Atrás de
+          Android (ver el listener de BackHandler ahí mismo). */}
       {playerTarget && playerEx && (
-        <Modal visible animationType="slide" onRequestClose={() => setPlayerTarget(null)}>
+        <View style={StyleSheet.absoluteFill}>
           <WorkoutExercisePlayer
             ex={playerEx}
             exercisePositionLabel={`Ejercicio ${playerFlatIdx + 1} de ${flatPositions.length}`}
@@ -2277,7 +2318,7 @@ export default function WorkoutSessionScreen(props: Props) {
             canGoNext={canGoToNextExercise}
             restBar={renderRestCountdownBar()}
           />
-        </Modal>
+        </View>
       )}
 
       <ConfirmDialogMem

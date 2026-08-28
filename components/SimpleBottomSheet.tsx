@@ -80,9 +80,18 @@ export default function SimpleBottomSheet({ visible, onClose, children }: Simple
               ...(hasGlass ? null : { backgroundColor: C.surface }),
             }}
           >
+            {/* behavior="padding" (el habitual) no sirve aquí: esta hoja
+                cuelga desde abajo con su propia altura de contenido dentro
+                del Overlay del Actionsheet, no ocupa toda la pantalla desde
+                arriba -- el padding que añade "padding" queda por debajo del
+                recorte visual de la hoja en vez de empujarla hacia arriba
+                (reportado con captura: el diálogo de notas queda oculto tras
+                el teclado en WorkoutNoteSheet). "position" sí funciona para
+                contenido anclado/flotante: reposiciona la vista entera con
+                `top` en vez de repartir espacio interno. */}
             <KeyboardAvoidingView
               style={{ width: '100%' }}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              behavior={Platform.OS === 'ios' ? 'position' : undefined}
             >
               {children}
             </KeyboardAvoidingView>
