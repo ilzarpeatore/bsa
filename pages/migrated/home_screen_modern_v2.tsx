@@ -74,6 +74,22 @@ import { useAuth } from '../../store/AuthContext';
 const FIGMA_W = 375;
 const FIGMA_H = 812;
 
+// Apple Health / Google Health diferido a una próxima versión (2026-08-28,
+// pedido explícito). Esta app nunca ha pedido permiso de salud desde ningún
+// flujo alcanzable (requestHealthPermissions() solo vive en
+// link_device_choice_screen.tsx, pantalla sin ruta de navegación desde Home
+// -- ver docs/DEAD_SCREENS.md), así que el sync automático de más abajo
+// intentaba leer HealthKit/Health Connect sin autorización real. En iOS
+// concretamente esto es más que "no trae datos": sin la capability
+// `com.apple.developer.healthkit` (bloqueada por cuenta gratuita de Apple
+// Developer, ver docs/PENDIENTE_BACKEND_ADMIN.md) cualquier llamada real a
+// HealthKit puede crashear la app -- mismo motivo ya documentado en
+// link_device_choice_screen.tsx para ocultar la integración en iOS.
+// Apágalo aquí (una sola constante) cuando exista permiso real de la tienda
+// para usarlo: cuenta de pago de Apple Developer (HealthKit) + declaración
+// de Health Connect aprobada en Play Console (Android).
+const HEALTH_SYNC_ENABLED = false;
+
 // Fondo fijo de Home v2 (pedido explícito 2026-08-26, con 2 capturas de
 // referencia de otra app): la misma foto del hero, pero FUERA del
 // ScrollView -- no se desplaza con el contenido, se queda detrás de toda la
@@ -342,8 +358,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // de fondo mostrar (ver HERO_IMAGES arriba).
   const heroMood = getHeroMoodForHour(new Date().getHours());
   const [showMenu, setShowMenu] = useState(false);
-  const [appleHealthOn, setAppleHealthOn] = useState(true);
-  const [smartWatchOn, setSmartWatchOn] = useState(false);
+  // Antes: dos Switch reales (appleHealthOn por defecto en `true`, sin
+  // ninguna llamada a HealthKit/Health Connect detrás) -- parecían un ajuste
+  // persistido y funcional cuando no hacían nada. Ninguna integración de
+  // salud/wearable existe todavía en esta versión (ver
+  // docs/PENDIENTE_BACKEND_ADMIN.md, "Bloqueantes de infraestructura"), así
+  // que la fila ahora es un aviso "Próximamente", no un control.
+  const HEALTH_SYNC_COMING_SOON_NAME = Platform.OS === 'ios' ? 'Apple Health' : 'Google Health';
 
   // Nueva cabecera (estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
   const [motivationalPhrase, setMotivationalPhrase] = useState<string | null>(null);
@@ -558,6 +579,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
     menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
     menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
+    comingSoonPill: { backgroundColor: C.gray10, borderRadius: r(999), paddingHorizontal: r(10), paddingVertical: r(4) },
+    comingSoonPillText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textSecondary },
   }), [sc, r, C, winH, heroMood]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
@@ -714,6 +737,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // un rebuild. Corre una sola vez por sesión de la app (useEffect de
   // montaje, no useFocusEffect — evita repetir en cada vuelta a Home).
   useEffect(() => {
+    if (!HEALTH_SYNC_ENABLED) return;
     const LAST_SYNC_KEY = 'health_last_sync_date';
 
     (async () => {
@@ -1041,8 +1065,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
                 <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
                 <Text style={styles.bannerText}>
-                  Los anillos de Recovery/Strain se activarán con datos reales en cuanto conectes Apple Health o
-                  Health Connect.
+                  Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar Apple Health o
+                  Google Health, disponible en una próxima versión de la app.
                 </Text>
                 <Pressable style={styles.bannerBtn} onPress={() => setDemoBannerDismissed(true)}>
                   <Text style={styles.bannerBtnText}>Continuar</Text>
@@ -1577,27 +1601,37 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
               <Text style={styles.menuSectionLabel}>Salud y dispositivos</Text>
               <Box style={styles.menuCard}>
-                <HStack className="items-center px-4 py-3">
-                  <AppIcon name="fitness-outline" size={18} color={C.success} bg={C.success10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                  <Text style={[styles.menuItemText, { flex: 1 }]}>Apple Health</Text>
-                  <Switch
-                    value={appleHealthOn}
-                    onValueChange={setAppleHealthOn}
-                    trackColor={{ false: C.gray70, true: C.primary }}
-                    thumbColor={C.white}
-                  />
-                </HStack>
+                <Pressable
+                  onPress={() =>
+                    showToast('Próximamente', {
+                      description: `Podrás empezar a sincronizar ${HEALTH_SYNC_COMING_SOON_NAME} en la siguiente versión de la app.`,
+                    })
+                  }
+                >
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="fitness-outline" size={18} color={C.success} bg={C.success10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>{HEALTH_SYNC_COMING_SOON_NAME}</Text>
+                    <Box style={styles.comingSoonPill}>
+                      <Text style={styles.comingSoonPillText}>Próximamente</Text>
+                    </Box>
+                  </HStack>
+                </Pressable>
                 <Divider className="ml-4" />
-                <HStack className="items-center px-4 py-3">
-                  <AppIcon name="watch-outline" size={18} color={C.blue} bg={C.blue10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                  <Text style={[styles.menuItemText, { flex: 1 }]}>Smart Watch</Text>
-                  <Switch
-                    value={smartWatchOn}
-                    onValueChange={setSmartWatchOn}
-                    trackColor={{ false: C.gray70, true: C.primary }}
-                    thumbColor={C.white}
-                  />
-                </HStack>
+                <Pressable
+                  onPress={() =>
+                    showToast('Próximamente', {
+                      description: 'Podrás conectar tu smartwatch en una próxima versión de la app.',
+                    })
+                  }
+                >
+                  <HStack className="items-center px-4 py-3">
+                    <AppIcon name="watch-outline" size={18} color={C.blue} bg={C.blue10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>Smart Watch</Text>
+                    <Box style={styles.comingSoonPill}>
+                      <Text style={styles.comingSoonPillText}>Próximamente</Text>
+                    </Box>
+                  </HStack>
+                </Pressable>
               </Box>
 
               {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue

@@ -27,6 +27,17 @@ type IoniconName = ComponentProps<typeof Ionicons>['name'];
 export const APP_STORE_ID = '';
 export const PLAY_STORE_PUBLISHED = false;
 
+// Política de privacidad -- URL pública real (2026-08-28), no texto embebido:
+// se abre en MigratedWebView (mismo componente que Recursos, ya endurecido
+// contra navegación fuera de origen, ver SEC-003 en SECURITY_AUDIT.md). Vive
+// fuera de la app a propósito -- App Store Connect/Play Console piden esta
+// URL en la ficha de la tienda de todos modos, y así el coach puede
+// actualizar el texto legal sin depender de una nueva versión de la app.
+// Dominio definitivo indicado por el usuario (bestronger.es) -- si en algún
+// momento no responde, verificar primero si el cambio de dominio ya se
+// completó antes de tocar este valor.
+export const PRIVACY_POLICY_URL = 'https://bestronger.es/privacy-policy/';
+
 export interface SocialLink {
   name: string;
   icon: IoniconName;

@@ -83,7 +83,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
     height: { icon: 'resize-outline' as const, color: '#14B8A6' },
   };
 
-  const { updateUser, state } = useAuth();
+  const { updateUser, state, logout } = useAuth();
   const [fName, setFName] = useState('');
   const [lName, setLName] = useState('');
   const [email, setEmail] = useState('');
@@ -96,6 +96,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   const [profileImage, setProfileImage] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [mHeight, setMHeight] = useState<number | undefined>(undefined);
   const [mWeight, setMWeight] = useState<number | undefined>(undefined);
 
@@ -222,6 +223,47 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Requisito de Apple (guideline 5.1.1v) y Google Play para poder publicar
+  // la app: si permite crear cuenta, tiene que permitir borrarla desde
+  // dentro, sin depender de un email/llamada a soporte. Doble confirmación
+  // (no solo una Alert, a diferencia de "Cerrar sesión") porque esto sí es
+  // irreversible -- ver docs/BORRADO_CUENTA_BACKEND.md para el contrato de
+  // backend, que todavía no existe (este botón llamará a un 404 hasta que se
+  // implemente ahí).
+  const deleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      await authApi.deleteAccount();
+      await logout();
+    } catch (e: any) {
+      showToast('Error', { description: e.message || 'No se pudo eliminar la cuenta. Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDeleteAccountFinal = () => {
+    Alert.alert(
+      '¿Seguro que quieres eliminar tu cuenta?',
+      'Esta acción es definitiva. No podrás recuperar tu cuenta ni tus datos después de confirmar.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar definitivamente', style: 'destructive', onPress: deleteAccount },
+      ]
+    );
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Se eliminarán tu perfil, tu progreso, tus entrenamientos registrados y el resto de tus datos personales. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Continuar', style: 'destructive', onPress: confirmDeleteAccountFinal },
+      ]
+    );
   };
 
   const genderList = getGender();
@@ -509,6 +551,31 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
               </HStack>
             </Box>
           </Box>
+
+          {/* Zona de peligro -- borrado de cuenta. Requisito de tienda
+              (Apple 5.1.1v / Google Play), no una mejora de producto: sin
+              esto, la app no puede pasar review si permite registro. */}
+          <Text style={[localStyles.sectionLabel, { marginTop: 20 }]}>Zona de peligro</Text>
+          <Box style={[localStyles.card, localStyles.dangerCard]}>
+            <Pressable
+              style={[localStyles.row, localStyles.rowLast]}
+              onPress={confirmDeleteAccount}
+              disabled={isDeleting}
+              accessibilityRole="button"
+              accessibilityLabel="Eliminar cuenta"
+            >
+              <HStack space="md" className="items-center">
+                <AppIcon name="trash-outline" color="#FFFFFF" bg={C.destructive} containerSize={40} borderRadius={12} />
+                <VStack className="flex-1">
+                  <Text weight="semibold" style={{ color: C.destructive }}>Eliminar cuenta</Text>
+                  <Text size="xs" muted style={{ marginTop: 2 }}>
+                    Borra tu cuenta y todos tus datos de forma permanente.
+                  </Text>
+                </VStack>
+                {isDeleting && <Spinner size="small" color={C.destructive} />}
+              </HStack>
+            </Pressable>
+          </Box>
         </ScrollView>
 
         {isLoading && (
@@ -566,6 +633,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   card: {
     backgroundColor: C.surface,
     borderRadius: RADIUS.md,
+  },
+  dangerCard: {
+    borderWidth: 1,
+    borderColor: C.destructive20,
   },
   // Etiqueta gris encima de cada tarjeta (mismo patrón que "General"/"Datos"
   // en la referencia) -- agrupa los campos en 2 tarjetas en vez de una sola

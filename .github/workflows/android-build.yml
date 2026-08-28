@@ -1,0 +1,184 @@
+name: Android Build
+run-name: Android Build ${{ inputs.build_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'Unique build identifier'
+        required: true
+        type: string
+      snapshot_ref:
+        description: 'Ref holding the working-tree snapshot to build (empty builds this branch)'
+        required: false
+        type: string
+        default: ''
+      build_format:
+        description: 'aab (Play Store upload) or apk (sideload/testing)'
+        required: false
+        type: choice
+        options:
+          - apk
+          - aab
+        default: 'apk'
+      use_signing:
+        description: 'Sign with the real release keystore (requires ANDROID_KEYSTORE_BASE64 + secrets below). false = debug-signed, install-only build.'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Mismo mecanismo que ios-build.yml: la ejecucion via workflow_dispatch
+      # siempre corre desde la rama por defecto, asi que el CLI empuja un
+      # snapshot aparte cuando hace falta compilar cambios sin commitear.
+      - name: Checkout working-tree snapshot
+        if: inputs.snapshot_ref != ''
+        env:
+          SNAPSHOT_REF: ${{ inputs.snapshot_ref }}
+        run: |
+          set -e
+          git fetch --depth=1 origin "+$SNAPSHOT_REF:refs/heads/snapshot"
+          git checkout --force snapshot
+          echo "Building $(git rev-parse --short HEAD)"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'yarn.lock', 'patches/**') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      - name: Install npm dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm install
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # No hay carpeta android/ committeada en este repo (a diferencia de
+      # ios/, que si vive en git) -- se genera aqui mismo, efimera, en cada
+      # build. Igual que expo prebuild --platform ios en prebuild-ios.yml.
+      - name: Expo prebuild (Android only)
+        env:
+          CI: "1"
+        run: npx expo prebuild --platform android
+
+      - name: Install release keystore
+        if: inputs.use_signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::use_signing=true pero falta el secret ANDROID_KEYSTORE_BASE64. Ver docs/BUILD_AAB.md."
+            exit 1
+          fi
+
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-upload.keystore
+
+          # Nombres de propiedad que usa la plantilla oficial de React Native
+          # (reactnative.dev/docs/signed-apk-android) -- Expo prebuild genera
+          # android/app/build.gradle a partir de esa misma plantilla. Se
+          # escriben ambos juegos de nombres (MYAPP_UPLOAD_* y el alias mas
+          # antiguo MYAPP_RELEASE_*) por si esta version de Expo usa el otro.
+          cat >> android/gradle.properties <<EOF
+          MYAPP_UPLOAD_STORE_FILE=release-upload.keystore
+          MYAPP_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          MYAPP_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          MYAPP_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          MYAPP_RELEASE_STORE_FILE=release-upload.keystore
+          MYAPP_RELEASE_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          MYAPP_RELEASE_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          MYAPP_RELEASE_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          EOF
+
+          # No confiar a ciegas en que el build.gradle generado enganche
+          # estas propiedades -- verificar de verdad y fallar con un mensaje
+          # claro en vez de producir en silencio un AAB firmado con la
+          # keystore de debug (que Play Console rechazaria igualmente, pero
+          # sin decir por que).
+          if ! grep -qE "MYAPP_(UPLOAD|RELEASE)_STORE_FILE" android/app/build.gradle; then
+            echo "::error::android/app/build.gradle generado por 'expo prebuild' no referencia MYAPP_UPLOAD_STORE_FILE ni MYAPP_RELEASE_STORE_FILE -- la firma no se aplicaria. Revisar el signingConfigs.release de ese archivo a mano (ver docs/BUILD_AAB.md) y ajustar este paso con el nombre de propiedad real antes de reintentar."
+            exit 1
+          fi
+          echo "Keystore instalada, build.gradle referencia el hook de firma esperado."
+
+      - name: Build Android
+        env:
+          BUILD_ID: ${{ inputs.build_id }}
+          BUILD_FORMAT: ${{ inputs.build_format }}
+        run: |
+          set -e
+          cd android
+          chmod +x gradlew
+
+          if [ "$BUILD_FORMAT" = "aab" ]; then
+            ./gradlew bundleRelease --no-daemon
+            OUT=$(find app/build/outputs/bundle/release -name "*.aab" | head -1)
+          else
+            ./gradlew assembleRelease --no-daemon
+            OUT=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          fi
+
+          if [ -z "$OUT" ]; then
+            echo "::error::No se encontro ningun .$BUILD_FORMAT generado."
+            exit 1
+          fi
+
+          cd "$GITHUB_WORKSPACE"
+          mkdir -p build
+          cp "android/$OUT" "build/$BUILD_ID.$BUILD_FORMAT"
+          echo "Creado build/$BUILD_ID.$BUILD_FORMAT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: build/*
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Build summary
+        if: always()
+        env:
+          USE_SIGNING: ${{ inputs.use_signing }}
+          BUILD_FORMAT: ${{ inputs.build_format }}
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build ID:** ${{ inputs.build_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Format:** $BUILD_FORMAT" >> $GITHUB_STEP_SUMMARY
+          if [ "$USE_SIGNING" = "true" ]; then
+            echo "- **Signing:** Release keystore (subible a Play Console si el formato es aab)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Signing:** Keystore de debug (solo instalar/probar, Play Console la rechazara)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f build/*.apk ] || [ -f build/*.aab ]; then
+            OUT_PATH=$(find build -type f | head -1)
+            echo "- **Tamaño:** $(ls -lh "$OUT_PATH" | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          fi

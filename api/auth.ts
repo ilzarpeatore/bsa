@@ -106,4 +106,13 @@ export const authApi = {
 
   forgotPassword: (payload: { email: string }) =>
     apiClient.post<ApiMessageResponse>('forget-password', payload),
+
+  // Endpoint todavía no existe en el backend (documentado en
+  // docs/BORRADO_CUENTA_BACKEND.md, requisito de Apple/Google para poder
+  // publicar en las tiendas). Borra la cuenta del usuario autenticado por su
+  // token -- no recibe id, el backend lo saca del Bearer token igual que el
+  // resto de endpoints "de mi cuenta". `reason` es opcional, solo para dar
+  // contexto al coach de por qué se fue el cliente.
+  deleteAccount: (payload?: { reason?: string }) =>
+    apiClient.post<ApiMessageResponse>('v1/delete-account', payload ?? {}),
 };

@@ -18,9 +18,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pfndesign.befit",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSHealthShareUsageDescription": "BeFit usa tus datos de Salud (pasos, ritmo cardíaco, sueño) para mostrarte tu progreso real.",
-        "NSHealthUpdateUsageDescription": "BeFit puede registrar entrenamientos y métricas en tu app de Salud.",
         "NSSupportsLiveActivities": true
       }
     },
@@ -30,16 +29,7 @@
         "backgroundColor": "#1A1735"
       },
       "package": "com.pfndesign.befit",
-      "permissions": [
-        "android.permission.health.READ_STEPS",
-        "android.permission.health.WRITE_STEPS",
-        "android.permission.health.READ_HEART_RATE",
-        "android.permission.health.WRITE_HEART_RATE",
-        "android.permission.health.READ_SLEEP",
-        "android.permission.health.WRITE_SLEEP",
-        "android.permission.health.READ_HYDRATION",
-        "android.permission.health.WRITE_HYDRATION"
-      ]
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -95,9 +85,7 @@
           "photosPermission": "Permite a BeFit acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.",
           "cameraPermission": "Permite a BeFit usar la cámara para que puedas añadir una foto a tus publicaciones."
         }
-      ],
-      "@kingstinct/react-native-healthkit",
-      "react-native-health-connect"
+      ]
     ]
   }
 }

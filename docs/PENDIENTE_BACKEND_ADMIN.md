@@ -62,6 +62,10 @@ Mismo mecanismo ya usado por la herramienta temporal `ScreenReviewFab`/"Revisar 
 
 ---
 
+### 6. Borrado de cuenta — bloqueante real para publicar en las tiendas (2026-08-28)
+
+Apple (guideline 5.1.1v) y Google Play exigen que la app permita eliminar la cuenta desde dentro, sin depender de email/soporte. El cliente ya está listo: botón "Eliminar cuenta" en `edit_profile_screen.tsx` (doble confirmación) → `authApi.deleteAccount()` → `POST v1/delete-account`, que todavía no existe en el backend. Contrato completo, estrategia de borrado recomendada (soft-delete + purga diferida) y qué tablas tocar, ya documentado en detalle en `docs/BORRADO_CUENTA_BACKEND.md` — hay una decisión de producto pendiente ahí (borrado inmediato total vs. soft-delete con periodo de gracia) que hay que confirmar antes de implementar.
+
 ## Prioridad media
 
 ### 5. Foto de perfil real — verificar subida en backend

@@ -8,7 +8,9 @@ Este documento se creó retroactivamente (2026-08-25) para dejar constancia de t
 
 ## Estado actual
 
-**Bugs detectados:** 24
+**Nota (2026-08-28):** el usuario confirma que la app ya se ha probado de verdad en un dispositivo real. Los recuentos de esta sección son de antes de esa prueba y de antes del merge que trajo ~40 commits nuevos de otras sesiones (Live Activity, rediseño de `workout_session_screen.tsx`, calendario semanal/mensual, etc., cada uno con sus propios BUG-0xx/IMP-0xx) — **ya no son exactos**, no se recalculan aquí para no inventar un número sin releer las ~2000 líneas del documento. Las entradas 🔵 concretas de más abajo (BUG-012 y siguientes) se dejan tal cual porque no hay confirmación por bug individual de cuáles se probaron — si el usuario confirma que un bug concreto ya se vio corregido en el dispositivo real, marcar ese bug en particular como 🟢 en vez de reescribir el documento entero por una confirmación general.
+
+**Bugs detectados:** 24 (cifra de antes del merge, desactualizada)
 **Solucionados:** 13
 **Pendientes:** 0
 **En progreso:** 0

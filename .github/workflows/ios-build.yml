@@ -28,6 +28,15 @@ on:
         required: false
         type: boolean
         default: false
+      export_method:
+        description: 'Signed-export method (only used when use_signing=true). "development" installs on registered test devices only -- for App Store Connect/TestFlight use "app-store".'
+        required: false
+        type: choice
+        options:
+          - development
+          - app-store
+          - ad-hoc
+        default: 'development'
       configuration:
         description: 'Build configuration (Debug is faster, Release for production)'
         required: false
@@ -216,6 +225,7 @@ jobs:
           PROJECT_TYPE: ${{ steps.detect.outputs.type }}
           USE_SIGNING: ${{ inputs.use_signing }}
           CONFIGURATION: ${{ inputs.configuration }}
+          EXPORT_METHOD: ${{ inputs.export_method }}
         run: |
           set -e
 
@@ -395,7 +405,7 @@ jobs:
               '<plist version="1.0">' \
               '<dict>' \
               '    <key>method</key>' \
-              '    <string>development</string>' \
+              "    <string>${EXPORT_METHOD:-development}</string>" \
               '    <key>signingStyle</key>' \
               '    <string>manual</string>' \
               '    <key>teamID</key>' \
@@ -466,6 +476,7 @@ jobs:
         env:
           USE_SIGNING: ${{ inputs.use_signing }}
           CONFIGURATION: ${{ inputs.configuration }}
+          EXPORT_METHOD: ${{ inputs.export_method }}
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -476,7 +487,7 @@ jobs:
           echo "- **Pods Cache:** ${{ steps.pods-cache.outputs.cache-hit == 'true' && 'Hit' || 'Miss' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Node Modules Cache:** ${{ steps.node-modules-cache.outputs.cache-hit == 'true' && 'Hit' || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
           if [ "$USE_SIGNING" = "true" ]; then
-            echo "- **Signing:** Signed (development)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Signing:** Signed (${EXPORT_METHOD:-development})" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Signing:** Unsigned (sign locally with AltStore/Sideloadly)" >> $GITHUB_STEP_SUMMARY
           fi
