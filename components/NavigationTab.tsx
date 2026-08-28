@@ -10,7 +10,7 @@ import { GlassView } from "@components/ui/glass-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { NavigationTabOptionsInterface, IoniconName } from "./_types/NavigationTab.i";
-import { useResponsiveStyleSheet, useScale } from "@helper/responsiveStyleSheet";
+import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@components/ui/icon";
 import { Text } from "@components/ui/text";
@@ -68,13 +68,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
   const { colors: C, mode: colorMode } = useAppColorMode();
   const styles = useStyle(C);
   const safearea = useSafeAreaInsets();
-  // Altura real de la barra, calculada igual que "64@ratio" en navigationOuter
-  // (mismo useScale que usa useResponsiveStyleSheet por debajo) -- se necesita
-  // como número real (no como string "@ratio") para el fondo de cristal de
-  // abajo, cuya altura depende también de safearea.bottom (valor de runtime,
-  // no se puede resolver dentro del StyleSheet memoizado).
-  const scale = useScale();
-  const barHeight = Math.ceil(scale * 64);
   /* top bar options */
   const focusedOptions = descriptors[state.routes[state.index].key].options as NavigationTabOptionsInterface;
 
@@ -163,27 +156,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
 
   return (
     <>
-      {/* Fondo de cristal de toda la franja inferior (pedido explícito con
-          captura, 2026-08-27: el glass de la píldora no llegaba hasta el
-          borde físico de abajo -- por debajo de la píldora quedaba un hueco
-          sin difuminar mostrando la foto de fondo directamente, el margen
-          `safearea.bottom` que reserva navigationOuter). Esta capa cubre
-          TODO el ancho de la pantalla (no solo el ancho recortado de la
-          píldora) desde el borde físico de abajo hasta la misma altura que
-          la barra, para que ese hueco quede también difuminado -- se adapta
-          sola a cualquier tamaño de pantalla porque usa `barHeight`
-          (calculado con el mismo `useScale` que el resto de la barra) +
-          `safearea.bottom` real del dispositivo, nunca un valor fijo. Va
-          DETRÁS de la píldora (se renderiza antes en el JSX), sin bloquear
-          toques (pointerEvents="none") -- la píldora sigue siendo la única
-          superficie interactiva. */}
-      <View
-        pointerEvents="none"
-        style={[styles.bottomGlassBackdrop, { height: barHeight + (safearea.bottom || 12) }]}
-      >
-        <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, styles.navigationTint, { opacity: 0.5 }]} />
-      </View>
       <View style={[styles.navigationOuter, { marginBottom: safearea.bottom || 12 }]}>
         {/* Fila completa (4 pestañas + "+") -- visible solo arriba del todo,
             se pliega en cuanto se hace scroll (ver useTabBarScroll). */}
@@ -389,15 +361,6 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
  */
 function useStyle(C: ReturnType<typeof useAppColorMode>['colors']) {
   const styles = useResponsiveStyleSheet({
-    // Altura fijada dinámicamente en el propio componente (depende de
-    // safearea.bottom, un valor de runtime) -- aquí solo el resto del
-    // posicionamiento, común a cualquier dispositivo.
-    bottomGlassBackdrop: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
     navigationOuter: {
       position: "absolute",
       left: '20@ratio',
