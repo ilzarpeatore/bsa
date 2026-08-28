@@ -1022,7 +1022,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           scrollEventThrottle={32}
         >
           <GestureDetector gesture={calendarSwipeGesture}>
-            <View>
+            <View style={styles.calendarCard}>
               {periodMode === 'month' && (
                 <HStack style={styles.weekdayHeaderRow}>
                   {WEEKDAY_LABELS.map((l) => (
@@ -1230,6 +1230,17 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.surfaceLight,
   },
   weekBlockedText: { flex: 1, fontSize: 13, fontFamily: FONT.medium, color: C.textSecondary },
+  // Marco del calendario -- copia exacta de weekdayPicker en
+  // plan_screen.tsx (mismo fondo blanco 80% + borde inferior fino), pedido
+  // explícito: clonar también el fondo/borde de Plan, no solo el tamaño de
+  // las píldoras. Envuelve tanto la vista Semana como la rejilla del Mes.
+  calendarCard: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
   weekdayHeaderRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
