@@ -20,6 +20,7 @@ import {  HStack  } from '@components/ui/hstack';
 import {  Divider  } from '@components/ui/divider';
 import {  Button, ButtonText  } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
+import { useTutorial } from '@store/TutorialContext';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
@@ -94,6 +95,7 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
   const { colors: C } = useAppColorMode();
   const rs = useMemo(() => createReadinessStyles(C), [C]);
   const insets = useSafeAreaInsets();
+  const { reportAction } = useTutorial();
   const [sleepQuality, setSleepQuality] = useState<number | null>(null);
   const [sorenessLevel, setSorenessLevel] = useState<number | null>(null);
   const [energyLevel, setEnergyLevel] = useState<number | null>(null);
@@ -113,6 +115,7 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
         stress_level: stressLevel!,
       };
       await readinessApi.submit(values);
+      reportAction('readiness_submitted');
       onDone();
     } catch (e) {
       showToast('Error', { description: 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.', variant: 'error' });
@@ -156,18 +159,20 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
 
       <Box style={{ paddingHorizontal: 24, backgroundColor: C.bg, paddingBottom: Math.max(insets.bottom, 12) + 6 }}>
         <Divider style={{ marginBottom: 12 }} />
-        <Button
-          onPress={onSubmit}
-          disabled={!allAnswered || saving}
-          radius="pill"
-          className="py-4"
-        >
-          {saving ? (
-            <Spinner size="small" color={C.accentBlackForeground} />
-          ) : (
-            <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
-          )}
-        </Button>
+        <TutorialTarget id="workout-preview-readiness-submit">
+          <Button
+            onPress={onSubmit}
+            disabled={!allAnswered || saving}
+            radius="pill"
+            className="py-4"
+          >
+            {saving ? (
+              <Spinner size="small" color={C.accentBlackForeground} />
+            ) : (
+              <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
+            )}
+          </Button>
+        </TutorialTarget>
       </Box>
     </SafeAreaView>
   );

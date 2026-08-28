@@ -282,13 +282,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   }));
   // Este bloque ("Reto para empezar") es la entrada al tutorial guiado:
   // cada paso es uno de los 7 retos esenciales (ver constants/tutorialChallenges.ts).
+  // Se excluyen los marcados `hidden` porque su primer paso vive en una
+  // pantalla solo alcanzable encadenada desde otro reto, nunca desde Home.
   // "done" viene de useTutorial() (persistido, se marca solo cuando el
   // usuario completa la acción real -- nunca a mano aquí). Tocar un paso
   // lanza su spotlight (TutorialOverlay) en vez de navegar directamente.
   const { isDone: isTutorialDone, startChallenge } = useTutorial();
   const startupSteps: StartupChecklistStep[] = useMemo(
     () =>
-      TUTORIAL_CHALLENGES.map((challenge) => ({
+      TUTORIAL_CHALLENGES.filter((challenge) => !challenge.hidden).map((challenge) => ({
         id: challenge.id,
         label: challenge.label,
         done: isTutorialDone(challenge.id),
@@ -1138,9 +1140,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
         <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Hábitos</Text>
-          <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
-            <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
-          </Pressable>
+          <TutorialTarget id="home-habits-link">
+            <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
+              <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
+            </Pressable>
+          </TutorialTarget>
         </HStack>
         {habits.length > 0 ? (
           <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
