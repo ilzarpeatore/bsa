@@ -846,11 +846,6 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           setSelectedDayKey(day.date);
         }}
       >
-        {big && (
-          <Text style={styles.dayCellLetter}>
-            {WEEKDAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1]}
-          </Text>
-        )}
         <Box
           style={[
             big ? styles.dayNumberRingBig : styles.dayNumberRing,
@@ -867,6 +862,11 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             {dateObj.getDate()}
           </Text>
         </Box>
+        {big && (
+          <Text style={[styles.dayCellLetter, isSelected && !selectionMode && styles.dayCellLetterSelected]}>
+            {WEEKDAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1]}
+          </Text>
+        )}
         {isMarkedUnavailable && (
           <Icon name="close-circle" size={12} color={C.destructive} style={{ marginTop: 2 }} />
         )}
@@ -1017,7 +1017,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                   </HStack>
                 ))
               ) : (
-                <HStack style={styles.weekRow}>
+                <HStack style={styles.weekRowBig}>
                   {weekDays.map((day) => renderDayCell(day, 'w', true))}
                 </HStack>
               )}
@@ -1226,6 +1226,17 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     paddingHorizontal: 12,
     marginBottom: 4,
   },
+  // Fila de la vista Semana -- a diferencia de weekRow (grid del mes, celdas
+  // flex:1 en contacto), las píldoras se distribuyen con space-around y se
+  // dimensionan por su contenido, mismo criterio que weekStrip en
+  // plan_screen.tsx (pedido explícito: mismo tamaño de calendario semanal
+  // que Plan del día, 2026-08-28 -- antes se veía "entrecortado").
+  weekRowBig: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
   dayCell: {
     flex: 1,
     aspectRatio: 1,
@@ -1235,17 +1246,32 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     justifyContent: 'center',
     gap: 2,
   },
+  // Píldora de la vista Semana -- misma forma/tamaño que weekDayPill en
+  // plan_screen.tsx (cápsula dimensionada por contenido), en vez del
+  // rectángulo con aspectRatio fijo y borde fino de antes (bordes finos
+  // sobre una celda muy estrecha y alta es lo que se veía "entrecortado").
+  // Cancela explícitamente flex/aspectRatio/marginHorizontal/borderRadius
+  // heredados de dayCell.
   dayCellBig: {
-    aspectRatio: 0.85,
-    borderWidth: 1,
-    borderColor: C.gray70,
-    paddingVertical: 10,
-    gap: 4,
+    flex: 0,
+    aspectRatio: undefined,
+    marginHorizontal: 0,
+    borderRadius: RADIUS.pill,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    gap: 6,
   },
+  // Relleno naranja sólido + sombra -- igual que weekDayPillSelected en
+  // plan_screen.tsx. Antes era fondo blanco con borde naranja fino de solo
+  // 1.5px, poco visible en pantalla real (parte de la sensación de
+  // "entrecortado").
   dayCellBigSelected: {
-    backgroundColor: C.surface,
-    borderColor: C.orange,
-    borderWidth: 1.5,
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   dayCellSelected: {
     backgroundColor: '#FFFFFF',
@@ -1266,10 +1292,20 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     borderWidth: 1.5,
     borderColor: C.orange,
   },
+  // Iniciales del día bajo el número (vista Semana) -- mismo tamaño/tracking
+  // que weekDayLabel en plan_screen.tsx.
   dayCellLetter: {
-    fontFamily: FONT.medium,
-    fontSize: 13,
-    color: C.textSecondary,
+    fontFamily: FONT.semiBold,
+    fontSize: 10,
+    color: C.gray40,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  // La píldora seleccionada es naranja sólido siempre -- blanco literal,
+  // igual que weekDayLabelSelected en plan_screen.tsx, no un token que
+  // invierta con el tema (aquí la píldora nunca cambia con el modo oscuro).
+  dayCellLetterSelected: {
+    color: '#FFFFFF',
   },
   dayCellText: {
     fontFamily: FONT.semiBold,
@@ -1293,18 +1329,19 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Ligeramente más grande que dayNumberRing (vista Semana, celdas más
-  // altas), pero sin pasarse -- las celdas "big" tienen aspectRatio 0.85 y ya
-  // llevan la letra del día encima, así que un anillo demasiado grande
-  // desbordaría la celda en pantallas estrechas.
+  // Círculo del número (vista Semana) -- mismo tamaño que weekDayCircle en
+  // plan_screen.tsx (32px). Necesita backgroundColor propio porque ahora la
+  // píldora seleccionada es naranja sólido detrás (antes el fondo de la
+  // celda ya era blanco, así que este círculo podía quedar transparente).
   dayNumberRingBig: {
-    width: 28,
-    height: 28,
-    borderRadius: 999,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   dayNumberRingAssigned: { borderColor: C.orange },
   dayNumberRingCompleted: { borderColor: C.success },
