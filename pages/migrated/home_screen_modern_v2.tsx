@@ -146,7 +146,12 @@ const HOME_BG_MAX_OPACITY = 0.9;
 // Saludo dinamico por hora local del dispositivo (no posicion solar, no hace
 // falta suncalc) -- mismos rangos que usaria cualquier reloj: mañana antes de
 // mediodia, tarde hasta el atardecer, noche el resto.
+// Franja de madrugada (0-5h) añadida aparte (reportado con captura a la
+// 1:38): "hour < 12" sin más metía la 1 de la madrugada en "Buenos días",
+// que es justo el saludo contrario al que le conviene a alguien despierto
+// a esa hora.
 function greetingForHour(hour: number): string {
+  if (hour < 6) return 'Buenas noches';
   if (hour < 12) return 'Buenos días';
   if (hour < 20) return 'Buenas tardes';
   return 'Buenas noches';
