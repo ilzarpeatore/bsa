@@ -2200,6 +2200,12 @@ export default function WorkoutSessionScreen(props: Props) {
             value={pickerQuery}
             onChangeText={setPickerQuery}
           />
+          {/* Chips de categoría (Todos + bodyParts) -- px-3.5/py-1.5 original
+              dejaba el texto casi tocando el borde de la píldora, sobre
+              todo verticalmente (reportado con captura). px-4/py-2 le da
+              aire real por los 4 lados sin cambiar el resto (gap:8 entre
+              píldoras y paddingHorizontal:20 del scroll, ya consistentes
+              con el buscador y la lista de debajo, se quedan igual). */}
           {bodyParts.length > 0 && (
             <ScrollView
               horizontal
@@ -2207,7 +2213,7 @@ export default function WorkoutSessionScreen(props: Props) {
               contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
             >
               <Pressable
-                className="px-3.5 py-1.5 rounded-pill"
+                className="px-4 py-2 rounded-pill"
                 style={{ backgroundColor: selectedBodyPartId === null ? C.accentBlack : C.surfaceLight }}
                 onPress={() => setSelectedBodyPartId(null)}
               >
@@ -2221,7 +2227,7 @@ export default function WorkoutSessionScreen(props: Props) {
               {bodyParts.map((bp) => (
                 <Pressable
                   key={bp.id}
-                  className="px-3.5 py-1.5 rounded-pill"
+                  className="px-4 py-2 rounded-pill"
                   style={{ backgroundColor: selectedBodyPartId === bp.id ? C.accentBlack : C.surfaceLight }}
                   onPress={() => setSelectedBodyPartId(selectedBodyPartId === bp.id ? null : bp.id)}
                 >
