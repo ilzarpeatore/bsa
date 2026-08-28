@@ -842,9 +842,16 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
       <Pressable
         key={`${keyPrefix}-${day.date}`}
         style={[
-          styles.dayCell,
-          big && styles.dayCellBig,
-          isSelected && !selectionMode && (big ? styles.dayCellBigSelected : styles.dayCellSelected),
+          // Vista Semana: weekDayPill es una implementación aparte, sin
+          // relación con dayCell (rejilla del Mes) -- NO hereda flex:1 ni
+          // aspectRatio, se dimensiona solo por su contenido (igual que
+          // weekDayPill en plan_screen.tsx). Reusar dayCell+overrides ya
+          // causó dos bugs de recorte distintos (aspectRatio forzando un
+          // alto insuficiente, luego flex:1 forzando un ancho por división
+          // en vez de por contenido) -- una implementación separada evita
+          // cualquier interacción heredada de la rejilla del mes.
+          big ? styles.weekDayPill : styles.dayCell,
+          isSelected && !selectionMode && (big ? styles.weekDayPillSelected : styles.dayCellSelected),
           isMarkedUnavailable && styles.dayCellUnavailable,
           isReorderDropTarget && styles.dayCellDropTarget,
         ]}
@@ -1041,7 +1048,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                   <Pressable onPress={goPrev} style={styles.weekNavBtn}>
                     <Icon name="chevron-back" size={20} color={C.gray30} />
                   </Pressable>
-                  <HStack style={styles.weekRow}>
+                  <HStack style={styles.weekStrip}>
                     {weekDays.map((day) => renderDayCell(day, 'w', true))}
                   </HStack>
                   <Pressable onPress={goNext} style={styles.weekNavBtn}>
@@ -1263,13 +1270,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontSize: 12,
     color: C.textSecondary,
   },
-  // flex:1 para que, dentro de weekPickerRow (vista Semana, flechas a los
-  // lados), rellene el espacio entre las dos flechas -- mismo criterio que
-  // weekStrip en plan_screen.tsx. En la rejilla del Mes (fila suelta dentro
-  // de calendarCard, sin flechas al lado) no cambia nada visualmente, ya
-  // ocupaba el 100% del ancho por su cuenta.
+  // Solo la rejilla del Mes -- filas sueltas dentro de calendarCard, celdas
+  // flex:1 en contacto (ver dayCell más abajo). La vista Semana usa
+  // weekStrip/weekDayPill, una implementación aparte (ver comentario ahí).
   weekRow: {
-    flex: 1,
     flexDirection: 'row',
     paddingHorizontal: 12,
     marginBottom: 4,
@@ -1285,12 +1289,43 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     paddingHorizontal: 4,
     paddingVertical: 8,
   },
-  // Píldora del día -- copia exacta de weekDayPill/weekDayPillSelected de
-  // plan_screen.tsx: sin borde propio cuando no está seleccionada (el
-  // anillo/círculo interior ya da la estructura visual), fondo naranja
-  // sólido al seleccionar. flex/aspectRatio se mantienen (a diferencia de
-  // Plan, que no los necesita en su fila única) porque aquí la misma píldora
-  // también forma la rejilla del mes.
+  // Tira de píldoras de la vista Semana -- copia exacta de weekStrip en
+  // plan_screen.tsx: flex:1 para rellenar el hueco entre las dos flechas de
+  // weekPickerRow, space-around para que cada píldora se reparta por su
+  // propio ancho de contenido (NO flex:1 por celda, a diferencia de
+  // dayCell/weekRow del grid del Mes).
+  weekStrip: {
+    flex: 1,
+    justifyContent: 'space-around',
+  },
+  // Píldora del día en vista Semana -- copia exacta de weekDayPill/
+  // weekDayPillSelected de plan_screen.tsx. Implementación TOTALMENTE
+  // separada de dayCell (rejilla del Mes): sin flex, sin aspectRatio, sin
+  // marginHorizontal -- se dimensiona solo por su propio contenido (anillo +
+  // gap + etiqueta + padding), igual que en Plan. Reusar dayCell con
+  // overrides para esto causó dos bugs de recorte distintos ya reportados
+  // (aspectRatio forzando un alto insuficiente; luego flex:1 forzando un
+  // ancho por división de fila en vez de por contenido, con la píldora
+  // seleccionada viéndose "cortada" -- captura 2026-08-28).
+  weekDayPill: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: RADIUS.pill,
+    gap: 6,
+  },
+  weekDayPillSelected: {
+    backgroundColor: C.orange,
+    shadowColor: C.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  // Píldora del día en la rejilla del Mes -- sin relación con weekDayPill de
+  // arriba (vista Semana), esta sí necesita flex/aspectRatio porque forma la
+  // rejilla de hasta 6 filas x 7 columnas.
   dayCell: {
     flex: 1,
     aspectRatio: 1,
@@ -1299,24 +1334,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-  },
-  // Sin aspectRatio: con el anillo grande (CAL_RING_SIZE_BIG=40) + label
-  // debajo, un alto forzado por aspectRatio (celda estrecha en la fila de 7)
-  // quedaba más bajo que el contenido real y el anillo se veía cortado por
-  // arriba. Alto libre, se ajusta al contenido (ring + gap + label +
-  // padding), igual que weekDayPill en plan_screen.tsx.
-  dayCellBig: {
-    aspectRatio: undefined,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  dayCellBigSelected: {
-    backgroundColor: C.orange,
-    shadowColor: C.orange,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
   },
   dayCellSelected: {
     backgroundColor: C.orange,
