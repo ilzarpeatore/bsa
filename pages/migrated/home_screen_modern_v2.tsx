@@ -97,24 +97,31 @@ const FIGMA_H = 812;
 // ahora en negro semitransparente (ver más abajo) sí se puede volver al 0.9
 // original sin recrear el bloque -- negro al 90% oscurece de verdad la foto
 // (efecto buscado), nunca la sustituye por un color sólido plano.
-const HOME_BG_MIN_OPACITY = 0.2;
+// MIN subido de 0.2 a 0.35 (reportado con capturas, 2026-08-28: "la screen
+// en la parte superior debe empezar ya con un poco de opacidad, ahora
+// empieza totalmente clara") -- 0.2 se notaba demasiado poco nada más entrar
+// en la pantalla, antes de tocar el scroll.
+const HOME_BG_MIN_OPACITY = 0.35;
 const HOME_BG_MAX_OPACITY = 0.9;
 
-// Segunda capa (pedido explícito 2026-08-28: "ambos [modos] deben tener el
-// color de sus fondos a medida que se hace scroll"): homeBgDarkenLayer se
-// queda fijo en negro (nunca C.bg -- ver comentario de homeBgDarkenLayer
-// abajo, evita el bloque plano del BUG-054), pero eso significa que aunque
-// llegues al final del scroll, el fondo nunca deja de ser "foto oscurecida"
-// -- nunca se convierte en el fondo real de la app, ni en claro ni en
-// oscuro. homeBgSolidLayer es una SEGUNDA capa, del color de tema real
-// (C.bg, distinto en claro/oscuro), que funde de 0 a 1 empezando justo
-// donde homeBgDarkenLayer ya llegó a su máximo (miPlanOffsetY) y termina
-// HOME_BG_SOLID_FADE_DISTANCE px de scroll más tarde -- para entonces la
-// foto ya está prácticamente negra debajo, así que la transición a un color
-// sólido no se lee como el bloque plano de BUG-054 (ese bug pasaba con la
-// foto todavía visible detrás, a mitad de oscurecido). Con esto cada modo sí
-// termina de verdad con su propio fondo una vez pasado "Mi plan de hoy".
-const HOME_BG_SOLID_FADE_DISTANCE = 160;
+// Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
+// homeBgDarkenLayer se queda fijo en negro (nunca C.bg -- ver su comentario,
+// evita el bloque plano del BUG-054), así que por sí sola nunca termina de
+// convertirse en el fondo real de la app. homeBgSolidLayer es esa segunda
+// capa, del color de tema real (C.bg, distinto en claro/oscuro).
+//
+// Antes fundía de 0 a 1 en una ventana corta (160px) DESPUÉS de que
+// homeBgDarkenLayer ya hubiera llegado a su máximo -- es decir, primero todo
+// el scroll se veía cada vez más negro, y solo al final, de golpe, viraba a
+// gris en un tramo muy corto. Reportado con capturas (2026-08-28): "la
+// opacidad progresiva es muy agresiva... llega un momento en que la pantalla
+// es totalmente oscura y luego cambia de forma muy radical a gris". La causa
+// era que las dos capas usaban rangos de scroll DISTINTOS (una todo el
+// recorrido, la otra solo el final) en vez del mismo. Ahora ambas capas
+// interpolan sobre el MISMO rango [0, miPlanOffsetY]: el gris empieza a
+// asomar desde el primer scroll (a la vez que el negro, no después) y ambas
+// llegan a su valor final exactamente en el mismo punto ("Mi plan de hoy"),
+// una sola transición continua en vez de dos fases pegadas una a otra.
 
 // Saludo dinamico por hora local del dispositivo (no posicion solar, no hace
 // falta suncalc) -- mismos rangos que usaria cualquier reloj: mañana antes de
@@ -296,13 +303,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       Extrapolation.CLAMP
     ),
   }));
-  // Segunda capa, color de tema real (ver HOME_BG_SOLID_FADE_DISTANCE
-  // arriba) -- arranca donde la anterior ya llegó a su máximo, así que
-  // compone sobre una foto ya casi negra, nunca sobre la foto nítida.
+  // Segunda capa, color de tema real -- mismo rango de scroll que
+  // homeBgDarkenAnimatedStyle (ver comentario junto a HOME_BG_MIN_OPACITY),
+  // así que ambas avanzan a la vez en vez de una detrás de la otra.
   const homeBgSolidAnimatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       scrollY.value,
-      [Math.max(miPlanOffsetY.value, 1), Math.max(miPlanOffsetY.value, 1) + HOME_BG_SOLID_FADE_DISTANCE],
+      [0, Math.max(miPlanOffsetY.value, 1)],
       [0, 1],
       Extrapolation.CLAMP
     ),
@@ -397,10 +404,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // oscura pero nunca se convierte en un bloque de color plano ajeno a ella.
     homeBgDarkenLayer: { backgroundColor: '#000000' },
     // Segunda capa, encima de homeBgDarkenLayer -- ver
-    // HOME_BG_SOLID_FADE_DISTANCE. Esta sí es C.bg (el tema real, distinto
-    // en claro/oscuro): a diferencia de homeBgDarkenLayer, arranca su
-    // fundido cuando la foto ya está casi negra debajo, así que no repite el
-    // bloque plano de BUG-054 (ese bug pasaba con la foto todavía visible).
+    // homeBgSolidAnimatedStyle. Esta sí es C.bg (el tema real, distinto en
+    // claro/oscuro): avanza en paralelo con homeBgDarkenLayer, del negro
+    // subiendo debajo a la vez, así que cuando el gris empieza a notarse ya
+    // hay foto oscurecida detrás -- no repite el bloque plano de BUG-054,
+    // que pasaba con la foto todavía nítida.
     homeBgSolidLayer: { backgroundColor: C.bg },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
     // con foto real de fondo (amanecer/atardecer, día o noche, ver
@@ -877,15 +885,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       {/* Fondo fijo de toda la pantalla (pedido explícito 2026-08-26, con 2
           capturas de referencia de otra app): la misma foto del hero, pero
           FUERA del ScrollView -- no se desplaza con el contenido, se queda
-          detrás de todo. Dos capas de oscurecido en cascada al hacer scroll
-          (pedido explícito 2026-08-28, ver HOME_BG_SOLID_FADE_DISTANCE):
-          primero se oscurece hacia negro (homeBgDarkenAnimatedStyle, sigue
-          igual que antes) hasta llegar a "Mi plan de hoy"; a partir de ahí,
-          con la foto ya casi negra debajo, una segunda capa funde hacia el
-          fondo real del tema (homeBgSolidAnimatedStyle -- C.bg, distinto en
-          claro/oscuro), así que el scroll termina de verdad en el fondo real
-          de la app en los dos modos, no en una foto oscurecida indefinida.
-          El "mood" de la foto en sí (heroMood) sigue la hora del día, sin
+          detrás de todo. Dos capas de oscurecido EN PARALELO al hacer scroll
+          (pedido explícito 2026-08-28, ver comentario junto a
+          HOME_BG_MIN_OPACITY): homeBgDarkenAnimatedStyle (negro) y
+          homeBgSolidAnimatedStyle (C.bg, el tema real) interpolan sobre el
+          mismo rango de scroll [0, "Mi plan de hoy"] a la vez, en vez de una
+          detrás de la otra -- el gris ya se nota desde el principio del
+          scroll, mezclado con el negro que sigue oscureciendo la foto, y las
+          dos llegan a su valor final juntas. El scroll termina de verdad en
+          el fondo real de la app en los dos modos, no en una foto
+          oscurecida indefinida. El "mood" de la foto en sí (heroMood) sigue
+          la hora del día, sin
           relación con el tema claro/oscuro. */}
       <Box style={StyleSheet.absoluteFill} pointerEvents="none">
         <ExpoImage source={HERO_IMAGES[heroMood]} contentFit="cover" style={StyleSheet.absoluteFill} />
