@@ -1724,7 +1724,7 @@ export default function WorkoutSessionScreen(props: Props) {
                           blockIdx === 0 &&
                           exIdx === 0 &&
                           rowIdx === 0 &&
-                          ['reps', 'descanso', 'rir', 'rpe'].includes(key);
+                          ['reps', 'carga', 'descanso', 'rir', 'rpe'].includes(key);
                         const cell = (
                           <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
                             <TextInput
@@ -1995,9 +1995,11 @@ export default function WorkoutSessionScreen(props: Props) {
         className="px-5 border-t border-border"
         style={{ paddingTop: 10, paddingBottom: Math.max(insets.bottom, 14) + 6, backgroundColor: C.bg }}
       >
-        <Button size="lg" radius="pill" onPress={onFinish}>
-          <ButtonText style={{ letterSpacing: 0.5 }}>✓ FINALIZAR ENTRENAMIENTO</ButtonText>
-        </Button>
+        <TutorialTarget id="workout-session-finish-button">
+          <Button size="lg" radius="pill" onPress={onFinish}>
+            <ButtonText style={{ letterSpacing: 0.5 }}>✓ FINALIZAR ENTRENAMIENTO</ButtonText>
+          </Button>
+        </TutorialTarget>
       </Box>
 
       <Modal

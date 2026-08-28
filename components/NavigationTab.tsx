@@ -176,13 +176,21 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
           `safearea.bottom` real del dispositivo, nunca un valor fijo. Va
           DETRÁS de la píldora (se renderiza antes en el JSX), sin bloquear
           toques (pointerEvents="none") -- la píldora sigue siendo la única
-          superficie interactiva. */}
+          superficie interactiva.
+          Sin capa de tinte aquí (pedido explícito, 2026-08-28: "esa capa
+          gris que hay detras del navmenu... dejar esa parte transparente"):
+          en cualquier dispositivo sin Liquid Glass real (todos salvo iOS
+          26+), GlassView cae a una <View> normal invisible -- lo único que
+          se veía en el resto de pantallas era el navigationTint blanco al
+          50%, un velo grisáceo fijo de borde a borde e independiente del
+          scroll. La píldora interior conserva su propio navigationTint
+          (necesario ahí para contraste de iconos/texto); este fondo exterior
+          solo debe difuminar sobre Liquid Glass real, nunca teñir. */}
       <View
         pointerEvents="none"
         style={[styles.bottomGlassBackdrop, { height: barHeight + (safearea.bottom || 12) }]}
       >
         <GlassView glassEffectStyle="regular" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, styles.navigationTint, { opacity: 0.5 }]} />
       </View>
       <View style={[styles.navigationOuter, { marginBottom: safearea.bottom || 12 }]}>
         {/* Fila completa (4 pestañas + "+") -- visible solo arriba del todo,

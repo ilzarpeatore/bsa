@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import {  StyleSheet, FlatList, Alert, Modal, TextInput, KeyboardAvoidingView, Platform  } from 'react-native';
+import {  StyleSheet, FlatList, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView  } from 'react-native';
 import {  Image  } from 'expo-image';
 import Animated, {
   useAnimatedRef,
@@ -645,7 +645,7 @@ export default function PlanScreen(props: any) {
                   </Box>
                 </Pressable>
                 {recipe.id === firstRecipeId ? (
-                  <TutorialTarget id="plan-meal-toggle-first">
+                  <TutorialTarget id="plan-meal-toggle-first" scrollRef={scrollRef as unknown as React.RefObject<ScrollView | null>}>
                     <Pressable onPress={() => toggleRecipeCompletion(recipe, key)}>
                       <Icon
                         name={recipe.isComplete ? 'checkmark-circle' : 'ellipse-outline'}

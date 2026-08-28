@@ -85,16 +85,20 @@ const FIGMA_H = 812;
 // haberse quitado del todo: ver miPlanOffsetY, que mide en tiempo real dónde
 // empieza esa sección en vez de usar un nº de píxeles de scroll fijo).
 //
-// MAX bajado de 0.9 a 0.45 (reportado con captura, 2026-08-27): en modo
-// claro homeBgDarkenLayer funde hacia C.bg (#F4F4F7, opaco), así que al 0.9
+// MAX bajado de 0.9 a 0.45 el 2026-08-27 (reportado con captura): en modo
+// claro homeBgDarkenLayer fundía hacia C.bg (#F4F4F7, OPACO), así que al 0.9
 // la foto quedaba prácticamente tapada del todo por debajo de "Mi plan de
-// hoy" -- se veía como un bloque gris plano sin foto detrás durante el resto
-// del scroll (Blog, Sueño, tarjeta de soporte, incluso detrás de la barra de
-// pestañas). Con 0.45 la foto se sigue viendo (atenuada) en todo el
-// recorrido; las tarjetas de contenido (Card/blogCard/etc.) siguen legibles
-// porque tienen su propio fondo sólido, independiente de esta capa.
+// hoy" -- un bloque gris claro plano sin foto detrás. Bajar el máximo evitó
+// el bloque, pero dejó el efecto casi imperceptible al hacer scroll normal
+// (reportado de nuevo 2026-08-28: "no se aplica la opacidad de forma
+// progresiva") -- 0.2→0.45 sobre un color CASI BLANCO apenas cambia el brillo
+// percibido de la foto. La causa real no era el número, era el color: fundir
+// hacia un tono opaco casi blanco en vez de negro. Con homeBgDarkenLayer
+// ahora en negro semitransparente (ver más abajo) sí se puede volver al 0.9
+// original sin recrear el bloque -- negro al 90% oscurece de verdad la foto
+// (efecto buscado), nunca la sustituye por un color sólido plano.
 const HOME_BG_MIN_OPACITY = 0.2;
-const HOME_BG_MAX_OPACITY = 0.45;
+const HOME_BG_MAX_OPACITY = 0.9;
 
 // Saludo dinamico por hora local del dispositivo (no posicion solar, no hace
 // falta suncalc) -- mismos rangos que usaria cualquier reloj: mañana antes de
@@ -140,16 +144,6 @@ function getHeroMoodForHour(hour: number): HeroMood {
   return 'night';
 }
 
-// Color del oscurecido progresivo (homeBgDarkenAnimatedStyle) en modo
-// oscuro -- uno por mood para no desentonar con la foto (cálido para
-// amanecer/atardecer, frío para día, casi negro para noche). En modo claro
-// se usa C.bg en su lugar (ver homeBgDarkenLayer), no este mapa.
-const HERO_DARKEN: Record<HeroMood, string> = {
-  sunriseSunset: '#2B1608',
-  day: '#0E1B2E',
-  night: '#04070D',
-};
-
 // Imagen de recurso: todavía no existe `image_url` en el backend (pendiente,
 // ver docs/TAREAS.md), así que mientras tanto se previsualiza con una foto
 // real de internet (LoremFlickr, sin API key) elegida por categoría -- más
@@ -185,7 +179,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // helper/useAppColorMode.ts) -- "C" queda con el mismo nombre que el
   // import estático de siempre para no reescribir los ~85 usos C.xxx de
   // este fichero; sigue el modo salvo que el usuario lo fije a mano.
-  const { preference: themePreference, colors: C, mode: colorMode } = useAppColorMode();
+  const { preference: themePreference, colors: C } = useAppColorMode();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -288,13 +282,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   }));
   // Este bloque ("Reto para empezar") es la entrada al tutorial guiado:
   // cada paso es uno de los 7 retos esenciales (ver constants/tutorialChallenges.ts).
+  // Se excluyen los marcados `hidden` porque su primer paso vive en una
+  // pantalla solo alcanzable encadenada desde otro reto, nunca desde Home.
   // "done" viene de useTutorial() (persistido, se marca solo cuando el
   // usuario completa la acción real -- nunca a mano aquí). Tocar un paso
   // lanza su spotlight (TutorialOverlay) en vez de navegar directamente.
   const { isDone: isTutorialDone, startChallenge } = useTutorial();
   const startupSteps: StartupChecklistStep[] = useMemo(
     () =>
-      TUTORIAL_CHALLENGES.map((challenge) => ({
+      TUTORIAL_CHALLENGES.filter((challenge) => !challenge.hidden).map((challenge) => ({
         id: challenge.id,
         label: challenge.label,
         done: isTutorialDone(challenge.id),
@@ -363,11 +359,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     // (ver homeBgFixedLayer más abajo) vive por debajo de todo, y necesita
     // que este contenedor y el ScrollView no lo tapen con un color sólido.
     container: { flex: 1 },
-    // Oscurecido progresivo en modo oscuro: tono por mood (HERO_DARKEN) para
-    // no desentonar con la foto. En modo claro se funde con C.bg (el gris
-    // casi blanco de siempre) en vez de negro -- si no, el contenido se
-    // leería "en oscuro" aunque el usuario tenga elegido el tema claro.
-    homeBgDarkenLayer: { backgroundColor: colorMode === 'dark' ? HERO_DARKEN[heroMood] : C.bg },
+    // Oscurecido progresivo: negro fijo en ambos modos, nunca un color de
+    // chrome de la app (C.bg/tono por mood, como se hacía antes). Esta capa
+    // va SOBRE una foto, no sobre UI -- fundir hacia negro es lo único que de
+    // verdad se lee como "la foto se oscurece" al hacer scroll, sea cual sea
+    // el tema. Fundir hacia C.bg (#F4F4F7, opaco) es lo que causó el bloque
+    // gris claro plano del BUG-054: al subir la opacidad, en vez de oscurecer
+    // la foto la sustituía por un color sólido casi blanco. Con negro no hay
+    // ese riesgo: incluso al máximo (HOME_BG_MAX_OPACITY) la foto se ve muy
+    // oscura pero nunca se convierte en un bloque de color plano ajeno a ella.
+    homeBgDarkenLayer: { backgroundColor: '#000000' },
     // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
     // con foto real de fondo (amanecer/atardecer, día o noche, ver
     // getHeroMoodForHour). Sin border-radius inferior ni degradado de cierre a propósito (revisión 2026-08-26,
@@ -516,7 +517,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
     menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
     menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
-  }), [sc, r, C, winH, heroMood, colorMode]);
+  }), [sc, r, C, winH, heroMood]);
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -1139,9 +1140,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
         <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Hábitos</Text>
-          <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
-            <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
-          </Pressable>
+          <TutorialTarget id="home-habits-link">
+            <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
+              <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
+            </Pressable>
+          </TutorialTarget>
         </HStack>
         {habits.length > 0 ? (
           <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
