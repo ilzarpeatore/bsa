@@ -1237,12 +1237,15 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.surfaceLight,
   },
   weekBlockedText: { flex: 1, fontSize: 13, fontFamily: FONT.medium, color: C.textSecondary },
-  // Marco del calendario -- copia exacta de weekdayPicker en
-  // plan_screen.tsx (mismo fondo blanco 80% + borde inferior fino), pedido
-  // explícito: clonar también el fondo/borde de Plan, no solo el tamaño de
-  // las píldoras. Envuelve tanto la vista Semana como la rejilla del Mes.
+  // Marco del calendario -- mismo fondo/borde que weekdayPicker en
+  // plan_screen.tsx, pero con C.surface (token de tema) en vez del
+  // 'rgba(255,255,255,0.8)' literal que tiene Plan: ese literal deja el
+  // mismo blanco fijo en modo oscuro (banda clara de borde a borde sobre
+  // el resto de la pantalla oscura, reportado con captura). C.surface ya
+  // resuelve blanco en claro / gris oscuro (#2E3037) en oscuro, igual que
+  // el resto de tarjetas de la pantalla.
   calendarCard: {
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: C.surface,
     paddingTop: 10,
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
