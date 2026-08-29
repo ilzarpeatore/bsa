@@ -378,12 +378,12 @@ Reto → doneIds.
 - **P1-2**: Corregir `exIdx` en `workout-session-first-set-toggle` (bug #4). **HECHO.** Archivo: `pages/migrated/workout_session_screen.tsx` (condición del target, ahora exige `blockIdx === 0 && exIdx === 0 && rowIdx === 0`, igual que la de métricas).
 - **P1-3**: Loguear el error de `JSON.parse` corrupto (bug #6) con `logger.error`, mismo patrón que el resto de la app. **HECHO**, mismo commit que P0-4 (`store/TutorialContext.tsx`).
 
-### P2 — Mejoras
+### P2 — Mejoras (implementadas 2026-08-29, tras "Continúa con las siguientes fases")
 
-- **P2-1**: Añadir un botón "Reiniciar tutorial" en Ajustes que llame `resetAll()` (ya existe, solo falta la UI) — pedido ya documentado en `docs/TAREAS.md:200`.
-- **P2-2**: Revisar `StartupChecklist.tsx` (no auditado en detalle en esta pasada) para confirmar si permite re-tocar retos ya `done`, y si conviene deshabilitar/ocultar esa interacción o dejarla como "repetir tutorial de este reto a demanda" (podría ser intencional).
-- **P2-3**: Sustituir `Dimensions.get('window')` por `useWindowDimensions()` en `TutorialOverlay.tsx` para reactividad ante rotación/resize.
-- **P2-4**: Añadir `accessibilityLabel`/`accessibilityRole` al hueco tocable y al botón "Saltar tutorial".
+- **P2-1**: Botón "Reiniciar tutorial" en el menú de Ajustes (Home v2), llama a `resetAll()` (ya existía, solo faltaba la UI) — pedido ya documentado en `docs/TAREAS.md:200`. **HECHO.**
+- **P2-2**: `StartupChecklist.tsx` sí permitía re-tocar retos ya `done` (confirmado, `startChallenge` nunca comprobaba `isDone`) — se deshabilita el tap en filas completadas. **HECHO.**
+- **P2-3**: `Dimensions.get('window')` sustituido por `useWindowDimensions()` en `TutorialOverlay.tsx`. **HECHO.**
+- **P2-4**: `accessibilityLabel`/`accessibilityRole` añadidos al botón "Saltar tutorial" y al tooltip/banner del coach-mark (el hueco tocable en sí no lleva ninguno — es espacio vacío sin componente propio al que anclarlo, el contenido real ya lo anuncia el tooltip). **HECHO.**
 
 ### P3 — Futuro
 
