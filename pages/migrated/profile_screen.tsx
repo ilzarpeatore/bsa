@@ -109,7 +109,17 @@ export default function ProfileScreen(props: any) {
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })
     : '--';
+  // "Versión" (Constants.expoConfig?.version, ej. "1.2.0") es literal en
+  // app.json -- NUNCA cambia entre builds, así que por sí sola no sirve para
+  // comprobar si un IPA nuevo se instaló de verdad (causa real, documentada,
+  // de que dos IPAs en verde seguidos "no mostraran cambios": no había forma
+  // de distinguirlos en pantalla). nativeBuildVersion sí es distinto en cada
+  // build desde que ios-build.yml empezó a poner CFBundleVersion a
+  // $GITHUB_RUN_NUMBER (ver docs/BUILD_IPA.md) -- se añade aquí como el
+  // identificador real y verificable de qué build hay instalado.
   const appVersion = Constants.expoConfig?.version ?? '--';
+  const nativeBuild = Constants.nativeBuildVersion;
+  const appVersionDisplay = nativeBuild ? `${appVersion} (${nativeBuild})` : appVersion;
 
   // Nº de entrenamientos completados -- mismo endpoint que Workout History,
   // solo se necesita el total (no hace falta paginar, esta lista de
@@ -215,7 +225,7 @@ export default function ProfileScreen(props: any) {
                 <Text size="xs" muted style={{ marginTop: 2 }}>Usuario desde</Text>
               </Box>
               <Box className="items-center">
-                <Text weight="bold" size="md">{appVersion}</Text>
+                <Text weight="bold" size="md">{appVersionDisplay}</Text>
                 <Text size="xs" muted style={{ marginTop: 2 }}>Versión</Text>
               </Box>
             </HStack>
