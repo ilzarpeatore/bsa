@@ -1571,20 +1571,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Box>
         )}
 
-        {/* Sueño — sin integración con wearables todavía (diferido, ver
-            docs/TAREAS.md). Placeholder honesto en vez de horas inventadas:
-            no se muestra ningún número falso, solo la invitación a conectar
-            un dispositivo real. */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
-          <Text style={styles.sectionTitle}>Sueño</Text>
-        </HStack>
-        <Card variant="outline" className="mx-5 px-4 py-5 items-center" style={{ marginBottom: r(12) }}>
-          <AppIcon name="moon-outline" size={26} color={C.textSecondary} bg={C.brand10} containerSize={r(48)} />
-          <Text style={[styles.noWorkoutText, { marginTop: r(10), textAlign: 'center' }]}>
-            Conecta tu reloj o app de salud para ver tus datos de sueño aquí
-          </Text>
-        </Card>
-
         {/* Need Help → FitBot -- chat desactivado en esta primera versión
             (ver constants/featureFlags.ts, CHAT_ENABLED): sin moderación ni
             forma de reportar mensajes todavía, riesgo real de rechazo en
