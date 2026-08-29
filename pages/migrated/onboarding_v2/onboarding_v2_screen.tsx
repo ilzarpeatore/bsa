@@ -32,7 +32,20 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 // Las respuestas se guardan en AsyncStorage en cada paso (permite reanudar
 // si la app se cierra a medias) y se envían a la API al terminar cada etapa.
 
-const ANSWERS_STORAGE_KEY = '@bestronger_onboarding_v2_answers';
+// Bug real corregido (reportado 2026-08-29, MUY grave: "he registrado una
+// cuenta nueva y el onboarding ya estaba relleno con los datos de la cuenta
+// anterior"): esta clave de checkpoint era un flag único GLOBAL, sin id de
+// usuario -- exactamente el mismo patrón de bug ya corregido en
+// store/AuthContext.tsx para ONBOARDING_COMPLETED. Cualquier respuesta
+// parcial guardada por la cuenta A (basta con cerrar la app a mitad del
+// onboarding, ni falta que lo termine) quedaba en AsyncStorage bajo esta
+// única clave; la cuenta B, al registrarse después en el mismo
+// dispositivo y llegar a esta misma pantalla, la leía como si fuera su
+// propio checkpoint de reanudación. Ahora incluye el id de usuario --
+// misma mecánica que onboardingCompletedKey en AuthContext.tsx.
+function answersStorageKey(userId: number): string {
+  return `@bestronger_onboarding_v2_answers_${userId}`;
+}
 
 function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
   if (question.required === false) return true;
@@ -67,19 +80,27 @@ export default function OnboardingV2Screen({ navigation }: any) {
   // sus respuestas ya dadas (nunca el índice de pregunta -- más simple y
   // seguro volver a la primera pregunta sin responder que arriesgarse a un
   // índice fuera de rango si esta lista de preguntas cambia entre versiones).
+  // Sin userId todavía (no debería pasar -- esta pantalla solo se muestra
+  // autenticado, ver RootNavigator en App.tsx) no hay clave que leer; se
+  // arranca en blanco en vez de lanzar.
+  const userId = state.user?.id;
   useEffect(() => {
-    AsyncStorage.getItem(ANSWERS_STORAGE_KEY)
+    if (!userId) {
+      setRestored(true);
+      return;
+    }
+    AsyncStorage.getItem(answersStorageKey(userId))
       .then((raw) => {
         if (raw) setAnswers(JSON.parse(raw));
       })
       .catch((e) => logger.error(e))
       .finally(() => setRestored(true));
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    if (!restored) return;
-    AsyncStorage.setItem(ANSWERS_STORAGE_KEY, JSON.stringify(answers)).catch((e) => logger.error(e));
-  }, [answers, restored]);
+    if (!restored || !userId) return;
+    AsyncStorage.setItem(answersStorageKey(userId), JSON.stringify(answers)).catch((e) => logger.error(e));
+  }, [answers, restored, userId]);
 
   const question = ONBOARDING_QUESTIONS[questionIndex];
   const stageIndex = ONBOARDING_STAGES.findIndex((s) => s.id === question.stage);
@@ -225,14 +246,14 @@ export default function OnboardingV2Screen({ navigation }: any) {
       // eliminaría cualquier posibilidad de reintentar el envío más
       // adelante (ver comentario de submitStage).
       const finalAnswers = answers;
-      if (stageSubmitted) {
-        await AsyncStorage.removeItem(ANSWERS_STORAGE_KEY).catch(() => {});
+      if (stageSubmitted && userId) {
+        await AsyncStorage.removeItem(answersStorageKey(userId)).catch(() => {});
       }
       navigation.replace('MigratedAssessmentResult', { answers: finalAnswers });
       return;
     }
     setQuestionIndex((i) => i + 1);
-  }, [isLastOfStage, isLastQuestion, question.stage, submitStage, navigation, answers]);
+  }, [isLastOfStage, isLastQuestion, question.stage, submitStage, navigation, answers, userId]);
 
   const handleBack = useCallback(() => {
     if (questionIndex === 0) {
