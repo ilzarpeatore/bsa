@@ -111,9 +111,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const restoreToken = useCallback(async () => {
     try {
-      const token = await getToken();
+      let token = await getToken();
       const userJson = await AsyncStorage.getItem('USER');
       const user = userJson ? JSON.parse(userJson) : null;
+      // SecureStore (Keychain/Keystore) puede sobrevivir a un desinstalar +
+      // reinstalar de la app, a diferencia de AsyncStorage (USER), que
+      // siempre se borra. Un token sin su perfil correspondiente es una
+      // sesión huérfana de una instalación anterior, no un usuario logueado
+      // real -- si se deja pasar, RootNavigator lo manda directo al
+      // onboarding en vez de a WelcomeAuth. Se limpia y se trata como
+      // logout para forzar a pasar de nuevo por la pantalla de login/registro.
+      if (token && !user) {
+        await removeToken();
+        token = null;
+      }
       const onboardingCompleted = await resolveOnboardingCompleted(user);
       dispatch({ type: 'RESTORE_TOKEN', token, user, onboardingCompleted });
     } catch {
