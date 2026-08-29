@@ -84,9 +84,25 @@ export const C = {
   purple5: "rgba(167,139,250,0.1)",
   purple50: "#A78BFA",
   purple60: "#8B5CF6",
-  orange: "#A2CDD4",
-  orangeGradient1: "#FF8A2B",
-  orangeGradient2: "#FF6000",
+  // Color de marca (pedido explícito 2026-08-29): #49C5B6 en todo el catálogo
+  // -- reemplaza al azul-teal pálido #A2CDD4 que llevaba desde el Encargo 3
+  // (ese valor ya venía de sustituir un naranja real #FF6B35 sin renombrar
+  // esta clave; se mantiene "orange" como nombre por el mismo motivo -- ~120
+  // usos en pantallas ya existentes, renombrar es un cambio aparte). Mismo
+  // valor en claro y oscuro a propósito: es EL color identificativo, no debe
+  // variar por tema. Contraste verificado (fórmula de luminancia relativa
+  // WCAG): 2.1:1 sobre blanco/negro -- insuficiente para texto (usar
+  // `orange60` en su lugar sobre fondos claros), pero de sobra para rellenos,
+  // iconos grandes y el propio material glass (ver components/GlassButton.tsx).
+  orange: "#49C5B6",
+  // Variante oscurecida para texto/iconos finos sobre fondos claros (mismo
+  // patrón que success60/warning60/destructive60/blue60 de abajo) -- ~5.5:1
+  // sobre blanco, cumple WCAG AA. En C_DARK no hace falta una variante
+  // distinta: el `orange` base ya da ~7.25:1 sobre el fondo oscuro real de
+  // la app, así que ahí orange60 reutiliza el mismo valor que orange.
+  orange60: "#14766A",
+  orangeGradient1: "#49C5B6",
+  orangeGradient2: "#14766A",
   amber: "#FF9500",
   blue80: "#003166",
   blue30: "#66B2FF",
@@ -188,9 +204,14 @@ export const C_DARK: typeof C = {
   purple5: "rgba(167,139,250,0.14)",
   purple50: "#A78BFA",
   purple60: "#BFA6FF",
-  orange: "#A2CDD4",
-  orangeGradient1: "#FF8A2B",
-  orangeGradient2: "#FF6000",
+  // Mismo valor que en C (ver comentario ahí) -- color de marca fijo, no
+  // varía por tema.
+  orange: "#49C5B6",
+  // Reutiliza el mismo valor que `orange`: en oscuro ya da ~7.25:1 sobre el
+  // fondo real de la app (#242529), no hace falta oscurecerlo más.
+  orange60: "#49C5B6",
+  orangeGradient1: "#49C5B6",
+  orangeGradient2: "#14766A",
   amber: "#FF9F0A",
   blue80: "#66B2FF",
   blue30: "#003166",
@@ -236,7 +257,14 @@ export const FONT = {
 export const GRADIENT = {
   accent: ["#E5E5EA", "#E5E5EA"] as const,
   card: ["#FFFFFF", "#F7F7F7"] as const,
-  orange: ["#FF8A2B", "#FF6000"] as const,
+  // Color de marca (pedido explícito 2026-08-29, ver comentario junto a
+  // C.orange) -- `brand` es el nombre correcto para código nuevo; `orange`
+  // se mantiene como alias con el mismo valor (sin uso real detectado hoy,
+  // pero se corrige igual para no dejar un naranja real #FF8A2B/#FF6000
+  // desincronizado del C.orange actual).
+  brand: ["#49C5B6", "#14766A"] as const,
+  /** @deprecated Usa `brand` -- mismo valor, nombre no canónico. */
+  orange: ["#49C5B6", "#14766A"] as const,
   border: ["rgba(0,0,0,0.08)", "rgba(0,0,0,0)"] as const,
 };
 

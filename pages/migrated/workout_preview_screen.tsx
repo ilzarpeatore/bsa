@@ -20,6 +20,7 @@ import {  HStack  } from '@components/ui/hstack';
 import {  Divider  } from '@components/ui/divider';
 import {  Button, ButtonText  } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
+import GlassButton from '../../components/GlassButton';
 import { useTutorial } from '@store/TutorialContext';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
@@ -486,10 +487,12 @@ export default function WorkoutPreviewScreen(props: Props) {
       {/* Sticky start button */}
       <Box style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 12) + 6 }]}>
         <Divider style={{ marginBottom: 12 }} />
+        {/* Prueba del estilo "glass + color de marca" pedida explícitamente
+            (2026-08-29, ver components/GlassButton.tsx) -- sustituye el
+            Button negro sólido de siempre en este único CTA como muestra
+            concreta antes de decidir si se extiende al resto de la app. */}
         <TutorialTarget id="workout-preview-start-button">
-          <Button onPress={onStart} radius="pill" className="py-4">
-            <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>INICIAR ENTRENAMIENTO</ButtonText>
-          </Button>
+          <GlassButton onPress={onStart} label="INICIAR ENTRENAMIENTO" />
         </TutorialTarget>
       </Box>
     </SafeAreaView>
