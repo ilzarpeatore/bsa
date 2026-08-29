@@ -122,7 +122,11 @@ const HEALTH_SYNC_ENABLED = false;
 // reposo debe llevar una opacidad ligera -- algo por debajo del valor con el
 // que arranca el oscurecido de scroll, no igual de fuerte -- que ya ayude a
 // leer el contenido de encima sin oscurecer tanto la foto antes de tocarla.
-const HOME_BG_MIN_OPACITY = 0.28;
+// MIN subido de 0.28 a 0.4 (reportado con captura, 2026-08-29): 0.28 se
+// quedó corto en uso real -- la foto se veía demasiado y costaba leer el
+// texto (título "Recovery/Strain", aviso de datos de demostración) nada más
+// entrar, antes de tocar el scroll.
+const HOME_BG_MIN_OPACITY = 0.4;
 const HOME_BG_MAX_OPACITY = 0.9;
 
 // Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
