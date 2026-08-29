@@ -456,12 +456,37 @@ jobs:
             echo "Created signed IPA: build/$BUILD_ID.ipa"
           else
             # For unsigned builds, find .app and create IPA
+            #
+            # Picked by MOST RECENT modification time, not just the first
+            # match -- "find | head -1" previously took whatever the
+            # filesystem listed first, which is NOT necessarily what this
+            # run just built. DerivedData is restored across runs with a
+            # bare-prefix restore-key (deriveddata-, matches ANY previous
+            # run's cache), and Xcode never purges orphaned product
+            # directories left behind by an old PRODUCT_NAME -- so a stale
+            # *.app from a build made before a rebrand (different bundle id,
+            # different name, whatever CFBundleVersion it had back then) can
+            # sit in that shared cache indefinitely. If it happens to sort
+            # before the real one alphabetically, "head -1" silently packages
+            # that OLD app into an otherwise green build, with no error and
+            # no visible difference in the workflow's own logs -- confirmed
+            # in production (2026-08-29): run #70 built correctly end to end
+            # (Release config, right CFBundleVersion bump applied to the
+            # right Info.plist) but the .ipa it uploaded contained a leftover
+            # "befit.app" from before the BeFit→Be Stronger rebrand
+            # (CFBundleVersion=1, CFBundleIdentifier=com.pfndesign.befit) --
+            # none of the real app's changes were ever in that artifact.
+            # `stat -f '%m %N'` (BSD stat, this runs on macos-latest) prints
+            # each match's mtime epoch + path; sorting numerically descending
+            # and taking the top line always gets the one actually produced
+            # by THIS build, regardless of how many stale products have
+            # accumulated in the cache.
             if [ "$PROJECT_TYPE" = "flutter" ]; then
               # Flutter outputs to build/ios/iphoneos/
-              APP_PATH=$(find "${GITHUB_WORKSPACE}/build/ios/iphoneos" -name "*.app" -type d | head -1)
+              APP_PATH=$(find "${GITHUB_WORKSPACE}/build/ios/iphoneos" -name "*.app" -type d -exec stat -f '%m %N' {} \; | sort -rn | head -1 | cut -d' ' -f2-)
             else
               # Native and React Native/Expo use DerivedData
-              APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphoneos" -name "*.app" -type d | head -1)
+              APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphoneos" -name "*.app" -type d -exec stat -f '%m %N' {} \; | sort -rn | head -1 | cut -d' ' -f2-)
             fi
 
             if [ -z "$APP_PATH" ]; then
