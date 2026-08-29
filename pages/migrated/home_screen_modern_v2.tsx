@@ -40,6 +40,7 @@ import { VStack } from '@components/ui/vstack';
 import { Divider } from '@components/ui/divider';
 import AppIcon from '@components/AppIcon';
 import AnimatedRing from '@components/AnimatedRing';
+import AnimatedGlowBorder from '@components/AnimatedGlowBorder';
 import StartupChecklist, { StartupChecklistStep } from '@components/StartupChecklist';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import { useTutorial } from '@store/TutorialContext';
@@ -1231,9 +1232,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         )}
         {todayItems.length > 0 ? (
           <>
-            <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-              {visibleTodayItems.map((item, i) => renderTodayItem(item, i))}
-            </Card>
+            {/* Antes variant="outline" sin animación -- pedido explícito
+                2026-08-29 ("todos los botones"/color de marca + bordes con
+                vida): tarjeta destacada del día con Liquid Glass real
+                (mismo material que compactBar de plan_screen.tsx) y un
+                brillo que recorre el borde en bucle (ver
+                AnimatedGlowBorder). El margen horizontal/inferior que antes
+                llevaba el propio Card se saca al wrapper para que el
+                brillo trace justo el borde de la tarjeta, no el hueco del
+                margen. */}
+            <Box style={{ marginHorizontal: r(20), marginBottom: r(12) }}>
+              <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={4200}>
+                <Card variant="glass" className="p-4">
+                  {visibleTodayItems.map((item, i) => renderTodayItem(item, i))}
+                </Card>
+              </AnimatedGlowBorder>
+            </Box>
             {todayItems.length > 3 && (
               <Pressable onPress={() => navigation?.navigate('MigratedMyProgramCalendar')}>
                 <HStack
@@ -1247,7 +1261,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             )}
           </>
         ) : (
-          <Card variant="outline" className="mx-5 p-4 items-center" style={{ marginBottom: r(12) }}>
+          // Mismo slot que la tarjeta de arriba (con entrenamientos) --
+          // glass también aquí para que no cambie de material según el
+          // estado del día.
+          <Card variant="glass" className="mx-5 p-4 items-center" style={{ marginBottom: r(12) }}>
             <AppIcon name="bed-outline" size={26} color={C.textSecondary} bg={C.brand10} containerSize={r(48)} />
             <Text style={[styles.noWorkoutText, { marginTop: r(8) }]}>Día de descanso</Text>
             <Text style={[styles.noWorkoutText, { fontSize: r(11) }]}>No hay entrenamientos programados para hoy</Text>
@@ -1332,7 +1349,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             <Text style={styles.seeAll}>Ver dieta</Text>
           </Pressable>
         </HStack>
-        <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+        {/* Antes variant="outline" -- misma extensión de Liquid Glass real
+            que la tarjeta de hoy más arriba. */}
+        <Card variant="glass" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
           {dailyPlan ? (
             <>
               <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>

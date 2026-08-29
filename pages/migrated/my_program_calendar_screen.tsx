@@ -1067,7 +1067,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             {selectedDay && selectedDay.workouts.length > 0 ? (
               selectedDay.workouts.map((w, wi) => renderWorkoutCard(w, selectedDay.date, wi))
             ) : selectedDayKey && checkinsForDay(selectedDayKey).length === 0 ? (
-              <Card variant="ghost" className="flex-row items-center gap-2 p-3.5 rounded-sm" style={{ marginTop: 8 }}>
+              <Card variant="glass" className="flex-row items-center gap-2 p-3.5 rounded-sm" style={{ marginTop: 8 }}>
                 <Icon name="moon-outline" size={18} color={C.textSecondary} />
                 <Text style={styles.restDayText}>Día de descanso</Text>
               </Card>
@@ -1127,7 +1127,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                 {day.workouts.length > 0 ? (
                   day.workouts.map((w, wIdx) => renderWorkoutCard(w, day.date, wIdx))
                 ) : checkinsForDay(day.date).length === 0 ? (
-                  <Card variant="ghost" className="flex-row items-center gap-2 p-3.5 rounded-sm" style={{ marginTop: 8 }}>
+                  <Card variant="glass" className="flex-row items-center gap-2 p-3.5 rounded-sm" style={{ marginTop: 8 }}>
                     <Icon name="moon-outline" size={16} color={C.textSecondary} />
                     <Text style={styles.restDayText}>Día de descanso</Text>
                   </Card>
