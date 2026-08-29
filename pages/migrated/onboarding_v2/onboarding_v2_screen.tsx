@@ -48,7 +48,7 @@ function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): b
 export default function OnboardingV2Screen({ navigation }: any) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
-  const { state } = useAuth();
+  const { state, updateUser } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [questionIndex, setQuestionIndex] = useState(0);
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
@@ -110,20 +110,36 @@ export default function OnboardingV2Screen({ navigation }: any) {
       try {
         if (stageId === 'personal_data') {
           const name = answers.name as { first_name: string; last_name: string } | undefined;
+          const personalData = {
+            first_name: name?.first_name ?? '',
+            last_name: name?.last_name ?? '',
+            gender: (answers.gender as any) ?? 'other',
+            age: Number(answers.age) || 0,
+            height: Number(answers.height) || 0,
+            height_unit: heightUnit,
+            weight: Number(answers.weight) || 0,
+            weight_unit: weightUnit,
+          };
           await onboardingV2Api.submitPersonalData(
-            {
-              first_name: name?.first_name ?? '',
-              last_name: name?.last_name ?? '',
-              gender: (answers.gender as any) ?? 'other',
-              age: Number(answers.age) || 0,
-              height: Number(answers.height) || 0,
-              height_unit: heightUnit,
-              weight: Number(answers.weight) || 0,
-              weight_unit: weightUnit,
-            },
+            personalData,
             state.user?.username ?? '',
             state.user?.email ?? ''
           );
+          // El endpoint solo devuelve { message, status } (ApiMessageResponse),
+          // no el usuario actualizado -- si no se sincroniza aquí, el nombre
+          // que se acaba de enviar al backend nunca llega a state.user (ni al
+          // caché en AsyncStorage), y Home/Profile siguen mostrando el
+          // fallback "Usuario" para siempre aunque el registro ya tenga el
+          // nombre real guardado en servidor. Mismo patrón que
+          // edit_profile_screen.tsx tras su propio updateProfile.
+          if (state.user) {
+            updateUser({
+              ...state.user,
+              first_name: personalData.first_name,
+              last_name: personalData.last_name,
+              gender: personalData.gender,
+            });
+          }
         } else if (stageId === 'par_q') {
           await onboardingV2Api.submitParQ({
             parq_heart_condition: answers.parq_heart_condition === 'yes',
@@ -182,7 +198,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
         return false;
       }
     },
-    [answers, heightUnit, weightUnit, state.user]
+    [answers, heightUnit, weightUnit, state.user, updateUser]
   );
 
   const handleContinue = useCallback(async () => {
