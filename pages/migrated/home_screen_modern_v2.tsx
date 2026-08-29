@@ -400,7 +400,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // por ahora esto siempre es false y el Estado A (demo) es el unico
   // disponible. El codigo del Estado B ya queda listo, solo inactivo.
   const hasHealthConnected = false;
-  const [demoBannerDismissed, setDemoBannerDismissed] = useState(false);
 
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<boolean[]>([]);
@@ -507,8 +506,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     bannerCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: r(18), padding: r(16), alignItems: 'center' as const, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
     bannerTitle: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF', marginTop: r(8) },
     bannerText: { fontSize: r(12), color: 'rgba(255,255,255,0.75)', textAlign: 'center' as const, marginTop: r(4), lineHeight: r(17) },
-    bannerBtn: { backgroundColor: '#FFFFFF', borderRadius: r(999), paddingHorizontal: r(24), paddingVertical: r(9), marginTop: r(12) },
-    bannerBtnText: { fontSize: r(13), fontFamily: FONT.bold, color: C.orange },
     miniCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: r(16), padding: r(14) },
     miniCardTitle: { fontSize: r(12), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.75)' },
     miniCardValue: { fontSize: r(18), fontFamily: FONT.extraBold, color: '#FFFFFF', marginTop: r(8) },
@@ -1101,19 +1098,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.bannerTitle}>{activeBanner.title}</Text>
             </Pressable>
           ) : (
-            !demoBannerDismissed && (
-              <Box style={styles.bannerCard}>
-                <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
-                <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
-                <Text style={styles.bannerText}>
-                  Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar Apple Health o
-                  Google Health, disponible en una próxima versión de la app.
-                </Text>
-                <Pressable style={styles.bannerBtn} onPress={() => setDemoBannerDismissed(true)}>
-                  <Text style={styles.bannerBtnText}>Continuar</Text>
-                </Pressable>
-              </Box>
-            )
+            // Sin botón "Continuar" a propósito (pedido explícito
+            // 2026-08-29): descartaba el aviso vía demoBannerDismissed y no
+            // había ningún banner real (activeBanner) detrás que ocupara su
+            // sitio -- la pantalla se quedaba con un hueco vacío donde antes
+            // estaba este aviso. Fijo mientras no haya banners reales que
+            // mostrar en su lugar.
+            <Box style={styles.bannerCard}>
+              <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
+              <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
+              <Text style={styles.bannerText}>
+                Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar Apple Health o
+                Google Health, disponible en una próxima versión de la app.
+              </Text>
+            </Box>
           )}
 
           {/* Agua / Actividad -- sustituyen los placeholders "Sueño"/"Balance
