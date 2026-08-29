@@ -25,7 +25,6 @@ const ALL_SCREENS: ScreenItem[] = [
   // === ORIGINAL INTEGRATED ===
   { name: 'Welcome Auth', route: 'WelcomeAuth', category: 'Original - Auth', file: 'WelcomeAuthScreen.tsx' },
   { name: 'Login', route: 'LoginAuth', category: 'Original - Auth', file: 'LoginScreen.tsx' },
-  { name: 'Register Flow', route: 'RegisterFlow', category: 'Original - Auth', file: 'RegisterScreen.tsx' },
   { name: 'Forgot Password Options', route: 'ForgotOptions', category: 'Original - Auth', file: 'ForgotPasswordOptionsScreen.tsx' },
   { name: 'Forgot Password Email', route: 'ForgotEmail', category: 'Original - Auth', file: 'ForgotPasswordEmailScreen.tsx' },
   { name: 'Password Reset Sent', route: 'ResetSent', category: 'Original - Auth', file: 'PasswordResetSentScreen.tsx' },

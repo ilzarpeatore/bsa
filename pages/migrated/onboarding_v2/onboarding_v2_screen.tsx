@@ -2,12 +2,16 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {  View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet  } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
-import {  Input, InputField  } from '@components/ui/input';
+import {  Input, InputField, InputSlot  } from '@components/ui/input';
 import {  Textarea, TextareaInput  } from '@components/ui/textarea';
 import {  Button, ButtonText  } from '@components/ui/button';
 import {  Spinner  } from '@components/ui/spinner';
+import {  Icon  } from '@components/ui/icon';
 import {  useAuth  } from '@store/AuthContext';
+import { showToast } from '@helper/toast';
+import { setToken } from '@helper/secureToken';
 import logger from '@helper/logger';
+import { authApi } from '../../../api/auth';
 import { onboardingV2Api } from '../../../api/onboardingV2';
 import {  ONBOARDING_QUESTIONS  } from '../../../constants/onboardingV2Questions';
 import {
@@ -43,9 +47,29 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 // dispositivo y llegar a esta misma pantalla, la leía como si fuera su
 // propio checkpoint de reanudación. Ahora incluye el id de usuario --
 // misma mecánica que onboardingCompletedKey en AuthContext.tsx.
-function answersStorageKey(userId: number): string {
+//
+// 'anonymous' (pedido explícito 2026-08-29: registro eliminado como
+// pantalla aparte, el onboarding ES el registro ahora) -- mientras
+// todavía no existe cuenta no hay id real que usar; se guarda bajo esta
+// clave compartida hasta que la cuenta se crea (última pregunta,
+// 'credentials'), momento en que se limpia. Igual que con cualquier
+// checkpoint anónimo (p.ej. un carrito de compra sin cuenta), puede
+// mezclar el progreso de dos personas anónimas distintas en el MISMO
+// dispositivo si la primera abandona sin registrarse -- caso mucho más
+// raro y de menor impacto que el bug de arriba (nunca mezcla datos entre
+// DOS CUENTAS reales), así que no se resuelve más a fondo.
+function answersStorageKey(userId: number | 'anonymous'): string {
   return `@bestronger_onboarding_v2_answers_${userId}`;
 }
+
+// Puente entre el registro diferido (fijado en handleContinue, ver más
+// abajo) y el remount que provoca RootNavigator (App.tsx) en cuanto
+// hydrateSession despacha isAuthenticated=true -- ese remount destruye
+// esta instancia del componente (con `answers` todavía en memoria) y monta
+// una nueva desde cero; esta clave es cómo esa nueva instancia sabe que ya
+// terminó todo y debe saltar directa al resumen en vez de volver a
+// preguntar las 38 preguntas ya respondidas.
+const PENDING_RESULT_KEY = '@bestronger_onboarding_v2_pending_result';
 
 function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
   if (question.required === false) return true;
@@ -54,6 +78,12 @@ function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): b
     const v = value as { first_name: string; last_name: string } | undefined;
     return !!v?.first_name?.trim() && !!v?.last_name?.trim();
   }
+  if (question.type === 'password') {
+    return typeof value === 'string' && value.length >= 8;
+  }
+  if (question.type === 'email') {
+    return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
   if (typeof value === 'string') return value.trim().length > 0;
   return value !== undefined && value !== null;
 }
@@ -61,13 +91,14 @@ function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): b
 export default function OnboardingV2Screen({ navigation }: any) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
-  const { state, updateUser } = useAuth();
+  const { state, updateUser, hydrateSession } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [questionIndex, setQuestionIndex] = useState(0);
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [submitting, setSubmitting] = useState(false);
   const [restored, setRestored] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   // Bug real corregido (reportado 2026-08-29): el ScaleSelector de la
   // pregunta tipo 'scale' vive dentro del ScrollView de abajo -- en un
   // arrastre rápido el gesto de scroll nativo del ScrollView competía con
@@ -76,41 +107,84 @@ export default function OnboardingV2Screen({ navigation }: any) {
   // ScaleSelector.tsx). Se desactiva el scroll mientras se arrastra.
   const [scaleDragging, setScaleDragging] = useState(false);
 
+  // Pedido explícito 2026-08-29: se elimina la screen de registro aparte --
+  // "Regístrate" lleva directo aquí, SIN cuenta todavía (ver App.tsx,
+  // MigratedOnboardingV2 ahora también vive en el stack sin autenticar). La
+  // pregunta 'email'/'password' (etapa 'credentials', al final) solo tiene
+  // sentido para alguien que todavía no tiene cuenta -- si ya la tiene
+  // (reanudando un onboarding a medias tras un cierre/crash, el ÚNICO otro
+  // motivo por el que esta pantalla se monta ya autenticado) no vuelve a
+  // pedírsela.
+  const questions = useMemo(
+    () => (state.isAuthenticated ? ONBOARDING_QUESTIONS.filter((q) => q.stage !== 'credentials') : ONBOARDING_QUESTIONS),
+    [state.isAuthenticated]
+  );
+  const visibleStages = useMemo(
+    () => (state.isAuthenticated ? ONBOARDING_STAGES.filter((s) => s.id !== 'credentials') : ONBOARDING_STAGES),
+    [state.isAuthenticated]
+  );
+
+  const userId = state.user?.id;
   // Reanudación: si el usuario cerró la app a mitad del onboarding, recupera
   // sus respuestas ya dadas (nunca el índice de pregunta -- más simple y
   // seguro volver a la primera pregunta sin responder que arriesgarse a un
-  // índice fuera de rango si esta lista de preguntas cambia entre versiones).
-  // Sin userId todavía (no debería pasar -- esta pantalla solo se muestra
-  // autenticado, ver RootNavigator en App.tsx) no hay clave que leer; se
-  // arranca en blanco en vez de lanzar.
-  const userId = state.user?.id;
+  // índice fuera de rango si esta lista de preguntas cambia entre
+  // versiones). Sin cuenta todavía se guarda bajo una clave 'anonymous'
+  // (ver answersStorageKey) en vez de saltarse el guardado.
+  //
+  // PENDING_RESULT_KEY se comprueba ANTES que nada: si está presente, esta
+  // instancia es el remount que provoca hydrateSession justo después de
+  // registrar (ver handleContinue) -- las respuestas ya se enviaron todas
+  // al backend, solo falta saltar a la pantalla de resumen en vez de volver
+  // a preguntar las 38 preguntas ya respondidas.
   useEffect(() => {
-    if (!userId) {
+    let cancelled = false;
+    (async () => {
+      const pending = await AsyncStorage.getItem(PENDING_RESULT_KEY).catch(() => null);
+      if (cancelled) return;
+      if (pending) {
+        await AsyncStorage.removeItem(PENDING_RESULT_KEY).catch(() => {});
+        navigation.replace('MigratedAssessmentResult', { answers: JSON.parse(pending) });
+        return;
+      }
+      const key = userId ?? 'anonymous';
+      const saved = await AsyncStorage.getItem(answersStorageKey(key)).catch((e) => {
+        logger.error(e);
+        return null;
+      });
+      if (cancelled) return;
+      if (saved) setAnswers(JSON.parse(saved));
       setRestored(true);
-      return;
-    }
-    AsyncStorage.getItem(answersStorageKey(userId))
-      .then((raw) => {
-        if (raw) setAnswers(JSON.parse(raw));
-      })
-      .catch((e) => logger.error(e))
-      .finally(() => setRestored(true));
-  }, [userId]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, navigation]);
 
   useEffect(() => {
-    if (!restored || !userId) return;
-    AsyncStorage.setItem(answersStorageKey(userId), JSON.stringify(answers)).catch((e) => logger.error(e));
+    if (!restored) return;
+    const key = userId ?? 'anonymous';
+    // La contraseña nunca se persiste en este checkpoint -- AsyncStorage no
+    // está cifrado (a diferencia de SecureStore/Keychain, donde sí vive el
+    // token real, ver helper/secureToken.ts), así que dejarla en texto
+    // plano mientras dura todo el onboarding sería un riesgo real si se
+    // cierra la app a medio camino y nunca se completa el registro. Al
+    // volver, se pide de nuevo -- mismo criterio que cualquier formulario
+    // que no rellena solo el campo de contraseña.
+    const toPersist: OnboardingAnswers = { ...answers };
+    delete toPersist.password;
+    AsyncStorage.setItem(answersStorageKey(key), JSON.stringify(toPersist)).catch((e) => logger.error(e));
   }, [answers, restored, userId]);
 
-  const question = ONBOARDING_QUESTIONS[questionIndex];
-  const stageIndex = ONBOARDING_STAGES.findIndex((s) => s.id === question.stage);
+  const question = questions[questionIndex];
+  const stageIndex = visibleStages.findIndex((s) => s.id === question.stage);
   const stageQuestions = useMemo(
-    () => ONBOARDING_QUESTIONS.filter((q) => q.stage === question.stage),
-    [question.stage]
+    () => questions.filter((q) => q.stage === question.stage),
+    [questions, question.stage]
   );
   const indexWithinStage = stageQuestions.findIndex((q) => q.id === question.id);
   const stageProgress = indexWithinStage / stageQuestions.length;
-  const isLastQuestion = questionIndex === ONBOARDING_QUESTIONS.length - 1;
+  const isLastQuestion = questionIndex === questions.length - 1;
   const isLastOfStage = indexWithinStage === stageQuestions.length - 1;
 
   const setAnswer = useCallback((id: string, value: any) => {
@@ -134,7 +208,13 @@ export default function OnboardingV2Screen({ navigation }: any) {
   }, [question, restored, answers, setAnswer]);
 
   const submitStage = useCallback(
-    async (stageId: string): Promise<boolean> => {
+    // overrideUser: solo lo pasa el registro diferido (ver handleContinue) --
+    // en ESE punto la cuenta se acaba de crear vía authApi.register() sin
+    // pasar por AuthContext todavía (a propósito, ver comentario grande
+    // junto a hydrateSession en store/AuthContext.tsx), así que state.user
+    // sigue siendo el anónimo de antes (null) y no sirve como fuente de
+    // username/email para el endpoint de personal_data.
+    async (stageId: string, overrideUser?: { username: string; email: string }): Promise<boolean> => {
       try {
         if (stageId === 'personal_data') {
           const name = answers.name as { first_name: string; last_name: string } | undefined;
@@ -150,8 +230,8 @@ export default function OnboardingV2Screen({ navigation }: any) {
           };
           await onboardingV2Api.submitPersonalData(
             personalData,
-            state.user?.username ?? '',
-            state.user?.email ?? ''
+            overrideUser?.username ?? state.user?.username ?? '',
+            overrideUser?.email ?? state.user?.email ?? ''
           );
           // El endpoint solo devuelve { message, status } (ApiMessageResponse),
           // no el usuario actualizado -- si no se sincroniza aquí, el nombre
@@ -229,22 +309,97 @@ export default function OnboardingV2Screen({ navigation }: any) {
     [answers, heightUnit, weightUnit, state.user, updateUser]
   );
 
+  // Registro diferido (pedido explícito 2026-08-29): crea la cuenta con lo
+  // acumulado en `answers` durante todo el onboarding (nombre, sexo, email,
+  // contraseña) + defaults fijos que antes ponía RegisterScreen.tsx
+  // (user_type/status). Llama a authApi.register() DIRECTAMENTE, no a
+  // register() de AuthContext -- ver comentario grande junto a
+  // hydrateSession en store/AuthContext.tsx para el porqué (evitar que
+  // isAuthenticated pase a true, y por tanto RootNavigator remonte todo el
+  // stack, ANTES de enviar las 4 etapas reales al backend).
+  const registerAnonymousUser = useCallback(async () => {
+    const name = answers.name as { first_name: string; last_name: string } | undefined;
+    const firstName = name?.first_name?.trim() ?? '';
+    const lastName = name?.last_name?.trim() ?? '';
+    const email = String(answers.email ?? '').trim();
+    const password = String(answers.password ?? '');
+    const username = `${firstName} ${lastName}`.trim() || email;
+    try {
+      const response = await authApi.register({
+        username,
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+        user_type: 'user',
+        status: 'active',
+        gender: (answers.gender as string) ?? 'other',
+      });
+      return response.data.data;
+    } catch (e: any) {
+      const message =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.email?.[0] ||
+        e?.response?.data?.errors?.username?.[0] ||
+        e?.message ||
+        'No se pudo completar el registro';
+      showToast('Error en el registro', { description: message, variant: 'error' });
+      return null;
+    }
+  }, [answers]);
+
   const handleContinue = useCallback(async () => {
+    // Sin cuenta todavía (registro diferido al final del onboarding, ver
+    // registerAnonymousUser) las 4 etapas reales NO se envían por el camino
+    // de siempre (isLastOfStage) -- fallarían con 401, todavía no hay token.
+    // Se envían todas juntas más abajo, en el `if (!state.isAuthenticated)`,
+    // justo después de crear la cuenta. La etapa 'credentials' (email +
+    // contraseña) tampoco tiene submitStage propio -- ver su comentario en
+    // types/onboardingV2.ts.
     let stageSubmitted = true;
-    if (isLastOfStage) {
+    if (isLastOfStage && question.stage !== 'credentials' && state.isAuthenticated) {
       setSubmitting(true);
       stageSubmitted = await submitStage(question.stage);
       setSubmitting(false);
     }
+
     if (isLastQuestion) {
-      // Se pasan las respuestas por params en vez de depender de que la
-      // screen de resultado las relea de AsyncStorage -- se borran justo
-      // antes de navegar (una fila más abajo), así que para cuando esa
-      // pantalla montase ya no estarían disponibles ahí. Si la última etapa
-      // falló al enviarse, NO se borra el checkpoint -- es la única copia
-      // de esas respuestas fuera del backend, y borrarla en ese momento
-      // eliminaría cualquier posibilidad de reintentar el envío más
-      // adelante (ver comentario de submitStage).
+      if (!state.isAuthenticated) {
+        setSubmitting(true);
+        const userData = await registerAnonymousUser();
+        if (!userData) {
+          setSubmitting(false);
+          return;
+        }
+        // Activa el token YA (SecureStore, leído por el interceptor de
+        // api/client.ts en cada request) para que las 4 llamadas de abajo
+        // vayan autenticadas -- hydrateSession (que hace lo mismo de forma
+        // duradera, más AsyncStorage 'USER') se llama DESPUÉS a propósito,
+        // ver su comentario en AuthContext.tsx.
+        await setToken(userData.api_token);
+        const realStages = ONBOARDING_STAGES.filter((s) => s.id !== 'credentials');
+        for (const stage of realStages) {
+          await submitStage(stage.id, { username: userData.username, email: userData.email });
+        }
+        // La contraseña no debe sobrevivir más de lo estrictamente
+        // necesario -- nunca se persiste ni se pasa a la pantalla de
+        // resumen.
+        const answersForResult: OnboardingAnswers = { ...answers };
+        delete answersForResult.password;
+        await AsyncStorage.setItem(PENDING_RESULT_KEY, JSON.stringify(answersForResult)).catch(() => {});
+        await AsyncStorage.removeItem(answersStorageKey('anonymous')).catch(() => {});
+        setSubmitting(false);
+        // Dispara el remount de RootNavigator (App.tsx) -- esta instancia
+        // del componente se destruye justo después; PENDING_RESULT_KEY es
+        // lo que hace que la siguiente salte directa al resumen (ver el
+        // useEffect de arriba).
+        await hydrateSession(userData, false);
+        return;
+      }
+
+      // Flujo de siempre: usuario YA autenticado (reanudando un onboarding
+      // a medias tras cerrar la app/un crash -- único otro motivo por el
+      // que esta pantalla se monta ya con cuenta).
       const finalAnswers = answers;
       if (stageSubmitted && userId) {
         await AsyncStorage.removeItem(answersStorageKey(userId)).catch(() => {});
@@ -253,7 +408,18 @@ export default function OnboardingV2Screen({ navigation }: any) {
       return;
     }
     setQuestionIndex((i) => i + 1);
-  }, [isLastOfStage, isLastQuestion, question.stage, submitStage, navigation, answers, userId]);
+  }, [
+    isLastOfStage,
+    isLastQuestion,
+    question.stage,
+    submitStage,
+    navigation,
+    answers,
+    userId,
+    state.isAuthenticated,
+    registerAnonymousUser,
+    hydrateSession,
+  ]);
 
   const handleBack = useCallback(() => {
     if (questionIndex === 0) {
@@ -281,7 +447,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <OnboardingHeader
         onBack={handleBack}
-        stageCount={ONBOARDING_STAGES.length}
+        stageCount={visibleStages.length}
         currentStageIndex={stageIndex}
         stageProgress={stageProgress}
       />
@@ -307,6 +473,8 @@ export default function OnboardingV2Screen({ navigation }: any) {
               defaultFirstName={state.user?.first_name}
               defaultLastName={state.user?.last_name}
               onScaleDraggingChange={setScaleDragging}
+              showPassword={showPassword}
+              onTogglePassword={() => setShowPassword((v) => !v)}
               styles={styles}
               C={C}
             />
@@ -339,6 +507,8 @@ function QuestionInput({
   defaultFirstName,
   defaultLastName,
   onScaleDraggingChange,
+  showPassword,
+  onTogglePassword,
   styles,
   C,
 }: {
@@ -352,6 +522,8 @@ function QuestionInput({
   defaultFirstName?: string;
   defaultLastName?: string;
   onScaleDraggingChange: (dragging: boolean) => void;
+  showPassword: boolean;
+  onTogglePassword: () => void;
   styles: ReturnType<typeof createStyles>;
   C: ReturnType<typeof useAppColorMode>['colors'];
 }) {
@@ -491,6 +663,39 @@ function QuestionInput({
           value={(answers[question.id] as string | undefined) ?? ''}
           onChangeText={(t) => setAnswer(question.id, t)}
         />
+      </Input>
+    );
+  }
+
+  if (question.type === 'email') {
+    return (
+      <Input>
+        <InputField
+          placeholder={question.placeholder}
+          value={(answers[question.id] as string | undefined) ?? ''}
+          onChangeText={(t) => setAnswer(question.id, t)}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </Input>
+    );
+  }
+
+  if (question.type === 'password') {
+    return (
+      <Input>
+        <InputField
+          placeholder={question.placeholder}
+          value={(answers[question.id] as string | undefined) ?? ''}
+          onChangeText={(t) => setAnswer(question.id, t)}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <InputSlot className="pr-3" onPress={onTogglePassword}>
+          <Icon name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} className="text-muted-foreground" />
+        </InputSlot>
       </Input>
     );
   }

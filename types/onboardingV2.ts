@@ -2,7 +2,16 @@
 // de entrenamiento, cuestionario de nutrición). Ver docs/ONBOARDING_V2.md
 // para el contrato completo de preguntas + endpoints.
 
-export type OnboardingStageId = 'personal_data' | 'par_q' | 'training_questionnaire' | 'nutrition_questionnaire';
+// 'credentials' (pedido explícito 2026-08-29: registro eliminado como
+// pantalla aparte, el onboarding ES el registro) -- las 2 últimas
+// preguntas (email/contraseña) que crean la cuenta al terminar. No tiene
+// endpoint propio como las otras 4 -- submitStage() en
+// onboarding_v2_screen.tsx la ignora a propósito, la cuenta se crea vía
+// authApi.register() en su lugar. Solo se muestra a usuarios todavía
+// anónimos -- ver `questions` (filtro por state.isAuthenticated) en
+// onboarding_v2_screen.tsx: alguien que ya tenía cuenta y reanuda un
+// onboarding a medias no vuelve a pasar por aquí.
+export type OnboardingStageId = 'personal_data' | 'par_q' | 'training_questionnaire' | 'nutrition_questionnaire' | 'credentials';
 
 export interface OnboardingStageMeta {
   id: OnboardingStageId;
@@ -14,6 +23,7 @@ export const ONBOARDING_STAGES: OnboardingStageMeta[] = [
   { id: 'par_q', label: 'PAR-Q' },
   { id: 'training_questionnaire', label: 'Entrenamiento' },
   { id: 'nutrition_questionnaire', label: 'Nutrición' },
+  { id: 'credentials', label: 'Crear cuenta' },
 ];
 
 export interface OnboardingOption {
@@ -31,7 +41,9 @@ export type OnboardingQuestionType =
   | 'number_wheel'
   | 'scale'
   | 'text'
-  | 'textarea';
+  | 'textarea'
+  | 'email'
+  | 'password';
 
 interface OnboardingQuestionBase {
   id: string;
@@ -85,6 +97,16 @@ export interface TextAreaQuestion extends OnboardingQuestionBase {
   placeholder?: string;
 }
 
+export interface EmailQuestion extends OnboardingQuestionBase {
+  type: 'email';
+  placeholder?: string;
+}
+
+export interface PasswordQuestion extends OnboardingQuestionBase {
+  type: 'password';
+  placeholder?: string;
+}
+
 export type OnboardingQuestion =
   | NameQuestion
   | SingleChoiceQuestion
@@ -92,7 +114,9 @@ export type OnboardingQuestion =
   | NumberWheelQuestion
   | ScaleQuestion
   | TextQuestion
-  | TextAreaQuestion;
+  | TextAreaQuestion
+  | EmailQuestion
+  | PasswordQuestion;
 
 export type OnboardingAnswerValue =
   | string

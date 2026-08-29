@@ -137,7 +137,10 @@ export default function LoginScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>¿No tienes una cuenta? </Text>
             <Pressable
-              onPress={() => navigation.navigate("RegisterFlow")}
+              // Pedido explícito 2026-08-29: sin screen de registro aparte,
+              // el onboarding ES el registro -- ver mismo cambio en
+              // WelcomeAuthScreen.tsx.
+              onPress={() => navigation.navigate("MigratedOnboardingV2")}
               style={({ pressed }) => pressed && { opacity: 0.2 }}
             >
               <Text style={styles.footerLink}>Regístrate</Text>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApi, LoginPayload, RegisterPayload } from '../api/auth';
+import { authApi, LoginPayload, LoginResponse, RegisterPayload } from '../api/auth';
 import { UserData } from '../api/profile';
 import { onboardingV2Api } from '../api/onboardingV2';
 import { setLogoutHandler } from '../api/client';
@@ -79,6 +79,8 @@ interface AuthContextType {
   updateUser: (user: UserData) => void;
   restoreToken: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  /** Ver comentario junto a su implementación -- paso final del registro diferido al final del onboarding. */
+  hydrateSession: (userData: LoginResponse['data'], onboardingCompletedNow: boolean) => Promise<void>;
   /** Derivado de state.user?.access_tier !== 'free' — evita repetir la comparación en cada pantalla nueva. */
   isPaidTier: boolean;
 }
@@ -177,6 +179,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
   }, []);
 
+  // Pedido explícito 2026-08-29: la screen de registro aparte desaparece --
+  // el onboarding ES el registro, la cuenta se crea con las 2 últimas
+  // preguntas (email/contraseña, ver constants/onboardingV2Questions.ts,
+  // etapa 'credentials'). onboarding_v2_screen.tsx llama a
+  // authApi.register() DIRECTAMENTE (no a register() de arriba) para poder
+  // fijar el token y enviar las 4 etapas reales al backend ANTES de
+  // despachar aquí -- si despachara con register() ahí mismo,
+  // isAuthenticated pasaría a true de inmediato y RootNavigator (App.tsx)
+  // remontaría todo el stack en mitad del envío (pierde `answers` en
+  // memoria, ver comentario grande en onboarding_v2_screen.tsx). Este
+  // método es el paso final, ya con todo enviado: fija sesión con el
+  // `onboardingCompleted` que decida el caller (false: recién registrado,
+  // pendiente de confirmar el resumen en MigratedAssessmentResult, mismo
+  // criterio que login/register de arriba con un usuario ya existente).
+  const hydrateSession = useCallback(async (userData: LoginResponse['data'], onboardingCompletedNow: boolean) => {
+    const token = userData.api_token;
+    await setToken(token);
+    await AsyncStorage.setItem('USER', JSON.stringify(userData));
+    if (onboardingCompletedNow) {
+      await AsyncStorage.setItem(onboardingCompletedKey(userData.id), 'true');
+    }
+    dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted: onboardingCompletedNow });
+  }, []);
+
   const logout = useCallback(async () => {
     await removeToken();
     // Limpia tambien el resto de estado ligado a la cuenta que salia -- antes
@@ -231,8 +257,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isPaidTier = state.user?.access_tier !== undefined && state.user.access_tier !== 'free';
 
   const contextValue = useMemo(
-    () => ({ state, login, register, logout, updateUser, restoreToken, completeOnboarding, isPaidTier }),
-    [state, login, register, logout, updateUser, restoreToken, completeOnboarding, isPaidTier]
+    () => ({ state, login, register, logout, updateUser, restoreToken, completeOnboarding, hydrateSession, isPaidTier }),
+    [state, login, register, logout, updateUser, restoreToken, completeOnboarding, hydrateSession, isPaidTier]
   );
 
   return (

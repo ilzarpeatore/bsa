@@ -407,4 +407,28 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: '¿Cuáles son tus comidas combinadas favoritas?',
     required: false,
   },
+
+  // ---------- Etapa 5: Crear cuenta ----------
+  // Pedido explícito 2026-08-29: se elimina la pantalla de registro aparte
+  // -- el botón "Regístrate" lleva directo aquí (MigratedOnboardingV2,
+  // anónimo), y estas 2 últimas preguntas son las que de verdad crean la
+  // cuenta al terminar (ver handleContinue en onboarding_v2_screen.tsx).
+  // Solo se muestran si todavía no hay cuenta -- ver el filtro `questions`
+  // en esa misma pantalla.
+  {
+    id: 'email',
+    stage: 'credentials',
+    type: 'email',
+    title: '¿Cuál es tu correo electrónico?',
+    subtitle: 'Lo usaremos para que puedas acceder a tu cuenta',
+    placeholder: 'Introduce tu email',
+  },
+  {
+    id: 'password',
+    stage: 'credentials',
+    type: 'password',
+    title: 'Crea una contraseña',
+    subtitle: 'Mínimo 8 caracteres',
+    placeholder: 'Introduce tu contraseña',
+  },
 ];

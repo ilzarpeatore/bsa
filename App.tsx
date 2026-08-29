@@ -40,7 +40,6 @@ const LoginScreen = React.lazy(() => import('@pages/auth/LoginScreen'));
 const ForgotPasswordOptionsScreen = React.lazy(() => import('@pages/auth/ForgotPasswordOptionsScreen'));
 const ForgotPasswordEmailScreen = React.lazy(() => import('@pages/auth/ForgotPasswordEmailScreen'));
 const PasswordResetSentScreen = React.lazy(() => import('@pages/auth/PasswordResetSentScreen'));
-const RegisterScreen = React.lazy(() => import('@pages/auth/RegisterScreen'));
 
 const DietDashboard = React.lazy(() => import('@pages/DietDashboard'));
 const DietList = React.lazy(() => import('@pages/DietList'));
@@ -344,7 +343,13 @@ function RootNavigator() {
         <>
           <Stack.Screen name="WelcomeAuth" component={WelcomeAuthScreen} />
           <Stack.Screen name="LoginAuth" component={LoginScreen} />
-          <Stack.Screen name="RegisterFlow" component={RegisterScreen} />
+          {/* Pedido explícito 2026-08-29: sin screen de registro aparte, el
+              onboarding ES el registro -- "Regístrate" (WelcomeAuthScreen/
+              LoginScreen) navega aquí directamente, todavía sin cuenta. Ver
+              handleContinue en onboarding_v2_screen.tsx (registro diferido
+              a la última pregunta) y el comentario de hydrateSession en
+              store/AuthContext.tsx. */}
+          <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
           <Stack.Screen name="ForgotOptions" component={ForgotPasswordOptionsScreen} />
           <Stack.Screen name="ForgotEmail" component={ForgotPasswordEmailScreen} />
           <Stack.Screen name="ResetSent" component={PasswordResetSentScreen} />

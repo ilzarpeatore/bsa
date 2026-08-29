@@ -58,7 +58,14 @@ export default function WelcomeAuthScreen() {
           <AuthLinkRow
             prefix="¿No tienes una cuenta?"
             linkText="Regístrate"
-            onPress={() => navigation.navigate("RegisterFlow")}
+            // Pedido explícito 2026-08-29: se elimina la screen de registro
+            // aparte -- el onboarding ES el registro (termina con 2
+            // preguntas que crean la cuenta, ver
+            // constants/onboardingV2Questions.ts, etapa 'credentials'), así
+            // que "Regístrate" lleva directo ahí en vez de a un formulario
+            // previo. MigratedOnboardingV2 ahora también vive en el stack
+            // sin autenticar (ver App.tsx).
+            onPress={() => navigation.navigate("MigratedOnboardingV2")}
             prefixColor="rgba(255,255,255,0.75)"
             linkColor={C.orange}
           />
