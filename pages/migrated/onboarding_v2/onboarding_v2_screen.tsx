@@ -48,17 +48,19 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 // propio checkpoint de reanudación. Ahora incluye el id de usuario --
 // misma mecánica que onboardingCompletedKey en AuthContext.tsx.
 //
-// 'anonymous' (pedido explícito 2026-08-29: registro eliminado como
-// pantalla aparte, el onboarding ES el registro ahora) -- mientras
-// todavía no existe cuenta no hay id real que usar; se guarda bajo esta
-// clave compartida hasta que la cuenta se crea (última pregunta,
-// 'credentials'), momento en que se limpia. Igual que con cualquier
-// checkpoint anónimo (p.ej. un carrito de compra sin cuenta), puede
-// mezclar el progreso de dos personas anónimas distintas en el MISMO
-// dispositivo si la primera abandona sin registrarse -- caso mucho más
-// raro y de menor impacto que el bug de arriba (nunca mezcla datos entre
-// DOS CUENTAS reales), así que no se resuelve más a fondo.
-function answersStorageKey(userId: number | 'anonymous'): string {
+// SIN cuenta todavía (registro eliminado como pantalla aparte, el
+// onboarding ES el registro ahora -- pedido explícito 2026-08-29) NO se
+// persiste ningún checkpoint -- ver el efecto de reanudación más abajo.
+// Se probó primero con una clave 'anonymous' compartida, pero es
+// exactamente el mismo bug que el corregido arriba con otro disfraz: si la
+// persona A cierra la app a medio onboarding SIN registrarse (edad, sexo,
+// peso, respuestas de salud del PAR-Q...) y la persona B abre después la
+// app en el MISMO dispositivo y pulsa "Regístrate", heredaría las
+// respuestas ya dadas por A. Dado lo sensible de esos datos, se prefiere
+// no ofrecer reanudación en la fase anónima antes que arriesgar esa fuga
+// -- perder el progreso si cierras la app antes de crear la cuenta es un
+// coste menor y aceptado.
+function answersStorageKey(userId: number): string {
   return `@bestronger_onboarding_v2_answers_${userId}`;
 }
 
@@ -129,8 +131,9 @@ export default function OnboardingV2Screen({ navigation }: any) {
   // sus respuestas ya dadas (nunca el índice de pregunta -- más simple y
   // seguro volver a la primera pregunta sin responder que arriesgarse a un
   // índice fuera de rango si esta lista de preguntas cambia entre
-  // versiones). Sin cuenta todavía se guarda bajo una clave 'anonymous'
-  // (ver answersStorageKey) en vez de saltarse el guardado.
+  // versiones). Solo aplica con cuenta ya creada (userId real) -- ver
+  // comentario junto a answersStorageKey arriba para el porqué de NO
+  // reanudar en la fase anónima.
   //
   // PENDING_RESULT_KEY se comprueba ANTES que nada: si está presente, esta
   // instancia es el remount que provoca hydrateSession justo después de
@@ -147,8 +150,11 @@ export default function OnboardingV2Screen({ navigation }: any) {
         navigation.replace('MigratedAssessmentResult', { answers: JSON.parse(pending) });
         return;
       }
-      const key = userId ?? 'anonymous';
-      const saved = await AsyncStorage.getItem(answersStorageKey(key)).catch((e) => {
+      if (!userId) {
+        setRestored(true);
+        return;
+      }
+      const saved = await AsyncStorage.getItem(answersStorageKey(userId)).catch((e) => {
         logger.error(e);
         return null;
       });
@@ -162,18 +168,8 @@ export default function OnboardingV2Screen({ navigation }: any) {
   }, [userId, navigation]);
 
   useEffect(() => {
-    if (!restored) return;
-    const key = userId ?? 'anonymous';
-    // La contraseña nunca se persiste en este checkpoint -- AsyncStorage no
-    // está cifrado (a diferencia de SecureStore/Keychain, donde sí vive el
-    // token real, ver helper/secureToken.ts), así que dejarla en texto
-    // plano mientras dura todo el onboarding sería un riesgo real si se
-    // cierra la app a medio camino y nunca se completa el registro. Al
-    // volver, se pide de nuevo -- mismo criterio que cualquier formulario
-    // que no rellena solo el campo de contraseña.
-    const toPersist: OnboardingAnswers = { ...answers };
-    delete toPersist.password;
-    AsyncStorage.setItem(answersStorageKey(key), JSON.stringify(toPersist)).catch((e) => logger.error(e));
+    if (!restored || !userId) return;
+    AsyncStorage.setItem(answersStorageKey(userId), JSON.stringify(answers)).catch((e) => logger.error(e));
   }, [answers, restored, userId]);
 
   const question = questions[questionIndex];
@@ -387,7 +383,6 @@ export default function OnboardingV2Screen({ navigation }: any) {
         const answersForResult: OnboardingAnswers = { ...answers };
         delete answersForResult.password;
         await AsyncStorage.setItem(PENDING_RESULT_KEY, JSON.stringify(answersForResult)).catch(() => {});
-        await AsyncStorage.removeItem(answersStorageKey('anonymous')).catch(() => {});
         setSubmitting(false);
         // Dispara el remount de RootNavigator (App.tsx) -- esta instancia
         // del componente se destruye justo después; PENDING_RESULT_KEY es
