@@ -50,7 +50,7 @@ import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
-import { CHAT_ENABLED } from '@constants/featureFlags';
+import { CHAT_ENABLED, ACTIVITY_TRACKER_ENABLED, WATER_TRACKER_ENABLED } from '@constants/featureFlags';
 import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
 import { showToast } from '@helper/toast';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
@@ -1113,7 +1113,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Icon name="water" size={15} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.miniCardTitle}>Agua</Text>
                 </HStack>
-                <Pressable style={styles.miniCardAddBtn} onPress={() => navigation?.navigate('MigratedWaterTracker')} hitSlop={8}>
+                {/* Water Tracker desactivado en esta primera versión (ver
+                    constants/featureFlags.ts, WATER_TRACKER_ENABLED). */}
+                <Pressable
+                  style={styles.miniCardAddBtn}
+                  onPress={() =>
+                    WATER_TRACKER_ENABLED
+                      ? navigation?.navigate('MigratedWaterTracker')
+                      : showToast('Próximamente', { description: 'Podrás registrar tu agua en la próxima versión de la app.' })
+                  }
+                  hitSlop={8}
+                >
                   <Icon name="add" size={14} color="#FFFFFF" />
                 </Pressable>
               </HStack>
@@ -1137,7 +1147,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Icon name="walk" size={15} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.miniCardTitle}>Actividad</Text>
                 </HStack>
-                <Pressable style={styles.miniCardAddBtn} onPress={() => navigation?.navigate('MigratedActivityTracker')} hitSlop={8}>
+                {/* Activity Tracker desactivado en esta primera versión (ver
+                    constants/featureFlags.ts, ACTIVITY_TRACKER_ENABLED). */}
+                <Pressable
+                  style={styles.miniCardAddBtn}
+                  onPress={() =>
+                    ACTIVITY_TRACKER_ENABLED
+                      ? navigation?.navigate('MigratedActivityTracker')
+                      : showToast('Próximamente', { description: 'Podrás registrar tu actividad en la próxima versión de la app.' })
+                  }
+                  hitSlop={8}
+                >
                   <Icon name="add" size={14} color="#FFFFFF" />
                 </Pressable>
               </HStack>

@@ -11,3 +11,16 @@
 // tocar la navegación ni arriesgarse a romper un deep link existente.
 // Reactivar: cambiar a true en cuanto exista moderación/reporte de mensajes.
 export const CHAT_ENABLED = false;
+
+// Activity Tracker (MigratedActivityTracker) y Water Tracker
+// (MigratedWaterTracker) desactivados para la primera versión -- pedido
+// explícito: los usuarios todavía no pueden acceder a esas pantallas. Punto
+// de entrada único a cada una: los botones "+" de las tarjetas Agua/
+// Actividad en home_screen_modern_v2.tsx, que comprueban estos flags y
+// muestran "disponible en la próxima versión" en vez de navegar. Las
+// pantallas y sus rutas en App.tsx NO se quitan, igual que CHAT_ENABLED.
+// MigratedActivityTracker en concreto ya estaba documentada como bloqueada
+// por la falta de integración real Apple Health/Google Fit (ver
+// docs/TAREAS.md) -- sus datos son hardcodeados, sin ningún api/* real.
+export const ACTIVITY_TRACKER_ENABLED = false;
+export const WATER_TRACKER_ENABLED = false;
