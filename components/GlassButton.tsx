@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   pressed: { opacity: 0.85 },
-  clip: { ...StyleSheet.absoluteFillObject, borderRadius: 999, overflow: 'hidden' },
+  clip: { ...StyleSheet.absoluteFill, borderRadius: 999, overflow: 'hidden' },
   tint: { backgroundColor: TINT },
   content: {
     flexDirection: 'row',
