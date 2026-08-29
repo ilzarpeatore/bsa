@@ -55,6 +55,13 @@ export default function OnboardingV2Screen({ navigation }: any) {
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [submitting, setSubmitting] = useState(false);
   const [restored, setRestored] = useState(false);
+  // Bug real corregido (reportado 2026-08-29): el ScaleSelector de la
+  // pregunta tipo 'scale' vive dentro del ScrollView de abajo -- en un
+  // arrastre rápido el gesto de scroll nativo del ScrollView competía con
+  // el PanResponder del selector y le robaba eventos de movimiento a mitad
+  // de gesto (ver comentario grande en components/onboarding_v2/
+  // ScaleSelector.tsx). Se desactiva el scroll mientras se arrastra.
+  const [scaleDragging, setScaleDragging] = useState(false);
 
   // Reanudación: si el usuario cerró la app a mitad del onboarding, recupera
   // sus respuestas ya dadas (nunca el índice de pregunta -- más simple y
@@ -262,6 +269,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          scrollEnabled={!scaleDragging}
         >
           <Text style={styles.title}>{question.title}</Text>
           {question.subtitle ? <Text style={styles.subtitle}>{question.subtitle}</Text> : null}
@@ -277,6 +285,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
               setWeightUnit={setWeightUnit}
               defaultFirstName={state.user?.first_name}
               defaultLastName={state.user?.last_name}
+              onScaleDraggingChange={setScaleDragging}
               styles={styles}
               C={C}
             />
@@ -308,6 +317,7 @@ function QuestionInput({
   setWeightUnit,
   defaultFirstName,
   defaultLastName,
+  onScaleDraggingChange,
   styles,
   C,
 }: {
@@ -320,6 +330,7 @@ function QuestionInput({
   setWeightUnit: (u: 'kg' | 'lbs') => void;
   defaultFirstName?: string;
   defaultLastName?: string;
+  onScaleDraggingChange: (dragging: boolean) => void;
   styles: ReturnType<typeof createStyles>;
   C: ReturnType<typeof useAppColorMode>['colors'];
 }) {
@@ -382,6 +393,7 @@ function QuestionInput({
         max={question.max}
         value={answers[question.id] as number | undefined}
         onChange={(v) => setAnswer(question.id, v)}
+        onDraggingChange={onScaleDraggingChange}
       />
     );
   }

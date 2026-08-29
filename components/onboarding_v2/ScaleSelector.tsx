@@ -8,6 +8,11 @@ interface Props {
   max: number;
   value: number | undefined;
   onChange: (value: number) => void;
+  // Reportado 2026-08-29 (segunda vez -- ver comentario grande más abajo):
+  // permite al padre desactivar el ScrollView que envuelve esta pantalla
+  // mientras se arrastra. Opcional porque no todos los usos futuros de este
+  // selector viven necesariamente dentro de un ScrollView.
+  onDraggingChange?: (dragging: boolean) => void;
 }
 
 const THUMB_SIZE = 44;
@@ -23,7 +28,7 @@ const TRACK_HEIGHT = 56;
 // components/ui, que usa @react-stately/slider vía gluestack y no tiene
 // ningún uso real todavía en la app para confiar en su gesto táctil en RN
 // sin poder probarlo en dispositivo).
-export default function ScaleSelector({ min, max, value, onChange }: Props) {
+export default function ScaleSelector({ min, max, value, onChange, onDraggingChange }: Props) {
   const [trackWidth, setTrackWidth] = useState(0);
   const [liveValue, setLiveValue] = useState<number | null>(null);
   const trackRef = useRef<View>(null);
@@ -37,6 +42,30 @@ export default function ScaleSelector({ min, max, value, onChange }: Props) {
   // sea la subvista tocada, así que restándole este offset fijo se obtiene
   // la posición real dentro de la pista sin saltos.
   const trackPageXRef = useRef(0);
+
+  // Segundo bug real corregido (reportado 2026-08-29, mismo síntoma --
+  // "se vuelve loco el número, sobretodo si deslizas rápido" -- ya con el
+  // fix de moveX de arriba puesto): este selector vive dentro del
+  // ScrollView vertical de onboarding_v2_screen.tsx. El PanResponder de
+  // este componente y el gesto de scroll NATIVO del ScrollView (no es JS,
+  // es un UIPanGestureRecognizer/equivalente Android) compiten por el
+  // mismo toque -- en un arrastre rápido el ScrollView puede reconocer su
+  // propio gesto de scroll ANTES de que este PanResponder llegue a
+  // reclamarlo (round-trip a JS), robándose eventos de movimiento a mitad
+  // de arrastre. El resultado es justo lo reportado: el thumb/número salta
+  // porque `onPanResponderMove` deja de recibir todos los frames del gesto.
+  // Dos medidas juntas, no una sola, para eliminar la carrera:
+  // 1) *ShouldSetPanResponderCapture (fase de captura, no solo bubbling) ->
+  //    este componente reclama el responder nada más tocar la pista, antes
+  //    de que el ScrollView tenga ocasión de interpretar el toque.
+  // 2) onDraggingChange (arriba) -- notifica al padre para que ponga
+  //    scrollEnabled={false} en el ScrollView mientras se arrastra, así el
+  //    gesto nativo de scroll queda desactivado del todo durante el drag,
+  //    no solo "de-priorizado".
+  const setDragging = useCallback(
+    (dragging: boolean) => onDraggingChange?.(dragging),
+    [onDraggingChange]
+  );
 
   const valueFromX = useCallback(
     (x: number, width: number) => {
@@ -52,18 +81,27 @@ export default function ScaleSelector({ min, max, value, onChange }: Props) {
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (_e, gestureState) =>
-          setLiveValue(valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth)),
+        // Fase de captura -- ver comentario junto a trackPageXRef arriba.
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderGrant: (_e, gestureState) => {
+          setDragging(true);
+          setLiveValue(valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth));
+        },
         onPanResponderMove: (_e, gestureState) =>
           setLiveValue(valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth)),
         onPanResponderRelease: (_e, gestureState) => {
           const v = valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth);
           setLiveValue(null);
+          setDragging(false);
           onChange(v);
         },
-        onPanResponderTerminate: () => setLiveValue(null),
+        onPanResponderTerminate: () => {
+          setLiveValue(null);
+          setDragging(false);
+        },
       }),
-    [valueFromX, trackWidth, onChange]
+    [valueFromX, trackWidth, onChange, setDragging]
   );
 
   const handleLayout = useCallback((e: LayoutChangeEvent) => {
