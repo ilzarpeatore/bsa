@@ -370,55 +370,63 @@ export default function BlogDetailScreen({ navigation, route }: any) {
 
           {/* Fuente / Bibliografía — acordeón real (Accordion de Gluestack) */}
           {blog?.bibliography && blog.bibliography.trim().length > 0 && (
-            <Accordion
-              type="single"
-              isCollapsible
-              value={bibliographyOpen ? ['bibliography'] : []}
-              onValueChange={(value) => setBibliographyOpen(value.includes('bibliography'))}
-              className="bg-card rounded-lg"
-              style={{ marginTop: 24, marginHorizontal: 12, overflow: 'hidden' }}
-            >
-              <AccordionItem value="bibliography">
-                <AccordionHeader>
-                  <AccordionTrigger style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
-                    {({ isExpanded }: { isExpanded: boolean }) => (
-                      <>
-                        <Icon name="book-outline" size={20} color={C.textPrimary} />
-                        <AccordionTitleText className="flex-1">Fuente / Bibliografía</AccordionTitleText>
-                        <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={C.textPrimary} />
-                      </>
-                    )}
-                  </AccordionTrigger>
-                </AccordionHeader>
-                <AccordionContent style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-                  <Box style={{ height: 1, backgroundColor: C.gray60, marginBottom: 12 }} />
-                  <VStack space="sm">
-                    {blog.bibliography.split('\n').filter((line: string) => line.trim().length > 0).map((line: string, index: number) => {
-                      const isUrl = line.trim().match(/^https?:\/\//);
-                      return (
-                        <HStack key={index} space="sm" style={{ alignItems: 'flex-start' }}>
-                          <Box style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.brand5, marginTop: 6 }} />
-                          {isUrl ? (
-                            <Text
-                              numberOfLines={3}
-                              className="flex-1"
-                              size="sm"
-                              style={{ color: C.textPrimary, lineHeight: 18 }}
-                            >
-                              {line.trim()}
-                            </Text>
-                          ) : (
-                            <Text className="flex-1" size="sm" style={{ color: C.gray30, lineHeight: 20 }}>
-                              {line.trim()}
-                            </Text>
-                          )}
-                        </HStack>
-                      );
-                    })}
-                  </VStack>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            // El margen/tarjeta viven en este Box envolvente, no en el
+            // Accordion en sí (como antes) -- accordionStyle (components/ui/
+            // accordion) fija "w-full" en el Root, y ese w-full combinado con
+            // un marginHorizontal propio en el MISMO nodo hacía que el
+            // acordeón se saliera por la derecha del bloque de contenido de
+            // arriba. Ese bloque (línea ~358) sigue el patrón correcto:
+            // margen en el Box de fuera, el hijo ocupa el 100% de ESE Box ya
+            // reducido -- aquí se replica igual para que ambos midan lo mismo.
+            <Box className="bg-card rounded-lg" style={{ marginTop: 24, marginHorizontal: 12, overflow: 'hidden' }}>
+              <Accordion
+                type="single"
+                isCollapsible
+                value={bibliographyOpen ? ['bibliography'] : []}
+                onValueChange={(value) => setBibliographyOpen(value.includes('bibliography'))}
+              >
+                <AccordionItem value="bibliography">
+                  <AccordionHeader>
+                    <AccordionTrigger style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
+                      {({ isExpanded }: { isExpanded: boolean }) => (
+                        <>
+                          <Icon name="book-outline" size={20} color={C.textPrimary} />
+                          <AccordionTitleText className="flex-1">Fuente / Bibliografía</AccordionTitleText>
+                          <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={C.textPrimary} />
+                        </>
+                      )}
+                    </AccordionTrigger>
+                  </AccordionHeader>
+                  <AccordionContent style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                    <Box style={{ height: 1, backgroundColor: C.gray60, marginBottom: 12 }} />
+                    <VStack space="sm">
+                      {blog.bibliography.split('\n').filter((line: string) => line.trim().length > 0).map((line: string, index: number) => {
+                        const isUrl = line.trim().match(/^https?:\/\//);
+                        return (
+                          <HStack key={index} space="sm" style={{ alignItems: 'flex-start' }}>
+                            <Box style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.brand5, marginTop: 6 }} />
+                            {isUrl ? (
+                              <Text
+                                numberOfLines={3}
+                                className="flex-1"
+                                size="sm"
+                                style={{ color: C.textPrimary, lineHeight: 18 }}
+                              >
+                                {line.trim()}
+                              </Text>
+                            ) : (
+                              <Text className="flex-1" size="sm" style={{ color: C.gray30, lineHeight: 20 }}>
+                                {line.trim()}
+                              </Text>
+                            )}
+                          </HStack>
+                        );
+                      })}
+                    </VStack>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </Box>
           )}
         </Box>
       </Animated.ScrollView>
