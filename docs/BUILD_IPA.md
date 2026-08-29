@@ -37,6 +37,14 @@ unsanitizedScriptURLString = (null)
 
 `Debug` solo tiene sentido si el APK/IPA va a conectarse a un Metro packager corriendo en la misma red (desarrollo con `npm start`, ver `docs/ARRANQUE_DESARROLLO.md`) — no es el caso de un IPA que alguien va a instalar y abrir de forma independiente.
 
+## Build number siempre igual → herramientas de sideload no detectan el IPA nuevo (2026-08-29)
+
+Reportado en producción: usuario instaló el IPA del run #68 (build en verde, contenía cambios reales) y no vio ningún cambio — ni el nuevo nombre/icono de la app. Causa: `CFBundleVersion`/`CFBundleShortVersionString` en los `Info.plist` del proyecto son literales (`"1"`/`"1.2.0"`), no `$(CURRENT_PROJECT_VERSION)`/`$(MARKETING_VERSION)` — así que ningún build anterior los había incrementado nunca, todos los IPAs de este repo hasta ahora llevaban exactamente el mismo build number. AltStore (y sideloaders similares) comparan versión antes de reinstalar; con el build number siempre igual, pueden no detectar cambio alguno y dejar corriendo el binario viejo aunque el "update" parezca haber ido bien.
+
+**Fix**: nuevo step "Bump native build number (CFBundleVersion)" en `ios-build.yml`, justo antes de firmar/compilar — pone `CFBundleVersion` a `$GITHUB_RUN_NUMBER` (crece solo en cada ejecución del workflow) en todos los `Info.plist` del proyecto (app + extensiones). Automático desde ahora, no requiere ninguna acción manual en runs futuros.
+
+**Si el problema se repite** (usuario no ve cambios tras instalar un IPA nuevo): antes de sospechar del build, comprobar que la instalación fue de verdad limpia — borrar la app existente del dispositivo por completo y reinstalar desde cero, en vez de fiarse del flujo de "actualizar" del sideloader.
+
 ## `pod install` no se puede ejecutar desde este entorno de agente (2026-08-26)
 
 Probado explícitamente: CocoaPods sí se puede instalar como gem en este sandbox Linux (`gem install cocoapods` funciona), pero `pod install` sobre `ios/Podfile` falla siempre en el mismo punto — `use_react_native!` invoca `xcodebuild` para resolver la configuración nativa, y `xcodebuild` no existe fuera de macOS con Xcode instalado. No es un problema de configuración del proyecto, es una limitación de plataforma sin solución posible desde aquí.

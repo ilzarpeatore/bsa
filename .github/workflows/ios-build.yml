@@ -166,6 +166,35 @@ jobs:
           restore-keys: |
             pods-${{ runner.os }}-
 
+      - name: Bump native build number (CFBundleVersion)
+        env:
+          IOS_PATH: ${{ inputs.ios_path }}
+        run: |
+          set -e
+          # CFBundleVersion/CFBundleShortVersionString en los Info.plist de
+          # este repo son literales ("1"/"1.2.0"), no $(CURRENT_PROJECT_VERSION)/
+          # $(MARKETING_VERSION) -- ningún build anterior lo había incrementado
+          # nunca, así que herramientas de sideload (AltStore y similares) que
+          # comparan versión antes de reinstalar podían no detectar cambio
+          # alguno entre dos IPAs distintos, dejando la build vieja corriendo
+          # aunque la instalación "pareciera" haber ido bien (reportado en
+          # producción, 2026-08-29: usuario sin ver ningún cambio tras instalar
+          # un IPA con cambios reales). GITHUB_RUN_NUMBER crece monótonamente en
+          # cada ejecución de este workflow, sirve de build number único sin
+          # coordinación manual. Se tocan todos los Info.plist del proyecto
+          # (app + extensiones, p. ej. el widget) para que ningún target se
+          # quede con una versión más alta que la app que lo aloja.
+          find "$IOS_PATH" -name "Info.plist" \
+            -not -path "*/Pods/*" \
+            -not -path "*/DerivedData/*" \
+            -not -path "*/build/*" \
+          | while read -r plist; do
+              if /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$plist" >/dev/null 2>&1; then
+                /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" "$plist"
+                echo "CFBundleVersion -> $GITHUB_RUN_NUMBER ($plist)"
+              fi
+            done
+
       - name: Install certificate and provisioning profile
         if: inputs.use_signing
         env:
