@@ -1797,7 +1797,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   todavía desde Ajustes. */}
               <Text style={styles.menuSectionLabel}>Aviso legal</Text>
               <Box style={styles.menuCard}>
-                <Pressable onPress={() => navigateFromMenu('MigratedTermsAndConditions')}>
+                {/* "Términos del servicio" abre la web real (pedido
+                    explícito) en vez de navegar a MigratedTermsAndConditions
+                    -- esa pantalla interna solo tenía un texto placeholder en
+                    inglés sin actualizar, la web es la fuente real. */}
+                <Pressable
+                  onPress={() => {
+                    setShowMenu(false);
+                    Linking.openURL('https://bestronger.es/terms-and-conditions/');
+                  }}
+                >
                   <HStack className="items-center px-4 py-3">
                     <AppIcon name="document-text-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Términos del servicio</Text>

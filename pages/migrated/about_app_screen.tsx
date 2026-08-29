@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView } from 'react-native';
+import { Linking, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -55,8 +55,13 @@ export default function AboutAppScreen({ navigation }: any) {
           navigation.navigate('MigratedPrivacyPolicy');
         })}
         <Divider />
+        {/* Abre la web real (pedido explícito) en vez de navegar a
+            MigratedTermsAndConditions -- esa pantalla interna solo tenía un
+            texto placeholder en inglés sin actualizar, la web es la fuente
+            real. Mismo cambio en home_screen_modern_v2.tsx (menú de
+            Ajustes desde Home v2). */}
         {mOption('document-text-outline', 'Términos y condiciones', () => {
-          navigation.navigate('MigratedTermsAndConditions');
+          Linking.openURL('https://bestronger.es/terms-and-conditions/');
         })}
         <Divider />
         {mOption('information-circle-outline', 'Sobre nosotros', () => {
