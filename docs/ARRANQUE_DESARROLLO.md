@@ -84,8 +84,8 @@ Debe responder `packager-status:running`. Si no responde nada (se queda colgado 
 La app ya está instalada en el teléfono (build de debug/dev-client). Abrirla directamente, o forzar un reinicio limpio del proceso si ya estaba abierta desde antes:
 
 ```bash
-adb shell am force-stop com.pfndesign.befit
-adb shell monkey -p com.pfndesign.befit -c android.intent.category.LAUNCHER 1
+adb shell am force-stop com.pfndesign.bestronger
+adb shell monkey -p com.pfndesign.bestronger -c android.intent.category.LAUNCHER 1
 ```
 
 Debería conectar sola a Metro y cargar los datos reales del backend. Confirmar viendo el log:
@@ -142,7 +142,7 @@ Debe mostrar `mobai: http://127.0.0.1:8686/mcp (HTTP) - ✔ Connected`.
 |---|---|---|
 | `AxiosError: Network Error` en los logs | Backend caído o `adb reverse` no configurado | `curl http://127.0.0.1:8000/api/get-appsetting` debe devolver JSON; `adb reverse --list` debe mostrar los dos túneles |
 | App se queda en blanco, sin errores en el log | Metro colgado sirviendo un bundle viejo/zombie | `curl http://127.0.0.1:8081/status` — si no responde, matar el proceso y relanzar `npm start` |
-| Cambios de código no se reflejan nunca en el teléfono | La app instalada es un build de *release*, no dev-client | `adb shell run-as com.pfndesign.befit id` — si dice "not debuggable", hay que reinstalar con `npm run android` (recompila y reinstala; tarda varios minutos) |
+| Cambios de código no se reflejan nunca en el teléfono | La app instalada es un build de *release*, no dev-client | `adb shell run-as com.pfndesign.bestronger id` — si dice "not debuggable", hay que reinstalar con `npm run android` (recompila y reinstala; tarda varios minutos) |
 | Build de `npm run android` falla con error de CMake/Gradle sobre una ruta que ya no existe (ej. una carpeta con nombre antiguo del proyecto) | Cachés de compilación con rutas absolutas viejas | Borrar `android/.gradle`, `android/app/.cxx`, `android/app/build`, `android/build` y reintentar (fuerza recompilación completa, tarda varios minutos) |
 | Admin panel no conecta a la API | Backend caído | Mismo chequeo que arriba: `curl http://127.0.0.1:8000/api/get-appsetting` |
 | El PC recibió una IP nueva al reiniciar | No debería afectar (ver nota abajo) | — |

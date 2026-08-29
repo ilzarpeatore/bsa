@@ -2445,3 +2445,53 @@ Continuación directa de la sesión anterior. Tres rondas de trabajo, cada una a
 Todo lo de esta sesión, 🔵 pendiente de confirmación visual real en dispositivo (sin excepción — es la primera vez que se audita el sistema de retos de principio a fin, así que merece una pasada real por las 7 rutas de tutorial, no solo las que fallaban).
 
 Relanzado tras el fix de lockfile con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #57**, `https://github.com/ilzarpeatore/bsa/actions/runs/33130969497` (`master` @ `b4a0f9d`) — **terminó en éxito**, con `expo-video` resolviendo correctamente (caché de `node_modules` invalidada por el nuevo hash de `package-lock.json`, forzando una instalación real). Este IPA ya incluye BUG-056 a 062 completos.
+
+---
+
+## Sesión 2026-08-28/29 — Rebrand completo BeFit → Be Stronger, 10 bugs reales corregidos, 4 pantallas desactivadas para el lanzamiento, run #68
+
+Nota de continuidad: los runs #58 a #67 (varios fixes de calendario, `navmenu`, oscurecido de Home v2) son de una sesión anterior a ésta que no dejó entrada aquí — no se reconstruye ese detalle a posteriori, el historial real de esos commits está en `git log`. Esta entrada cubre desde `c926132` (base de esta sesión, ya construido en el run #67) hasta `ad495ea`, más el propio run #68.
+
+### Rebrand BeFit → Be Stronger (commits `8c48d41`, `e6b6847`, `501f925`)
+
+Pedido explícito, "no dejes ningún texto ni marca de agua". Alcance acordado con el usuario por partes (primero solo texto/`app.json`/identificadores nativos; ampliado después a storage keys y assets del onboarding tras confirmar que no había clientes reales todavía):
+
+- Texto visible: toasts, share sheets, términos y condiciones, permisos del sistema (`app.json`/`Info.plist`).
+- Identidad del paquete: `package.json`/`package-lock.json` (`befitapp`→`bestrongerapp`), `builder.json`, `app.json` (`name`, `slug: bestronger`, `bundleIdentifier`/`package: com.pfndesign.bestronger`).
+- Proyecto nativo iOS completo: `ios/befit`→`ios/bestronger`, `ios/befitWidgets`→`ios/bestrongerWidgets`, `.xcodeproj`/scheme/targets/product names, bridging header, entitlements, bundle ID del widget, `BefitWidgetsBundle`→`BeStrongerWidgetsBundle`, target del `Podfile`.
+- Claves de `AsyncStorage` (`@befit_*`→`@bestronger_*`) y `assets/slider/befit*.png`→`fit*.png` (era la ilustración de la categoría "¡Be Fit!" del onboarding, coincidencia de nombre con la marca, no la marca en sí — renombrada solo para no dejar la cadena "befit" en ningún sitio).
+- Icono de la app (`assets/applogo.png` + `ios/bestronger/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png`) sustituido por el logo nuevo "BS" que proporcionó el usuario.
+- Deliberadamente sin tocar: documentación interna histórica (fuera de alcance acordado) y las apariciones en minúscula de `mightyfitness`/`befit` que son nombres reales de infraestructura (carpetas, emails, dominios), no la marca mostrada en la app.
+- Quedan pendientes de sustituir por el usuario, marcas de agua en imagen (no se pueden regenerar desde aquí): `assets/logo.png` y `assets/splash.png`, ambas con el wordmark antiguo.
+- Efecto colateral real: cambiar `PRODUCT_BUNDLE_IDENTIFIER` a `com.pfndesign.bestronger` invalida el perfil de aprovisionamiento firmado que hubiera existido para `com.pfndesign.befit` — sin impacto mientras `use_signing` siga en `false` (ver `docs/BUILD_IPA.md`), pero a tener en cuenta el día que se firme de verdad.
+
+### 10 bugs reales corregidos, cada uno reportado con captura
+
+1. **Home v2, opacidad de fondo en reposo demasiado fuerte** (`221740e`): `HOME_BG_MIN_OPACITY` de 0.35 a 0.28, pedido explícito para que la imagen se leyera mejor sin llegar al valor de arranque del oscurecido por scroll.
+2. **Mi programa, calendario pegado a los chips Semana/Mes** (`e779b50`): `periodToggleRow` sin `marginBottom` — añadido `marginBottom: 10`.
+3. **`MigratedWorkoutSession`, modo guiado no se repintaba en vivo + nota oculta tras el teclado** (`2b4ea29`): el `<Modal>` de RN monta su contenido en una superficie nativa aparte; en New Architecture (Fabric, siempre activa desde RN 0.76) esa superficie no siempre recibía a tiempo los commits de estado originados fuera de ella. Sustituido por una `View` absoluta normal (misma superficie, repintado garantizado), repuestos a mano el slide de entrada (Reanimated) y el botón físico Atrás de Android (`BackHandler`). Aparte, `WorkoutNoteSheet` cambió su `KeyboardAvoidingView` de `behavior="padding"` a `"position"` (el primero no sirve para una hoja anclada por abajo).
+4. **Añadir ejercicio, chips de categoría con el texto pegado al borde** (`c6a0dd3`): `px-3.5 py-1.5` → `px-4 py-2`.
+5. **Home v2, saludo "Buenos días" a la 1 de la madrugada** (`662ed29`): `greetingForHour` no tenía franja de madrugada — añadida `hour < 6` → "Buenas noches".
+6. **Mi programa, texto de ayuda superpuesto al título** (`77f99d6`): `unavailableHint` tenía `marginTop: -8` (negativo) — cambiado a `4`.
+7. **Home v2, "Actividad de Hoy" mostraba las tareas de ayer en la madrugada** (`b340506`): `todayStr` se calculaba con `toISOString().split('T')[0]` (siempre UTC) en vez de la fecha local — en cualquier huso por delante de UTC (España incluida), durante la madrugada la fecha UTC seguía siendo la de ayer. Nuevo `localDateKey()` (mismo patrón que `toDateKey` en `my_program_calendar_screen.tsx`), sustituidos los 3 usos de `toISOString()` para "hoy" en el archivo.
+8. **Comidas asignadas, macros sin traducir** (`8c11a7f`): "kcal / day goal" → "kcal / objetivo diario"; de paso "Protein"/"Carbs"/"Fats" → "Proteína"/"Carbohidratos"/"Grasas".
+9. **Antropometría, chips de tipo de medida con el texto recortado** (`bec9a30`): mismo bug de fuente custom que ya se había diagnosticado en el mismo archivo para el número grande (recorta el glifo si el `lineHeight` que le llega a `Text` es insuficiente) — añadido `lineHeight: 18` explícito, faltaba en los chips.
+10. **"Acerca de", botones Privacy Policy/Terms of Services rotos + contenido de plantilla sin terminar en "Sobre nosotros"** (`291b700`): ambos botones eran TODOs sin implementar — ahora navegan a `MigratedPrivacyPolicy`/`MigratedTermsAndConditions`; título y los 3 botones traducidos. En `about_us_screen.tsx`: email/teléfono de ejemplo → `contacto@bestronger.es`/`+34 643 99 10 86` (ahora tocables, `mailto:`/`tel:`), iconos de redes sociales sin cuenta real a la que enlazar (pedido explícito, quedan decorativos), y de paso el resto de la plantilla sin terminar que vivía en el mismo archivo: marca "MightyFitness" → "Be Stronger", un `TODO: Replace with site description...` literal en pantalla → descripción provisional real, copyright 2024/MightyFitness → 2026/Be Stronger, fila de "chat de soporte" (`support.example.com`, tampoco funcionaba) eliminada por incoherente con el chat ya desactivado para esta versión.
+
+### 4 pantallas desactivadas para la primera versión publicada (pedido explícito, "los usuarios no pueden acceder a esa screen todavía")
+
+Nuevo `constants/featureFlags.ts` centraliza los flags — pantallas y rutas en `App.tsx` sin tocar en ningún caso, solo se bloquea el acceso desde la UI:
+
+- **`CHAT_ENABLED = false`** (`4cd86f4`) — `MigratedChatting` sin moderación ni forma de reportar mensajes, riesgo real de rechazo en revisión de Apple/Google por contenido generado por usuarios. Entradas bloqueadas: tarjeta "¿Necesitas ayuda?" de Home v2 (toast) y "Soporte" de Perfil (`Alert.alert`).
+- **`ACTIVITY_TRACKER_ENABLED`/`WATER_TRACKER_ENABLED = false`** (`132a9ba`) — `MigratedActivityTracker` ya estaba documentada como bloqueada por falta de integración real Apple Health/Google Fit (datos hardcodeados). Entradas bloqueadas: botones "+" de las tarjetas Actividad/Agua en Home v2 (toast).
+- **`MigratedLanguage` desactivada** (`ad495ea`) — sin flag propio, reutiliza el patrón ya existente en `profile_screen.tsx` para "Dispositivos": la entrada "Idioma" del menú apunta a `MigratedComingSoon` (placeholder honesto) en vez de a la pantalla real.
+
+### Sustitución final de "MightyFitness" (commit `ad495ea`)
+
+Las 3 menciones que quedaban entre comillas en `WEB_APP_DOCUMENTATION.md`/`TAREAS.md` (describiendo el placeholder de `about_us_screen.tsx`, ya arreglado en el punto 10) → "Be Stronger". Las apariciones en minúscula (`mightyfitness/fitness-backend`, `admin@mightyfitness.com`, rutas `C:\Users\hamza\...\mightyfitness\...`, `old-mightyfitness.sql`) se dejan tal cual — son nombres reales de carpeta/cuenta/repo del backend, no la marca de la app.
+
+### Build
+
+Cambios acumulados fusionados a `master` a medida que se completaba cada punto (fast-forward, sin rama intermedia salvo la de trabajo `claude/befit-to-be-stronger-k2y56s`, mergeada de vuelta cada vez) — incluyendo una PR externa mergeada en paralelo por el propio usuario durante la sesión (`7e40ae0`, cambio de color de marca `#FF6B35`→`#A2CDD4`, sin conflicto). Build lanzado con el checklist de `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`): **run #68**, `https://github.com/ilzarpeatore/bsa/actions/runs/33222791143` (`master` @ `ad495ea`) — resultado pendiente de confirmar en una sesión posterior (consultar el run directamente, no se ha esperado a que termine para cerrar esta entrada).
+
+**Pendiente**: confirmación visual real en dispositivo de los 10 bugs y las 4 pantallas desactivadas (ninguno tiene trabajo de código pendiente); sustituir `assets/logo.png`/`assets/splash.png` por el logo nuevo cuando el usuario lo decida.

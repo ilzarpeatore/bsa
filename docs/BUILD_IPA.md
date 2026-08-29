@@ -17,7 +17,7 @@ El workflow `.github/workflows/ios-build.yml` (`workflow_dispatch`) compila un `
 
 ## Por qué `Debug` rompe la app (aprendido en producción, 2026-08-24)
 
-El build phase "Bundle React Native code and images" del proyecto (`ios/befit.xcodeproj/project.pbxproj`) tiene:
+El build phase "Bundle React Native code and images" del proyecto (`ios/bestronger.xcodeproj/project.pbxproj` — renombrado desde `ios/befit.xcodeproj` en el rebrand BeFit→Be Stronger, ver `docs/TAREAS.md`) tiene:
 
 ```bash
 if [[ "$CONFIGURATION" = *Debug* ]]; then
