@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, View, Text, StyleSheet, PressableProps, StyleProp, ViewStyle } from 'react-native';
+import { Pressable, View, Text, StyleSheet, ActivityIndicator, PressableProps, StyleProp, ViewStyle } from 'react-native';
 import { GlassView } from '@components/ui/glass-view';
 import { Icon } from '@components/ui/icon';
 import { FONT } from '../pages/migrated/theme';
@@ -34,14 +34,21 @@ const LABEL_COLOR = '#12312C';
 interface GlassButtonProps extends Omit<PressableProps, 'style' | 'children'> {
   label: string;
   iconName?: string;
+  // Estado de carga (pedido explícito 2026-08-29, primer uso en el submit
+  // final de components/ReadinessWizard.tsx) -- sustituye la etiqueta por un
+  // spinner y fuerza disabled, sin tocar ningún consumidor existente (prop
+  // opcional).
+  loading?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export default function GlassButton({ label, iconName, style, ...pressableProps }: GlassButtonProps) {
+export default function GlassButton({ label, iconName, loading, style, ...pressableProps }: GlassButtonProps) {
+  const disabled = pressableProps.disabled || loading;
   return (
     <Pressable
       accessibilityRole="button"
       {...pressableProps}
+      disabled={disabled}
       style={({ pressed }) => [styles.outer, pressed && styles.pressed, style]}
     >
       <View style={styles.clip}>
@@ -49,8 +56,14 @@ export default function GlassButton({ label, iconName, style, ...pressableProps 
         <View style={[StyleSheet.absoluteFill, styles.tint]} />
       </View>
       <View style={styles.content}>
-        {iconName ? <Icon name={iconName as any} size={18} color={LABEL_COLOR} /> : null}
-        <Text style={styles.label}>{label}</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color={LABEL_COLOR} />
+        ) : (
+          <>
+            {iconName ? <Icon name={iconName as any} size={18} color={LABEL_COLOR} /> : null}
+            <Text style={styles.label}>{label}</Text>
+          </>
+        )}
       </View>
     </Pressable>
   );

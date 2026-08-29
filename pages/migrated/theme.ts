@@ -95,6 +95,11 @@ export const C = {
   // `orange60` en su lugar sobre fondos claros), pero de sobra para rellenos,
   // iconos grandes y el propio material glass (ver components/GlassButton.tsx).
   orange: "#49C5B6",
+  // Fondo de badge tenue (mismo patrón 10%/15% que success10/warning10/
+  // destructive10/blue10) -- pedido explícito 2026-08-29 para el wizard de
+  // readiness (components/ReadinessWizard.tsx): icono de marca sin pintar
+  // el badge entero de teal sólido en cada paso.
+  orange10: "rgba(73,197,182,0.15)",
   // Variante oscurecida para texto/iconos finos sobre fondos claros (mismo
   // patrón que success60/warning60/destructive60/blue60 de abajo) -- ~5.5:1
   // sobre blanco, cumple WCAG AA. En C_DARK no hace falta una variante
@@ -207,6 +212,8 @@ export const C_DARK: typeof C = {
   // Mismo valor que en C (ver comentario ahí) -- color de marca fijo, no
   // varía por tema.
   orange: "#49C5B6",
+  // Mismo patrón que success10/warning10/etc. en oscuro (0.2 en vez de 0.15).
+  orange10: "rgba(73,197,182,0.2)",
   // Reutiliza el mismo valor que `orange`: en oscuro ya da ~7.25:1 sobre el
   // fondo real de la app (#242529), no hace falta oscurecerlo más.
   orange60: "#49C5B6",

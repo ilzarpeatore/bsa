@@ -6,7 +6,6 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
-import { showToast } from '@helper/toast';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  LinearGradient  } from 'expo-linear-gradient';
@@ -18,16 +17,16 @@ import {  Spinner  } from '@components/ui/spinner';
 import {  Card  } from '@components/ui/card';
 import {  HStack  } from '@components/ui/hstack';
 import {  Divider  } from '@components/ui/divider';
-import {  Button, ButtonText  } from '@components/ui/button';
 import TutorialTarget from '../../components/tutorial/TutorialTarget';
 import GlassButton from '../../components/GlassButton';
+import ReadinessWizard from '../../components/ReadinessWizard';
 import { useTutorial } from '@store/TutorialContext';
 import { FONT, SHADOW, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  ExerciseThumbMem  } from '../../components/ExerciseThumb';
 import {  workoutTemplateApi  } from '../../api/workoutTemplate';
-import {  readinessApi, ReadinessValues  } from '../../api/readiness';
+import {  readinessApi  } from '../../api/readiness';
 import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
@@ -54,128 +53,11 @@ function formatLastPerformance(ex: UnifiedExercise): string | null {
   return `${parts.join(' × ')} · ${sets.length} ${sets.length === 1 ? 'serie' : 'series'}`;
 }
 
-// ═══════════════════════════ Readiness gate ═══════════════════════════
-// Formulario diario obligatorio (salvo que el admin lo desactive para este
-// cliente) que se rellena antes de ver el contenido del workout. Un
-// registro por usuario/dia (backend: daily_readiness_checks).
-
-const SLEEP_LABELS = ['Muy mal', 'Mal', 'Regular', 'Bien', 'Muy bien'];
-const ENERGY_LABELS = ['Agotado', 'Bajo', 'Normal', 'Alto', 'Muy alto'];
-const STRESS_LABELS = ['Muy relajado', 'Relajado', 'Normal', 'Estresado', 'Muy estresado'];
-
-function ScaleRow({
-  count,
-  value,
-  onChange,
-  labels,
-  rs,
-}: {
-  count: number;
-  value: number | null;
-  onChange: (v: number) => void;
-  labels?: string[];
-  rs: ReturnType<typeof createReadinessStyles>;
-}) {
-  return (
-    <HStack space="sm" className="items-center flex-wrap" style={{ marginTop: 12 }}>
-      {Array.from({ length: count }, (_, i) => i + 1).map((n) => (
-        <Pressable
-          key={n}
-          style={[rs.scaleChip, value === n && rs.scaleChipActive]}
-          onPress={() => onChange(n)}
-        >
-          <Text style={[rs.scaleChipText, value === n && rs.scaleChipTextActive]}>{n}</Text>
-        </Pressable>
-      ))}
-      {labels && value ? <Text style={rs.scaleHint}>{labels[value - 1]}</Text> : null}
-    </HStack>
-  );
-}
-
-function ReadinessForm({ onDone }: { onDone: () => void }) {
-  const { colors: C } = useAppColorMode();
-  const rs = useMemo(() => createReadinessStyles(C), [C]);
-  const insets = useSafeAreaInsets();
-  const { reportAction } = useTutorial();
-  const [sleepQuality, setSleepQuality] = useState<number | null>(null);
-  const [sorenessLevel, setSorenessLevel] = useState<number | null>(null);
-  const [energyLevel, setEnergyLevel] = useState<number | null>(null);
-  const [stressLevel, setStressLevel] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const allAnswered = sleepQuality && sorenessLevel && energyLevel && stressLevel;
-
-  const onSubmit = async () => {
-    if (!allAnswered) return;
-    setSaving(true);
-    try {
-      const values: ReadinessValues = {
-        sleep_quality: sleepQuality!,
-        soreness_level: sorenessLevel!,
-        energy_level: energyLevel!,
-        stress_level: stressLevel!,
-      };
-      await readinessApi.submit(values);
-      reportAction('readiness_submitted');
-      onDone();
-    } catch (e) {
-      showToast('Error', { description: 'No se pudo guardar tu chequeo diario. Inténtalo de nuevo.', variant: 'error' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <SafeAreaView style={rs.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={[rs.scroll, { paddingTop: insets.top + 12 }]} showsVerticalScrollIndicator={false}>
-        <Box style={rs.badge}>
-          <Icon name="pulse-outline" size={22} color={C.textPrimary} />
-        </Box>
-        <Text style={rs.title}>¿Cómo llegas hoy?</Text>
-        <Text style={rs.subtitle}>
-          Responde antes de empezar — ayuda a tu coach a ajustar tu entrenamiento a cómo te sientes de verdad.
-        </Text>
-
-        <Card variant="elevated" style={{ marginBottom: 14 }}>
-          <Text style={rs.question}>Valora tu descanso nocturno</Text>
-          <ScaleRow count={5} value={sleepQuality} onChange={setSleepQuality} labels={SLEEP_LABELS} rs={rs} />
-        </Card>
-
-        <Card variant="elevated" style={{ marginBottom: 14 }}>
-          <Text style={rs.question}>Nivel de agujetas</Text>
-          <Text style={rs.questionHint}>1 = ninguna · 10 = muy intensas</Text>
-          <ScaleRow count={10} value={sorenessLevel} onChange={setSorenessLevel} rs={rs} />
-        </Card>
-
-        <Card variant="elevated" style={{ marginBottom: 14 }}>
-          <Text style={rs.question}>Nivel de energía</Text>
-          <ScaleRow count={5} value={energyLevel} onChange={setEnergyLevel} labels={ENERGY_LABELS} rs={rs} />
-        </Card>
-
-        <Card variant="elevated" style={{ marginBottom: 14 }}>
-          <Text style={rs.question}>Nivel de estrés mental</Text>
-          <ScaleRow count={5} value={stressLevel} onChange={setStressLevel} labels={STRESS_LABELS} rs={rs} />
-        </Card>
-      </ScrollView>
-
-      <Box style={{ paddingHorizontal: 24, backgroundColor: C.bg, paddingBottom: Math.max(insets.bottom, 12) + 6 }}>
-        <Divider style={{ marginBottom: 12 }} />
-        <Button
-          onPress={onSubmit}
-          disabled={!allAnswered || saving}
-          radius="pill"
-          className="py-4"
-        >
-          {saving ? (
-            <Spinner size="small" color={C.accentBlackForeground} />
-          ) : (
-            <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
-          )}
-        </Button>
-      </Box>
-    </SafeAreaView>
-  );
-}
+// El gate diario de readiness (formulario obligatorio salvo que el admin lo
+// desactive para este cliente, un registro por usuario/dia -- backend:
+// daily_readiness_checks) vive en components/ReadinessWizard.tsx desde el
+// rediseño "progressive disclosure" (2026-08-29) -- demasiado grande ya
+// para seguir como función local de esta pantalla.
 
 // ═══════════════════════════ Preview screen ═══════════════════════════
 
@@ -283,7 +165,7 @@ export default function WorkoutPreviewScreen(props: Props) {
   }
 
   if (readinessNeeded) {
-    return <ReadinessForm onDone={() => setReadinessNeeded(false)} />;
+    return <ReadinessWizard onDone={() => setReadinessNeeded(false)} />;
   }
 
   if (error || !workout) {
@@ -657,75 +539,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
     backgroundColor: C.bg,
-  },
-  });
-}
-
-function createReadinessStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
-  return StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  scroll: { paddingHorizontal: 24, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE },
-  badge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: C.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    ...SHADOW.card,
-  },
-  title: {
-    fontFamily: FONT.extraBold,
-    fontSize: 24,
-    lineHeight: 29,
-    color: C.textPrimary,
-  },
-  subtitle: {
-    fontFamily: FONT.regular,
-    fontSize: 13.5,
-    color: C.textSecondary,
-    marginTop: 6,
-    lineHeight: 19,
-    marginBottom: 24,
-  },
-  question: {
-    fontFamily: FONT.bold,
-    fontSize: 15,
-    color: C.textPrimary,
-  },
-  questionHint: {
-    fontFamily: FONT.regular,
-    fontSize: 11.5,
-    color: C.textSecondary,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  scaleChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: C.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scaleChipActive: {
-    backgroundColor: C.accentBlack,
-  },
-  scaleChipText: {
-    fontFamily: FONT.bold,
-    fontSize: 13,
-    color: C.textSecondary,
-  },
-  scaleChipTextActive: {
-    color: C.accentBlackForeground,
-  },
-  scaleHint: {
-    width: '100%',
-    marginTop: 6,
-    fontFamily: FONT.medium,
-    fontSize: 12.5,
-    color: C.textSecondary,
   },
   });
 }
