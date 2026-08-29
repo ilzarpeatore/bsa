@@ -8,10 +8,9 @@ import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
 import {  Button, ButtonText  } from '@components/ui/button';
 import {  Input, InputField, InputSlot  } from '@components/ui/input';
-import {  Icon  } from '@components/ui/icon';
 import {  Spinner  } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
-import AppIcon from '@components/AppIcon';
+import DeviceIcon, { DeviceIconBadge as FieldBadge } from '@components/DeviceIcon';
 import {  authApi  } from '@api/auth';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { FONT, RADIUS } from './theme';
@@ -20,12 +19,19 @@ export default function ChangePwdScreen({ navigation }: any) {
   const localStyles = useMemo(() => createStyles(C), [C]);
   // Mismo rediseño que edit_profile_screen.tsx (pedido explícito: "el mismo
   // diseño de interfaz que le diste a EditProfile"): badge de icono de color
-  // por fila (AppIcon), tarjeta blanca de verdad con etiqueta de sección
-  // encima, en vez de una tarjeta gris con filas de solo texto.
+  // por fila, tarjeta blanca de verdad con etiqueta de sección encima, en vez
+  // de una tarjeta gris con filas de solo texto.
+  //
+  // Iconos REALES del dispositivo (pedido explícito 2026-08-29, mismo cambio
+  // que edit_profile_screen.tsx -- ver components/DeviceIcon.tsx): SF
+  // Symbols en iOS, Material Symbols en Android. Nombres verificados contra
+  // los catálogos reales que trae expo-symbols, no adivinados de memoria
+  // (p.ej. "checkmark.shield.fill" es el nombre real en SF Symbols -- el
+  // intuitivo "shield.checkmark" no existe).
   const FIELD_ICON = {
-    old: { icon: 'lock-closed-outline' as const, color: C.destructive },
-    new: { icon: 'key-outline' as const, color: C.blue },
-    confirm: { icon: 'shield-checkmark-outline' as const, color: C.success },
+    old: { ios: 'lock.fill' as const, android: 'lock' as const, color: C.destructive },
+    new: { ios: 'key.fill' as const, android: 'key' as const, color: C.blue },
+    confirm: { ios: 'checkmark.shield.fill' as const, android: 'verified_user' as const, color: C.success },
   };
 
   const [oldPassword, setOldPassword] = useState('');
@@ -96,7 +102,7 @@ export default function ChangePwdScreen({ navigation }: any) {
         <Box style={localStyles.card}>
           <Box style={localStyles.row}>
             <HStack space="md" className="items-center">
-              <AppIcon name={FIELD_ICON.old.icon} color="#FFFFFF" bg={FIELD_ICON.old.color} containerSize={40} borderRadius={12} />
+              <FieldBadge ios={FIELD_ICON.old.ios} android={FIELD_ICON.old.android} bg={FIELD_ICON.old.color} />
               <VStack className="flex-1">
                 <Text style={localStyles.label}>Contraseña actual</Text>
                 <Input style={localStyles.input}>
@@ -112,7 +118,12 @@ export default function ChangePwdScreen({ navigation }: any) {
                     onSubmitEditing={() => newPasswordRef.current?.focus()}
                   />
                   <InputSlot className="pr-1" onPress={() => setOldSecure(!oldSecure)}>
-                    <Icon name={oldSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+                    <DeviceIcon
+                      ios={oldSecure ? 'eye.slash.fill' : 'eye.fill'}
+                      android={oldSecure ? 'visibility_off' : 'visibility'}
+                      size={18}
+                      color={C.gray40}
+                    />
                   </InputSlot>
                 </Input>
               </VStack>
@@ -121,7 +132,7 @@ export default function ChangePwdScreen({ navigation }: any) {
 
           <Box style={localStyles.row}>
             <HStack space="md" className="items-center">
-              <AppIcon name={FIELD_ICON.new.icon} color="#FFFFFF" bg={FIELD_ICON.new.color} containerSize={40} borderRadius={12} />
+              <FieldBadge ios={FIELD_ICON.new.ios} android={FIELD_ICON.new.android} bg={FIELD_ICON.new.color} />
               <VStack className="flex-1">
                 <Text style={localStyles.label}>Contraseña nueva</Text>
                 <Input style={localStyles.input}>
@@ -138,7 +149,12 @@ export default function ChangePwdScreen({ navigation }: any) {
                     onSubmitEditing={() => confirmPasswordRef.current?.focus()}
                   />
                   <InputSlot className="pr-1" onPress={() => setNewSecure(!newSecure)}>
-                    <Icon name={newSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+                    <DeviceIcon
+                      ios={newSecure ? 'eye.slash.fill' : 'eye.fill'}
+                      android={newSecure ? 'visibility_off' : 'visibility'}
+                      size={18}
+                      color={C.gray40}
+                    />
                   </InputSlot>
                 </Input>
               </VStack>
@@ -147,7 +163,7 @@ export default function ChangePwdScreen({ navigation }: any) {
 
           <Box style={[localStyles.row, localStyles.rowLast]}>
             <HStack space="md" className="items-center">
-              <AppIcon name={FIELD_ICON.confirm.icon} color="#FFFFFF" bg={FIELD_ICON.confirm.color} containerSize={40} borderRadius={12} />
+              <FieldBadge ios={FIELD_ICON.confirm.ios} android={FIELD_ICON.confirm.android} bg={FIELD_ICON.confirm.color} />
               <VStack className="flex-1">
                 <Text style={localStyles.label}>Confirmar contraseña</Text>
                 <Input style={localStyles.input}>
@@ -164,7 +180,12 @@ export default function ChangePwdScreen({ navigation }: any) {
                     onSubmitEditing={changePwd}
                   />
                   <InputSlot className="pr-1" onPress={() => setConfirmSecure(!confirmSecure)}>
-                    <Icon name={confirmSecure ? 'eye-off-outline' : 'eye-outline'} size={18} color={C.gray40} />
+                    <DeviceIcon
+                      ios={confirmSecure ? 'eye.slash.fill' : 'eye.fill'}
+                      android={confirmSecure ? 'visibility_off' : 'visibility'}
+                      size={18}
+                      color={C.gray40}
+                    />
                   </InputSlot>
                 </Input>
               </VStack>

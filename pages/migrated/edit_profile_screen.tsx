@@ -13,7 +13,7 @@ import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
-import DeviceIcon from '@components/DeviceIcon';
+import DeviceIcon, { DeviceIconBadge as FieldBadge } from '@components/DeviceIcon';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
@@ -22,17 +22,6 @@ import { FONT, RADIUS } from './theme';
 
 interface EditProfileScreenProps {
   navigation: any;
-}
-
-// Badge cuadrado redondeado + DeviceIcon centrado -- mismo look que daba
-// AppIcon antes (containerSize/borderRadius/bg), pero con el icono real del
-// sistema operativo en vez de Ionicons.
-function FieldBadge({ ios, android, bg }: { ios: React.ComponentProps<typeof DeviceIcon>['ios']; android: React.ComponentProps<typeof DeviceIcon>['android']; bg: string }) {
-  return (
-    <Box style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <DeviceIcon ios={ios} android={android} size={20} color="#FFFFFF" />
-    </Box>
-  );
 }
 
 function getGender() {

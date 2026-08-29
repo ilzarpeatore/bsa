@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { SymbolView, SFSymbol, AndroidSymbol } from 'expo-symbols';
 
 interface DeviceIconProps {
@@ -34,5 +35,40 @@ export default function DeviceIcon({ ios, android, size = 20, color = '#FFFFFF' 
       size={size}
       tintColor={color}
     />
+  );
+}
+
+interface DeviceIconBadgeProps extends DeviceIconProps {
+  bg: string;
+  containerSize?: number;
+  borderRadius?: number;
+}
+
+// Badge cuadrado redondeado + DeviceIcon centrado -- mismo look que ya daba
+// AppIcon (containerSize/borderRadius/bg) en las pantallas migradas a este
+// sistema de iconos (edit_profile_screen.tsx, change_pwd_screen.tsx),
+// factorizado aquí para no repetir el mismo wrapper en cada una.
+export function DeviceIconBadge({
+  ios,
+  android,
+  bg,
+  containerSize = 40,
+  borderRadius = 12,
+  size = 20,
+  color = '#FFFFFF',
+}: DeviceIconBadgeProps) {
+  return (
+    <View
+      style={{
+        width: containerSize,
+        height: containerSize,
+        borderRadius,
+        backgroundColor: bg,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <DeviceIcon ios={ios} android={android} size={size} color={color} />
+    </View>
   );
 }
