@@ -1,5 +1,5 @@
 import React from 'react';
-import {  Dimensions, Pressable, View, StyleSheet  } from 'react-native';
+import {  Pressable, View, StyleSheet, useWindowDimensions  } from 'react-native';
 import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  Box  } from '@components/ui/box';
 import {  Text  } from '@components/ui/text';
@@ -29,7 +29,12 @@ const SPOTLIGHT_PADDING = 6;
 export default function TutorialOverlay() {
   const { activeChallenge, activeStep, activeStepIndex, activeTargetRect, skipChallenge } = useTutorial();
   const insets = useSafeAreaInsets();
-  const { height: screenH } = Dimensions.get('window');
+  // useWindowDimensions (auditoría 2026-08-29, P2-3) en vez de
+  // Dimensions.get('window') leído una vez en el cuerpo del componente --
+  // ese valor no era reactivo a rotación/resize (split-screen Android/iPad),
+  // así que el spotlight/máscara podían quedar calculados contra el tamaño
+  // de pantalla anterior hasta el siguiente cambio de paso.
+  const { height: screenH } = useWindowDimensions();
 
   if (!activeChallenge || !activeStep) return null;
 
@@ -38,8 +43,18 @@ export default function TutorialOverlay() {
   // TutorialTarget lo mida y aparezca.
   if (activeStep.targetId && !activeTargetRect) return null;
 
+  // accessibilityLabel/Role (auditoría 2026-08-29, P2-4): antes no había
+  // ninguna señal para un lector de pantalla, ni en "Saltar tutorial" ni en
+  // el propio coach-mark -- indistinguible del resto de la pantalla
+  // oscurecida.
   const skipBtn = (
-    <Pressable onPress={skipChallenge} style={[styles.skipBtn, { top: insets.top + 10 }]} hitSlop={10}>
+    <Pressable
+      onPress={skipChallenge}
+      style={[styles.skipBtn, { top: insets.top + 10 }]}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel="Saltar tutorial"
+    >
       <Text style={styles.skipText}>Saltar tutorial</Text>
     </Pressable>
   );
@@ -50,7 +65,11 @@ export default function TutorialOverlay() {
     return (
       <View style={styles.root} pointerEvents="box-none">
         {skipBtn}
-        <Box style={[styles.banner, { bottom: insets.bottom + 24 }]}>
+        <Box
+          style={[styles.banner, { bottom: insets.bottom + 24 }]}
+          accessibilityRole="text"
+          accessibilityLabel={`${activeStep.title}. ${activeStep.text}`}
+        >
           <Text style={styles.tooltipTitle}>{activeStep.title}</Text>
           <Text style={styles.tooltipText}>{activeStep.text}</Text>
         </Box>
@@ -92,6 +111,8 @@ export default function TutorialOverlay() {
           styles.tooltip,
           tooltipBelow ? { top: padded.y + padded.height + 12 } : { bottom: screenH - padded.y + 12 },
         ]}
+        accessibilityRole="text"
+        accessibilityLabel={`${activeChallenge.label}, paso ${activeStepIndex + 1} de ${activeChallenge.steps.length}. ${activeStep.title}. ${activeStep.text}. Tócalo para continuar.`}
       >
         <Text style={styles.stepCounter}>
           {activeChallenge.label} · {activeStepIndex + 1}/{activeChallenge.steps.length}

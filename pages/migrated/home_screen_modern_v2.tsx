@@ -362,7 +362,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // "done" viene de useTutorial() (persistido, se marca solo cuando el
   // usuario completa la acción real -- nunca a mano aquí). Tocar un paso
   // lanza su spotlight (TutorialOverlay) en vez de navegar directamente.
-  const { isDone: isTutorialDone, startChallenge } = useTutorial();
+  const { isDone: isTutorialDone, startChallenge, resetAll: resetTutorial } = useTutorial();
   const startupSteps: StartupChecklistStep[] = useMemo(
     () =>
       TUTORIAL_CHALLENGES.filter((challenge) => !challenge.hidden).map((challenge) => ({
@@ -817,6 +817,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Cerrar sesión', style: 'destructive', onPress: () => logout() },
     ]);
+  };
+
+  // "Reiniciar tutorial" (auditoría 2026-08-29, P2-1): resetAll() ya existía
+  // en TutorialContext desde antes, sin ninguna UI que lo llamara -- un
+  // usuario que quisiera volver a ver los coach-marks no tenía forma de
+  // hacerlo salvo desinstalar la app. Mismo patrón/confirmación destructiva
+  // que "Borrar caché y recargar todos los datos", justo debajo en el menú.
+  const handleResetTutorial = () => {
+    Alert.alert(
+      'Reiniciar tutorial',
+      'Todos los retos volverán a aparecer como pendientes en "Reto para empezar".',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Reiniciar', style: 'destructive', onPress: () => { setShowMenu(false); resetTutorial(); } },
+      ]
+    );
   };
 
   const navigateFromMenu = (routeName: string, params?: object) => {
@@ -1832,6 +1848,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 }
               >
                 <Text style={styles.menuActionBtnText}>Borrar caché y recargar todos los datos</Text>
+              </Pressable>
+
+              <Pressable style={styles.menuActionBtn} onPress={handleResetTutorial}>
+                <Text style={styles.menuActionBtnText}>Reiniciar tutorial</Text>
               </Pressable>
 
               {/* "Habilitar diagnósticos" (pedido explícito) -- sin SDK de

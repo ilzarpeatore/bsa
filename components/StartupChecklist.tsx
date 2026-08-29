@@ -85,7 +85,13 @@ export default function StartupChecklist({ title = 'Reto para empezar', steps }:
                     setExpanded(false);
                     step.onPress?.();
                   }}
-                  disabled={!step.onPress}
+                  // step.done deshabilita el tap (auditoría 2026-08-29,
+                  // P2-2): antes se podía relanzar un reto ya completado sin
+                  // aviso -- startChallenge() no comprobaba isDone antes de
+                  // arrancar, así que tocar una fila con el check ya puesto
+                  // reabría el spotlight desde el paso 0 sobre una pantalla
+                  // real, sin ninguna razón visible para el usuario.
+                  disabled={!step.onPress || step.done}
                   style={[styles.stepRow, isActive && styles.stepRowActive]}
                 >
                   <Text style={[styles.stepLabel, step.done && styles.stepLabelDone]} numberOfLines={1}>
