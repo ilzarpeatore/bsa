@@ -291,20 +291,20 @@ export default function AssignedMealsScreen(props: any) {
               <HStack space="sm" className="items-center justify-center">
                 <Icon name="flame-outline" size={22} color={C.orange} />
                 <Text weight="extrabold" size="xl">{goal?.kcal ?? 0}</Text>
-                <Text size="xs" muted>kcal / day goal</Text>
+                <Text size="xs" muted>kcal / objetivo diario</Text>
               </HStack>
               <HStack className="justify-around" style={{ marginTop: 14 }}>
                 <VStack className="items-center">
                   <Text weight="bold" size="sm">{goal?.protein ?? 0}g</Text>
-                  <Text size="xs" muted style={{ marginTop: 2 }}>Protein</Text>
+                  <Text size="xs" muted style={{ marginTop: 2 }}>Proteína</Text>
                 </VStack>
                 <VStack className="items-center">
                   <Text weight="bold" size="sm">{goal?.carbs ?? 0}g</Text>
-                  <Text size="xs" muted style={{ marginTop: 2 }}>Carbs</Text>
+                  <Text size="xs" muted style={{ marginTop: 2 }}>Carbohidratos</Text>
                 </VStack>
                 <VStack className="items-center">
                   <Text weight="bold" size="sm">{goal?.fats ?? 0}g</Text>
-                  <Text size="xs" muted style={{ marginTop: 2 }}>Fats</Text>
+                  <Text size="xs" muted style={{ marginTop: 2 }}>Grasas</Text>
                 </VStack>
               </HStack>
             </Card>
