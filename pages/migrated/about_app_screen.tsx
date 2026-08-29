@@ -48,18 +48,18 @@ export default function AboutAppScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
-      <ScreenHeader title="About App" onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Sobre nosotros" onBack={() => navigation.goBack()} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 8 }} showsVerticalScrollIndicator={false}>
-        {mOption('document-text-outline', 'Privacy Policy', () => {
-          // TODO: navigation.navigate('PrivacyPolicyScreen')
+        {mOption('document-text-outline', 'Política de privacidad', () => {
+          navigation.navigate('MigratedPrivacyPolicy');
         })}
         <Divider />
-        {mOption('document-text-outline', 'Terms of Services', () => {
-          // TODO: navigation.navigate('TermsAndConditionScreen')
+        {mOption('document-text-outline', 'Términos y condiciones', () => {
+          navigation.navigate('MigratedTermsAndConditions');
         })}
         <Divider />
-        {mOption('information-circle-outline', 'About Us', () => {
+        {mOption('information-circle-outline', 'Sobre nosotros', () => {
           navigation.navigate('MigratedAboutUs');
         })}
         <Divider />
