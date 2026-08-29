@@ -159,20 +159,18 @@ function ReadinessForm({ onDone }: { onDone: () => void }) {
 
       <Box style={{ paddingHorizontal: 24, backgroundColor: C.bg, paddingBottom: Math.max(insets.bottom, 12) + 6 }}>
         <Divider style={{ marginBottom: 12 }} />
-        <TutorialTarget id="workout-preview-readiness-submit">
-          <Button
-            onPress={onSubmit}
-            disabled={!allAnswered || saving}
-            radius="pill"
-            className="py-4"
-          >
-            {saving ? (
-              <Spinner size="small" color={C.accentBlackForeground} />
-            ) : (
-              <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
-            )}
-          </Button>
-        </TutorialTarget>
+        <Button
+          onPress={onSubmit}
+          disabled={!allAnswered || saving}
+          radius="pill"
+          className="py-4"
+        >
+          {saving ? (
+            <Spinner size="small" color={C.accentBlackForeground} />
+          ) : (
+            <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.5 }}>CONTINUAR AL ENTRENAMIENTO</ButtonText>
+          )}
+        </Button>
       </Box>
     </SafeAreaView>
   );
@@ -202,6 +200,7 @@ export default function WorkoutPreviewScreen(props: Props) {
 
   const [readinessResolved, setReadinessResolved] = useState(false);
   const [readinessNeeded, setReadinessNeeded] = useState(false);
+  const { reportAction } = useTutorial();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -236,6 +235,19 @@ export default function WorkoutPreviewScreen(props: Props) {
       })
       .finally(() => setReadinessResolved(true));
   }, [load]);
+
+  // El paso "Cómo llegas hoy" del tutorial (log-first-set, ver
+  // constants/tutorialChallenges.ts) ya no tiene targetId propio -- se
+  // completa solo con reportAction('readiness_submitted'), que antes SOLO
+  // disparaba onSubmit() dentro de ReadinessForm. Si el readiness de hoy ya
+  // estaba relleno (submitted_today, ReadinessForm ni se monta -- ver el
+  // `if (readinessNeeded)` de abajo), ese reportAction real nunca iba a
+  // llegar y el paso se quedaría esperando para siempre algo que ya pasó
+  // antes de empezar el tutorial. Se reporta aquí también en cuanto se
+  // resuelve que no hace falta, para que el tutorial avance igual.
+  useEffect(() => {
+    if (readinessResolved && !readinessNeeded) reportAction('readiness_submitted');
+  }, [readinessResolved, readinessNeeded, reportAction]);
 
   const onToggleFavourite = () => {
     if (!workoutTemplateId) return;

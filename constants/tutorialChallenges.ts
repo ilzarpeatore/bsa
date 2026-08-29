@@ -96,10 +96,26 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
       // pide una vez al día (daily_readiness_checks); si el usuario ya lo
       // rellenó hoy, este target nunca aparece y hay que seguir sin
       // bloquear el tutorial.
+      //
+      // Sin targetId a propósito (BUG real reportado 2026-08-29): este paso
+      // llevaba antes targetId: 'workout-preview-readiness-submit', apuntando
+      // al botón de enviar. TutorialOverlay oscurece y BLOQUEA el toque
+      // (pointerEvents normal, no "none") en todo lo que quede fuera del
+      // rectángulo del target -- con el target en el botón del final, las 4
+      // tarjetas de preguntas (descanso/agujetas/energía/estrés), que están
+      // POR ENCIMA en el mismo ScrollView, quedaban tapadas por la máscara y
+      // eran imposibles de tocar. El botón, además, está disabled hasta
+      // responder las 4 -- resultado: el usuario no podía ni rellenar el
+      // formulario ni pulsar el botón, tutorial atascado. Sin targetId, este
+      // paso usa el otro modo de TutorialOverlay (aviso flotante sin
+      // oscurecer nada, mismo que "elige tu hábito" en add-habit) -- la
+      // pantalla entera queda interactiva; el paso sigue completándose solo
+      // cuando el envío real tiene éxito (reportAction('readiness_submitted')
+      // en onSubmit, workout_preview_screen.tsx), sin depender de ningún tap
+      // sobre un elemento concreto.
       {
-        targetId: 'workout-preview-readiness-submit',
         title: 'Cómo llegas hoy',
-        text: 'Antes de empezar, cuéntanos brevemente cómo te sientes hoy (sueño, energía, estrés...).',
+        text: 'Antes de empezar, cuéntanos brevemente cómo te sientes hoy (sueño, energía, estrés...) y pulsa continuar.',
         completion: { type: 'action', actionId: 'readiness_submitted' },
         skippable: true,
       },
