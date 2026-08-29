@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, FONT } from '../../pages/migrated/theme';
@@ -26,6 +26,17 @@ const TRACK_HEIGHT = 56;
 export default function ScaleSelector({ min, max, value, onChange }: Props) {
   const [trackWidth, setTrackWidth] = useState(0);
   const [liveValue, setLiveValue] = useState<number | null>(null);
+  const trackRef = useRef<View>(null);
+  // pageX de la pista (coordenadas de pantalla, fijas mientras no cambie el
+  // layout) -- necesario porque `nativeEvent.locationX` NO sirve aquí: en
+  // eventos onPanResponderMove, locationX es la posición relativa a la
+  // subvista que esté bajo el dedo en ESE frame (pista, thumb, etc.), y al
+  // arrastrar rápido el dedo pasa de una subvista a otra entre frames, así
+  // que el valor salta/resetea en cada evento (bug conocido de PanResponder
+  // en RN). gestureState.moveX da coordenadas de página estables sea cual
+  // sea la subvista tocada, así que restándole este offset fijo se obtiene
+  // la posición real dentro de la pista sin saltos.
+  const trackPageXRef = useRef(0);
 
   const valueFromX = useCallback(
     (x: number, width: number) => {
@@ -41,10 +52,12 @@ export default function ScaleSelector({ min, max, value, onChange }: Props) {
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (e) => setLiveValue(valueFromX(e.nativeEvent.locationX, trackWidth)),
-        onPanResponderMove: (e) => setLiveValue(valueFromX(e.nativeEvent.locationX, trackWidth)),
-        onPanResponderRelease: (e) => {
-          const v = valueFromX(e.nativeEvent.locationX, trackWidth);
+        onPanResponderGrant: (_e, gestureState) =>
+          setLiveValue(valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth)),
+        onPanResponderMove: (_e, gestureState) =>
+          setLiveValue(valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth)),
+        onPanResponderRelease: (_e, gestureState) => {
+          const v = valueFromX(gestureState.moveX - trackPageXRef.current, trackWidth);
           setLiveValue(null);
           onChange(v);
         },
@@ -55,6 +68,9 @@ export default function ScaleSelector({ min, max, value, onChange }: Props) {
 
   const handleLayout = useCallback((e: LayoutChangeEvent) => {
     setTrackWidth(e.nativeEvent.layout.width);
+    trackRef.current?.measure((_x, _y, _width, _height, pageX) => {
+      trackPageXRef.current = pageX;
+    });
   }, []);
 
   const displayValue = liveValue ?? value ?? min;
@@ -64,7 +80,7 @@ export default function ScaleSelector({ min, max, value, onChange }: Props) {
 
   return (
     <View>
-      <View style={styles.track} onLayout={handleLayout} {...panResponder.panHandlers}>
+      <View ref={trackRef} style={styles.track} onLayout={handleLayout} {...panResponder.panHandlers}>
         <LinearGradient
           colors={[C.destructive, C.warning, C.success]}
           start={{ x: 0, y: 0 }}
