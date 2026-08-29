@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, LoginPayload, LoginResponse, RegisterPayload } from '../api/auth';
-import { UserData } from '../api/profile';
+import { UserData, profileApi } from '../api/profile';
 import { onboardingV2Api } from '../api/onboardingV2';
 import { setLogoutHandler } from '../api/client';
 import { getToken, setToken, removeToken } from '../helper/secureToken';
@@ -148,6 +148,43 @@ async function resolveOnboardingCompleted(user: { id?: number; onboarding_comple
     await AsyncStorage.removeItem(LEGACY_ONBOARDING_COMPLETED_KEY);
     await AsyncStorage.setItem(onboardingCompletedKey(user.id), 'true');
     return true;
+  }
+  // Bug real reportado 2026-08-29 (mismo día, tras los dos fixes de
+  // arriba): "mi cuenta tiene el onboarding completado, encima 5 veces,
+  // cada vez que reinstalo la app -- por qué no me lleva a home v2". Causa
+  // de fondo, distinta a las dos de arriba: NINGÚN flag de "onboarding
+  // completado" sobrevive a un reinstalar -- ni el nuevo por id ni el
+  // viejo, porque los dos viven solo en AsyncStorage, y AsyncStorage se
+  // borra por completo al desinstalar la app (comportamiento normal de
+  // iOS/Android, no un bug). El backend TAMPOCO tiene todavía un campo
+  // real de esto (`v1/onboarding/complete` sigue sin existir, ver
+  // api/onboardingV2.ts) -- así que hasta que exista, no hay ningún dato
+  // 100% fiable que sobreviva a un reinstalar.
+  //
+  // Respaldo real disponible HOY: la etapa 1 del onboarding (datos
+  // personales: edad/altura/peso) SÍ usa un endpoint real que persiste de
+  // verdad en el backend (`update-profile`, ver
+  // onboardingV2Api.submitPersonalData) -- si esos 3 campos ya están
+  // rellenos en el perfil de la cuenta, es que en algún dispositivo,
+  // alguna vez, ya empezó (como mínimo) el onboarding de verdad. No es
+  // 100% preciso (alguien pudo abandonar justo después de la etapa 1, sin
+  // terminar PAR-Q/entrenamiento/nutrición -- esas 3 etapas siguen sin
+  // ningún endpoint real donde comprobarlo), pero es la única señal que
+  // sobrevive a un reinstalar mientras el backend no tenga el campo real,
+  // y evita el síntoma exacto reportado. Se cachea localmente al
+  // encontrarlo para no repetir esta llamada en cada login futuro en el
+  // mismo dispositivo.
+  try {
+    const res = await profileApi.getUserDetail(user.id);
+    const profile = res.data?.data?.user_profile;
+    const hasRealProfile =
+      !!profile && Number(profile.age) > 0 && Number(profile.height) > 0 && Number(profile.weight) > 0;
+    if (hasRealProfile) {
+      await AsyncStorage.setItem(onboardingCompletedKey(user.id), 'true');
+      return true;
+    }
+  } catch (e) {
+    logger.error('resolveOnboardingCompleted: no se pudo comprobar el perfil real', e);
   }
   return false;
 }
