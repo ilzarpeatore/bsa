@@ -70,7 +70,12 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
         // fingir datos, mismo criterio que se aplicó a "Sueño" en el Informe.
         { icon: 'watch-outline', title: 'Dispositivos', subtitle: 'Conecta tu reloj o app de salud', route: 'MigratedComingSoon', params: { title: 'Dispositivos' }, iconColor: C.blue, iconBg: C.blue10 },
         { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
-        { icon: 'language-outline', title: 'Idioma', route: 'MigratedLanguage', iconColor: C.success60, iconBg: C.success10 },
+        // Desactivada para esta primera versión (pedido explícito): los
+        // usuarios todavía no pueden acceder a MigratedLanguage. Mismo
+        // patrón ya usado arriba para "Dispositivos" -- apunta al
+        // placeholder honesto MigratedComingSoon en vez de a la pantalla
+        // real, sin tocar ésta ni su ruta en App.tsx.
+        { icon: 'language-outline', title: 'Idioma', route: 'MigratedComingSoon', params: { title: 'Idioma' }, iconColor: C.success60, iconBg: C.success10 },
       ],
     },
     {

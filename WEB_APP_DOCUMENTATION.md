@@ -157,7 +157,7 @@ Tabla maestra de todas las funcionalidades encontradas. El detalle línea a lín
 | Buscar ejercicio por equipamiento (pantalla dedicada)            | ⚪ Código muerto (el filtro sí existe dentro del buscador general)                               | —                                 |
 | Selector de idioma                                               | ⚪ No funcional (persistencia comentada, app 100% en español)                                    | —                                 |
 | Modo claro/oscuro/automático                                     | 🟢 Implementada ("automático" sigue la hora del dispositivo, no el ajuste del sistema operativo) | —                                 |
-| Acerca de la app / Acerca de nosotros                            | ⚪ Contenido de plantilla sin terminar ("MightyFitness", placeholders)                           | —                                 |
+| Acerca de la app / Acerca de nosotros                            | ⚪ Contenido de plantilla sin terminar ("Be Stronger", placeholders)                           | —                                 |
 | Política de privacidad / Términos                                | ⚪ Contenido de plantilla genérico                                                               | —                                 |
 | Solicitar función / Informar de error                            | 🟠 Preparada, backend pendiente                                                                  | —                                 |
 | Diagnóstico (exportar registros locales)                         | 🟢 Implementada                                                                                  | —                                 |
@@ -770,7 +770,7 @@ Separado estrictamente entre lo que existe y lo que es una recomendación — na
 - El seguimiento de agua necesita conectarse de verdad al backend antes de anunciarse.
 - La lista de la compra necesita un botón/enlace real desde el Plan diario u otra pantalla visible.
 - El bot de soporte necesita, como mínimo, un mensaje más honesto sobre sus límites reales (hoy no queda claro para el usuario que la respuesta es siempre la misma).
-- Las páginas "Acerca de nosotros", "Política de privacidad" y "Términos y condiciones" tienen contenido de plantilla sin terminar (marca "MightyFitness", textos `TODO`, datos de contacto de ejemplo) — deben reescribirse con contenido real antes de cualquier lanzamiento público, no solo de la web.
+- Las páginas "Acerca de nosotros", "Política de privacidad" y "Términos y condiciones" tienen contenido de plantilla sin terminar (marca "Be Stronger", textos `TODO`, datos de contacto de ejemplo) — deben reescribirse con contenido real antes de cualquier lanzamiento público, no solo de la web.
 
 **RECOMENDACIÓN / IDEA FUTURA (no existe hoy, no prometer en la web hasta construirse):**
 
