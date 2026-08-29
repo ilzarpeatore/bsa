@@ -1956,7 +1956,14 @@ export default function WorkoutSessionScreen(props: Props) {
                             />
                           </Pressable>
                         );
-                        return blockIdx === 0 && rowIdx === 0 ? (
+                        // exIdx === 0 añadido (auditoría 2026-08-29): sin
+                        // esto, con más de un ejercicio en el bloque 0 este
+                        // mismo id se registraba en la fila 0 de CADA
+                        // ejercicio de ese bloque (se pisaban entre sí en
+                        // targetsRef, ver store/TutorialContext.tsx
+                        // registerTarget) -- mismo criterio que ya usa
+                        // isTutorialMetric más arriba para las métricas.
+                        return blockIdx === 0 && exIdx === 0 && rowIdx === 0 ? (
                           <TutorialTarget id="workout-session-first-set-toggle">{toggleBtn}</TutorialTarget>
                         ) : (
                           toggleBtn

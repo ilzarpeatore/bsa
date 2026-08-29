@@ -63,6 +63,24 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
     id: 'access-workout',
     label: 'Accede a tu entrenamiento de hoy',
     steps: [
+      // Fusionado aquí (pedido explícito 2026-08-29): el check-in de
+      // preparación vivía como reto suelto "complete-checkin" en el
+      // checklist de Home, con nextChallengeId: 'access-workout' -- daba la
+      // impresión de ser dos retos distintos cuando en realidad es el mismo
+      // viaje (el check-in es un paso real que ocurre justo ANTES del
+      // entrenamiento). Se elimina ese reto suelto y su paso pasa a ser el
+      // primero de este, en vez de un reto independiente que solo encadena.
+      // skippable: true porque el check-in solo aparece en "Mi plan de hoy"
+      // cuando hay uno pendiente asignado por el coach -- si no lo hay, el
+      // target nunca se registra y sin skippable el reto se quedaría
+      // esperando para siempre algo que no existe hoy.
+      {
+        targetId: 'home-checkin-card',
+        title: 'Check-in de preparación',
+        text: 'Rellena este formulario para que tu coach sepa cómo llegas al entrenamiento.',
+        completion: { type: 'action', actionId: 'checkin_submitted' },
+        skippable: true,
+      },
       {
         targetId: 'home-today-workout-card',
         title: 'Tu entrenamiento de hoy',
@@ -281,29 +299,5 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
         completion: { type: 'action', actionId: 'meal_marked_done' },
       },
     ],
-  },
-  {
-    id: 'complete-checkin',
-    label: 'Rellena tu check-in de preparación',
-    steps: [
-      // skippable: este check-in solo aparece en "Mi plan de hoy" cuando hay
-      // uno pendiente asignado por el coach -- si no lo hay, el target nunca
-      // se registra y el reto se quedaba "activo" para siempre sin mostrar
-      // nada (BUG real: "algunos retos no se activan ni comienzan").
-      {
-        targetId: 'home-checkin-card',
-        title: 'Check-in de preparación',
-        text: 'Rellena este formulario para que tu coach sepa cómo llegas al entrenamiento.',
-        completion: { type: 'action', actionId: 'checkin_submitted' },
-        skippable: true,
-      },
-    ],
-    // Pedido explícito: el check-in de preparación es un paso real que ocurre
-    // (una vez al día, automático) ANTES de cada entrenamiento -- así que su
-    // tutorial se encadena con el resto de retos de entrenamiento
-    // ("access-workout", que a su vez ya encadena con "log-first-set"),
-    // reproduciendo el mismo orden que sigue el usuario de verdad en vez de
-    // dejarlo como un reto suelto e independiente.
-    nextChallengeId: 'access-workout',
   },
 ];

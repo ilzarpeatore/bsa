@@ -162,7 +162,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // solo se borraba TOKEN/USER, dejando ONBOARDING_COMPLETED y una sesion
     // de entrenamiento activa colgados para el siguiente usuario que inicie
     // sesion en el mismo dispositivo.
-    await AsyncStorage.removeMany(['USER', 'ONBOARDING_COMPLETED', ACTIVE_SESSION_STORAGE_KEY]);
+    //
+    // '@bestronger_tutorial_done_challenges' (misma clave literal que
+    // store/TutorialContext.tsx -- no se importa desde aquí para no crear un
+    // ciclo entre ambos Context, TutorialContext ya importa de este fichero)
+    // -- BUG real corregido (auditoría 2026-08-29): sin esto, el progreso de
+    // retos completados de la cuenta que cierra sesión seguía en disco, y el
+    // siguiente usuario que iniciara sesión en el mismo dispositivo veía
+    // retos ya "hechos" que nunca completó. El estado en MEMORIA de esa
+    // misma clave se resetea aparte, en TutorialContext, al detectar el
+    // cambio de usuario.
+    await AsyncStorage.removeMany([
+      'USER',
+      'ONBOARDING_COMPLETED',
+      ACTIVE_SESSION_STORAGE_KEY,
+      '@bestronger_tutorial_done_challenges',
+    ]);
     dispatch({ type: 'SIGN_OUT' });
   }, []);
 

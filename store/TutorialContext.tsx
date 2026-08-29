@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TUTORIAL_CHALLENGES, TutorialChallenge, TutorialStep } from '../constants/tutorialChallenges';
+import { useAuth } from './AuthContext';
+import logger from '../helper/logger';
 
 const STORAGE_KEY = '@bestronger_tutorial_done_challenges';
 
@@ -46,14 +48,52 @@ export function TutorialProvider({
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const targetsRef = useRef<Record<string, TargetRect>>({});
   const [activeTargetRect, setActiveTargetRect] = useState<TargetRect | null>(null);
+  // TutorialProvider vive DENTRO de AuthProvider (ver App.tsx), así que puede
+  // consumir useAuth() directamente sin crear un ciclo de imports (AuthContext
+  // no importa nada de este fichero).
+  const { state: authState } = useAuth();
 
-  useEffect(() => {
+  const loadDoneIds = useCallback(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (raw) setDoneIds(JSON.parse(raw));
+        setDoneIds(raw ? JSON.parse(raw) : []);
       })
-      .catch(() => {});
+      .catch((e) => {
+        // Antes: catch silencioso, sin log -- un valor corrupto bajo esta
+        // clave perdía el progreso de retos sin dejar rastro para depurar.
+        logger.error('TutorialContext: no se pudo leer/parsear doneIds', e);
+        setDoneIds([]);
+      });
   }, []);
+
+  useEffect(() => {
+    loadDoneIds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // BUG real corregido (auditoría 2026-08-29): doneIds no estaba aislado por
+  // usuario -- logout() no limpiaba esta clave de AsyncStorage, y aunque la
+  // limpiara, este Context nunca se remonta al cambiar de sesión (vive fuera
+  // del árbol de navegación, montado una sola vez), así que el `doneIds` en
+  // MEMORIA del usuario anterior seguía viéndose igual tras el login de otro
+  // usuario en el mismo dispositivo. Se recarga aquí cada vez que cambia el
+  // id de usuario autenticado (incluye logout, id -> null) -- distinto de la
+  // carga inicial de arriba, que solo debe correr una vez al montar. Ver
+  // logout() en store/AuthContext.tsx para el borrado de la clave en disco.
+  const authUserId = authState.user?.id ?? null;
+  const prevAuthUserIdRef = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    if (prevAuthUserIdRef.current === undefined) {
+      // Primer render: ya cubierto por la carga inicial de arriba.
+      prevAuthUserIdRef.current = authUserId;
+      return;
+    }
+    if (prevAuthUserIdRef.current === authUserId) return;
+    prevAuthUserIdRef.current = authUserId;
+    setActiveChallengeId(null);
+    setActiveStepIndex(0);
+    loadDoneIds();
+  }, [authUserId, loadDoneIds]);
 
   const persist = useCallback((ids: string[]) => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids)).catch(() => {});
