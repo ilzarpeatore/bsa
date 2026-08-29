@@ -12,7 +12,19 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { readinessApi } from '../../api/readiness';
+import { workoutHistoryApi, CalendarMonthWorkout } from '../../api/workoutHistory';
 import logger from '@helper/logger';
+
+// Mismo patrón que localDateKey en home_screen_modern_v2.tsx/toDateKey en
+// my_program_calendar_screen.tsx -- la fecha en formato YYYY-MM-DD del
+// calendario del backend es LOCAL, no UTC (Date.toISOString().split('T')[0]
+// da el día equivocado de madrugada en la mayoría de zonas horarias).
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 interface Props {
   navigation?: any;
@@ -62,6 +74,17 @@ export default function CheckInsListScreen(props: Props) {
   // backend daily_readiness_checks). No aparecía en esta lista aunque es,
   // de hecho, el check-in diario real de la app.
   const [readiness, setReadiness] = useState<{ required: boolean; submittedToday: boolean } | null>(null);
+  // Entrenamiento de hoy (mismo dato que usa "Tu entrenamiento de hoy" en
+  // Home v2, ver todayWorkouts en home_screen_modern_v2.tsx) -- BUG real
+  // corregido (reportado 2026-08-29): la tarjeta de readiness navegaba
+  // directamente a MigratedMyProgramCalendar en vez de al cuestionario real
+  // (que vive dentro de workout_preview_screen.tsx, gate ReadinessForm).
+  // Readiness no está atado a un entrenamiento concreto en el backend (es
+  // una vez al día, no por sesión) -- para poder aterrizar de verdad en el
+  // cuestionario hace falta el entrenamiento de HOY para pasarle su
+  // programDayAssignmentId a MigratedWorkoutPreview, que es quien decide si
+  // toca pedir el readiness antes de mostrar el preview.
+  const [todayWorkout, setTodayWorkout] = useState<CalendarMonthWorkout | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -83,6 +106,18 @@ export default function CheckInsListScreen(props: Props) {
       .catch((e) => {
         logger.error('Readiness today fetch error:', e);
         setReadiness(null);
+      });
+    const now = new Date();
+    workoutHistoryApi
+      .getMyCalendar(now.getMonth() + 1, now.getFullYear())
+      .then((res) => {
+        const days = res.data?.data?.days ?? [];
+        const today = days.find((day) => day.date === localDateKey(now));
+        setTodayWorkout(today?.workouts?.[0] ?? null);
+      })
+      .catch((e) => {
+        logger.error('Calendar (today workout) fetch error:', e);
+        setTodayWorkout(null);
       });
   }, []);
 
@@ -144,7 +179,18 @@ export default function CheckInsListScreen(props: Props) {
       key="readiness"
       className="flex-row items-center gap-3 bg-card rounded-md"
       style={{ padding: 14, marginBottom: 10 }}
-      onPress={() => navigation?.navigate('MigratedMyProgramCalendar')}
+      onPress={() =>
+        todayWorkout
+          ? navigation?.navigate('MigratedWorkoutPreview', {
+              programDayAssignmentId: todayWorkout.assignment_id,
+              mTitle: todayWorkout.title || 'Entrenamiento',
+            })
+          // Sin entrenamiento asignado hoy no hay preview al que aterrizar
+          // (MigratedWorkoutPreview necesita programDayAssignmentId/
+          // workoutTemplateId, sin ninguno de los dos falla) -- se mantiene
+          // el calendario como destino de respaldo en ese caso.
+          : navigation?.navigate('MigratedMyProgramCalendar')
+      }
     >
       <Box
         className="w-11 h-11 rounded-md items-center justify-center"
@@ -157,7 +203,7 @@ export default function CheckInsListScreen(props: Props) {
         />
       </Box>
       <Box className="flex-1">
-        <Text weight="bold" size="sm" numberOfLines={2}>Chequeo de preparación</Text>
+        <Text weight="bold" size="sm" numberOfLines={2}>Readiness diario</Text>
         <Text size="xs" muted style={{ marginTop: 3 }}>Check-in diario · antes de entrenar</Text>
         <Text size="xs" muted className="text-[11px]" style={{ marginTop: 2 }}>
           {readinessPending ? 'Se rellena al abrir tu próximo entrenamiento.' : 'Ya lo completaste hoy · próximo: mañana'}
