@@ -7,14 +7,13 @@ import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
-import { Icon } from '@components/ui/icon';
 import { Spinner } from '@components/ui/spinner';
 import { HStack } from '@components/ui/hstack';
 import { VStack } from '@components/ui/vstack';
 import { Button, ButtonText } from '@components/ui/button';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
-import AppIcon from '@components/AppIcon';
+import DeviceIcon from '@components/DeviceIcon';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAuth } from '@store/AuthContext';
 import { authApi } from '@api/auth';
@@ -23,6 +22,17 @@ import { FONT, RADIUS } from './theme';
 
 interface EditProfileScreenProps {
   navigation: any;
+}
+
+// Badge cuadrado redondeado + DeviceIcon centrado -- mismo look que daba
+// AppIcon antes (containerSize/borderRadius/bg), pero con el icono real del
+// sistema operativo en vez de Ionicons.
+function FieldBadge({ ios, android, bg }: { ios: React.ComponentProps<typeof DeviceIcon>['ios']; android: React.ComponentProps<typeof DeviceIcon>['android']; bg: string }) {
+  return (
+    <Box style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <DeviceIcon ios={ios} android={android} size={20} color="#FFFFFF" />
+    </Box>
+  );
 }
 
 function getGender() {
@@ -67,20 +77,27 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
   const { colors: C } = useAppColorMode();
   const localStyles = useMemo(() => createStyles(C), [C]);
 
-  // Color/icono por campo, reutilizando AppIcon (mismo patrón de badge
-  // cuadrado redondeado + icono ya usado en Home) -- pedido explícito, misma
-  // captura de referencia que la pantalla "Ajustes" de Bevel: filas agrupadas
-  // en tarjetas blancas con un badge de color por fila en vez de la lista
-  // plana de antes. Aquí no hay chevron de navegación (a diferencia de la
-  // referencia) porque cada fila se edita in-situ, no lleva a otra pantalla.
+  // Color por campo + badge cuadrado redondeado (mismo patrón visual que
+  // antes daba AppIcon) -- pedido explícito, misma captura de referencia que
+  // la pantalla "Ajustes" de Bevel: filas agrupadas en tarjetas blancas con
+  // un badge de color por fila en vez de la lista plana de antes. Aquí no
+  // hay chevron de navegación (a diferencia de la referencia) porque cada
+  // fila se edita in-situ, no lleva a otra pantalla.
+  //
+  // Iconos REALES del dispositivo (pedido explícito 2026-08-29, primera
+  // pantalla en usarlos -- ver components/DeviceIcon.tsx): SF Symbols en
+  // iOS, Material Symbols en Android, ya no el font de Ionicons que sigue
+  // usando el resto de la app. Nombres verificados contra los catálogos
+  // reales que trae expo-symbols (sf-symbols-typescript / fonts.google.com
+  // -> symbols.json), no adivinados de memoria.
   const FIELD_ICON = {
-    name: { icon: 'person-outline' as const, color: C.blue },
-    email: { icon: 'mail-outline' as const, color: C.purple60 },
-    phone: { icon: 'call-outline' as const, color: C.success },
-    gender: { icon: 'male-female-outline' as const, color: C.pink },
-    age: { icon: 'calendar-outline' as const, color: C.warning },
-    weight: { icon: 'barbell-outline' as const, color: C.destructive },
-    height: { icon: 'resize-outline' as const, color: '#14B8A6' },
+    name: { ios: 'person' as const, android: 'person' as const, color: C.blue },
+    email: { ios: 'envelope' as const, android: 'email' as const, color: C.purple60 },
+    phone: { ios: 'phone' as const, android: 'call' as const, color: C.success },
+    gender: { ios: 'person.2' as const, android: 'wc' as const, color: C.pink },
+    age: { ios: 'calendar' as const, android: 'cake' as const, color: C.warning },
+    weight: { ios: 'dumbbell.fill' as const, android: 'fitness_center' as const, color: C.destructive },
+    height: { ios: 'ruler.fill' as const, android: 'straighten' as const, color: '#14B8A6' },
   };
 
   const { updateUser, state, logout } = useAuth();
@@ -355,7 +372,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
               onPress={pickImage}
               accessibilityRole="button"
               accessibilityLabel="Cambiar foto de perfil">
-              <Icon name="camera" size={14} color="#FFFFFF" />
+              <DeviceIcon ios="camera.fill" android="camera_alt" size={14} color="#FFFFFF" />
             </Pressable>
             <Text weight="bold" size="lg" style={{ marginTop: 12 }}>{fullName}</Text>
             <Pressable onPress={pickImage}>
@@ -375,7 +392,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
           <Box style={localStyles.card}>
             <Box style={localStyles.row}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.name.icon} color="#FFFFFF" bg={FIELD_ICON.name.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.name.ios} android={FIELD_ICON.name.android} bg={FIELD_ICON.name.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Nombre</Text>
                   <Input style={localStyles.input}>
@@ -394,7 +411,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
 
             <Box style={localStyles.row}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.name.icon} color="#FFFFFF" bg={FIELD_ICON.name.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.name.ios} android={FIELD_ICON.name.android} bg={FIELD_ICON.name.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Apellidos</Text>
                   <Input style={localStyles.input}>
@@ -413,7 +430,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
 
             <Box style={localStyles.row}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.email.icon} color="#FFFFFF" bg={FIELD_ICON.email.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.email.ios} android={FIELD_ICON.email.android} bg={FIELD_ICON.email.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Email</Text>
                   <Input style={localStyles.input}>
@@ -434,7 +451,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
 
             <Box style={[localStyles.row, localStyles.rowLast]}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.phone.icon} color="#FFFFFF" bg={FIELD_ICON.phone.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.phone.ios} android={FIELD_ICON.phone.android} bg={FIELD_ICON.phone.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Número de teléfono</Text>
                   <Input style={localStyles.input}>
@@ -459,7 +476,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
           <Box style={localStyles.card}>
             <Box style={localStyles.row}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.gender.icon} color="#FFFFFF" bg={FIELD_ICON.gender.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.gender.ios} android={FIELD_ICON.gender.android} bg={FIELD_ICON.gender.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Sexo</Text>
                   <HStack className="gap-2.5" style={{ marginTop: 4 }}>
@@ -485,7 +502,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
 
             <Box style={localStyles.row}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.age.icon} color="#FFFFFF" bg={FIELD_ICON.age.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.age.ios} android={FIELD_ICON.age.android} bg={FIELD_ICON.age.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Edad</Text>
                   <Input style={localStyles.input}>
@@ -505,7 +522,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
 
             <Box style={localStyles.row}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.weight.icon} color="#FFFFFF" bg={FIELD_ICON.weight.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.weight.ios} android={FIELD_ICON.weight.android} bg={FIELD_ICON.weight.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Peso</Text>
                   <Input style={localStyles.input}>
@@ -529,7 +546,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
 
             <Box style={[localStyles.row, localStyles.rowLast]}>
               <HStack space="md" className="items-center">
-                <AppIcon name={FIELD_ICON.height.icon} color="#FFFFFF" bg={FIELD_ICON.height.color} containerSize={40} borderRadius={12} />
+                <FieldBadge ios={FIELD_ICON.height.ios} android={FIELD_ICON.height.android} bg={FIELD_ICON.height.color} />
                 <VStack className="flex-1">
                   <Text style={localStyles.label}>Altura</Text>
                   <Input style={localStyles.input}>
@@ -565,7 +582,7 @@ export default function EditProfileScreen(props: EditProfileScreenProps) {
               accessibilityLabel="Eliminar cuenta"
             >
               <HStack space="md" className="items-center">
-                <AppIcon name="trash-outline" color="#FFFFFF" bg={C.destructive} containerSize={40} borderRadius={12} />
+                <FieldBadge ios="trash.fill" android="delete_forever" bg={C.destructive} />
                 <VStack className="flex-1">
                   <Text weight="semibold" style={{ color: C.destructive }}>Eliminar cuenta</Text>
                   <Text size="xs" muted style={{ marginTop: 2 }}>
