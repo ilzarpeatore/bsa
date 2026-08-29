@@ -166,10 +166,15 @@ export default function BodyMetricsScreen(props: any) {
                 {typesWithData.has(t.value) && (
                   <Box style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.statusSuccess, marginRight: 6 }} />
                 )}
+                {/* lineHeight explícito (mismo motivo que el número grande de
+                    abajo): sin él, el className size="xs" no siempre llega a
+                    Text con un lineHeight utilizable y el glifo del custom
+                    font se recorta por arriba/abajo -- reportado con
+                    captura, "Peso"/"Grasa..." con las letras cortadas. */}
                 <Text
                   weight="semibold"
                   size="xs"
-                  style={{ fontSize: 12.5, color: selectedType === t.value ? C.accentBlackForeground : C.textSecondary }}
+                  style={{ fontSize: 12.5, lineHeight: 18, color: selectedType === t.value ? C.accentBlackForeground : C.textSecondary }}
                 >
                   {t.label}
                 </Text>
