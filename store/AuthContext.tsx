@@ -85,6 +85,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Clave por usuario (id numérico), no un flag único global -- ver bug real
+// corregido más abajo (reportado 2026-08-29: "cada vez que inicio sesión
+// con una cuenta existente me manda al onboarding").
+function onboardingCompletedKey(userId: number): string {
+  return `ONBOARDING_COMPLETED_${userId}`;
+}
+
 // Bug real corregido (reportado: el onboarding "se reinicia" para gente que
 // ya se registró): `ONBOARDING_COMPLETED` vivía SOLO en AsyncStorage del
 // dispositivo, sin ningún respaldo en el backend -- un usuario que ya
@@ -94,15 +101,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // docs/ONBOARDING_V2.md) cuando el backend lo manda; el flag local de
 // AsyncStorage queda solo como resguardo mientras ese campo no exista
 // todavía en la respuesta real del backend.
+//
+// Segundo bug real corregido (reportado 2026-08-29, mismo síntoma pero tras
+// CERRAR sesión, no solo tras reinstalar): ese resguardo local vivía bajo
+// una única clave `ONBOARDING_COMPLETED` para TODAS las cuentas del
+// dispositivo, y `logout()` la borraba a propósito para que un usuario
+// distinto que iniciara sesión después no heredara el onboarding "hecho" de
+// la cuenta anterior. Efecto colateral: la MISMA cuenta que cerraba sesión y
+// volvía a entrar (backend todavía sin `onboarding_completed` real, ver
+// arriba) perdía su propio progreso y volvía a ver el onboarding entero cada
+// vez. La clave ahora incluye el id de usuario -- cada cuenta tiene su
+// propio resguardo local, así que ya no hace falta borrarlo en logout (no
+// hay nada que limpiar para "el siguiente usuario": cada uno lee el suyo).
+//
 // Tipado mínimo a propósito (no `UserData` completo): `login()`/`register()`
 // reciben `LoginResponse['data']` (api/auth.ts), una forma distinta que no
 // incluye `user_profile` -- nunca ha sido asignable a `UserData` tal cual
 // (de ahí el `as any` ya existente al despachar `SIGN_IN`). Pedir aquí solo
-// el campo que de verdad se lee evita ese choque de tipos sin necesitar otro
-// `any`.
-async function resolveOnboardingCompleted(user: { onboarding_completed?: boolean } | null): Promise<boolean> {
+// los campos que de verdad se leen evita ese choque de tipos sin necesitar
+// otro `any`.
+async function resolveOnboardingCompleted(user: { id?: number; onboarding_completed?: boolean } | null): Promise<boolean> {
   if (user?.onboarding_completed !== undefined) return user.onboarding_completed;
-  const local = await AsyncStorage.getItem('ONBOARDING_COMPLETED');
+  if (!user?.id) return false;
+  const local = await AsyncStorage.getItem(onboardingCompletedKey(user.id));
   return local === 'true';
 }
 
@@ -159,9 +180,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await removeToken();
     // Limpia tambien el resto de estado ligado a la cuenta que salia -- antes
-    // solo se borraba TOKEN/USER, dejando ONBOARDING_COMPLETED y una sesion
-    // de entrenamiento activa colgados para el siguiente usuario que inicie
-    // sesion en el mismo dispositivo.
+    // solo se borraba TOKEN/USER, dejando una sesion de entrenamiento activa
+    // colgada para el siguiente usuario que inicie sesion en el mismo
+    // dispositivo. `ONBOARDING_COMPLETED_<id>` (ver resolveOnboardingCompleted
+    // arriba) NO se borra aquí a propósito -- va por id de usuario, no es un
+    // flag único global, así que no hay nada que limpiar "para el siguiente
+    // usuario": cada cuenta ya lee solo su propia clave.
     //
     // '@bestronger_tutorial_done_challenges' (misma clave literal que
     // store/TutorialContext.tsx -- no se importa desde aquí para no crear un
@@ -174,7 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // cambio de usuario.
     await AsyncStorage.removeMany([
       'USER',
-      'ONBOARDING_COMPLETED',
       ACTIVE_SESSION_STORAGE_KEY,
       '@bestronger_tutorial_done_challenges',
     ]);
@@ -187,7 +210,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const completeOnboarding = useCallback(async () => {
-    await AsyncStorage.setItem('ONBOARDING_COMPLETED', 'true');
+    if (state.user?.id) {
+      await AsyncStorage.setItem(onboardingCompletedKey(state.user.id), 'true');
+    }
     dispatch({ type: 'SET_ONBOARDING_COMPLETED' });
     // Best-effort, mismo criterio que el resto de onboardingV2Api: el
     // endpoint todavía no existe en el backend, así que esto falla con 404
@@ -197,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       logger.error('completeOnboarding: no se pudo marcar en el backend', e);
     }
-  }, []);
+  }, [state.user]);
 
   useEffect(() => {
     setLogoutHandler(logout);
