@@ -50,6 +50,7 @@ import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
+import { CHAT_ENABLED } from '@constants/featureFlags';
 import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
 import { showToast } from '@helper/toast';
 import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
@@ -1548,9 +1549,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Text>
         </Card>
 
-        {/* Need Help → FitBot */}
+        {/* Need Help → FitBot -- chat desactivado en esta primera versión
+            (ver constants/featureFlags.ts, CHAT_ENABLED): sin moderación ni
+            forma de reportar mensajes todavía, riesgo real de rechazo en
+            revisión de Apple/Google. */}
         <Box style={{ height: r(16) }} />
-        <Pressable onPress={() => navigation?.navigate('MigratedChatting', { isDirect: true })}>
+        <Pressable
+          onPress={() =>
+            CHAT_ENABLED
+              ? navigation?.navigate('MigratedChatting', { isDirect: true })
+              : showToast('Próximamente', { description: 'Podrás hablar con Be Stronger AI en la próxima versión de la app.' })
+          }
+        >
           <Card variant="outline" className="mx-5 p-4">
             <HStack className="items-center">
               <VStack className="flex-1">

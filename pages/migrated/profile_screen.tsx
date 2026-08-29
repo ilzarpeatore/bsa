@@ -15,6 +15,7 @@ import AppIcon from '@components/AppIcon';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { useAuth } from '../../store/AuthContext';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
+import { CHAT_ENABLED } from '@constants/featureFlags';
 import { workoutHistoryApi } from '../../api/workoutHistory';
 
 interface MenuItem {
@@ -225,10 +226,18 @@ export default function ProfileScreen(props: any) {
               <Text weight="bold" size="sm">Comunidad</Text>
               <Text size="xs" muted style={{ marginTop: 2 }}>Ver publicaciones</Text>
             </Pressable>
+            {/* Chat desactivado en esta primera versión (ver
+                constants/featureFlags.ts, CHAT_ENABLED) -- sin moderación ni
+                forma de reportar mensajes todavía, riesgo real de rechazo en
+                revisión de Apple/Google. */}
             <Pressable
               className="flex-1 rounded-lg"
               style={{ backgroundColor: C.surface, padding: 16 }}
-              onPress={() => props.navigation?.navigate('MigratedChatting', { isDirect: true })}
+              onPress={() =>
+                CHAT_ENABLED
+                  ? props.navigation?.navigate('MigratedChatting', { isDirect: true })
+                  : Alert.alert('Próximamente', 'Podrás chatear con el soporte en la próxima versión de la app.')
+              }
             >
               <AppIcon name="chatbubble-ellipses-outline" size={18} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
               <Text weight="bold" size="sm">Soporte</Text>
