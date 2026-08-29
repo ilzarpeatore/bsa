@@ -863,7 +863,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         </Pressable>
       );
       return isFirstCheckin ? (
-        <TutorialTarget key={item.key} id="home-checkin-card">{checkinCard}</TutorialTarget>
+        <TutorialTarget key={item.key} id="home-checkin-card" scrollRef={scrollRef}>{checkinCard}</TutorialTarget>
       ) : (
         <Box key={item.key}>{checkinCard}</Box>
       );
@@ -896,7 +896,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       </Pressable>
     );
     return isFirstWorkout ? (
-      <TutorialTarget key={item.key} id="home-today-workout-card">{workoutCard}</TutorialTarget>
+      <TutorialTarget key={item.key} id="home-today-workout-card" scrollRef={scrollRef}>{workoutCard}</TutorialTarget>
     ) : (
       <Box key={item.key}>{workoutCard}</Box>
     );
@@ -1258,7 +1258,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
         <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Hábitos</Text>
-          <TutorialTarget id="home-habits-link">
+          <TutorialTarget id="home-habits-link" scrollRef={scrollRef}>
             <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
               <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
             </Pressable>
