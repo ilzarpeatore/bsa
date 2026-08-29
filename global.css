@@ -18,14 +18,17 @@
      que un componente Gluestack (`bg-card`, `text-foreground`...) y un
      estilo `C.xxx` de la misma pantalla podían mostrar dos oscuros/claros
      distintos. Mapeo: primary/-foreground=accentBlack, card/popover=surface,
+     -- primary/-foreground pasan de negro/blanco al teal de marca en ambos
+     temas (2026-08-29, ver comentario junto a C.accentBlack en theme.ts;
+     "aplica a todos los botones el color principal de la app").
      secondary/muted/accent=gray5, *-foreground (excepto success/warning/
      destructive/info, que llevan blanco fijo)=textPrimary, background=bg,
      muted-foreground=textSecondary, destructive/success/warning/info=sus
      mismos nombres en theme.ts, foreground=textPrimary, border/input=border,
      ring=blue. */
   :root {
-    --primary: 0 0 0;
-    --primary-foreground: 255 255 255;
+    --primary: 73 197 182;
+    --primary-foreground: 18 49 44;
     --card: 255 255 255;
     --secondary: 247 247 247;
     --secondary-foreground: 38 39 41;
@@ -52,8 +55,8 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --primary: 255 255 255;
-      --primary-foreground: 0 0 0;
+      --primary: 73 197 182;
+      --primary-foreground: 18 49 44;
       --card: 46 48 55;
       --secondary: 36 36 38;
       --secondary-foreground: 250 250 250;
@@ -80,8 +83,8 @@
   }
 
   :root.dark {
-    --primary: 255 255 255;
-    --primary-foreground: 0 0 0;
+    --primary: 73 197 182;
+    --primary-foreground: 18 49 44;
     --card: 46 48 55;
     --secondary: 36 36 38;
     --secondary-foreground: 250 250 250;
@@ -107,8 +110,8 @@
   }
 
   :root.light {
-    --primary: 0 0 0;
-    --primary-foreground: 255 255 255;
+    --primary: 73 197 182;
+    --primary-foreground: 18 49 44;
     --card: 255 255 255;
     --secondary: 247 247 247;
     --secondary-foreground: 38 39 41;

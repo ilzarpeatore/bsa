@@ -163,7 +163,7 @@ export default function PainReportSheet({
               <Ionicons
                 name={tipo === opt.value ? 'radio-button-on' : 'radio-button-off'}
                 size={20}
-                color={tipo === opt.value ? C.accentBlack : C.gray30}
+                color={tipo === opt.value ? C.orange60 : C.gray30}
               />
             </Pressable>
           ))}

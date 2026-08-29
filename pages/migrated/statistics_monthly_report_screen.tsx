@@ -447,7 +447,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   sessionTitle: { fontFamily: FONT.semiBold, fontSize: 14, color: C.textPrimary },
   sessionSubtitle: { fontFamily: FONT.regular, fontSize: 12, color: C.textSecondary, marginTop: 2 },
 
-  expandBtnText: { fontFamily: FONT.semiBold, fontSize: 12.5, color: C.accentBlack },
+  expandBtnText: { fontFamily: FONT.semiBold, fontSize: 12.5, color: C.orange60 },
 
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.gray60, alignSelf: 'center', marginTop: 10, marginBottom: 12 },
   modalTitle: { fontSize: 17, fontFamily: FONT.bold, color: C.textPrimary, textAlign: 'center', marginBottom: 8, paddingHorizontal: 24 },

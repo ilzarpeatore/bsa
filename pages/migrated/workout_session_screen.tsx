@@ -1678,13 +1678,13 @@ export default function WorkoutSessionScreen(props: Props) {
         }}
       >
         <HStack space="sm" className="items-center">
-          <Icon name="time-outline" size={18} className="text-background" />
-          <Text weight="bold" className="text-background" style={{ fontSize: 15 }}>
+          <Icon name="time-outline" size={18} color={C.accentBlackForeground} />
+          <Text weight="bold" style={{ fontSize: 15, color: C.accentBlackForeground }}>
             Descanso: {formatTimer(restCountdown)}
           </Text>
         </HStack>
         <Pressable onPress={dismissRestCountdown} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text weight="semibold" className="text-background" style={{ fontSize: 13 }}>
+          <Text weight="semibold" style={{ fontSize: 13, color: C.accentBlackForeground }}>
             Saltar
           </Text>
         </Pressable>

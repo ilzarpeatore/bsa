@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { useColors } from "@constants/colors";
+import { GRADIENT } from "./migrated/theme";
 import { dietApi, DietListItem, DietCategory } from "../api/diet";
 import { DietCardMem } from "../components/DietCard";
 import { EmptyStateMem } from "../components/EmptyState";
@@ -32,10 +33,12 @@ const ALL_CATEGORY: DietCategory = { id: 0, title: "All", categorydiet_image: ""
 
 export default function DietList({ navigation }: Props) {
   const Colors = useColors();
-  const CHIP_GRADIENT_COLORS = useMemo<[string, string]>(
-    () => [Colors.ACCENT_START, Colors.ACCENT_END],
-    [Colors]
-  );
+  // Antes Colors.ACCENT_START/END (gris) -- color de marca en el chip
+  // activo (pedido explícito 2026-08-29, "todos los botones"). GRADIENT.brand
+  // no depende del tema (ver theme.ts), así que no hace falta memoizarlo
+  // sobre Colors, pero se mantiene el useMemo para no tocar la firma del
+  // resto del componente.
+  const CHIP_GRADIENT_COLORS = useMemo<[string, string]>(() => [...GRADIENT.brand], []);
   const styles = useStyle();
   const [data, setData] = useState<DietListItem[]>([]);
   const [categories, setCategories] = useState<DietCategory[]>([]);

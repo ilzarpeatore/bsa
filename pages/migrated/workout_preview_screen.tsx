@@ -249,7 +249,7 @@ export default function WorkoutPreviewScreen(props: Props) {
           {workoutTemplateId ? (
             <Box style={styles.titleActions}>
               <Pressable style={styles.iconBtn} onPress={onToggleFavourite}>
-                <Icon name={isFavourite ? 'bookmark' : 'bookmark-outline'} size={18} color={isFavourite ? C.accentBlack : C.textPrimary} />
+                <Icon name={isFavourite ? 'bookmark' : 'bookmark-outline'} size={18} color={isFavourite ? C.orange60 : C.textPrimary} />
               </Pressable>
             </Box>
           ) : null}
