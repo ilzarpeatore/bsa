@@ -8,7 +8,6 @@ import { AuthSocialButton } from "@components/auth/AuthSocialButton";
 import { AuthLinkRow } from "@components/auth/AuthLinkRow";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { Colors } from "@constants/colors";
-import { showToast } from "@helper/toast";
 
 export default function WelcomeAuthScreen() {
   const navigation = useNavigation<any>();
@@ -27,18 +26,8 @@ export default function WelcomeAuthScreen() {
 
         <View style={styles.bottom}>
           <AuthSocialButton
-            variant="google"
-            label="Continuar con Google"
-            onPress={() => showToast("Próximamente", { description: "El inicio de sesión con Google estará disponible pronto.", variant: "info" })}
-          />
-          <AuthSocialButton
-            variant="facebook"
-            label="Continuar con Facebook"
-            onPress={() => showToast("Próximamente", { description: "El inicio de sesión con Facebook estará disponible pronto.", variant: "info" })}
-          />
-          <AuthSocialButton
             variant="email"
-            label="Continuar con Email"
+            label="Iniciar sesión"
             onPress={() => navigation.navigate("LoginAuth")}
           />
           <AuthLinkRow
