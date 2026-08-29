@@ -122,11 +122,34 @@ function onboardingCompletedKey(userId: number): string {
 // (de ahí el `as any` ya existente al despachar `SIGN_IN`). Pedir aquí solo
 // los campos que de verdad se leen evita ese choque de tipos sin necesitar
 // otro `any`.
+// Clave plana que usaba el esquema viejo (antes del fix de arriba) --
+// mantenida SOLO para el puente de migración de abajo, no para nada más.
+const LEGACY_ONBOARDING_COMPLETED_KEY = 'ONBOARDING_COMPLETED';
+
 async function resolveOnboardingCompleted(user: { id?: number; onboarding_completed?: boolean } | null): Promise<boolean> {
   if (user?.onboarding_completed !== undefined) return user.onboarding_completed;
   if (!user?.id) return false;
   const local = await AsyncStorage.getItem(onboardingCompletedKey(user.id));
-  return local === 'true';
+  if (local === 'true') return true;
+  // Bug real corregido (reportado 2026-08-29, tras el fix de arriba: "cada
+  // vez que inicio sesión con una cuenta existente me manda al
+  // onboarding"): cualquier cuenta que ya hubiera completado el onboarding
+  // ANTES de ese fix tenía su flag guardado bajo la clave plana vieja
+  // (LEGACY_ONBOARDING_COMPLETED_KEY), no bajo la nueva clave por id --
+  // nunca se migró, así que esa cuenta se quedaba sin ningún flag válido y
+  // volvía a ver el onboarding entero en cada login, aunque ya lo hubiera
+  // terminado. Se adopta ese flag viejo una sola vez (y se borra al
+  // leerlo, para que como mucho beneficie a una única cuenta -- la próxima
+  // que inicie sesión en este dispositivo ya no lo encuentra) y se
+  // reescribe bajo la clave por id, para no depender de este puente nunca
+  // más en adelante.
+  const legacy = await AsyncStorage.getItem(LEGACY_ONBOARDING_COMPLETED_KEY);
+  if (legacy === 'true') {
+    await AsyncStorage.removeItem(LEGACY_ONBOARDING_COMPLETED_KEY);
+    await AsyncStorage.setItem(onboardingCompletedKey(user.id), 'true');
+    return true;
+  }
+  return false;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
