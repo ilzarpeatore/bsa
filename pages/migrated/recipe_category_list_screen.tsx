@@ -71,7 +71,7 @@ export default function RecipeCategoryListScreen(props: any) {
       <Box className="flex-1">
         {isLoading ? (
           <Box className="flex-1 items-center justify-center">
-            <Spinner size="large" color="#FF6B35" />
+            <Spinner size="large" color="#A2CDD4" />
           </Box>
         ) : mCategoryList.length === 0 ? (
           <Box className="flex-1 items-center justify-center">
