@@ -172,7 +172,7 @@ export default function DietDashboard({ navigation }: Props) {
           <>
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Assigned to Me</Text>
+                <Text style={styles.sectionTitle}>Asignado a mí</Text>
               </View>
               <Pressable
                 style={({ pressed }) => pressed && { opacity: 0.85 }}
@@ -187,26 +187,26 @@ export default function DietDashboard({ navigation }: Props) {
                   <View style={styles.summaryKcalRow}>
                     <Ionicons name="flame-outline" size={26} color={Colors.TEXT_PRIMARY} />
                     <Text style={styles.summaryKcalValue}>{assignedMealsGoal?.kcal ?? 0}</Text>
-                    <Text style={styles.summaryKcalLabel}>kcal / day goal</Text>
+                    <Text style={styles.summaryKcalLabel}>kcal / objetivo diario</Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryValue}>{assignedMealsGoal?.protein ?? 0}g</Text>
-                      <Text style={styles.summaryLabel}>Protein</Text>
+                      <Text style={styles.summaryLabel}>Proteína</Text>
                     </View>
                     <View style={styles.summaryDivider} />
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryValue}>{assignedMealsGoal?.carbs ?? 0}g</Text>
-                      <Text style={styles.summaryLabel}>Carbs</Text>
+                      <Text style={styles.summaryLabel}>Carbohidratos</Text>
                     </View>
                     <View style={styles.summaryDivider} />
                     <View style={styles.summaryItem}>
                       <Text style={styles.summaryValue}>{assignedMealsGoal?.fats ?? 0}g</Text>
-                      <Text style={styles.summaryLabel}>Fats</Text>
+                      <Text style={styles.summaryLabel}>Grasas</Text>
                     </View>
                   </View>
                   <View style={styles.viewPlanRow}>
-                    <Text style={styles.viewPlanText}>View my assigned meals</Text>
+                    <Text style={styles.viewPlanText}>Ver mis comidas asignadas</Text>
                     <Ionicons name="arrow-forward" size={14} color={Colors.TEXT_PRIMARY} />
                   </View>
                 </LinearGradient>
