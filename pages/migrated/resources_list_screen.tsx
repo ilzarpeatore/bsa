@@ -33,6 +33,7 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   video: 'play-circle-outline',
   link: 'link-outline',
   doc: 'reader-outline',
+  guide: 'book-outline',
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -40,12 +41,92 @@ const TYPE_LABEL: Record<string, string> = {
   video: 'Vídeo',
   link: 'Enlace',
   doc: 'Documento',
+  guide: 'Guía',
 };
+
+// Guías estáticas compartidas por todos los usuarios (pedido explícito
+// 2026-08-30) -- no vienen del backend de Recursos (no hay endpoint de
+// creación/edición en api/resources.ts, solo getList/getDetail; la gestión
+// de contenido de Recursos vive en el panel de admin externo, ver
+// docs/PENDIENTE_BACKEND_ADMIN.md), así que se listan aquí como entradas
+// locales fijas dentro de "Compartidos", en vez de en una sección aparte del
+// Home (donde vivían antes, duplicando esta misma lista).
+interface LocalGuide {
+  key: string;
+  title: string;
+  category: ResourceCategory;
+  screen: string;
+}
+
+const LOCAL_GUIDES: LocalGuide[] = [
+  {
+    key: 'guide-autogestion',
+    title: 'Guía de Autogestión',
+    category: 'entrenamiento',
+    screen: 'MigratedAutogestionGuide',
+  },
+  {
+    key: 'guide-overtraining',
+    title: 'Guía de Sobrentrenamiento',
+    category: 'entrenamiento',
+    screen: 'MigratedOvertrainingGuide',
+  },
+  {
+    key: 'guide-supplementation',
+    title: 'Guía de Suplementación',
+    category: 'nutricion',
+    screen: 'MigratedSupplementationGuide',
+  },
+  {
+    key: 'guide-sleep',
+    title: 'Guía de Sueño y Recuperación',
+    category: 'habitos_mindset',
+    screen: 'MigratedSleepGuide',
+  },
+  {
+    key: 'guide-stress',
+    title: 'Guía de Gestión del Estrés',
+    category: 'habitos_mindset',
+    screen: 'MigratedStressGuide',
+  },
+  {
+    key: 'guide-mindset',
+    title: 'Manual de Mentalidad',
+    category: 'habitos_mindset',
+    screen: 'MigratedMindsetGuide',
+  },
+];
+
+// Item a mostrar en la lista: o bien un recurso real del backend, o bien una
+// de las guías locales -- mismo shape para poder reutilizar el agrupado por
+// categoría y el buscador sin duplicar esa lógica.
+interface DisplayItem {
+  id: string;
+  title: string;
+  type: 'article' | 'video' | 'link' | 'doc' | 'guide';
+  category: ResourceCategory | null;
+  created_at: string;
+  resource?: ResourceListItem;
+  guide?: LocalGuide;
+}
+
+const LOCAL_GUIDE_ITEMS: DisplayItem[] = LOCAL_GUIDES.map((g) => ({
+  id: g.key,
+  title: g.title,
+  type: 'guide',
+  category: g.category,
+  created_at: '',
+  guide: g,
+}));
 
 function formatResourceDate(dateStr: string): string {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   } catch {
     return '';
   }
@@ -62,6 +143,7 @@ export default function ResourcesListScreen(props: Props) {
     video: C.warning60,
     link: C.purple60,
     doc: C.success60,
+    guide: C.orange60,
   };
   const { navigation } = props;
   const [activeTab, setActiveTab] = useState<Tab>('mine');
@@ -87,13 +169,38 @@ export default function ResourcesListScreen(props: Props) {
     load();
   }, [load]);
 
-  const mine = useMemo(() => items.filter((i) => i.scope === 'assigned'), [items]);
-  const shared = useMemo(() => items.filter((i) => i.scope === 'shared'), [items]);
+  const mine = useMemo<DisplayItem[]>(
+    () =>
+      items
+        .filter((i) => i.scope === 'assigned')
+        .map((i) => ({
+          id: String(i.id),
+          title: i.title,
+          type: i.type,
+          category: i.category,
+          created_at: i.created_at,
+          resource: i,
+        })),
+    [items],
+  );
+  const shared = useMemo<DisplayItem[]>(() => {
+    const backendShared = items
+      .filter((i) => i.scope === 'shared')
+      .map((i) => ({
+        id: String(i.id),
+        title: i.title,
+        type: i.type,
+        category: i.category,
+        created_at: i.created_at,
+        resource: i,
+      }));
+    return [...LOCAL_GUIDE_ITEMS, ...backendShared];
+  }, [items]);
   const scopedList = activeTab === 'mine' ? mine : shared;
   const query = search.trim().toLowerCase();
   const activeList = useMemo(
     () => (query ? scopedList.filter((i) => i.title.toLowerCase().includes(query)) : scopedList),
-    [scopedList, query]
+    [scopedList, query],
   );
   const sectionDefs = activeTab === 'mine' ? MINE_SECTIONS : SHARED_SECTIONS;
 
@@ -107,8 +214,15 @@ export default function ResourcesListScreen(props: Props) {
     return rest.length > 0 ? [...known, { label: OTHER_LABEL, data: rest }] : known;
   }, [activeList, sectionDefs]);
 
-  const openResource = (item: ResourceListItem) => {
-    navigation?.navigate('MigratedResourceDetail', { resourceId: item.id, title: item.title });
+  const openResource = (item: DisplayItem) => {
+    if (item.guide) {
+      navigation?.navigate(item.guide.screen);
+      return;
+    }
+    navigation?.navigate('MigratedResourceDetail', {
+      resourceId: item.resource!.id,
+      title: item.title,
+    });
   };
 
   return (
@@ -118,11 +232,7 @@ export default function ResourcesListScreen(props: Props) {
       <Box className="px-4" style={{ marginTop: 12, marginBottom: 4 }}>
         <Input className="rounded-full bg-secondary px-4 gap-2" size="md">
           <Icon name="search" size={18} className="text-muted-foreground" />
-          <InputField
-            placeholder="Busca en tus recursos"
-            value={search}
-            onChangeText={setSearch}
-          />
+          <InputField placeholder="Busca en tus recursos" value={search} onChangeText={setSearch} />
           {search.length > 0 && (
             <InputSlot onPress={() => setSearch('')}>
               <Icon name="close-circle" size={18} className="text-muted-foreground" />
@@ -133,16 +243,26 @@ export default function ResourcesListScreen(props: Props) {
 
       <Box className="flex-row gap-6 px-4" style={{ marginTop: 16, marginBottom: 8 }}>
         <Pressable onPress={() => setActiveTab('mine')} style={{ paddingBottom: 8 }}>
-          <Text weight="bold" size="lg" className={activeTab === 'mine' ? 'text-foreground' : 'text-muted-foreground'}>
+          <Text
+            weight="bold"
+            size="lg"
+            className={activeTab === 'mine' ? 'text-foreground' : 'text-muted-foreground'}>
             Mis Recursos
           </Text>
-          {activeTab === 'mine' && <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />}
+          {activeTab === 'mine' && (
+            <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />
+          )}
         </Pressable>
         <Pressable onPress={() => setActiveTab('shared')} style={{ paddingBottom: 8 }}>
-          <Text weight="bold" size="lg" className={activeTab === 'shared' ? 'text-foreground' : 'text-muted-foreground'}>
+          <Text
+            weight="bold"
+            size="lg"
+            className={activeTab === 'shared' ? 'text-foreground' : 'text-muted-foreground'}>
             Compartidos
           </Text>
-          {activeTab === 'shared' && <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />}
+          {activeTab === 'shared' && (
+            <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />
+          )}
         </Pressable>
       </Box>
 
@@ -152,15 +272,24 @@ export default function ResourcesListScreen(props: Props) {
         </Box>
       ) : error ? (
         <Box className="flex-1 items-center justify-center" style={{ paddingTop: 60 }}>
-          <Text muted className="text-center px-8">No se pudieron cargar los recursos.</Text>
+          <Text muted className="text-center px-8">
+            No se pudieron cargar los recursos.
+          </Text>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE,
+          }}
+          showsVerticalScrollIndicator={false}>
           {activeList.length === 0 ? (
             <Box className="flex-1 items-center justify-center" style={{ paddingTop: 60 }}>
               <Icon name="folder-open-outline" size={40} className="text-muted-foreground" />
               <Text muted className="text-center px-8" style={{ marginTop: 12 }}>
-                {activeTab === 'mine' ? 'Todavía no tienes recursos asignados.' : 'Aún no hay recursos compartidos.'}
+                {activeTab === 'mine'
+                  ? 'Todavía no tienes recursos asignados.'
+                  : 'Aún no hay recursos compartidos.'}
               </Text>
             </Box>
           ) : (
@@ -176,12 +305,12 @@ export default function ResourcesListScreen(props: Props) {
                         <Pressable
                           key={item.id}
                           className="flex-row items-center gap-3 bg-card rounded-lg p-3"
-                          onPress={() => openResource(item)}
-                        >
+                          onPress={() => openResource(item)}>
                           <Box
                             className="w-[68px] h-[68px] rounded-lg items-center justify-center"
-                            style={{ backgroundColor: `${TYPE_COLOR[item.type] ?? C.textPrimary}1A` }}
-                          >
+                            style={{
+                              backgroundColor: `${TYPE_COLOR[item.type] ?? C.textPrimary}1A`,
+                            }}>
                             <Icon
                               name={TYPE_ICON[item.type] ?? 'document-text-outline'}
                               size={28}
@@ -195,16 +324,22 @@ export default function ResourcesListScreen(props: Props) {
                             <Text muted size="sm" style={{ marginTop: 4 }}>
                               {TYPE_LABEL[item.type] ?? item.type}
                             </Text>
-                            <Text muted size="xs" style={{ marginTop: 2 }}>
-                              {formatResourceDate(item.created_at)}
-                            </Text>
+                            {item.created_at ? (
+                              <Text muted size="xs" style={{ marginTop: 2 }}>
+                                {formatResourceDate(item.created_at)}
+                              </Text>
+                            ) : null}
                           </Box>
-                          <Icon name="chevron-forward" size={18} className="text-muted-foreground" />
+                          <Icon
+                            name="chevron-forward"
+                            size={18}
+                            className="text-muted-foreground"
+                          />
                         </Pressable>
                       ))}
                     </Box>
                   </Box>
-                )
+                ),
               )}
             </Box>
           )}
