@@ -3,31 +3,33 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View } from 'react-native';
 import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Font from "expo-font";
-import { DefaultTheme, NavigationContainer, createNavigationContainerRef, getFocusedRouteNameFromRoute } from "@react-navigation/native";
+import * as Font from 'expo-font';
+import {
+  DefaultTheme,
+  NavigationContainer,
+  createNavigationContainerRef,
+  getFocusedRouteNameFromRoute,
+} from '@react-navigation/native';
 // Herramienta temporal de desarrollo (ver components/ScreenReviewFab.tsx) —
 // borrar este import + el ref + el mount del FAB mas abajo cuando ya no haga falta.
-import ScreenReviewFab from "@components/ScreenReviewFab";
-import ScreenExplorerFab from "@components/ScreenExplorerFab";
-import WorkoutMinimizedBar from "@components/WorkoutMinimizedBar";
-import TutorialOverlay from "@components/tutorial/TutorialOverlay";
-import ToastHost from "@components/ToastHost";
-import { TutorialProvider } from "@store/TutorialContext";
-import { hydratePersistedWorkoutSession } from "@helper/workoutSessionBus";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { enableScreens } from "react-native-screens";
-import {
-  SafeAreaProvider,
-  initialWindowMetrics,
-} from "react-native-safe-area-context";
-import { AuthProvider, useAuth } from "@store/AuthContext";
-import "@helper/reminderNotifications";
-import NavigationTab from "@components/NavigationTab";
-import { NavigationTabOptionsInterface, IoniconName } from "@components/_types/NavigationTab.i";
-import { TabBarScrollProvider } from "@store/TabBarScrollContext";
-import { AppColorModeProvider, useAppColorMode } from "@helper/useAppColorMode";
-import { AppReloadProvider, useAppReload } from "@store/AppReloadContext";
+import ScreenReviewFab from '@components/ScreenReviewFab';
+import ScreenExplorerFab from '@components/ScreenExplorerFab';
+import WorkoutMinimizedBar from '@components/WorkoutMinimizedBar';
+import TutorialOverlay from '@components/tutorial/TutorialOverlay';
+import ToastHost from '@components/ToastHost';
+import { TutorialProvider } from '@store/TutorialContext';
+import { hydratePersistedWorkoutSession } from '@helper/workoutSessionBus';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { enableScreens } from 'react-native-screens';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from '@store/AuthContext';
+import '@helper/reminderNotifications';
+import NavigationTab from '@components/NavigationTab';
+import { NavigationTabOptionsInterface, IoniconName } from '@components/_types/NavigationTab.i';
+import { TabBarScrollProvider } from '@store/TabBarScrollContext';
+import { AppColorModeProvider, useAppColorMode } from '@helper/useAppColorMode';
+import { AppReloadProvider, useAppReload } from '@store/AppReloadContext';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -37,7 +39,9 @@ const Home = React.lazy(() => import('@pages/Home'));
 
 const WelcomeAuthScreen = React.lazy(() => import('@pages/auth/WelcomeAuthScreen'));
 const LoginScreen = React.lazy(() => import('@pages/auth/LoginScreen'));
-const ForgotPasswordOptionsScreen = React.lazy(() => import('@pages/auth/ForgotPasswordOptionsScreen'));
+const ForgotPasswordOptionsScreen = React.lazy(
+  () => import('@pages/auth/ForgotPasswordOptionsScreen'),
+);
 const ForgotPasswordEmailScreen = React.lazy(() => import('@pages/auth/ForgotPasswordEmailScreen'));
 const PasswordResetSentScreen = React.lazy(() => import('@pages/auth/PasswordResetSentScreen'));
 
@@ -77,42 +81,77 @@ const HabitDetailScreen = React.lazy(() => import('@pages/migrated/habit_detail_
 const HabitAddScreen = React.lazy(() => import('@pages/migrated/habit_add_screen'));
 const LanguageScreen = React.lazy(() => import('@pages/migrated/language_screen'));
 const MuscleProgressScreen = React.lazy(() => import('@pages/migrated/muscle_progress_screen'));
-const MyProgramCalendarScreen = React.lazy(() => import('@pages/migrated/my_program_calendar_screen'));
+const MyProgramCalendarScreen = React.lazy(
+  () => import('@pages/migrated/my_program_calendar_screen'),
+);
 const NotificationScreen = React.lazy(() => import('@pages/migrated/notification_screen'));
-const NotificationSettingsScreen = React.lazy(() => import('@pages/migrated/notification_settings_screen'));
-const OnboardingV2Screen = React.lazy(() => import('@pages/migrated/onboarding_v2/onboarding_v2_screen'));
-const OtherUserProfileScreen = React.lazy(() => import('@pages/migrated/other_user_profile_screen'));
+const NotificationSettingsScreen = React.lazy(
+  () => import('@pages/migrated/notification_settings_screen'),
+);
+const OnboardingV2Screen = React.lazy(
+  () => import('@pages/migrated/onboarding_v2/onboarding_v2_screen'),
+);
+const OtherUserProfileScreen = React.lazy(
+  () => import('@pages/migrated/other_user_profile_screen'),
+);
 const PlanScreen = React.lazy(() => import('@pages/migrated/plan_screen'));
 const PostDetailsScreen = React.lazy(() => import('@pages/migrated/post_details_screen'));
 const PrivacyPolicyScreen = React.lazy(() => import('@pages/migrated/privacy_policy_screen'));
 const ProfileScreenMigrated = React.lazy(() => import('@pages/migrated/profile_screen'));
 const ProgressScreen = React.lazy(() => import('@pages/migrated/progress_screen'));
 const StatisticsScreen = React.lazy(() => import('@pages/migrated/statistics_screen'));
-const StatisticsMuscleDistributionScreen = React.lazy(() => import('@pages/migrated/statistics_muscle_distribution_screen'));
-const StatisticsBodyDistributionScreen = React.lazy(() => import('@pages/migrated/statistics_body_distribution_screen'));
-const StatisticsSeriesCountScreen = React.lazy(() => import('@pages/migrated/statistics_series_count_screen'));
-const StatisticsTopExercisesScreen = React.lazy(() => import('@pages/migrated/statistics_top_exercises_screen'));
-const StatisticsPersonalRecordsScreen = React.lazy(() => import('@pages/migrated/statistics_personal_records_screen'));
-const StatisticsMonthlyReportScreen = React.lazy(() => import('@pages/migrated/statistics_monthly_report_screen'));
+const StatisticsMuscleDistributionScreen = React.lazy(
+  () => import('@pages/migrated/statistics_muscle_distribution_screen'),
+);
+const StatisticsBodyDistributionScreen = React.lazy(
+  () => import('@pages/migrated/statistics_body_distribution_screen'),
+);
+const StatisticsSeriesCountScreen = React.lazy(
+  () => import('@pages/migrated/statistics_series_count_screen'),
+);
+const StatisticsTopExercisesScreen = React.lazy(
+  () => import('@pages/migrated/statistics_top_exercises_screen'),
+);
+const StatisticsPersonalRecordsScreen = React.lazy(
+  () => import('@pages/migrated/statistics_personal_records_screen'),
+);
+const StatisticsMonthlyReportScreen = React.lazy(
+  () => import('@pages/migrated/statistics_monthly_report_screen'),
+);
 const ComingSoonScreen = React.lazy(() => import('@pages/migrated/coming_soon_screen'));
-const RecipeCategoryListScreen = React.lazy(() => import('@pages/migrated/recipe_category_list_screen'));
+const RecipeCategoryListScreen = React.lazy(
+  () => import('@pages/migrated/recipe_category_list_screen'),
+);
 const RecipeListScreenV2 = React.lazy(() => import('@pages/migrated/recipe_list_screen_v2'));
 const RecipeMainScreen = React.lazy(() => import('@pages/migrated/recipe_main_screen'));
-const WorkoutTemplateListScreen = React.lazy(() => import('@pages/migrated/workout_template_list_screen'));
+const WorkoutTemplateListScreen = React.lazy(
+  () => import('@pages/migrated/workout_template_list_screen'),
+);
 const RecipeTagListScreen = React.lazy(() => import('@pages/migrated/recipe_tag_list_screen'));
 const ResourceDetailScreen = React.lazy(() => import('@pages/migrated/resource_detail_screen'));
 const AutogestionGuideScreen = React.lazy(() => import('@pages/migrated/autogestion_guide_screen'));
-const OvertrainingGuideScreen = React.lazy(() => import('@pages/migrated/overtraining_guide_screen'));
-const SupplementationGuideScreen = React.lazy(() => import('@pages/migrated/supplementation_guide_screen'));
+const OvertrainingGuideScreen = React.lazy(
+  () => import('@pages/migrated/overtraining_guide_screen'),
+);
+const SupplementationGuideScreen = React.lazy(
+  () => import('@pages/migrated/supplementation_guide_screen'),
+);
 const SleepGuideScreen = React.lazy(() => import('@pages/migrated/sleep_guide_screen'));
 const StressGuideScreen = React.lazy(() => import('@pages/migrated/stress_guide_screen'));
+const MindsetGuideScreen = React.lazy(() => import('@pages/migrated/mindset_guide_screen'));
 const ResourcesListScreen = React.lazy(() => import('@pages/migrated/resources_list_screen'));
 const SearchScreen = React.lazy(() => import('@pages/migrated/search_screen'));
-const SessionHistoryDetailScreen = React.lazy(() => import('@pages/migrated/session_history_detail_screen'));
-const ShoppingListDetailScreen = React.lazy(() => import('@pages/migrated/shopping_list_detail_screen'));
+const SessionHistoryDetailScreen = React.lazy(
+  () => import('@pages/migrated/session_history_detail_screen'),
+);
+const ShoppingListDetailScreen = React.lazy(
+  () => import('@pages/migrated/shopping_list_detail_screen'),
+);
 const ShoppingListScreen = React.lazy(() => import('@pages/migrated/shopping_list_screen'));
 
-const TermsAndConditionsScreen = React.lazy(() => import('@pages/migrated/terms_and_conditions_screen'));
+const TermsAndConditionsScreen = React.lazy(
+  () => import('@pages/migrated/terms_and_conditions_screen'),
+);
 const TipsScreen = React.lazy(() => import('@pages/migrated/tips_screen'));
 const VideoDetailScreen = React.lazy(() => import('@pages/migrated/video_detail_screen'));
 const VideoScreen = React.lazy(() => import('@pages/migrated/video_screen'));
@@ -129,19 +168,24 @@ const WorkoutFeedbackScreen = React.lazy(() => import('@pages/migrated/workout_f
 const WorkoutSummaryScreenMig = React.lazy(() => import('@pages/migrated/workout_summary_screen'));
 const YoutubePlayerScreen = React.lazy(() => import('@pages/migrated/youtube_player_screen'));
 
-
-
-const DeviceConnectedScreen = React.lazy(() => import('@pages/migrated/home/device_connected_screen'));
+const DeviceConnectedScreen = React.lazy(
+  () => import('@pages/migrated/home/device_connected_screen'),
+);
 const EmparejandoScreen = React.lazy(() => import('@pages/migrated/home/emparejando_screen'));
-const LinkDeviceChoiceScreen = React.lazy(() => import('@pages/migrated/home/link_device_choice_screen'));
-const LinkDeviceListScreen = React.lazy(() => import('@pages/migrated/home/link_device_list_screen'));
+const LinkDeviceChoiceScreen = React.lazy(
+  () => import('@pages/migrated/home/link_device_choice_screen'),
+);
+const LinkDeviceListScreen = React.lazy(
+  () => import('@pages/migrated/home/link_device_list_screen'),
+);
 
-const AssessmentResultScreen = React.lazy(() => import('@pages/migrated/onboarding/assessment_result_screen'));
+const AssessmentResultScreen = React.lazy(
+  () => import('@pages/migrated/onboarding/assessment_result_screen'),
+);
 
 enableScreens();
 const Stack = createNativeStackNavigator();
 const LazyFallback = () => <View style={{ flex: 1, backgroundColor: '#EBEBF0' }} />;
-
 
 const Tab = createBottomTabNavigator();
 
@@ -163,10 +207,10 @@ const Tab = createBottomTabNavigator();
 // de accesos rápidos (ver QUICK_ACTIONS en NavigationTab.tsx), junto con
 // Blog/Comunidad/Métricas/Check-ins.
 const TAB_ROOT_SCREEN: Record<string, string> = {
-  InicioTab: "MigratedHomeModernV2",
-  PlanDiarioTab: "MigratedMyProgramCalendar",
-  NutritionTab: "MigratedPlan",
-  HabitsTab: "MigratedHabits",
+  InicioTab: 'MigratedHomeModernV2',
+  PlanDiarioTab: 'MigratedMyProgramCalendar',
+  NutritionTab: 'MigratedPlan',
+  HabitsTab: 'MigratedHabits',
 };
 
 function tabScreenOptions(tabName: keyof typeof TAB_ROOT_SCREEN, icon: IoniconName, label: string) {
@@ -187,34 +231,33 @@ function Homenavigator() {
         initialRouteName="InicioTab"
         screenOptions={{ headerShown: false }}
         tabBar={(props) => <NavigationTab {...props} />}
-        backBehavior="order"
-      >
+        backBehavior="order">
         {/* Las 4 pestañas comparten el mismo stack completo (MigratedNavigator,
             con las ~100 pantallas migradas) para no duplicar rutas -- solo
             cambia la pantalla inicial de cada una via initialParams.initialScreen. */}
         <Tab.Screen
           name="InicioTab"
           component={MigratedNavigator}
-          initialParams={{ initialScreen: "MigratedHomeModernV2" }}
-          options={tabScreenOptions("InicioTab", "home-outline", "Inicio")}
+          initialParams={{ initialScreen: 'MigratedHomeModernV2' }}
+          options={tabScreenOptions('InicioTab', 'home-outline', 'Inicio')}
         />
         <Tab.Screen
           name="PlanDiarioTab"
           component={MigratedNavigator}
-          initialParams={{ initialScreen: "MigratedMyProgramCalendar" }}
-          options={tabScreenOptions("PlanDiarioTab", "calendar-outline", "Plan del día")}
+          initialParams={{ initialScreen: 'MigratedMyProgramCalendar' }}
+          options={tabScreenOptions('PlanDiarioTab', 'calendar-outline', 'Plan del día')}
         />
         <Tab.Screen
           name="NutritionTab"
           component={MigratedNavigator}
-          initialParams={{ initialScreen: "MigratedPlan" }}
-          options={tabScreenOptions("NutritionTab", "nutrition-outline", "Nutrición")}
+          initialParams={{ initialScreen: 'MigratedPlan' }}
+          options={tabScreenOptions('NutritionTab', 'nutrition-outline', 'Nutrición')}
         />
         <Tab.Screen
           name="HabitsTab"
           component={MigratedNavigator}
-          initialParams={{ initialScreen: "MigratedHabits" }}
-          options={tabScreenOptions("HabitsTab", "flame-outline", "Hábitos")}
+          initialParams={{ initialScreen: 'MigratedHabits' }}
+          options={tabScreenOptions('HabitsTab', 'flame-outline', 'Hábitos')}
         />
       </Tab.Navigator>
     </TabBarScrollProvider>
@@ -225,11 +268,10 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
   const MStack = createNativeStackNavigator();
   return (
     <MStack.Navigator
-      initialRouteName={route?.params?.initialScreen ?? "MigratedHomeModernV2"}
+      initialRouteName={route?.params?.initialScreen ?? 'MigratedHomeModernV2'}
       screenOptions={{
         headerShown: false,
-      }}
-    >
+      }}>
       <MStack.Screen name="MigratedAboutApp" component={AboutAppScreen} />
       <MStack.Screen name="MigratedAboutUs" component={AboutUsScreen} />
       <MStack.Screen name="MigratedActivityTracker" component={ActivityTrackerScreen} />
@@ -287,12 +329,24 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       />
       <MStack.Screen name="MigratedProgress" component={ProgressScreen} />
       <MStack.Screen name="MigratedStatistics" component={StatisticsScreen} />
-      <MStack.Screen name="MigratedStatisticsMuscles" component={StatisticsMuscleDistributionScreen} />
+      <MStack.Screen
+        name="MigratedStatisticsMuscles"
+        component={StatisticsMuscleDistributionScreen}
+      />
       <MStack.Screen name="MigratedStatisticsBody" component={StatisticsBodyDistributionScreen} />
       <MStack.Screen name="MigratedStatisticsSeriesCount" component={StatisticsSeriesCountScreen} />
-      <MStack.Screen name="MigratedStatisticsTopExercises" component={StatisticsTopExercisesScreen} />
-      <MStack.Screen name="MigratedStatisticsPersonalRecords" component={StatisticsPersonalRecordsScreen} />
-      <MStack.Screen name="MigratedStatisticsMonthlyReport" component={StatisticsMonthlyReportScreen} />
+      <MStack.Screen
+        name="MigratedStatisticsTopExercises"
+        component={StatisticsTopExercisesScreen}
+      />
+      <MStack.Screen
+        name="MigratedStatisticsPersonalRecords"
+        component={StatisticsPersonalRecordsScreen}
+      />
+      <MStack.Screen
+        name="MigratedStatisticsMonthlyReport"
+        component={StatisticsMonthlyReportScreen}
+      />
       <MStack.Screen name="MigratedComingSoon" component={ComingSoonScreen} />
       <MStack.Screen name="MigratedRecipeCategoryList" component={RecipeCategoryListScreen} />
       <MStack.Screen name="MigratedRecipeListV2" component={RecipeListScreenV2} />
@@ -304,6 +358,7 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedSupplementationGuide" component={SupplementationGuideScreen} />
       <MStack.Screen name="MigratedSleepGuide" component={SleepGuideScreen} />
       <MStack.Screen name="MigratedStressGuide" component={StressGuideScreen} />
+      <MStack.Screen name="MigratedMindsetGuide" component={MindsetGuideScreen} />
       <MStack.Screen name="MigratedResourcesList" component={ResourcesListScreen} />
       <MStack.Screen name="MigratedSearch" component={SearchScreen} />
       <MStack.Screen name="MigratedSessionHistoryDetail" component={SessionHistoryDetailScreen} />
@@ -344,48 +399,53 @@ function RootNavigator() {
     <Suspense fallback={<LazyFallback />}>
       <Stack.Navigator
         key={state.isAuthenticated ? (state.onboardingCompleted ? 'main' : 'onboarding') : 'auth'}
-        initialRouteName={!state.isAuthenticated ? 'WelcomeAuth' : !state.onboardingCompleted ? 'MigratedOnboardingV2' : 'Home'}
+        initialRouteName={
+          !state.isAuthenticated
+            ? 'WelcomeAuth'
+            : !state.onboardingCompleted
+              ? 'MigratedOnboardingV2'
+              : 'Home'
+        }
         screenOptions={{
           headerShown: false,
-        }}
-      >
+        }}>
         {!state.isAuthenticated ? (
-        <>
-          <Stack.Screen name="WelcomeAuth" component={WelcomeAuthScreen} />
-          <Stack.Screen name="LoginAuth" component={LoginScreen} />
-          {/* Pedido explícito 2026-08-29: sin screen de registro aparte, el
+          <>
+            <Stack.Screen name="WelcomeAuth" component={WelcomeAuthScreen} />
+            <Stack.Screen name="LoginAuth" component={LoginScreen} />
+            {/* Pedido explícito 2026-08-29: sin screen de registro aparte, el
               onboarding ES el registro -- "Regístrate" (WelcomeAuthScreen/
               LoginScreen) navega aquí directamente, todavía sin cuenta. Ver
               handleContinue en onboarding_v2_screen.tsx (registro diferido
               a la última pregunta) y el comentario de hydrateSession en
               store/AuthContext.tsx. */}
-          <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
-          <Stack.Screen name="ForgotOptions" component={ForgotPasswordOptionsScreen} />
-          <Stack.Screen name="ForgotEmail" component={ForgotPasswordEmailScreen} />
-          <Stack.Screen name="ResetSent" component={PasswordResetSentScreen} />
-        </>
-      ) : !state.onboardingCompleted ? (
-        <>
-          <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
-          <Stack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="Home" component={Homenavigator} />
+            <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
+            <Stack.Screen name="ForgotOptions" component={ForgotPasswordOptionsScreen} />
+            <Stack.Screen name="ForgotEmail" component={ForgotPasswordEmailScreen} />
+            <Stack.Screen name="ResetSent" component={PasswordResetSentScreen} />
+          </>
+        ) : !state.onboardingCompleted ? (
+          <>
+            <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
+            <Stack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Home" component={Homenavigator} />
 
-          {/* Exercise */}
-          <Stack.Screen name="ExerciseInfo" component={ExerciseInfoScreen} />
+            {/* Exercise */}
+            <Stack.Screen name="ExerciseInfo" component={ExerciseInfoScreen} />
 
-          {/* Diet */}
-          <Stack.Screen name="DietDashboard" component={DietDashboard} />
-          <Stack.Screen name="DietList" component={DietList} />
+            {/* Diet */}
+            <Stack.Screen name="DietDashboard" component={DietDashboard} />
+            <Stack.Screen name="DietList" component={DietList} />
 
-          {/* Migrated screens (nested navigator) */}
-          <Stack.Screen name="Migrated" component={MigratedNavigator} />
+            {/* Migrated screens (nested navigator) */}
+            <Stack.Screen name="Migrated" component={MigratedNavigator} />
 
-          <Stack.Screen name="ScreenExplorer" component={ScreenExplorer} />
-        </>
-      )}
+            <Stack.Screen name="ScreenExplorer" component={ScreenExplorer} />
+          </>
+        )}
       </Stack.Navigator>
     </Suspense>
   );
@@ -395,15 +455,20 @@ function RootNavigator() {
 // caché y recargar todos los datos" (Ajustes, ver store/AppReloadContext.tsx)
 // remonta SOLO este NavigationContainer (key={reloadKey}), no AuthProvider
 // ni TutorialProvider por encima -- recargar datos no debe cerrar sesión.
-function AppNavigationContainer({ navigationRef, onReady }: { navigationRef: any; onReady: () => void }) {
+function AppNavigationContainer({
+  navigationRef,
+  onReady,
+}: {
+  navigationRef: any;
+  onReady: () => void;
+}) {
   const { reloadKey } = useAppReload();
   return (
     <NavigationContainer
       key={reloadKey}
       ref={navigationRef}
-      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: "#EBEBF0" } }}
-      onReady={onReady}
-    >
+      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#EBEBF0' } }}
+      onReady={onReady}>
       <RootNavigator />
     </NavigationContainer>
   );
@@ -439,36 +504,36 @@ export default function App() {
     async function prepare() {
       try {
         await Font.loadAsync({
-          "Gilroy-Light": {
-            uri: require("@assets/font/Gilroy-Light.ttf"),
+          'Gilroy-Light': {
+            uri: require('@assets/font/Gilroy-Light.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-Lightitalic": {
-            uri: require("@assets/font/Gilroy-LightItalic.ttf"),
+          'Gilroy-Lightitalic': {
+            uri: require('@assets/font/Gilroy-LightItalic.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-ExtraBold": {
-            uri: require("@assets/font/Gilroy-ExtraBold.ttf"),
+          'Gilroy-ExtraBold': {
+            uri: require('@assets/font/Gilroy-ExtraBold.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-Bold": {
-            uri: require("@assets/font/Gilroy-Bold.ttf"),
+          'Gilroy-Bold': {
+            uri: require('@assets/font/Gilroy-Bold.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-SemiBold": {
-            uri: require("@assets/font/Gilroy-SemiBold.ttf"),
+          'Gilroy-SemiBold': {
+            uri: require('@assets/font/Gilroy-SemiBold.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-Regular": {
-            uri: require("@assets/font/Gilroy-Regular.ttf"),
+          'Gilroy-Regular': {
+            uri: require('@assets/font/Gilroy-Regular.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-Black": {
-            uri: require("@assets/font/Gilroy-Black.ttf"),
+          'Gilroy-Black': {
+            uri: require('@assets/font/Gilroy-Black.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
-          "Gilroy-Medium": {
-            uri: require("@assets/font/Gilroy-Medium.ttf"),
+          'Gilroy-Medium': {
+            uri: require('@assets/font/Gilroy-Medium.ttf'),
             display: Font.FontDisplay.FALLBACK,
           },
         });
@@ -509,7 +574,10 @@ export default function App() {
             <GluestackModeBridge>
               <AuthProvider>
                 <TutorialProvider navigationRef={screenReviewNavigationRef}>
-                  <AppNavigationContainer navigationRef={screenReviewNavigationRef} onReady={onLayoutRootView} />
+                  <AppNavigationContainer
+                    navigationRef={screenReviewNavigationRef}
+                    onReady={onLayoutRootView}
+                  />
                   <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
                   <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
                   <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
