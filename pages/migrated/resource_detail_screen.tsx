@@ -45,6 +45,15 @@ const renderYouTubeEmbeds = (html: string): string => {
 // Antes una constante de módulo (WRAPPER_HTML) que capturaba `C` estático en
 // el momento de cargar el módulo -- convertido a función para que el HTML
 // generado use siempre los colores del tema actual (claro/oscuro).
+//
+// Clases .box/.box-info/.box-success/.box-warning/.box-danger (pedido
+// explícito 2026-08-30, para migrar las guías estáticas de GuideBlocks a
+// Recursos sin perder su lenguaje visual): mismos tokens de color que
+// HighlightBox en components/GuideBlocks.tsx (C.orange10/blue10/success10/
+// warning10/destructive10), recalculados en cada render con el tema actual
+// -- un recurso que use estas clases respeta claro/oscuro igual que el
+// resto del wrapper, a diferencia de un documento HTML completo con su
+// propio <style> fijo (ver docs/PENDIENTE_BACKEND_ADMIN.md).
 function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): string {
   return `<!DOCTYPE html>
 <html>
@@ -54,12 +63,29 @@ function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): stri
     body { margin:0; padding:0; background-color:${C.surface}; color:${C.textPrimary}; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
     img { max-width:100%; height:auto; border-radius:8px; margin:8px 0; }
     p, li { font-size:15px; line-height:1.7; color:${C.textSecondary}; margin:8px 0; }
-    h1,h2,h3,h4 { color:${C.textPrimary}; margin:12px 0 8px; }
+    h1 { color:${C.textPrimary}; font-size:24px; margin:4px 0 6px; }
+    h2 { color:${C.textPrimary}; font-size:20px; margin:22px 0 10px; padding-bottom:8px; border-bottom:1px solid ${C.orange10}; }
+    h3 { color:${C.textPrimary}; font-size:16px; margin:16px 0 8px; }
+    h4 { color:${C.textPrimary}; margin:12px 0 8px; }
+    .kicker { color:${C.textSecondary}; font-size:13px; font-weight:700; margin-bottom:2px; }
+    .subtitle { color:${C.textSecondary}; font-size:14px; margin:0 0 16px; }
     table { width:100%; border-collapse:collapse; margin:12px 0; }
     th, td { border:1px solid ${C.border}; padding:8px; font-size:14px; text-align:left; }
+    th { background:${C.blue60}; color:#FFFFFF; }
     blockquote { border-left:3px solid ${C.accentBlack}; padding-left:12px; margin:12px 0; color:${C.textSecondary}; }
     a { color:${C.blue60}; }
     iframe { border-radius:12px; }
+    .box { border-left:4px solid ${C.orange}; background:${C.orange10}; padding:12px 14px; border-radius:8px; margin:14px 0; }
+    .box p, .box li { color:${C.textPrimary}; margin:4px 0; }
+    .box .box-title { display:block; color:${C.orange60}; font-weight:700; margin-bottom:6px; }
+    .box-info { border-left-color:${C.blue}; background:${C.blue10}; }
+    .box-info .box-title { color:${C.blue60}; }
+    .box-success { border-left-color:${C.success}; background:${C.success10}; }
+    .box-success .box-title { color:${C.success60}; }
+    .box-warning { border-left-color:${C.warning}; background:${C.warning10}; }
+    .box-warning .box-title { color:${C.warning60}; }
+    .box-danger { border-left-color:${C.destructive}; background:${C.destructive10}; }
+    .box-danger .box-title { color:${C.destructive}; }
   </style>
 </head>
 <body>

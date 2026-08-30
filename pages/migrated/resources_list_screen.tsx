@@ -11,7 +11,6 @@ import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
-import { LOCAL_GUIDES, LocalGuide } from '@components/localGuides';
 
 type Tab = 'mine' | 'shared';
 
@@ -34,7 +33,6 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   video: 'play-circle-outline',
   link: 'link-outline',
   doc: 'reader-outline',
-  guide: 'book-outline',
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -42,30 +40,7 @@ const TYPE_LABEL: Record<string, string> = {
   video: 'Vídeo',
   link: 'Enlace',
   doc: 'Documento',
-  guide: 'Guía',
 };
-
-// Item a mostrar en la lista: o bien un recurso real del backend, o bien una
-// de las guías locales -- mismo shape para poder reutilizar el agrupado por
-// categoría y el buscador sin duplicar esa lógica.
-interface DisplayItem {
-  id: string;
-  title: string;
-  type: 'article' | 'video' | 'link' | 'doc' | 'guide';
-  category: ResourceCategory | null;
-  created_at: string;
-  resource?: ResourceListItem;
-  guide?: LocalGuide;
-}
-
-const LOCAL_GUIDE_ITEMS: DisplayItem[] = LOCAL_GUIDES.map((g) => ({
-  id: g.key,
-  title: g.title,
-  type: 'guide',
-  category: g.category,
-  created_at: '',
-  guide: g,
-}));
 
 function formatResourceDate(dateStr: string): string {
   if (!dateStr) return '';
@@ -91,7 +66,6 @@ export default function ResourcesListScreen(props: Props) {
     video: C.warning60,
     link: C.purple60,
     doc: C.success60,
-    guide: C.orange60,
   };
   const { navigation } = props;
   const [activeTab, setActiveTab] = useState<Tab>('mine');
@@ -117,33 +91,8 @@ export default function ResourcesListScreen(props: Props) {
     load();
   }, [load]);
 
-  const mine = useMemo<DisplayItem[]>(
-    () =>
-      items
-        .filter((i) => i.scope === 'assigned')
-        .map((i) => ({
-          id: String(i.id),
-          title: i.title,
-          type: i.type,
-          category: i.category,
-          created_at: i.created_at,
-          resource: i,
-        })),
-    [items],
-  );
-  const shared = useMemo<DisplayItem[]>(() => {
-    const backendShared = items
-      .filter((i) => i.scope === 'shared')
-      .map((i) => ({
-        id: String(i.id),
-        title: i.title,
-        type: i.type,
-        category: i.category,
-        created_at: i.created_at,
-        resource: i,
-      }));
-    return [...LOCAL_GUIDE_ITEMS, ...backendShared];
-  }, [items]);
+  const mine = useMemo(() => items.filter((i) => i.scope === 'assigned'), [items]);
+  const shared = useMemo(() => items.filter((i) => i.scope === 'shared'), [items]);
   const scopedList = activeTab === 'mine' ? mine : shared;
   const query = search.trim().toLowerCase();
   const activeList = useMemo(
@@ -162,15 +111,8 @@ export default function ResourcesListScreen(props: Props) {
     return rest.length > 0 ? [...known, { label: OTHER_LABEL, data: rest }] : known;
   }, [activeList, sectionDefs]);
 
-  const openResource = (item: DisplayItem) => {
-    if (item.guide) {
-      navigation?.navigate(item.guide.screen);
-      return;
-    }
-    navigation?.navigate('MigratedResourceDetail', {
-      resourceId: item.resource!.id,
-      title: item.title,
-    });
+  const openResource = (item: ResourceListItem) => {
+    navigation?.navigate('MigratedResourceDetail', { resourceId: item.id, title: item.title });
   };
 
   return (
@@ -272,11 +214,9 @@ export default function ResourcesListScreen(props: Props) {
                             <Text muted size="sm" style={{ marginTop: 4 }}>
                               {TYPE_LABEL[item.type] ?? item.type}
                             </Text>
-                            {item.created_at ? (
-                              <Text muted size="xs" style={{ marginTop: 2 }}>
-                                {formatResourceDate(item.created_at)}
-                              </Text>
-                            ) : null}
+                            <Text muted size="xs" style={{ marginTop: 2 }}>
+                              {formatResourceDate(item.created_at)}
+                            </Text>
                           </Box>
                           <Icon
                             name="chevron-forward"

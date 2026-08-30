@@ -129,16 +129,6 @@ const WorkoutTemplateListScreen = React.lazy(
 );
 const RecipeTagListScreen = React.lazy(() => import('@pages/migrated/recipe_tag_list_screen'));
 const ResourceDetailScreen = React.lazy(() => import('@pages/migrated/resource_detail_screen'));
-const AutogestionGuideScreen = React.lazy(() => import('@pages/migrated/autogestion_guide_screen'));
-const OvertrainingGuideScreen = React.lazy(
-  () => import('@pages/migrated/overtraining_guide_screen'),
-);
-const SupplementationGuideScreen = React.lazy(
-  () => import('@pages/migrated/supplementation_guide_screen'),
-);
-const SleepGuideScreen = React.lazy(() => import('@pages/migrated/sleep_guide_screen'));
-const StressGuideScreen = React.lazy(() => import('@pages/migrated/stress_guide_screen'));
-const MindsetGuideScreen = React.lazy(() => import('@pages/migrated/mindset_guide_screen'));
 const ResourcesListScreen = React.lazy(() => import('@pages/migrated/resources_list_screen'));
 const SearchScreen = React.lazy(() => import('@pages/migrated/search_screen'));
 const SessionHistoryDetailScreen = React.lazy(
@@ -353,12 +343,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedRecipeMain" component={RecipeMainScreen} />
       <MStack.Screen name="MigratedRecipeTagList" component={RecipeTagListScreen} />
       <MStack.Screen name="MigratedResourceDetail" component={ResourceDetailScreen} />
-      <MStack.Screen name="MigratedAutogestionGuide" component={AutogestionGuideScreen} />
-      <MStack.Screen name="MigratedOvertrainingGuide" component={OvertrainingGuideScreen} />
-      <MStack.Screen name="MigratedSupplementationGuide" component={SupplementationGuideScreen} />
-      <MStack.Screen name="MigratedSleepGuide" component={SleepGuideScreen} />
-      <MStack.Screen name="MigratedStressGuide" component={StressGuideScreen} />
-      <MStack.Screen name="MigratedMindsetGuide" component={MindsetGuideScreen} />
       <MStack.Screen name="MigratedResourcesList" component={ResourcesListScreen} />
       <MStack.Screen name="MigratedSearch" component={SearchScreen} />
       <MStack.Screen name="MigratedSessionHistoryDetail" component={SessionHistoryDetailScreen} />
