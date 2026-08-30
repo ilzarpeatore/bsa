@@ -13,6 +13,7 @@ import {
   Bullet,
   HighlightBox,
   SupplementCard,
+  TocItem,
   GuideStyles,
 } from '@components/GuideBlocks';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
@@ -40,18 +41,69 @@ interface Props {
   navigation?: any;
 }
 
-const TOC_ITEMS: { key: string; label: string; anchor?: 'intro' | 'tier1' | 'calculadoras' | 'stacks' }[] = [
-  { key: 'intro', label: 'Introducción', anchor: 'intro' },
-  { key: 'tier1', label: 'TIER 1 - Evidencia Sólida', anchor: 'tier1' },
-  { key: 'tier2', label: 'TIER 2 - Evidencia Moderada' },
-  { key: 'tier3', label: 'TIER 3 - No Recomendados' },
-  { key: 'calculadoras', label: 'Calculadoras', anchor: 'calculadoras' },
-  { key: 'stacks', label: 'Stacks por Objetivo', anchor: 'stacks' },
-  { key: 'compatibilidad', label: 'Compatibilidad' },
-  { key: 'timeline', label: 'Timeline de Efectos' },
+const TOC_ITEMS: {
+  key: string;
+  label: string;
+  description: string;
+  anchor?: 'intro' | 'tier1' | 'calculadoras' | 'stacks';
+}[] = [
+  {
+    key: 'intro',
+    label: 'Introducción',
+    description: 'Qué es y cómo se clasifica',
+    anchor: 'intro',
+  },
+  {
+    key: 'tier1',
+    label: 'TIER 1 - Evidencia Sólida',
+    description: 'Los 5 suplementos que sí recomendamos',
+    anchor: 'tier1',
+  },
+  {
+    key: 'tier2',
+    label: 'TIER 2 - Evidencia Moderada',
+    description: 'Aún no desarrollado en esta edición',
+  },
+  {
+    key: 'tier3',
+    label: 'TIER 3 - No Recomendados',
+    description: 'Aún no desarrollado en esta edición',
+  },
+  {
+    key: 'calculadoras',
+    label: 'Calculadoras',
+    description: 'Dosis según tu peso corporal',
+    anchor: 'calculadoras',
+  },
+  {
+    key: 'stacks',
+    label: 'Stacks por Objetivo',
+    description: 'Hipertrofia, pérdida de grasa y mantenimiento',
+    anchor: 'stacks',
+  },
+  {
+    key: 'compatibilidad',
+    label: 'Compatibilidad',
+    description: 'Aún no desarrollado en esta edición',
+  },
+  {
+    key: 'timeline',
+    label: 'Timeline de Efectos',
+    description: 'Aún no desarrollado en esta edición',
+  },
 ];
 
-function CalcResult({ styles, label, value, note }: { styles: GuideStyles; label: string; value: string; note: string }) {
+function CalcResult({
+  styles,
+  label,
+  value,
+  note,
+}: {
+  styles: GuideStyles;
+  label: string;
+  value: string;
+  note: string;
+}) {
   return (
     <View style={styles.calcResultBox}>
       <Text style={styles.calcResultLabel}>{label}</Text>
@@ -80,7 +132,7 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
       magnesioBajo: Math.round(weight * 3),
       magnesioAlto: Math.round(weight * 4),
     }),
-    [weight]
+    [weight],
   );
 
   const registerOffset = (key: string) => (e: LayoutChangeEvent) => {
@@ -94,13 +146,15 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <GuidePhotoHeader image={require('../../assets/supplementation-guide-header.jpg')} onBack={() => navigation?.goBack()} />
+      <GuidePhotoHeader
+        image={require('../../assets/supplementation-guide-header.jpg')}
+        onBack={() => navigation?.goBack()}
+      />
 
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE }}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         <View style={styles.headerBlock}>
           <Text style={styles.brandKicker}>
             Be <Text style={styles.titleAccent}>Stronger</Text>
@@ -108,24 +162,24 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
           <Text style={styles.title}>
             Guía de <Text style={styles.titleAccent}>Suplementación</Text>
           </Text>
-          <Text style={styles.description}>Evidencia científica · Dosis · Timing · Combinaciones · 2026</Text>
+          <Text style={styles.subtitle}>
+            Evidencia científica · Dosis · Timing · Combinaciones · 2026
+          </Text>
         </View>
         <Divider style={{ marginHorizontal: 20, marginBottom: 8 }} />
 
         {/* Índice de contenidos */}
         <View style={styles.tocBox}>
           <Text style={styles.tocTitle}>📑 Índice de Contenidos</Text>
-          {TOC_ITEMS.map((item) =>
-            item.anchor ? (
-              <Text key={item.key} style={styles.tocLink} onPress={() => scrollToSection(item.anchor!)}>
-                {item.label}
-              </Text>
-            ) : (
-              <Text key={item.key} style={styles.tocLinkDisabled}>
-                {item.label}
-              </Text>
-            )
-          )}
+          {TOC_ITEMS.map((item) => (
+            <TocItem
+              key={item.key}
+              styles={styles}
+              label={item.label}
+              description={item.description}
+              onPress={item.anchor ? () => scrollToSection(item.anchor!) : undefined}
+            />
+          ))}
         </View>
 
         {/* Introducción */}
@@ -136,36 +190,34 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
               cuando esta no cubre por sí sola determinadas necesidades nutricionales o de
               rendimiento.{' '}
               <Text style={styles.inlineBold}>
-                No es un sustituto de la dieta, no es un atajo y no puede compensar malos hábitos
-                de entrenamiento o descanso.
+                No es un sustituto de la dieta, no es un atajo y no puede compensar malos hábitos de
+                entrenamiento o descanso.
               </Text>
             </P>
             <HighlightBox styles={styles} title="⚠️ Antes de suplementarte:">
               <Text style={styles.highlightText}>
-                Ningún suplemento sustituye una dieta bien estructurada, un entrenamiento
-                progresivo y un descanso suficiente. Si los tres pilares no están en orden, los
-                suplementos no marcarán ninguna diferencia significativa. Prioriza siempre en ese
-                orden.
+                Ningún suplemento sustituye una dieta bien estructurada, un entrenamiento progresivo
+                y un descanso suficiente. Si los tres pilares no están en orden, los suplementos no
+                marcarán ninguna diferencia significativa. Prioriza siempre en ese orden.
               </Text>
             </HighlightBox>
 
             <SubHeading styles={styles}>Sistema de clasificación por evidencia</SubHeading>
             <P styles={styles}>
-              Cada suplemento de esta guía está clasificado en uno de tres niveles según la
-              solidez de la evidencia científica disponible:
+              Cada suplemento de esta guía está clasificado en uno de tres niveles según la solidez
+              de la evidencia científica disponible:
             </P>
 
             <HighlightBox styles={styles} variant="success" title="TIER 1 — Evidencia sólida">
               <Text style={styles.highlightText}>
-                Múltiples estudios independientes, metaanálisis y revisiones sistemáticas
-                confirman su eficacia y seguridad. Recomendación directa sin reservas.
+                Múltiples estudios independientes, metaanálisis y revisiones sistemáticas confirman
+                su eficacia y seguridad. Recomendación directa sin reservas.
               </Text>
             </HighlightBox>
             <HighlightBox styles={styles} variant="warning" title="TIER 2 — Evidencia moderada">
               <Text style={styles.highlightText}>
-                Estudios prometedores pero con limitaciones: muestras pequeñas, falta de
-                replicación o efectos variables según el individuo. Pueden ser útiles en contextos
-                específicos.
+                Estudios prometedores pero con limitaciones: muestras pequeñas, falta de replicación
+                o efectos variables según el individuo. Pueden ser útiles en contextos específicos.
               </Text>
             </HighlightBox>
             <HighlightBox styles={styles} variant="danger" title="TIER 3 — Evidencia débil o nula">
@@ -205,14 +257,20 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
                   value:
                     'En cualquier momento del día. La consistencia diaria importa más que el timing exacto. Puede tomarse con la comida post-entrenamiento para facilitar el hábito.',
                 },
-                { label: 'Combinar con', value: 'Agua abundante (aumenta la retención hídrica intramuscular). Compatible con proteína y cafeína sin problema.' },
-                { label: 'Evitar con', value: 'No hay contraindicaciones relevantes en personas sanas. Hidratarse bien.' },
-              ]}
-            >
+                {
+                  label: 'Combinar con',
+                  value:
+                    'Agua abundante (aumenta la retención hídrica intramuscular). Compatible con proteína y cafeína sin problema.',
+                },
+                {
+                  label: 'Evitar con',
+                  value: 'No hay contraindicaciones relevantes en personas sanas. Hidratarse bien.',
+                },
+              ]}>
               <HighlightBox styles={styles} title="Nota:">
                 <Text style={styles.highlightText}>
-                  La retención de agua inicial (1-2 kg en las primeras semanas) es intramuscular,
-                  no subcutánea. No afecta negativamente a la estética.
+                  La retención de agua inicial (1-2 kg en las primeras semanas) es intramuscular, no
+                  subcutánea. No afecta negativamente a la estética.
                 </Text>
               </HighlightBox>
             </SupplementCard>
@@ -237,17 +295,21 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
                   value:
                     'Whey: post-entrenamiento o entre comidas para cubrir el objetivo diario. Caseína: antes de dormir. No hay ventana anabólica estricta — lo que importa es el total diario.',
                 },
-                { label: 'Combinar con', value: 'Compatible con cualquier comida. Añadir a avena, yogur griego o batidos sin problema.' },
+                {
+                  label: 'Combinar con',
+                  value:
+                    'Compatible con cualquier comida. Añadir a avena, yogur griego o batidos sin problema.',
+                },
                 {
                   label: 'Evitar con',
-                  value: 'Nada relevante. Si hay intolerancia a la lactosa, elegir aislado de whey (proceso de filtrado elimina la lactosa) o proteína vegetal.',
+                  value:
+                    'Nada relevante. Si hay intolerancia a la lactosa, elegir aislado de whey (proceso de filtrado elimina la lactosa) o proteína vegetal.',
                 },
-              ]}
-            >
+              ]}>
               <HighlightBox styles={styles} title="Nota:">
                 <Text style={styles.highlightText}>
-                  Si con la dieta sólida ya alcanzas el objetivo proteico, el batido es
-                  innecesario. El suplemento no supera la proteína de alimentos reales en calidad.
+                  Si con la dieta sólida ya alcanzas el objetivo proteico, el batido es innecesario.
+                  El suplemento no supera la proteína de alimentos reales en calidad.
                 </Text>
               </HighlightBox>
             </SupplementCard>
@@ -269,16 +331,20 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
                 },
                 {
                   label: 'Cuándo tomarlo',
-                  value: '30-60 minutos antes del entrenamiento para maximizar el efecto ergogénico. Evitar después de las 14-15h para no interferir con el sueño.',
+                  value:
+                    '30-60 minutos antes del entrenamiento para maximizar el efecto ergogénico. Evitar después de las 14-15h para no interferir con el sueño.',
                 },
-                { label: 'Combinar con', value: 'Compatible con creatina (combinación clásica). También con beta-alanina en el pre-entrenamiento.' },
+                {
+                  label: 'Combinar con',
+                  value:
+                    'Compatible con creatina (combinación clásica). También con beta-alanina en el pre-entrenamiento.',
+                },
                 {
                   label: 'Evitar con',
                   value:
                     'El sueño es el enemigo principal. Consumo nocturno tiene vida media de 5-6 horas: un café a las 18h puede afectar el sueño a las 23h. Evitar dependencia diaria: ciclar 4-6 semanas de uso y 1-2 semanas sin ella maximiza el efecto. No usar como sustituto del sueño.',
                 },
-              ]}
-            >
+              ]}>
               <HighlightBox styles={styles} title="Nota:">
                 <Text style={styles.highlightText}>
                   La tolerancia a la cafeína se desarrolla rápidamente. Ciclar 4-6 semanas de uso y
@@ -302,16 +368,26 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
                   value:
                     '2-3 g/día de EPA+DHA combinados (no de aceite de pescado total — leer la etiqueta). La dosis no se calcula por peso, pero personas con mayor masa corporal o mayor porcentaje de grasa pueden beneficiarse del rango alto: 60 kg → 2 g; 75-90 kg → 2,5-3 g. Elegir aceite de pescado concentrado o krill para mayor pureza.',
                 },
-                { label: 'Cuándo tomarlo', value: 'Con las comidas para mejorar la absorción y reducir el sabor a pescado.' },
-                { label: 'Combinar con', value: 'Compatible con vitamina D (ambos liposolubles, se absorben mejor con grasa).' },
-                { label: 'Evitar con', value: 'Altas dosis (>3 g/día) pueden tener leve efecto anticoagulante. Consultar con médico si se toman anticoagulantes.' },
-              ]}
-            >
+                {
+                  label: 'Cuándo tomarlo',
+                  value: 'Con las comidas para mejorar la absorción y reducir el sabor a pescado.',
+                },
+                {
+                  label: 'Combinar con',
+                  value:
+                    'Compatible con vitamina D (ambos liposolubles, se absorben mejor con grasa).',
+                },
+                {
+                  label: 'Evitar con',
+                  value:
+                    'Altas dosis (>3 g/día) pueden tener leve efecto anticoagulante. Consultar con médico si se toman anticoagulantes.',
+                },
+              ]}>
               <HighlightBox styles={styles} title="Nota:">
                 <Text style={styles.highlightText}>
-                  Si consumes 3-4 raciones semanales de pescado azul (salmón, sardinas, caballa),
-                  el suplemento es opcional. En dietas bajas en pescado, es de los más rentables
-                  que puedes tomar.
+                  Si consumes 3-4 raciones semanales de pescado azul (salmón, sardinas, caballa), el
+                  suplemento es opcional. En dietas bajas en pescado, es de los más rentables que
+                  puedes tomar.
                 </Text>
               </HighlightBox>
             </SupplementCard>
@@ -331,11 +407,20 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
                   value:
                     'Vitamina D3: 2,000-4,000 UI/día sin analítica previa. Personas con mayor peso corporal o mayor porcentaje de grasa pueden necesitar el rango alto (la vitamina D se secuestra en tejido adiposo): hasta 60 kg → 2,000 UI; 60-85 kg → 2,000-3,000 UI; más de 85 kg → 3,000-4,000 UI. Con analítica que muestre deficiencia, puede subirse bajo supervisión médica. K2 (MK-7): 100-200 mcg/día junto a la D3.',
                 },
-                { label: 'Cuándo tomarlo', value: 'Con la comida más abundante del día (mejor absorción con grasas).' },
-                { label: 'Combinar con', value: 'Tomar D3 y K2 siempre juntas. Compatible con omega-3 y magnesio.' },
-                { label: 'Evitar con', value: 'No exceder 10,000 UI/día de D3 sin supervisión médica (riesgo de toxicidad).' },
-              ]}
-            >
+                {
+                  label: 'Cuándo tomarlo',
+                  value: 'Con la comida más abundante del día (mejor absorción con grasas).',
+                },
+                {
+                  label: 'Combinar con',
+                  value: 'Tomar D3 y K2 siempre juntas. Compatible con omega-3 y magnesio.',
+                },
+                {
+                  label: 'Evitar con',
+                  value:
+                    'No exceder 10,000 UI/día de D3 sin supervisión médica (riesgo de toxicidad).',
+                },
+              ]}>
               <HighlightBox styles={styles} title="Nota:">
                 <Text style={styles.highlightText}>
                   La mayoría de personas en España tienen niveles subóptimos de vitamina D en
@@ -349,7 +434,9 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
         {/* Calculadoras */}
         <View onLayout={registerOffset('calculadoras')}>
           <Section styles={styles} title="Calculadoras Personalizadas">
-            <P styles={styles}>Introduce tu peso corporal para calcular las dosis recomendadas de cada suplemento:</P>
+            <P styles={styles}>
+              Introduce tu peso corporal para calcular las dosis recomendadas de cada suplemento:
+            </P>
 
             <View style={styles.calculatorBox}>
               <Text style={styles.calculatorTitle}>📊 Calculadora de Dosis</Text>
@@ -364,12 +451,42 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
               </Input>
 
               <View style={styles.calcResultsGrid}>
-                <CalcResult styles={styles} label="Creatina Monohidrato" value="5 g" note="Diarios (dosis estándar)" />
-                <CalcResult styles={styles} label="Cafeína (rango bajo)" value={`${calc.cafeinaBajo} mg`} note="Antes del entrenamiento" />
-                <CalcResult styles={styles} label="Cafeína (rango alto)" value={`${calc.cafeinaAlto} mg`} note="Máximo recomendado" />
-                <CalcResult styles={styles} label="Proteína Diaria" value={`${calc.proteinaBajo}-${calc.proteinaAlto} g`} note="Total (1,8-2,2 g/kg)" />
-                <CalcResult styles={styles} label="Zinc" value={`${calc.zincBajo}-${calc.zincAlto} mg`} note="Diarios con comida" />
-                <CalcResult styles={styles} label="Magnesio" value={`${calc.magnesioBajo}-${calc.magnesioAlto} mg`} note="Antes de dormir" />
+                <CalcResult
+                  styles={styles}
+                  label="Creatina Monohidrato"
+                  value="5 g"
+                  note="Diarios (dosis estándar)"
+                />
+                <CalcResult
+                  styles={styles}
+                  label="Cafeína (rango bajo)"
+                  value={`${calc.cafeinaBajo} mg`}
+                  note="Antes del entrenamiento"
+                />
+                <CalcResult
+                  styles={styles}
+                  label="Cafeína (rango alto)"
+                  value={`${calc.cafeinaAlto} mg`}
+                  note="Máximo recomendado"
+                />
+                <CalcResult
+                  styles={styles}
+                  label="Proteína Diaria"
+                  value={`${calc.proteinaBajo}-${calc.proteinaAlto} g`}
+                  note="Total (1,8-2,2 g/kg)"
+                />
+                <CalcResult
+                  styles={styles}
+                  label="Zinc"
+                  value={`${calc.zincBajo}-${calc.zincAlto} mg`}
+                  note="Diarios con comida"
+                />
+                <CalcResult
+                  styles={styles}
+                  label="Magnesio"
+                  value={`${calc.magnesioBajo}-${calc.magnesioAlto} mg`}
+                  note="Antes de dormir"
+                />
               </View>
             </View>
           </Section>
@@ -390,21 +507,25 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
                 <Text style={styles.inlineBold}>Creatina: </Text>5 g/día
               </Bullet>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Proteína en polvo: </Text>Si no alcanzas el objetivo con comida sólida
+                <Text style={styles.inlineBold}>Proteína en polvo: </Text>Si no alcanzas el objetivo
+                con comida sólida
               </Bullet>
               <Text style={styles.stackLabel}>Recomendado</Text>
               <Bullet styles={styles} glyph="✓">
-                <Text style={styles.inlineBold}>Vitamina D3 + K2: </Text>2,000-4,000 UI + 100-200 mcg
+                <Text style={styles.inlineBold}>Vitamina D3 + K2: </Text>2,000-4,000 UI + 100-200
+                mcg
               </Bullet>
               <Bullet styles={styles} glyph="✓">
                 <Text style={styles.inlineBold}>Omega-3: </Text>2-3 g/día
               </Bullet>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Cafeína: </Text>3-6 mg/kg pre-entrenamiento (opcional)
+                <Text style={styles.inlineBold}>Cafeína: </Text>3-6 mg/kg pre-entrenamiento
+                (opcional)
               </Bullet>
               <Text style={styles.stackLabel}>Opcional (Tier 2)</Text>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Citrulina Malato: </Text>6-8 g pre-entrenamiento en días de volumen alto
+                <Text style={styles.inlineBold}>Citrulina Malato: </Text>6-8 g pre-entrenamiento en
+                días de volumen alto
               </Bullet>
             </View>
 
@@ -412,24 +533,29 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
               <Text style={styles.stackName}>🔥 Stack Pérdida de Grasa (Recomposición)</Text>
               <Text style={styles.stackLabel}>Obligatorio</Text>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Proteína en polvo: </Text>Crítico para mantener masa muscular en déficit
+                <Text style={styles.inlineBold}>Proteína en polvo: </Text>Crítico para mantener masa
+                muscular en déficit
               </Bullet>
               <Text style={styles.stackLabel}>Recomendado</Text>
               <Bullet styles={styles} glyph="✓">
-                <Text style={styles.inlineBold}>Cafeína: </Text>3-6 mg/kg pre-entrenamiento (efecto supresor del apetito)
+                <Text style={styles.inlineBold}>Cafeína: </Text>3-6 mg/kg pre-entrenamiento (efecto
+                supresor del apetito)
               </Bullet>
               <Bullet styles={styles} glyph="✓">
-                <Text style={styles.inlineBold}>Vitamina D3 + K2: </Text>2,000-4,000 UI + 100-200 mcg
+                <Text style={styles.inlineBold}>Vitamina D3 + K2: </Text>2,000-4,000 UI + 100-200
+                mcg
               </Bullet>
               <Bullet styles={styles} glyph="✓">
                 <Text style={styles.inlineBold}>Omega-3: </Text>2-3 g/día
               </Bullet>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Creatina: </Text>5 g/día (retiene masa muscular en déficit)
+                <Text style={styles.inlineBold}>Creatina: </Text>5 g/día (retiene masa muscular en
+                déficit)
               </Bullet>
               <Text style={styles.stackLabel}>Opcional (Tier 2)</Text>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Beta-Alanina: </Text>3,2-6,4 g/día (mejora resistencia en déficit)
+                <Text style={styles.inlineBold}>Beta-Alanina: </Text>3,2-6,4 g/día (mejora
+                resistencia en déficit)
               </Bullet>
             </View>
 
@@ -437,7 +563,8 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
               <Text style={styles.stackName}>⚖️ Stack Mantenimiento (Salud General)</Text>
               <Text style={styles.stackLabel}>Recomendado</Text>
               <Bullet styles={styles} glyph="✓">
-                <Text style={styles.inlineBold}>Vitamina D3 + K2: </Text>2,000-4,000 UI + 100-200 mcg
+                <Text style={styles.inlineBold}>Vitamina D3 + K2: </Text>2,000-4,000 UI + 100-200
+                mcg
               </Bullet>
               <Bullet styles={styles} glyph="✓">
                 <Text style={styles.inlineBold}>Omega-3: </Text>2-3 g/día
@@ -447,7 +574,8 @@ export default function SupplementationGuideScreen({ navigation }: Props) {
               </Bullet>
               <Text style={styles.stackLabel}>Opcional</Text>
               <Bullet styles={styles} glyph="✓" last>
-                <Text style={styles.inlineBold}>Proteína en polvo: </Text>Si la dieta es baja en proteína
+                <Text style={styles.inlineBold}>Proteína en polvo: </Text>Si la dieta es baja en
+                proteína
               </Bullet>
             </View>
           </Section>

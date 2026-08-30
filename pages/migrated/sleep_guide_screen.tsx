@@ -42,10 +42,30 @@ interface Props {
 }
 
 const TOC_ITEMS = [
-  { key: 'beneficios', emoji: '💪', title: 'Beneficios Clave', description: 'Recuperación muscular y hormonal' },
-  { key: 'importancia', emoji: '🔬', title: '¿Por Qué es Importante?', description: 'Ciencia detrás del sueño' },
-  { key: 'consejos', emoji: '😴', title: 'Para Dormir Mejor', description: 'Estrategias prácticas' },
-  { key: 'suplementos', emoji: '💊', title: 'Suplementos Clave', description: 'Opciones recomendadas' },
+  {
+    key: 'beneficios',
+    emoji: '💪',
+    title: 'Beneficios Clave',
+    description: 'Recuperación muscular y hormonal',
+  },
+  {
+    key: 'importancia',
+    emoji: '🔬',
+    title: '¿Por Qué es Importante?',
+    description: 'Ciencia detrás del sueño',
+  },
+  {
+    key: 'consejos',
+    emoji: '😴',
+    title: 'Para Dormir Mejor',
+    description: 'Estrategias prácticas',
+  },
+  {
+    key: 'suplementos',
+    emoji: '💊',
+    title: 'Suplementos Clave',
+    description: 'Opciones recomendadas',
+  },
   { key: 'calculadora', emoji: '🧮', title: 'Calculadora', description: 'Horas necesarias' },
   { key: 'checklist', emoji: '✓', title: 'Checklist', description: 'Rutina de sueño' },
 ];
@@ -112,7 +132,8 @@ export default function SleepGuideScreen({ navigation }: Props) {
     return { min: Math.floor(horas), max: Math.ceil(horas) + 1 };
   }, [edad, objetivo, intensidad]);
 
-  const toggleCheck = (i: number) => setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+  const toggleCheck = (i: number) =>
+    setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
   const checkedCount = checked.filter(Boolean).length;
 
   const registerOffset = (key: string) => (e: LayoutChangeEvent) => {
@@ -125,19 +146,23 @@ export default function SleepGuideScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <GuidePhotoHeader image={require('../../assets/sleep-guide-header.jpg')} onBack={() => navigation?.goBack()} />
+      <GuidePhotoHeader
+        image={require('../../assets/sleep-guide-header.jpg')}
+        onBack={() => navigation?.goBack()}
+      />
 
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 40 + WORKOUT_MINIBAR_CLEARANCE }}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         <View style={styles.headerBlock}>
           <Text style={styles.brandKicker}>
             Be <Text style={styles.titleAccent}>Stronger</Text>
           </Text>
+          <Text style={styles.title}>
+            Tu músculo crece cuando descansas, no solo cuando entrenas
+          </Text>
           <Text style={styles.subtitle}>Recuperación · Hormonal · Rendimiento · 2026</Text>
-          <Text style={styles.title}>Tu músculo crece cuando descansas, no solo cuando entrenas</Text>
         </View>
         <Divider style={{ marginHorizontal: 20, marginBottom: 8 }} />
 
@@ -173,8 +198,8 @@ export default function SleepGuideScreen({ navigation }: Props) {
               anabólicas durante el sueño profundo, esenciales para ganancia muscular y fuerza.
             </GuideCard>
             <GuideCard styles={styles} icon="🧠" title="Reducción del Estrés">
-              Reducción del cortisol (hormona del estrés) y mejora del equilibrio hormonal
-              general, facilitando la pérdida de grasa y la recuperación.
+              Reducción del cortisol (hormona del estrés) y mejora del equilibrio hormonal general,
+              facilitando la pérdida de grasa y la recuperación.
             </GuideCard>
           </Section>
         </View>
@@ -185,28 +210,25 @@ export default function SleepGuideScreen({ navigation }: Props) {
             <SubHeading styles={styles}>A Nivel Hormonal</SubHeading>
             <P styles={styles}>
               <Text style={styles.inlineBold}>Testosterona: </Text>
-              El sueño profundo favorece su producción, esencial para ganar masa muscular y
-              fuerza. Dormir menos de 7 horas reduce significativamente los niveles de
-              testosterona.
+              El sueño profundo favorece su producción, esencial para ganar masa muscular y fuerza.
+              Dormir menos de 7 horas reduce significativamente los niveles de testosterona.
             </P>
             <P styles={styles}>
               <Text style={styles.inlineBold}>Hormona del Crecimiento (GH): </Text>
-              Se libera principalmente durante las fases de sueño profundo (estadios 3 y 4).
-              Repara tejidos, estimula la síntesis proteica y favorece la recuperación muscular.
+              Se libera principalmente durante las fases de sueño profundo (estadios 3 y 4). Repara
+              tejidos, estimula la síntesis proteica y favorece la recuperación muscular.
             </P>
             <P styles={styles}>
               <Text style={styles.inlineBold}>Cortisol: </Text>
-              Dormir bien mantiene esta “hormona del estrés” bajo control. Niveles altos de
-              cortisol dificultan la pérdida de grasa, aumentan la inflamación y ralentizan la
-              recuperación.
+              Dormir bien mantiene esta “hormona del estrés” bajo control. Niveles altos de cortisol
+              dificultan la pérdida de grasa, aumentan la inflamación y ralentizan la recuperación.
             </P>
 
             <SubHeading styles={styles}>Síntesis de Proteínas</SubHeading>
             <P styles={styles}>
-              Al aumentar la liberación de hormona del crecimiento y testosterona durante el
-              sueño, se activa la síntesis de proteínas. Esta reparación no solo permite recuperar
-              fuerza y rendimiento, sino que también favorece el crecimiento de nueva masa
-              muscular.
+              Al aumentar la liberación de hormona del crecimiento y testosterona durante el sueño,
+              se activa la síntesis de proteínas. Esta reparación no solo permite recuperar fuerza y
+              rendimiento, sino que también favorece el crecimiento de nueva masa muscular.
             </P>
 
             <SubHeading styles={styles}>Menos Sueño = Menos Rendimiento</SubHeading>
@@ -225,13 +247,33 @@ export default function SleepGuideScreen({ navigation }: Props) {
 
             <DataTable
               styles={styles}
-              columns={['Horas de Sueño', 'Impacto en Rendimiento', 'Impacto en Composición Corporal']}
+              columns={[
+                'Horas de Sueño',
+                'Impacto en Rendimiento',
+                'Impacto en Composición Corporal',
+              ]}
               widths={[110, 160, 220]}
               rows={[
-                [[{ text: '9+ horas', bold: true }], 'Óptimo', 'Máxima recuperación y síntesis proteica'],
-                [[{ text: '7-8 horas', bold: true }], 'Muy bueno', 'Recuperación adecuada, balance hormonal'],
-                [[{ text: '6-7 horas', bold: true }], 'Aceptable', 'Rendimiento reducido, apetito aumentado'],
-                [[{ text: '<6 horas', bold: true }], 'Pobre', 'Pérdida de rendimiento, difícil mantener déficit'],
+                [
+                  [{ text: '9+ horas', bold: true }],
+                  'Óptimo',
+                  'Máxima recuperación y síntesis proteica',
+                ],
+                [
+                  [{ text: '7-8 horas', bold: true }],
+                  'Muy bueno',
+                  'Recuperación adecuada, balance hormonal',
+                ],
+                [
+                  [{ text: '6-7 horas', bold: true }],
+                  'Aceptable',
+                  'Rendimiento reducido, apetito aumentado',
+                ],
+                [
+                  [{ text: '<6 horas', bold: true }],
+                  'Pobre',
+                  'Pérdida de rendimiento, difícil mantener déficit',
+                ],
               ]}
             />
           </Section>
@@ -240,11 +282,13 @@ export default function SleepGuideScreen({ navigation }: Props) {
         {/* Para Dormir Mejor */}
         <View onLayout={registerOffset('consejos')}>
           <Section styles={styles} title="😴 Para Dormir Mejor">
-            <P styles={styles}>Implementa estas estrategias para optimizar tu sueño y maximizar la recuperación:</P>
+            <P styles={styles}>
+              Implementa estas estrategias para optimizar tu sueño y maximizar la recuperación:
+            </P>
             <GuideCard styles={styles} icon="💡" title="Luz">
-              <Text style={styles.inlineBold}>Evita pantallas 60 minutos antes de dormir </Text>
-              o utiliza modo nocturno. La luz azul suprime la melatonina, dificultando conciliar
-              el sueño.
+              <Text style={styles.inlineBold}>Evita pantallas 60 minutos antes de dormir </Text>o
+              utiliza modo nocturno. La luz azul suprime la melatonina, dificultando conciliar el
+              sueño.
             </GuideCard>
             <GuideCard styles={styles} icon="☕" title="Estímulos">
               <Text style={styles.inlineBold}>Limita cafeína 6-8 horas antes de dormir. </Text>
@@ -255,16 +299,19 @@ export default function SleepGuideScreen({ navigation }: Props) {
               incluso los fines de semana. Esto sincroniza tu reloj circadiano.
             </GuideCard>
             <GuideCard styles={styles} icon="🌡️" title="Ambiente">
-              <Text style={styles.inlineBold}>Temperatura: 18-20°C, habitación oscura y silenciosa. </Text>
+              <Text style={styles.inlineBold}>
+                Temperatura: 18-20°C, habitación oscura y silenciosa.{' '}
+              </Text>
               Un ambiente frío favorece la conciliación del sueño.
             </GuideCard>
             <GuideCard styles={styles} icon="📖" title="Hábitos">
               <Text style={styles.inlineBold}>Realiza las mismas tareas pre-sueño </Text>
-              (leer, preparar ropa del día siguiente). Esto señala al cuerpo que es hora de
-              dormir.
+              (leer, preparar ropa del día siguiente). Esto señala al cuerpo que es hora de dormir.
             </GuideCard>
             <GuideCard styles={styles} icon="🧘" title="Relajación">
-              <Text style={styles.inlineBold}>Respiraciones controladas te dormirás más rápido. </Text>
+              <Text style={styles.inlineBold}>
+                Respiraciones controladas te dormirás más rápido.{' '}
+              </Text>
               Prueba la técnica 4-7-8: inhala 4, sostén 7, exhala 8.
             </GuideCard>
           </Section>
@@ -274,8 +321,8 @@ export default function SleepGuideScreen({ navigation }: Props) {
         <View onLayout={registerOffset('suplementos')}>
           <Section styles={styles} title="💊 Suplementos Clave para el Sueño">
             <P styles={styles}>
-              Estos suplementos pueden ayudarte a optimizar la calidad del sueño cuando los
-              hábitos básicos están en orden:
+              Estos suplementos pueden ayudarte a optimizar la calidad del sueño cuando los hábitos
+              básicos están en orden:
             </P>
             <DataTable
               styles={styles}
@@ -332,20 +379,43 @@ export default function SleepGuideScreen({ navigation }: Props) {
 
               <Text style={styles.calcInputLabel}>Tu edad (años)</Text>
               <Input style={styles.calcInput}>
-                <InputField keyboardType="numeric" value={edadInput} onChangeText={setEdadInput} placeholder="Ej: 28" />
+                <InputField
+                  keyboardType="numeric"
+                  value={edadInput}
+                  onChangeText={setEdadInput}
+                  placeholder="Ej: 28"
+                />
               </Input>
 
               <Text style={[styles.calcInputLabel, { marginTop: 16 }]}>Objetivo principal</Text>
               {OBJETIVOS.map((o) => (
-                <SelectRow key={o.value} styles={styles} label={o.label} selected={objetivo === o.value} onPress={() => setObjetivo(o.value)} />
+                <SelectRow
+                  key={o.value}
+                  styles={styles}
+                  label={o.label}
+                  selected={objetivo === o.value}
+                  onPress={() => setObjetivo(o.value)}
+                />
               ))}
 
-              <Text style={[styles.calcInputLabel, { marginTop: 8 }]}>Intensidad de entrenamiento</Text>
+              <Text style={[styles.calcInputLabel, { marginTop: 8 }]}>
+                Intensidad de entrenamiento
+              </Text>
               {INTENSIDADES.map((o) => (
-                <SelectRow key={o.value} styles={styles} label={o.label} selected={intensidad === o.value} onPress={() => setIntensidad(o.value)} />
+                <SelectRow
+                  key={o.value}
+                  styles={styles}
+                  label={o.label}
+                  selected={intensidad === o.value}
+                  onPress={() => setIntensidad(o.value)}
+                />
               ))}
 
-              <View style={[styles.calcResultBox, { width: '100%', marginTop: 8, alignItems: 'center' }]}>
+              <View
+                style={[
+                  styles.calcResultBox,
+                  { width: '100%', marginTop: 8, alignItems: 'center' },
+                ]}>
                 <Text style={styles.calcResultLabel}>Horas de sueño recomendadas por noche</Text>
                 <Text style={[styles.calcResultValue, { fontSize: 32 }]}>
                   {min}-{max}
@@ -353,9 +423,9 @@ export default function SleepGuideScreen({ navigation }: Props) {
               </View>
               <Text style={[styles.description, { marginTop: 14, maxWidth: undefined }]}>
                 <Text style={styles.inlineBold}>Recomendación: </Text>
-                Basado en tu edad ({edad} años), objetivo ({objetivo}) e intensidad de
-                entrenamiento ({intensidad}), se recomienda dormir entre {min}-{max} horas
-                diarias. Mantén una rutina consistente para optimizar recuperación y rendimiento.
+                Basado en tu edad ({edad} años), objetivo ({objetivo}) e intensidad de entrenamiento
+                ({intensidad}), se recomienda dormir entre {min}-{max} horas diarias. Mantén una
+                rutina consistente para optimizar recuperación y rendimiento.
               </Text>
             </View>
           </Section>
@@ -370,7 +440,11 @@ export default function SleepGuideScreen({ navigation }: Props) {
             </P>
             <View style={styles.checklistBox}>
               {CHECKLIST_LABELS.map((label, i) => (
-                <ChecklistItem key={i} styles={styles} checked={checked[i]} onToggle={() => toggleCheck(i)}>
+                <ChecklistItem
+                  key={i}
+                  styles={styles}
+                  checked={checked[i]}
+                  onToggle={() => toggleCheck(i)}>
                   {label}
                 </ChecklistItem>
               ))}
@@ -404,9 +478,12 @@ export default function SleepGuideScreen({ navigation }: Props) {
         </Section>
 
         {/* Footer */}
-        <View style={{ paddingHorizontal: 20, alignItems: 'center', marginTop: 8 }}>
-          <Text style={styles.footerText}>© 2026 Be Stronger. Guía de Sueño, Recuperación y Rendimiento.</Text>
-          <Text style={[styles.footerText, { marginBottom: 0 }]}>Todos los derechos reservados.</Text>
+        <View style={styles.footerBox}>
+          <Text style={styles.footerTitle}>Be Stronger</Text>
+          <Text style={[styles.footerText, { marginTop: 10, marginBottom: 0 }]}>
+            © 2026 Be Stronger. Guía de Sueño, Recuperación y Rendimiento. Todos los derechos
+            reservados.
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
