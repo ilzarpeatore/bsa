@@ -5,7 +5,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
-import { SandowLogo } from "@components/auth/SandowLogo";
 import { AuthLinkRow } from "@components/auth/AuthLinkRow";
 import GlassButton from "@components/GlassButton";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
@@ -43,7 +42,7 @@ export default function WelcomeAuthScreen() {
 
       <SafeAreaView style={styles.container}>
         <View style={styles.top}>
-          <SandowLogo size={80} />
+          <ExpoImage source={require("../../assets/bestronger-logo.png")} style={styles.logo} contentFit="contain" />
           <Text style={styles.title}>Bienvenido a{"\n"}Be Stronger!</Text>
           <Text style={styles.subtitle}>Elige cómo quieres continuar.</Text>
         </View>
@@ -92,6 +91,15 @@ function useStyle() {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
+    },
+    // Logo real (assets/bestronger-logo.png, fondo blanco recortado a
+    // transparente) sustituye al círculo gris con una "S" de antes
+    // (SandowLogo, ya eliminado -- sin más usos en la app). Proporción
+    // 959x551 del PNG original -- ancho fijo, alto en la misma relación
+    // para no deformarlo.
+    logo: {
+      width: "180@ratio",
+      height: "103.5@ratio",
     },
     title: {
       fontFamily: "Gilroy-ExtraBold",

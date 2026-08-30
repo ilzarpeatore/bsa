@@ -18,6 +18,7 @@ import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
 import {  Divider  } from '@components/ui/divider';
 import AnimatedRing from '@components/AnimatedRing';
+import AnimatedGlowBorder from '@components/AnimatedGlowBorder';
 import ScreenHeader from '@components/ScreenHeader';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import {  useTutorial  } from '@store/TutorialContext';
@@ -530,12 +531,8 @@ export default function PlanScreen(props: any) {
           const isToday = isSameDay(day, new Date());
           const dayKey = formatDateYMD(day);
           const progress = weekKcalProgress[dayKey] ?? 0;
-          return (
-            <Pressable
-              key={dayKey}
-              style={[s.weekDayPill, isSelected && s.weekDayPillSelected]}
-              onPress={() => setSelectedDay(day)}
-            >
+          const pillContent = (
+            <>
               <AnimatedRing
                 size={WEEK_RING_SIZE}
                 strokeWidth={WEEK_RING_STROKE}
@@ -549,6 +546,24 @@ export default function PlanScreen(props: any) {
                 </Box>
               </AnimatedRing>
               <Text style={[s.weekDayLabel, isSelected && s.weekDayLabelSelected]}>{formatWeekday(day)}</Text>
+            </>
+          );
+          return (
+            <Pressable
+              key={dayKey}
+              style={[s.weekDayPill, isSelected && s.weekDayPillSelected]}
+              onPress={() => setSelectedDay(day)}
+            >
+              {/* Borde "con vida" solo en el día seleccionado (pedido
+                  explícito 2026-08-29) -- el resto de días se queda con el
+                  brillo estático (shadowColor) que ya llevaba la píldora. */}
+              {isSelected ? (
+                <AnimatedGlowBorder borderRadius={RADIUS.pill} strokeWidth={1.5} duration={2800} style={s.weekDayPillGlow}>
+                  {pillContent}
+                </AnimatedGlowBorder>
+              ) : (
+                pillContent
+              )}
             </Pressable>
           );
         })}
@@ -556,8 +571,12 @@ export default function PlanScreen(props: any) {
     );
   };
 
+  // Antes variant="ghost" (tarjeta plana) -- pedido explícito 2026-08-29 de
+  // extender el material Liquid Glass real (mismo que ya usa compactBar más
+  // arriba) al resto de bloques de esta pantalla. En Android/iOS<26 cae
+  // igual que antes a bg-card/80 (ver components/ui/card), sin regresión.
   const renderNutrientGraph = () => (
-    <Card variant="ghost" style={s.nutrientCard}>
+    <Card variant="glass" style={s.nutrientCard}>
       <Box style={s.kcalSection}>
         <Text style={s.kcalValue}>{kcalCurrent}</Text>
         <Text style={s.kcalTarget}>/ {kcalTarget} kcal</Text>
@@ -596,7 +615,8 @@ export default function PlanScreen(props: any) {
     const total = mealTotals[key] ?? {};
     const recipes = mealRecipes[key] ?? [];
     return (
-      <Card key={key} variant="ghost" style={s.mealSection}>
+      // Antes variant="ghost" -- mismo motivo que renderNutrientGraph arriba.
+      <Card key={key} variant="glass" style={s.mealSection}>
         <HStack style={s.mealHeader}>
           <Box style={{ flex: 1 }}>
             <Text style={s.mealTitle}>{displayName}</Text>
@@ -872,6 +892,15 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
+  },
+  // Solo alineación/gap -- el padding real ya lo pone weekDayPill en el
+  // Pressable padre; duplicarlo aquí agrandaría la píldora seleccionada
+  // frente al resto de días. AnimatedGlowBorder solo aporta borderRadius/
+  // overflow por su cuenta.
+  weekDayPillGlow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   // Círculo blanco con el número -- se queda igual (blanco, número oscuro)
   // este o no seleccionado el día, tal como la referencia; solo la píldora

@@ -249,7 +249,7 @@ export default function WorkoutPreviewScreen(props: Props) {
           {workoutTemplateId ? (
             <Box style={styles.titleActions}>
               <Pressable style={styles.iconBtn} onPress={onToggleFavourite}>
-                <Icon name={isFavourite ? 'bookmark' : 'bookmark-outline'} size={18} color={isFavourite ? C.accentBlack : C.textPrimary} />
+                <Icon name={isFavourite ? 'bookmark' : 'bookmark-outline'} size={18} color={isFavourite ? C.orange60 : C.textPrimary} />
               </Pressable>
             </Box>
           ) : null}
@@ -333,7 +333,7 @@ export default function WorkoutPreviewScreen(props: Props) {
                         <Divider style={{ marginTop: 10 }} />
                         <HStack space="xs" className="items-center" style={{ paddingTop: 10 }}>
                           <Box style={styles.lastPerformanceIconWrap}>
-                            <Icon name="time-outline" size={13} color={C.blue60} />
+                            <Icon name="time-outline" size={13} color={C.orange60} />
                           </Box>
                           <Text style={styles.lastPerformanceLabel}>Última vez</Text>
                           <Text style={styles.lastPerformanceText}>{lastPerformance}</Text>
@@ -494,14 +494,14 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: C.blue5,
+    backgroundColor: C.orange10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   lastPerformanceLabel: {
     fontFamily: FONT.bold,
     fontSize: 11,
-    color: C.blue60,
+    color: C.orange60,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },

@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { Colors } from "@constants/colors";
+import { C } from "../pages/migrated/theme";
 
 interface Props {
   title: string;
@@ -49,7 +50,12 @@ function DietGridCard({
             <Ionicons
               name={isFavourite ? "star" : "star-outline"}
               size={15}
-              color={isFavourite ? Colors.ACCENT_START : "#FFFFFF"}
+              // Antes Colors.ACCENT_START (gris) -- color de marca (pedido
+              // explícito 2026-08-29, "todos los botones"). Teal puro, no
+              // orange60: el fondo de este badge es oscuro (rgba(0,0,0,0.45)
+              // sobre foto), no la superficie clara donde orange60 hace
+              // falta por contraste (ver comentario junto a C.orange).
+              color={isFavourite ? C.orange : "#FFFFFF"}
             />
           </Pressable>
         ) : null}

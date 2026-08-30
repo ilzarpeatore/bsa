@@ -7,15 +7,31 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@store/AuthContext";
 import { Colors } from "@constants/colors";
 import { showToast } from "@helper/toast";
+import GlassButton from "@components/GlassButton";
+import { C } from "../migrated/theme";
 
+// Mismo fondo que WelcomeAuthScreen.tsx (pedido explícito 2026-08-29) --
+// aquí con una capa de oscurecido MÁS fuerte en todos los puntos del
+// degradado (0.55→0.68→0.88 frente a 0.15→0.4→0.82 en Welcome): esta
+// pantalla tiene texto/inputs en toda la superficie, no solo arriba y
+// abajo, así que necesita más contraste de fondo de principio a fin.
+// Textos que flotan directamente sobre la foto (título, subtítulo, flecha
+// atrás, "¿Olvidaste tu contraseña?", footer) pasan a blanco fijo -- ya NO
+// `Colors.TEXT_PRIMARY/SECONDARY` (paleta pensada para fondo claro,
+// siempre oscura, mismo problema ya corregido en WelcomeAuthScreen.tsx).
+// Los inputs SÍ siguen usando `Colors` -- son tarjetas blancas opacas
+// propias, no dependen del fondo.
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
   const { login } = useAuth();
@@ -42,7 +58,19 @@ export default function LoginScreen() {
   }, [email, password, login]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.bg}>
+      <ExpoImage
+        source={require("../../assets/welcome-auth-bg.webp")}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+      />
+      <LinearGradient
+        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.68)", "rgba(0,0,0,0.88)"]}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -55,7 +83,7 @@ export default function LoginScreen() {
             onPress={() => navigation.goBack()}
             style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.2 }]}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.TEXT_PRIMARY} />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </Pressable>
 
           <Text style={styles.title}>Bienvenido de nuevo</Text>
@@ -104,34 +132,18 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <Pressable
-            style={({ pressed }) => [styles.btn, loading && styles.btnDisabled, pressed && { opacity: 0.2 }]}
+          <GlassButton
+            label="Iniciar sesión"
             onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#000000" />
-            ) : (
-              <Text style={styles.btnText}>Iniciar sesión</Text>
-            )}
-          </Pressable>
+            loading={loading}
+            style={styles.btn}
+          />
 
           <Pressable
             onPress={() => navigation.navigate("ForgotOptions")}
             style={({ pressed }) => [styles.forgotBtn, pressed && { opacity: 0.2 }]}
           >
             <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-          </Pressable>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>O</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <Pressable style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.2 }]}>
-            <Ionicons name="logo-google" size={20} color={Colors.TEXT_PRIMARY} />
-            <Text style={styles.googleBtnText}>Continuar con Google</Text>
           </Pressable>
 
           <View style={styles.footer}>
@@ -148,18 +160,29 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      <StatusBar style="light" />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: Colors.BG_PRIMARY } as const,
+  // Fondo real detrás de la foto (ver ExpoImage/LinearGradient arriba) --
+  // mismo criterio que WelcomeAuthScreen.tsx.
+  bg: { width: "100%", height: "100%", backgroundColor: "#000000" } as const,
+  container: { flex: 1 } as const,
   scroll: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 16, paddingBottom: 32 } as const,
   backBtn: { width: 40, height: 40, justifyContent: "center" as const, marginBottom: 16 } as const,
-  title: { fontFamily: "Gilroy-ExtraBold" as const, fontSize: 30, color: Colors.TEXT_PRIMARY, marginBottom: 6 } as const,
-  subtitle: { fontFamily: "Gilroy-Regular" as const, fontSize: 16, color: Colors.TEXT_SECONDARY, marginBottom: 32 } as const,
+  // Título/subtítulo/enlaces flotan directamente sobre la foto -- blanco
+  // fijo, no `Colors.TEXT_PRIMARY/SECONDARY` (esa paleta da texto oscuro
+  // pensado para fondo claro, invisible aquí). Los inputs de abajo NO
+  // cambian: son tarjetas blancas opacas propias.
+  title: { fontFamily: "Gilroy-ExtraBold" as const, fontSize: 30, color: "#FFFFFF", marginBottom: 6 } as const,
+  subtitle: { fontFamily: "Gilroy-Regular" as const, fontSize: 16, color: "rgba(255,255,255,0.82)", marginBottom: 32 } as const,
   inputGroup: { marginBottom: 20 } as const,
-  label: { fontFamily: "Gilroy-Medium" as const, fontSize: 14, color: Colors.TEXT_SECONDARY, marginBottom: 8 } as const,
+  // Las etiquetas "Email"/"Contraseña" van ENCIMA de la tarjeta blanca del
+  // input, no dentro -- flotan sobre la foto igual que title/subtitle.
+  label: { fontFamily: "Gilroy-Medium" as const, fontSize: 14, color: "rgba(255,255,255,0.82)", marginBottom: 8 } as const,
   inputWrap: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -171,39 +194,16 @@ const styles = {
   inputIcon: { marginLeft: 14 } as const,
   input: { flex: 1, height: 52, paddingHorizontal: 12, fontFamily: "Gilroy-Regular" as const, fontSize: 16, color: Colors.TEXT_PRIMARY } as const,
   eyeBtn: { paddingHorizontal: 14 } as const,
-  btn: {
-    backgroundColor: Colors.ACCENT_START || "#E5E5EA",
-    borderRadius: 14,
-    height: 54,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    marginTop: 8,
-    marginBottom: 16,
-  } as const,
-  btnDisabled: { opacity: 0.6 } as const,
-  btnText: { fontFamily: "Gilroy-Bold" as const, fontSize: 17, color: "#000000" } as const,
+  // Ya no lleva backgroundColor/height propios -- GlassButton (color de
+  // marca #49C5B6 + Liquid Glass) trae su propio estilo, esto solo aporta
+  // el espaciado con los elementos de alrededor. Sustituye al botón gris
+  // plano (Colors.ACCENT_START) de antes -- pedido explícito 2026-08-29:
+  // "pinta el botón de nuestro color de marca".
+  btn: { marginTop: 8, marginBottom: 16 } as const,
   forgotBtn: { alignItems: "flex-end" as const, marginBottom: 24 } as const,
-  // Texto de enlace: ACCENT_START/ACCENT_ACTIVE son ahora gris claro (E5E5EA),
-  // ilegibles como color de TEXTO sobre fondo claro - se usa TEXT_PRIMARY
-  // (#000000) en su lugar, el peso "Bold" ya distingue el enlace visualmente.
-  forgotText: { fontFamily: "Gilroy-Medium" as const, fontSize: 14, color: Colors.TEXT_PRIMARY || "#000000" } as const,
-  dividerRow: { flexDirection: "row" as const, alignItems: "center" as const, marginBottom: 24 } as const,
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.TEXT_MUTED || "#2A2844" } as const,
-  dividerText: { fontFamily: "Gilroy-Medium" as const, fontSize: 13, color: Colors.TEXT_SECONDARY, marginHorizontal: 16 } as const,
-  googleBtn: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: Colors.BG_CARD || "#141227",
-    borderRadius: 14,
-    height: 54,
-    borderWidth: 1,
-    borderColor: Colors.TEXT_MUTED || "#2A2844",
-    marginBottom: 32,
-    gap: 10,
-  } as const,
-  googleBtnText: { fontFamily: "Gilroy-Medium" as const, fontSize: 15, color: Colors.TEXT_PRIMARY } as const,
+  forgotText: { fontFamily: "Gilroy-Medium" as const, fontSize: 14, color: "rgba(255,255,255,0.82)" } as const,
   footer: { flexDirection: "row" as const, justifyContent: "center" as const, alignItems: "center" } as const,
-  footerText: { fontFamily: "Gilroy-Regular" as const, fontSize: 15, color: Colors.TEXT_SECONDARY } as const,
-  footerLink: { fontFamily: "Gilroy-Bold" as const, fontSize: 15, color: Colors.TEXT_PRIMARY || "#000000" } as const,
+  footerText: { fontFamily: "Gilroy-Regular" as const, fontSize: 15, color: "rgba(255,255,255,0.75)" } as const,
+  // Acento de marca -- mismo criterio que "Regístrate" en WelcomeAuthScreen.tsx.
+  footerLink: { fontFamily: "Gilroy-Bold" as const, fontSize: 15, color: C.orange } as const,
 };

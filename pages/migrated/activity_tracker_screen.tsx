@@ -4,6 +4,7 @@ import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Ionicons  } from '@expo/vector-icons';
 import {  LinearGradient  } from 'expo-linear-gradient';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import { FONT, RADIUS } from './theme';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -83,7 +84,8 @@ export default function ActivityTrackerScreen({ navigation }: any) {
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Period selector */}
         <View style={styles.periodWrap}>
-          <View style={styles.periodContainer}>
+          {/* Liquid Glass real en iOS 26+ (pedido explícito 2026-08-29). */}
+          <GlassSegmentedBar style={styles.periodContainer}>
             {periods.map((period) => {
               const isSelected = period === selectedPeriod;
               return (
@@ -102,7 +104,7 @@ export default function ActivityTrackerScreen({ navigation }: any) {
                 </Pressable>
               );
             })}
-          </View>
+          </GlassSegmentedBar>
         </View>
 
         {/* Main stats */}

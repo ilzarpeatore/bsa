@@ -135,15 +135,21 @@ export const C = {
   statusRest: "#FFCC00",
   statusCycle: "#FFD1DC",
 
-  // Acento neutro para CTAs principales tipo Bevel (botones "Continuar",
-  // "Guardar") — negro casi puro, no el brand50/60 morado de la app.
-  accentBlack: "#000000",
-  // Color de texto/icono correcto sobre un fondo accentBlack -- invierte
-  // junto con él (blanco en claro, negro en oscuro, ya que accentBlack pasa
-  // a blanco ahí). Antes de este token, muchas pantallas hardcodeaban
-  // '#FFFFFF' junto a accentBlack asumiendo modo claro -- texto/icono
-  // blanco sobre un botón que en oscuro también es blanco (BUG-045).
-  accentBlackForeground: "#FFFFFF",
+  // CTAs principales tipo Bevel (botones "Continuar", "Guardar" y demás
+  // estados activos/seleccionados que reutilizan este mismo par en ~20
+  // pantallas/componentes) -- pedido explícito 2026-08-29: "aplica a todos
+  // los botones el color principal de la app", así que pasa de negro casi
+  // puro (valor original) al mismo teal de marca que C.orange, en vez de
+  // mantener dos acentos distintos en la misma app. Mismo valor en claro y
+  // oscuro a propósito, igual que C.orange (no debe variar por tema) --
+  // antes SÍ invertía (negro en claro, blanco en oscuro, ver BUG-045), pero
+  // ese invertido ya no aplica al ser el mismo teal en ambos modos.
+  accentBlack: "#49C5B6",
+  // Texto/icono legible sobre el nuevo fondo teal -- casi negro (mismo valor
+  // que components/GlassButton.tsx LABEL_COLOR), NUNCA blanco: blanco sobre
+  // #49C5B6 da ~2.1:1 (insuficiente), este tono da ~9.9:1 (WCAG AA de
+  // sobra). Mismo valor en ambos modos, ya que accentBlack tampoco varía.
+  accentBlackForeground: "#12312C",
 };
 
 // Variante oscura de C, mismas claves exactas (Home v2, 2026-08-21 —
@@ -240,8 +246,10 @@ export const C_DARK: typeof C = {
   statusInfo: "#0A84FF",
   statusRest: "#FFD60A",
   statusCycle: "#FFD1DC",
-  accentBlack: "#FFFFFF",
-  accentBlackForeground: "#000000",
+  // Mismo teal de marca que en C (ver comentario junto a C.accentBlack) --
+  // ya no invierte entre temas.
+  accentBlack: "#49C5B6",
+  accentBlackForeground: "#12312C",
 };
 
 // Hora local (0-23) a partir de la cual se considera "de noche" para el

@@ -3,6 +3,7 @@ import { Text, Pressable, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { Colors } from "@constants/colors";
+import { GRADIENT } from "../../pages/migrated/theme";
 
 interface Props {
   label: string;
@@ -23,7 +24,12 @@ export function AuthPrimaryButton({ label, onPress, loading = false, disabled = 
       <LinearGradient
         start={{ x: 0.24, y: -0.09 }}
         end={{ x: 0.5, y: 1 }}
-        colors={[Colors.ACCENT_START, Colors.ACCENT_END]}
+        // Antes Colors.ACCENT_START/END (gris, alias de C.brand50/60) --
+        // pedido explícito 2026-08-29 de usar el color de marca en todos
+        // los botones. Colors.TEXT_PRIMARY ya resuelve a un gris casi negro
+        // (ver C.white en theme.ts), así que el texto sigue legible encima
+        // sin tocarlo.
+        colors={GRADIENT.brand}
         style={styles.gradient}
       >
         {loading ? (

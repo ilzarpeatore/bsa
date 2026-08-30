@@ -14,6 +14,7 @@ import {  VStack  } from '@components/ui/vstack';
 import {  Divider  } from '@components/ui/divider';
 import {  Button, ButtonText  } from '@components/ui/button';
 import ScreenHeader from '@components/ScreenHeader';
+import AnimatedGlowBorder from '@components/AnimatedGlowBorder';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { FONT, RADIUS } from './theme';
 import {  blogApi, BlogListItem, BlogCategory  } from '../../api/blog';
@@ -181,28 +182,39 @@ export default function BlogScreen({ navigation }: any) {
     </Pressable>
   );
 
-  const renderFeaturedCard = (item: BlogListItem, index: number) => (
-    <Pressable
-      key={item.id}
-      style={[styles_local.featuredCard, index === 0 && styles_local.featuredCardLarge]}
-      onPress={() => navigateToDetail(item)}
-    >
-      {item.post_image ? (
-        <Image source={{ uri: item.post_image }} style={styles_local.featuredImage} contentFit="cover" />
-      ) : (
-        <Box style={[styles_local.featuredImage, { backgroundColor: C.surfaceLight }]} />
-      )}
-      <Box style={styles_local.featuredOverlay} />
-      {item.blog_category && (
-        <Box style={styles_local.featuredBadge}>
-          <Text style={styles_local.featuredBadgeText}>{item.blog_category.title}</Text>
+  const renderFeaturedCard = (item: BlogListItem, index: number) => {
+    const card = (
+      <Pressable
+        style={[styles_local.featuredCard, index === 0 && styles_local.featuredCardLarge]}
+        onPress={() => navigateToDetail(item)}
+      >
+        {item.post_image ? (
+          <Image source={{ uri: item.post_image }} style={styles_local.featuredImage} contentFit="cover" />
+        ) : (
+          <Box style={[styles_local.featuredImage, { backgroundColor: C.surfaceLight }]} />
+        )}
+        <Box style={styles_local.featuredOverlay} />
+        {item.blog_category && (
+          <Box style={styles_local.featuredBadge}>
+            <Text style={styles_local.featuredBadgeText}>{item.blog_category.title}</Text>
+          </Box>
+        )}
+        <Box style={styles_local.featuredInfo}>
+          <Text style={styles_local.featuredTitle} numberOfLines={2}>{item.title ?? ''}</Text>
         </Box>
-      )}
-      <Box style={styles_local.featuredInfo}>
-        <Text style={styles_local.featuredTitle} numberOfLines={2}>{item.title ?? ''}</Text>
-      </Box>
-    </Pressable>
-  );
+      </Pressable>
+    );
+    // Borde "con vida" solo en el primer destacado (el más grande,
+    // featuredCardLarge) -- pedido explícito 2026-08-29 para tarjetas
+    // destacado/recomendado.
+    return index === 0 ? (
+      <AnimatedGlowBorder key={item.id} borderRadius={RADIUS.md} strokeWidth={2}>
+        {card}
+      </AnimatedGlowBorder>
+    ) : (
+      <React.Fragment key={item.id}>{card}</React.Fragment>
+    );
+  };
 
   return (
     <SafeAreaView style={styles_local.container} edges={['bottom']}>

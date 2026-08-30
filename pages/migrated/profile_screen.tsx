@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import { Box } from '@components/ui/box';
+import { Card } from '@components/ui/card';
 import { Text } from '@components/ui/text';
 import { Heading } from '@components/ui/heading';
 import { HStack } from '@components/ui/hstack';
@@ -180,7 +181,13 @@ export default function ProfileScreen(props: any) {
             <Heading size="md" style={{ marginBottom: 16 }}>Perfil</Heading>
           )}
 
-          <Box className="rounded-lg items-center px-5" style={{ backgroundColor: C.surface, paddingVertical: 24 }}>
+          {/* Antes Box con backgroundColor: C.surface (tarjeta plana) --
+              pedido explícito 2026-08-29 de extender el Liquid Glass real a
+              las pantallas de más uso. Se quita el rounded-lg propio: la
+              variante "glass" ya recorta a rounded-md (20px) en un wrapper
+              aparte (ver components/ui/card) y un radio distinto ahí
+              desalinearía el recorte real del contenido. */}
+          <Card variant="glass" className="items-center px-5" style={{ paddingVertical: 24 }}>
             <Box className="relative" style={{ marginBottom: 12 }}>
               <Box
                 className="rounded-pill items-center justify-center overflow-hidden"
@@ -229,7 +236,7 @@ export default function ProfileScreen(props: any) {
                 <Text size="xs" muted style={{ marginTop: 2 }}>Versión</Text>
               </Box>
             </HStack>
-          </Box>
+          </Card>
 
           <HStack style={{ marginTop: 16, gap: 12 }}>
             <Pressable

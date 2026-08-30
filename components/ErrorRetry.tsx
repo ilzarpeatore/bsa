@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { Colors } from "@constants/colors";
+import { GRADIENT } from "../pages/migrated/theme";
 
 interface Props {
   message: string;
@@ -26,7 +27,10 @@ function ErrorRetry({ message, onRetry }: Props) {
         <LinearGradient
           start={{ x: 0.24, y: -0.09 }}
           end={{ x: 0.5, y: 1 }}
-          colors={[Colors.ACCENT_START, Colors.ACCENT_END]}
+          // Antes Colors.ACCENT_START/END (gris) -- color de marca en todos
+          // los botones (pedido explícito 2026-08-29, mismo cambio que
+          // AuthPrimaryButton.tsx).
+          colors={GRADIENT.brand}
           style={styles.btn}
         >
           <Text style={styles.btnText}>Retry</Text>

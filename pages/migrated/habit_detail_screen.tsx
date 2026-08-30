@@ -15,6 +15,7 @@ import {  Button, ButtonText  } from '@components/ui/button';
 import {  Modal, ModalBackdrop, ModalContent  } from '@components/ui/modal';
 import {  isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
+import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { showToast } from '@helper/toast';
 import { FONT, SHADOW, RADIUS } from './theme';
@@ -364,7 +365,7 @@ export default function HabitDetailScreen(props: Props) {
               </Pressable>
             </Box>
 
-            <Box style={styles.tabsRow}>
+            <GlassSegmentedBar style={styles.tabsRow}>
               {PERIODS.map((p) => (
                 <Pressable
                   key={p.key}
@@ -374,7 +375,7 @@ export default function HabitDetailScreen(props: Props) {
                   <Text style={[styles.tabText, period === p.key && styles.tabTextActive]}>{p.label}</Text>
                 </Pressable>
               ))}
-            </Box>
+            </GlassSegmentedBar>
 
             <Text style={styles.rangeStat}>{rangeStats.completed}/{rangeStats.total} días completados</Text>
           </Box>

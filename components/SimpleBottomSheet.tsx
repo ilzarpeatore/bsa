@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { KeyboardAvoidingView, Keyboard, Platform, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Keyboard, Platform, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@components/ui/actionsheet';
 import { GlassView, isGlassEffectAPIAvailable } from '@components/ui/glass-view';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -34,24 +35,47 @@ interface SimpleBottomSheetProps {
 // dentro, que también lleva el radio/padding que antes tenía este nodo.
 export default function SimpleBottomSheet({ visible, onClose, children }: SimpleBottomSheetProps) {
   const { colors: C } = useAppColorMode();
+  const insets = useSafeAreaInsets();
   const keyboardVisibleRef = useRef(false);
-  // Solo iOS 26+ real (dispositivo + compilado con Xcode 26+) renderiza el
-  // material Liquid Glass de verdad — en cualquier otro caso GlassView cae a
-  // una View normal y quedaría transparente sin este fondo de reserva.
-  const hasGlass = isGlassEffectAPIAvailable();
+  // Bug real reportado dos veces (2026-08-27 y 2026-08-29, con capturas): la
+  // hoja de notas queda oculta tras el teclado. El primer intento
+  // (KeyboardAvoidingView behavior="position") no basta aquí -- esta hoja
+  // cuelga dentro del Overlay portal-based del Actionsheet (ver comentario
+  // grande más abajo), y "position" mide su propio desplazamiento relativo a
+  // esa jerarquía anidada, que no coincide con la altura real de teclado
+  // reportada por el sistema. Se sustituye por una medida directa: se
+  // escucha la altura real del teclado (evento nativo, no heurística) y se
+  // traslada la hoja entera hacia arriba esa distancia con un `transform`
+  // (no `margin`/`padding` -- un transform no depende de cómo reparta el
+  // espacio el contenedor flex del Actionsheet, garantiza el mismo
+  // desplazamiento visual sin importar esa jerarquía). Se resta el inset
+  // inferior porque esa franja ya la cubre el propio `paddingBottom` de la
+  // hoja en reposo -- sin restarlo, el teclado la desplazaría de más.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   useEffect(() => {
     if (!visible) return;
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(showEvt, () => { keyboardVisibleRef.current = true; });
-    const hideSub = Keyboard.addListener(hideEvt, () => { keyboardVisibleRef.current = false; });
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      keyboardVisibleRef.current = true;
+      setKeyboardOffset(Math.max(0, (e.endCoordinates?.height ?? 0) - insets.bottom));
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      keyboardVisibleRef.current = false;
+      setKeyboardOffset(0);
+    });
     return () => {
       showSub.remove();
       hideSub.remove();
       keyboardVisibleRef.current = false;
+      setKeyboardOffset(0);
     };
-  }, [visible]);
+  }, [visible, insets.bottom]);
+  // Solo iOS 26+ real (dispositivo + compilado con Xcode 26+) renderiza el
+  // material Liquid Glass de verdad — en cualquier otro caso GlassView cae a
+  // una View normal y quedaría transparente sin este fondo de reserva.
+  const hasGlass = isGlassEffectAPIAvailable();
 
   const onBackdropPress = () => {
     if (keyboardVisibleRef.current) {
@@ -69,7 +93,15 @@ export default function SimpleBottomSheet({ visible, onClose, children }: Simple
             propio borderRadius nativo cuando el Liquid Glass real esta
             disponible y ya se monto -- sin este wrapper, la esquina superior
             del sheet se ve cuadrada por detras cuando falla ese timing. */}
-        <View style={{ width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
+        <View
+          style={{
+            width: '100%',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            overflow: 'hidden',
+            transform: [{ translateY: -keyboardOffset }],
+          }}
+        >
           <GlassView
             glassEffectStyle="regular"
             style={{
@@ -80,21 +112,7 @@ export default function SimpleBottomSheet({ visible, onClose, children }: Simple
               ...(hasGlass ? null : { backgroundColor: C.surface }),
             }}
           >
-            {/* behavior="padding" (el habitual) no sirve aquí: esta hoja
-                cuelga desde abajo con su propia altura de contenido dentro
-                del Overlay del Actionsheet, no ocupa toda la pantalla desde
-                arriba -- el padding que añade "padding" queda por debajo del
-                recorte visual de la hoja en vez de empujarla hacia arriba
-                (reportado con captura: el diálogo de notas queda oculto tras
-                el teclado en WorkoutNoteSheet). "position" sí funciona para
-                contenido anclado/flotante: reposiciona la vista entera con
-                `top` en vez de repartir espacio interno. */}
-            <KeyboardAvoidingView
-              style={{ width: '100%' }}
-              behavior={Platform.OS === 'ios' ? 'position' : undefined}
-            >
-              {children}
-            </KeyboardAvoidingView>
+            {children}
           </GlassView>
         </View>
       </ActionsheetContent>
