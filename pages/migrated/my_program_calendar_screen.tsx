@@ -935,7 +935,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
               accessibilityLabel="Vista calendario"
               accessibilityState={{ selected: viewMode === 'calendar' }}
             >
-              <Icon name="calendar-outline" size={18} color={viewMode === 'calendar' ? '#FFFFFF' : C.textSecondary} />
+              <Icon name="calendar-outline" size={18} color={viewMode === 'calendar' ? C.accentBlackForeground : C.textSecondary} />
             </Pressable>
             <Pressable
               style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
@@ -945,7 +945,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
               accessibilityLabel="Vista lista"
               accessibilityState={{ selected: viewMode === 'list' }}
             >
-              <Icon name="list-outline" size={18} color={viewMode === 'list' ? '#FFFFFF' : C.textSecondary} />
+              <Icon name="list-outline" size={18} color={viewMode === 'list' ? C.accentBlackForeground : C.textSecondary} />
             </Pressable>
           </HStack>
         )}
@@ -1208,7 +1208,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  viewToggleBtnActive: { backgroundColor: '#1C1C1E' },
+  viewToggleBtnActive: { backgroundColor: C.accentBlack },
   periodToggleRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -1221,9 +1221,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     borderRadius: RADIUS.lg,
     backgroundColor: C.surfaceLight,
   },
-  periodChipActive: { backgroundColor: '#1C1C1E' },
+  // Antes hex suelto '#1C1C1E' -- se coló sin tocar en el rebrand a teal de
+  // accentBlack (2026-08-29) por no pasar por el token; mismo motivo para
+  // periodChipTextActive de abajo.
+  periodChipActive: { backgroundColor: C.accentBlack },
   periodChipText: { fontFamily: FONT.semiBold, fontSize: 13, color: C.textSecondary },
-  periodChipTextActive: { color: '#FFFFFF' },
+  periodChipTextActive: { color: C.accentBlackForeground },
   monthRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

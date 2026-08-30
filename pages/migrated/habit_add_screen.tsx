@@ -9,6 +9,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
+import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -200,9 +201,13 @@ function HabitAddScreenInner(props: Props) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Añadir hábito" onBack={() => navigation?.goBack()} />
 
-      <Box
-        className="flex-row bg-card rounded-md"
-        style={{ padding: 4, marginHorizontal: 20, marginTop: 16, marginBottom: 14 }}
+      {/* Liquid Glass real en iOS 26+ (pedido explícito 2026-08-29) --
+          bg-card se saca del className porque GlassSegmentedBar necesita
+          controlar el fondo por `style` para poder anularlo cuando hay
+          glass real (ver el propio componente). */}
+      <GlassSegmentedBar
+        className="flex-row rounded-md"
+        style={{ padding: 4, marginHorizontal: 20, marginTop: 16, marginBottom: 14, backgroundColor: C.surface }}
       >
         <Pressable
           className="flex-1 rounded-sm items-center"
@@ -218,7 +223,7 @@ function HabitAddScreenInner(props: Props) {
         >
           <Text weight="semibold" size="sm" style={{ color: tab === 'create' ? C.accentBlackForeground : C.textSecondary }}>Crear el mío</Text>
         </Pressable>
-      </Box>
+      </GlassSegmentedBar>
 
       {tab === 'library' ? (
         loadingLibrary ? (

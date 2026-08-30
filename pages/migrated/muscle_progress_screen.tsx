@@ -10,6 +10,7 @@ import {  Icon  } from '@components/ui/icon';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import MuscleBodyMap, { MuscleVolumeGroup } from '../../components/MuscleBodyMap';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
+import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import {  muscleVolumeApi, MuscleVolumeData  } from '../../api/muscleVolume';
 import {  RADIUS  } from './theme';
 
@@ -88,9 +89,13 @@ export default function MuscleProgressScreen(props: Props) {
         <Box style={{ width: 32 }} />
       </Box>
 
-      <Box
-        className="flex-row self-center bg-card shadow-card"
-        style={{ borderRadius: RADIUS.sm, padding: 4, gap: 4, marginBottom: 12 }}
+      {/* Liquid Glass real en iOS 26+ (pedido explícito 2026-08-29) --
+          bg-card se saca del className, mismo motivo que en
+          habit_add_screen.tsx (GlassSegmentedBar controla el fondo por
+          `style` para poder anularlo cuando hay glass real). */}
+      <GlassSegmentedBar
+        className="flex-row self-center shadow-card"
+        style={{ borderRadius: RADIUS.sm, padding: 4, gap: 4, marginBottom: 12, backgroundColor: C.surface }}
       >
         {RANGES.map((r) => (
           <Pressable
@@ -108,7 +113,7 @@ export default function MuscleProgressScreen(props: Props) {
             </Text>
           </Pressable>
         ))}
-      </Box>
+      </GlassSegmentedBar>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
         <Box className="bg-card rounded-md items-center justify-center shadow-card" style={{ paddingVertical: 16, minHeight: 200 }}>

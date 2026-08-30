@@ -17,6 +17,7 @@ import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
+import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import {  dietApi  } from '../../api/diet';
 import {  recipesApi, RecipeStep, RecipeIngredient  } from '../../api/recipes';
 import logger from '@helper/logger';
@@ -326,9 +327,11 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
 
           <Divider className="mx-4" style={{ height: 0.5 }} />
 
-          {/* Tabs: Ingredients / Instruction */}
+          {/* Tabs: Ingredients / Instruction -- Liquid Glass real en iOS
+              26+ (pedido explícito 2026-08-29); antes HStack con
+              backgroundColor: C.surface fijo. */}
           <Box style={localStyles.tabsRowWrap}>
-            <HStack className="rounded-full p-1" style={{ backgroundColor: C.surface }}>
+            <GlassSegmentedBar className="flex-row rounded-full p-1" style={{ backgroundColor: C.surface }}>
               <Pressable
                 style={[localStyles.tabPill, select && localStyles.tabPillActive]}
                 onPress={() => setSelect(true)}
@@ -345,7 +348,7 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
                   Instrucciones
                 </Text>
               </Pressable>
-            </HStack>
+            </GlassSegmentedBar>
           </Box>
 
           <GestureDetector gesture={contentSwipeGesture}>

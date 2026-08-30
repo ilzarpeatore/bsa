@@ -26,6 +26,7 @@ import {  MuscleIsolateIconMem  } from '../../components/MuscleIsolateIcon';
 import {  AnalysisHistoryCardMem  } from '../../components/AnalysisHistoryCard';
 import {  ErrorRetryMem  } from '../../components/ErrorRetry';
 import MetricLineChart from '../../components/MetricLineChart';
+import GlassSegmentedBar from '../../components/GlassSegmentedBar';
 import {
   exerciseInfoApi,
   ExerciseDetailData,
@@ -285,8 +286,9 @@ export default function ExerciseInfoScreen(props: Props) {
             </HStack>
           </HStack>
 
-          {/* Tab bar */}
-          <Box style={styles.tabBar}>
+          {/* Tab bar -- Liquid Glass real en iOS 26+ (pedido explícito
+              2026-08-29), superficie plana igual que antes en el resto. */}
+          <GlassSegmentedBar style={styles.tabBar}>
             {TABS.map((t) => (
               <Pressable
                 key={t.key}
@@ -298,7 +300,7 @@ export default function ExerciseInfoScreen(props: Props) {
                 </Text>
               </Pressable>
             ))}
-          </Box>
+          </GlassSegmentedBar>
 
           {/* Tab content */}
           <Box style={styles.tabContent}>

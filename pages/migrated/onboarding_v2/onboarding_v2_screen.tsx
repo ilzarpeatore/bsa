@@ -28,6 +28,7 @@ import NumberWheelPicker from '../../../components/onboarding_v2/NumberWheelPick
 import { FONT, RADIUS } from '../theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
+import GlassSegmentedBar from '@components/GlassSegmentedBar';
 
 // Motor genérico del nuevo onboarding (4 etapas, ver docs/ONBOARDING_V2.md):
 // UNA sola screen recorre `ONBOARDING_QUESTIONS` con un índice interno (no
@@ -622,7 +623,8 @@ function QuestionInput({
 
     return (
       <View style={{ alignItems: 'center' }}>
-        <View style={styles.unitToggle}>
+        {/* Liquid Glass real en iOS 26+ (pedido explícito 2026-08-29). */}
+        <GlassSegmentedBar style={styles.unitToggle}>
           {q.units.map((u) => (
             <Pressable
               key={u.value}
@@ -632,7 +634,7 @@ function QuestionInput({
               <Text style={[styles.unitPillText, unit === u.value && styles.unitPillTextActive]}>{u.label}</Text>
             </Pressable>
           ))}
-        </View>
+        </GlassSegmentedBar>
         <Text style={styles.bigNumber}>
           {displayDecimals === 1 ? displayValue.toFixed(1).replace('.', ',') : Math.round(displayValue)}
         </Text>
