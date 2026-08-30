@@ -559,6 +559,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     blogTitle: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.white, marginTop: r(6) },
     blogDate: { fontSize: r(10), color: C.textSecondary, marginTop: r(4) },
     seeAllImage: { backgroundColor: C.orange, alignItems: 'center' as const, justifyContent: 'center' as const },
+    // Banner de la Guía de autogestión -- a diferencia de blogCard, el
+    // texto va superpuesto sobre la propia foto (no debajo, en una tarjeta
+    // aparte), de ahí el degradado oscuro y el blanco fijo en vez de
+    // C.white (que en este theme es casi negro, pensado para texto sobre
+    // superficie clara, no sobre foto).
+    guideBanner: {
+      height: r(110),
+      borderRadius: r(18),
+      overflow: 'hidden' as const,
+      backgroundColor: C.gray70,
+      justifyContent: 'center' as const,
+    },
+    guideBannerOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
+    guideBannerContent: { paddingHorizontal: r(18), paddingRight: r(48) },
+    guideBannerTitle: { fontSize: r(16), fontFamily: FONT.bold, color: '#FFFFFF' },
+    guideBannerSubtitle: { fontSize: r(12), fontFamily: FONT.medium, color: 'rgba(255,255,255,0.85)', marginTop: r(4) },
+    guideBannerIcon: { position: 'absolute' as const, right: r(16), top: '50%' as any, marginTop: -13 },
     resourceTypeBadge: {
       position: 'absolute' as const,
       top: r(8),
@@ -1549,6 +1566,112 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             </ScrollView>
           </>
         )}
+
+        {/* Guía de autogestión -- pedido explícito 2026-08-30, contenido
+            estático compartido por todos los usuarios (no viene del backend
+            de Recursos, por eso vive fuera de ese bloque condicional y
+            siempre está visible). */}
+        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Guías</Text>
+        </HStack>
+        <Pressable
+          style={{ marginHorizontal: r(20), marginBottom: r(12) }}
+          onPress={() => navigation?.navigate('MigratedAutogestionGuide')}
+        >
+          <Box style={styles.guideBanner}>
+            <ExpoImage
+              source={require('../../assets/autogestion-guide-header.webp')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            <Box style={styles.guideBannerOverlay} />
+            <Box style={styles.guideBannerContent}>
+              <Text style={styles.guideBannerTitle}>Guía de Autogestión</Text>
+              <Text style={styles.guideBannerSubtitle}>Cómo leer y ejecutar tu plan de entrenamiento</Text>
+            </Box>
+            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+          </Box>
+        </Pressable>
+        {/* Guía de sobrentrenamiento -- pedido explícito 2026-08-30, mismo
+            motivo que la de autogestión justo arriba. */}
+        <Pressable
+          style={{ marginHorizontal: r(20), marginBottom: r(12) }}
+          onPress={() => navigation?.navigate('MigratedOvertrainingGuide')}
+        >
+          <Box style={styles.guideBanner}>
+            <ExpoImage
+              source={require('../../assets/overtraining-guide-header.png')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            <Box style={styles.guideBannerOverlay} />
+            <Box style={styles.guideBannerContent}>
+              <Text style={styles.guideBannerTitle}>Guía de Sobrentrenamiento</Text>
+              <Text style={styles.guideBannerSubtitle}>¿Entrenas mucho o entrenas bien?</Text>
+            </Box>
+            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+          </Box>
+        </Pressable>
+        {/* Guía de suplementación -- pedido explícito 2026-08-30, mismo
+            motivo que las dos anteriores. */}
+        <Pressable
+          style={{ marginHorizontal: r(20), marginBottom: r(12) }}
+          onPress={() => navigation?.navigate('MigratedSupplementationGuide')}
+        >
+          <Box style={styles.guideBanner}>
+            <ExpoImage
+              source={require('../../assets/supplementation-guide-header.jpg')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            <Box style={styles.guideBannerOverlay} />
+            <Box style={styles.guideBannerContent}>
+              <Text style={styles.guideBannerTitle}>Guía de Suplementación</Text>
+              <Text style={styles.guideBannerSubtitle}>Evidencia, dosis y stacks por objetivo</Text>
+            </Box>
+            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+          </Box>
+        </Pressable>
+        {/* Guía de sueño -- pedido explícito 2026-08-30, mismo motivo que
+            las tres anteriores. */}
+        <Pressable
+          style={{ marginHorizontal: r(20), marginBottom: r(12) }}
+          onPress={() => navigation?.navigate('MigratedSleepGuide')}
+        >
+          <Box style={styles.guideBanner}>
+            <ExpoImage
+              source={require('../../assets/sleep-guide-header.jpg')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            <Box style={styles.guideBannerOverlay} />
+            <Box style={styles.guideBannerContent}>
+              <Text style={styles.guideBannerTitle}>Guía de Sueño y Recuperación</Text>
+              <Text style={styles.guideBannerSubtitle}>Tu músculo crece cuando descansas</Text>
+            </Box>
+            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+          </Box>
+        </Pressable>
+        {/* Guía de gestión del estrés -- pedido explícito 2026-08-30, mismo
+            motivo que las cuatro anteriores. */}
+        <Pressable
+          style={{ marginHorizontal: r(20) }}
+          onPress={() => navigation?.navigate('MigratedStressGuide')}
+        >
+          <Box style={styles.guideBanner}>
+            <ExpoImage
+              source={require('../../assets/stress-guide-header.jpg')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            <Box style={styles.guideBannerOverlay} />
+            <Box style={styles.guideBannerContent}>
+              <Text style={styles.guideBannerTitle}>Guía de Gestión del Estrés</Text>
+              <Text style={styles.guideBannerSubtitle}>Cómo el cortisol frena tu progreso</Text>
+            </Box>
+            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+          </Box>
+        </Pressable>
 
         {/* Blog */}
         <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
