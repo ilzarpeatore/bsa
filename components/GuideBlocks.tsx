@@ -32,7 +32,12 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       marginBottom: 8,
     },
     titleAccent: { color: C.orange60 },
-    brandKicker: { fontFamily: FONT.extraBold, fontSize: 15, color: C.textSecondary, marginBottom: 10 },
+    brandKicker: {
+      fontFamily: FONT.extraBold,
+      fontSize: 15,
+      color: C.textSecondary,
+      marginBottom: 10,
+    },
     subtitle: {
       fontFamily: FONT.bold,
       fontSize: 12,
@@ -86,8 +91,19 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     bulletArrow: { fontFamily: FONT.bold, fontSize: 14.5, color: C.orange60, marginRight: 8 },
     bulletTextWrap: { flex: 1 },
     bulletTitle: { fontFamily: FONT.bold, fontSize: 14.5, lineHeight: 21, color: C.textPrimary },
-    bulletText: { fontFamily: FONT.regular, fontSize: 14.5, lineHeight: 22, color: C.textSecondary },
-    bulletSubText: { fontFamily: FONT.regular, fontSize: 13, lineHeight: 19, color: C.textSecondary, marginTop: 4 },
+    bulletText: {
+      fontFamily: FONT.regular,
+      fontSize: 14.5,
+      lineHeight: 22,
+      color: C.textSecondary,
+    },
+    bulletSubText: {
+      fontFamily: FONT.regular,
+      fontSize: 13,
+      lineHeight: 19,
+      color: C.textSecondary,
+      marginTop: 4,
+    },
     highlightBox: {
       backgroundColor: C.orange10,
       borderLeftWidth: 4,
@@ -106,7 +122,12 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     highlightTitleSuccess: { color: C.success60 },
     highlightTitleWarning: { color: C.warning60 },
     highlightTitleDanger: { color: C.destructive },
-    highlightText: { fontFamily: FONT.regular, fontSize: 13.5, lineHeight: 20, color: C.textPrimary },
+    highlightText: {
+      fontFamily: FONT.regular,
+      fontSize: 13.5,
+      lineHeight: 20,
+      color: C.textPrimary,
+    },
     exampleBox: {
       backgroundColor: C.blue5,
       borderWidth: 1,
@@ -119,8 +140,18 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     exampleTitle: { fontFamily: FONT.bold, fontSize: 13, color: C.blue60, marginBottom: 6 },
     exampleText: { fontFamily: FONT.regular, fontSize: 13.5, lineHeight: 20, color: C.textPrimary },
     columnBlock: { marginBottom: 16 },
-    columnBlockTitle: { fontFamily: FONT.bold, fontSize: 14.5, color: C.textPrimary, marginBottom: 6 },
-    columnBlockText: { fontFamily: FONT.regular, fontSize: 13, lineHeight: 19, color: C.textSecondary },
+    columnBlockTitle: {
+      fontFamily: FONT.bold,
+      fontSize: 14.5,
+      color: C.textPrimary,
+      marginBottom: 6,
+    },
+    columnBlockText: {
+      fontFamily: FONT.regular,
+      fontSize: 13,
+      lineHeight: 19,
+      color: C.textSecondary,
+    },
     trafficLightWrap: {
       backgroundColor: C.surfaceLight,
       borderWidth: 1,
@@ -144,13 +175,41 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       borderRadius: RADIUS.sm,
       marginBottom: 12,
     },
-    trafficLightItemGreen: { backgroundColor: C.success10, borderLeftWidth: 4, borderLeftColor: C.success },
-    trafficLightItemYellow: { backgroundColor: C.warning10, borderLeftWidth: 4, borderLeftColor: C.warning },
-    trafficLightItemRed: { backgroundColor: C.destructive10, borderLeftWidth: 4, borderLeftColor: C.destructive },
+    trafficLightItemGreen: {
+      backgroundColor: C.success10,
+      borderLeftWidth: 4,
+      borderLeftColor: C.success,
+    },
+    trafficLightItemYellow: {
+      backgroundColor: C.warning10,
+      borderLeftWidth: 4,
+      borderLeftColor: C.warning,
+    },
+    trafficLightItemRed: {
+      backgroundColor: C.destructive10,
+      borderLeftWidth: 4,
+      borderLeftColor: C.destructive,
+    },
     trafficLightIcon: { fontSize: 26 },
-    trafficLightTitle: { fontFamily: FONT.bold, fontSize: 14.5, color: C.textPrimary, marginBottom: 4 },
-    trafficLightText: { fontFamily: FONT.medium, fontSize: 12.5, lineHeight: 18, color: C.textPrimary },
-    trafficLightSubText: { fontFamily: FONT.regular, fontSize: 12.5, lineHeight: 18, color: C.textSecondary, marginTop: 6 },
+    trafficLightTitle: {
+      fontFamily: FONT.bold,
+      fontSize: 14.5,
+      color: C.textPrimary,
+      marginBottom: 4,
+    },
+    trafficLightText: {
+      fontFamily: FONT.medium,
+      fontSize: 12.5,
+      lineHeight: 18,
+      color: C.textPrimary,
+    },
+    trafficLightSubText: {
+      fontFamily: FONT.regular,
+      fontSize: 12.5,
+      lineHeight: 18,
+      color: C.textSecondary,
+      marginTop: 6,
+    },
     tableScroll: { marginBottom: 16 },
     tableHeaderRow: {
       flexDirection: 'row',
@@ -173,9 +232,18 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       borderBottomColor: C.border,
       backgroundColor: C.surface,
     },
-    tableRowLast: { borderBottomLeftRadius: RADIUS.sm, borderBottomRightRadius: RADIUS.sm, overflow: 'hidden' },
+    tableRowLast: {
+      borderBottomLeftRadius: RADIUS.sm,
+      borderBottomRightRadius: RADIUS.sm,
+      overflow: 'hidden',
+    },
     tableCell: { paddingVertical: 12, paddingHorizontal: 12 },
-    tableCellText: { fontFamily: FONT.regular, fontSize: 12.5, lineHeight: 18, color: C.textSecondary },
+    tableCellText: {
+      fontFamily: FONT.regular,
+      fontSize: 12.5,
+      lineHeight: 18,
+      color: C.textSecondary,
+    },
     tableCellTextBold: { fontFamily: FONT.bold, color: C.textPrimary },
     tierBadge: {
       alignSelf: 'flex-start',
@@ -187,7 +255,12 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     tierBadge1: { backgroundColor: C.success10, borderColor: C.success },
     tierBadge2: { backgroundColor: C.warning10, borderColor: C.warning },
     tierBadge3: { backgroundColor: C.destructive10, borderColor: C.destructive },
-    tierBadgeText: { fontFamily: FONT.bold, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: 0.5 },
+    tierBadgeText: {
+      fontFamily: FONT.bold,
+      fontSize: 10.5,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
     tierBadgeText1: { color: C.success60 },
     tierBadgeText2: { color: C.warning60 },
     tierBadgeText3: { color: C.destructive },
@@ -199,8 +272,20 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       padding: 18,
       marginBottom: 18,
     },
-    supplementName: { fontFamily: FONT.bold, fontSize: 17, color: C.textPrimary, marginBottom: 4, flex: 1, paddingRight: 8 },
-    supplementNameRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+    supplementName: {
+      fontFamily: FONT.bold,
+      fontSize: 17,
+      color: C.textPrimary,
+      marginBottom: 4,
+      flex: 1,
+      paddingRight: 8,
+    },
+    supplementNameRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
     kvRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border },
     kvRowLast: { borderBottomWidth: 0, paddingBottom: 0 },
     kvLabel: { fontFamily: FONT.bold, fontSize: 12.5, color: C.orange60, marginBottom: 3 },
@@ -270,7 +355,12 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     },
     guideCardIcon: { fontSize: 30, marginBottom: 10 },
     guideCardTitle: { fontFamily: FONT.bold, fontSize: 15.5, color: C.orange60, marginBottom: 8 },
-    guideCardText: { fontFamily: FONT.regular, fontSize: 13.5, lineHeight: 20, color: C.textSecondary },
+    guideCardText: {
+      fontFamily: FONT.regular,
+      fontSize: 13.5,
+      lineHeight: 20,
+      color: C.textSecondary,
+    },
     checklistBox: {
       backgroundColor: C.surfaceLight,
       borderWidth: 1,
@@ -299,7 +389,13 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       justifyContent: 'center',
     },
     checklistBoxIconChecked: { backgroundColor: C.orange },
-    checklistItemText: { flex: 1, fontFamily: FONT.medium, fontSize: 13.5, lineHeight: 19, color: C.textPrimary },
+    checklistItemText: {
+      flex: 1,
+      fontFamily: FONT.medium,
+      fontSize: 13.5,
+      lineHeight: 19,
+      color: C.textPrimary,
+    },
     checklistItemTextChecked: { color: C.orange60, textDecorationLine: 'line-through' },
     selectRow: {
       flexDirection: 'row',
@@ -314,7 +410,13 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       marginBottom: 8,
     },
     selectRowSelected: { backgroundColor: C.orange10, borderColor: C.orange },
-    selectRowText: { flex: 1, fontFamily: FONT.medium, fontSize: 13.5, color: C.textPrimary, paddingRight: 8 },
+    selectRowText: {
+      flex: 1,
+      fontFamily: FONT.medium,
+      fontSize: 13.5,
+      color: C.textPrimary,
+      paddingRight: 8,
+    },
     selectRowTextSelected: { fontFamily: FONT.bold, color: C.orange60 },
     selectRadio: {
       width: 22,
@@ -335,7 +437,12 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       marginTop: 8,
     },
     calculatorTitle: { fontFamily: FONT.bold, fontSize: 15, color: C.orange60, marginBottom: 16 },
-    calcInputLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textPrimary, marginBottom: 8 },
+    calcInputLabel: {
+      fontFamily: FONT.medium,
+      fontSize: 13,
+      color: C.textPrimary,
+      marginBottom: 8,
+    },
     calcInput: { backgroundColor: C.surface, marginBottom: 4 },
     calcResultsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 },
     calcResultBox: {
@@ -346,9 +453,20 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       borderRadius: RADIUS.sm,
       padding: 12,
     },
-    calcResultLabel: { fontFamily: FONT.bold, fontSize: 10.5, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3 },
+    calcResultLabel: {
+      fontFamily: FONT.bold,
+      fontSize: 10.5,
+      color: C.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
     calcResultValue: { fontFamily: FONT.extraBold, fontSize: 19, color: C.success60, marginTop: 4 },
-    calcResultNote: { fontFamily: FONT.regular, fontSize: 11, color: C.textSecondary, marginTop: 3 },
+    calcResultNote: {
+      fontFamily: FONT.regular,
+      fontSize: 11,
+      color: C.textSecondary,
+      marginTop: 3,
+    },
     footerBox: {
       marginHorizontal: 20,
       marginTop: 8,
@@ -395,7 +513,13 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       alignItems: 'center',
     },
     statNumber: { fontFamily: FONT.extraBold, fontSize: 24, color: C.orange60 },
-    statText: { fontFamily: FONT.regular, fontSize: 11, color: C.textSecondary, textAlign: 'center', marginTop: 6 },
+    statText: {
+      fontFamily: FONT.regular,
+      fontSize: 11,
+      color: C.textSecondary,
+      textAlign: 'center',
+      marginTop: 6,
+    },
     noteCard: {
       backgroundColor: C.surfaceLight,
       borderWidth: 1,
@@ -408,7 +532,12 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     noteCardWarning: { backgroundColor: C.warning10, borderColor: C.warning },
     noteCardDanger: { backgroundColor: C.destructive10, borderColor: C.destructive },
     noteCardTitle: { fontFamily: FONT.bold, fontSize: 13.5, color: C.textPrimary, marginBottom: 6 },
-    noteCardText: { fontFamily: FONT.regular, fontSize: 13.5, lineHeight: 20, color: C.textSecondary },
+    noteCardText: {
+      fontFamily: FONT.regular,
+      fontSize: 13.5,
+      lineHeight: 20,
+      color: C.textSecondary,
+    },
     accordionItem: {
       backgroundColor: C.surfaceLight,
       borderWidth: 1,
@@ -424,7 +553,13 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       padding: 16,
       backgroundColor: C.orange10,
     },
-    accordionHeaderText: { flex: 1, fontFamily: FONT.bold, fontSize: 14, color: C.orange60, paddingRight: 10 },
+    accordionHeaderText: {
+      flex: 1,
+      fontFamily: FONT.bold,
+      fontSize: 14,
+      color: C.orange60,
+      paddingRight: 10,
+    },
     accordionContent: { padding: 16, borderTopWidth: 1, borderTopColor: C.border },
     checklistCategoryTitle: {
       fontFamily: FONT.bold,
@@ -432,6 +567,23 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
       color: C.orange60,
       marginTop: 16,
       marginBottom: 10,
+    },
+    affirmationBox: {
+      backgroundColor: C.orange10,
+      borderWidth: 1,
+      borderColor: 'rgba(73,197,182,0.3)',
+      borderRadius: RADIUS.md,
+      padding: 20,
+      marginBottom: 14,
+      alignItems: 'center',
+    },
+    affirmationText: {
+      fontFamily: FONT.medium,
+      fontSize: 15.5,
+      lineHeight: 22,
+      color: C.textPrimary,
+      textAlign: 'center',
+      fontStyle: 'italic',
     },
     actionItem: { flexDirection: 'row', gap: 12, marginBottom: 16 },
     actionNumber: {
@@ -444,7 +596,13 @@ export function createGuideStyles(C: ReturnType<typeof useAppColorMode>['colors'
     },
     actionNumberText: { fontFamily: FONT.extraBold, fontSize: 14, color: '#12312C' },
     actionTitle: { fontFamily: FONT.bold, fontSize: 14.5, color: C.textPrimary, marginBottom: 3 },
-    actionText: { flex: 1, fontFamily: FONT.regular, fontSize: 13.5, lineHeight: 20, color: C.textSecondary },
+    actionText: {
+      flex: 1,
+      fontFamily: FONT.regular,
+      fontSize: 13.5,
+      lineHeight: 20,
+      color: C.textSecondary,
+    },
   });
 }
 
@@ -470,11 +628,25 @@ export function Section({
   );
 }
 
-export function SubHeading({ styles, children }: { styles: GuideStyles; children: React.ReactNode }) {
+export function SubHeading({
+  styles,
+  children,
+}: {
+  styles: GuideStyles;
+  children: React.ReactNode;
+}) {
   return <Text style={styles.subHeading}>{children}</Text>;
 }
 
-export function P({ styles, children, last }: { styles: GuideStyles; children: React.ReactNode; last?: boolean }) {
+export function P({
+  styles,
+  children,
+  last,
+}: {
+  styles: GuideStyles;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
   return <Text style={[styles.paragraph, last && { marginBottom: 0 }]}>{children}</Text>;
 }
 
@@ -496,7 +668,9 @@ export function Bullet({
       <Text style={styles.bulletArrow}>{glyph}</Text>
       <View style={styles.bulletTextWrap}>
         {title ? <Text style={styles.bulletTitle}>{title}</Text> : null}
-        {children ? <Text style={title ? styles.bulletSubText : styles.bulletText}>{children}</Text> : null}
+        {children ? (
+          <Text style={title ? styles.bulletSubText : styles.bulletText}>{children}</Text>
+        ) : null}
       </View>
     </View>
   );
@@ -521,8 +695,7 @@ export function HighlightBox({
         variant === 'success' && styles.highlightBoxSuccess,
         variant === 'warning' && styles.highlightBoxWarning,
         variant === 'danger' && styles.highlightBoxDanger,
-      ]}
-    >
+      ]}>
       <Text
         style={[
           styles.highlightTitle,
@@ -530,8 +703,7 @@ export function HighlightBox({
           variant === 'success' && styles.highlightTitleSuccess,
           variant === 'warning' && styles.highlightTitleWarning,
           variant === 'danger' && styles.highlightTitleDanger,
-        ]}
-      >
+        ]}>
         {title}
       </Text>
       {children}
@@ -539,7 +711,15 @@ export function HighlightBox({
   );
 }
 
-export function ExampleBox({ styles, title, children }: { styles: GuideStyles; title: string; children: React.ReactNode }) {
+export function ExampleBox({
+  styles,
+  title,
+  children,
+}: {
+  styles: GuideStyles;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.exampleBox}>
       <Text style={styles.exampleTitle}>{title}</Text>
@@ -548,7 +728,15 @@ export function ExampleBox({ styles, title, children }: { styles: GuideStyles; t
   );
 }
 
-export function ColumnBlock({ styles, title, children }: { styles: GuideStyles; title: string; children: React.ReactNode }) {
+export function ColumnBlock({
+  styles,
+  title,
+  children,
+}: {
+  styles: GuideStyles;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.columnBlock}>
       <Text style={styles.columnBlockTitle}>{title}</Text>
@@ -577,7 +765,17 @@ export function TocItem({
   return onPress ? <Pressable onPress={onPress}>{content}</Pressable> : content;
 }
 
-export function GuideCard({ styles, icon, title, children }: { styles: GuideStyles; icon: string; title: string; children: React.ReactNode }) {
+export function GuideCard({
+  styles,
+  icon,
+  title,
+  children,
+}: {
+  styles: GuideStyles;
+  icon: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.guideCard}>
       <Text style={styles.guideCardIcon}>{icon}</Text>
@@ -603,7 +801,9 @@ export function ChecklistItem({
       <View style={[styles.checklistBoxIcon, checked && styles.checklistBoxIconChecked]}>
         {checked ? <Icon name="checkmark" size={15} color="#12312C" /> : null}
       </View>
-      <Text style={[styles.checklistItemText, checked && styles.checklistItemTextChecked]}>{children}</Text>
+      <Text style={[styles.checklistItemText, checked && styles.checklistItemTextChecked]}>
+        {children}
+      </Text>
     </Pressable>
   );
 }
@@ -629,7 +829,15 @@ export function SelectRow({
   );
 }
 
-export function TrafficLight({ styles, heading, children }: { styles: GuideStyles; heading: string; children: React.ReactNode }) {
+export function TrafficLight({
+  styles,
+  heading,
+  children,
+}: {
+  styles: GuideStyles;
+  heading: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.trafficLightWrap}>
       <Text style={styles.trafficLightHeading}>{heading}</Text>
@@ -654,7 +862,11 @@ export function TrafficLightItem({
   children: React.ReactNode;
 }) {
   const variantStyle =
-    color === 'green' ? styles.trafficLightItemGreen : color === 'yellow' ? styles.trafficLightItemYellow : styles.trafficLightItemRed;
+    color === 'green'
+      ? styles.trafficLightItemGreen
+      : color === 'yellow'
+        ? styles.trafficLightItemYellow
+        : styles.trafficLightItemRed;
   return (
     <View style={[styles.trafficLightItem, variantStyle]}>
       <Text style={styles.trafficLightIcon}>{icon}</Text>
@@ -667,7 +879,15 @@ export function TrafficLightItem({
   );
 }
 
-export function StatCard({ styles, number, children }: { styles: GuideStyles; number: string; children: React.ReactNode }) {
+export function StatCard({
+  styles,
+  number,
+  children,
+}: {
+  styles: GuideStyles;
+  number: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.statCard}>
       <Text style={styles.statNumber}>{number}</Text>
@@ -694,8 +914,7 @@ export function NoteCard({
         variant === 'success' && styles.noteCardSuccess,
         variant === 'warning' && styles.noteCardWarning,
         variant === 'danger' && styles.noteCardDanger,
-      ]}
-    >
+      ]}>
       <Text style={styles.noteCardTitle}>{title}</Text>
       <Text style={styles.noteCardText}>{children}</Text>
     </View>
@@ -732,7 +951,31 @@ export function AccordionItem({
   );
 }
 
-export function ActionItem({ styles, number, title, children }: { styles: GuideStyles; number: number; title: string; children: React.ReactNode }) {
+export function AffirmationBox({
+  styles,
+  children,
+}: {
+  styles: GuideStyles;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.affirmationBox}>
+      <Text style={styles.affirmationText}>{children}</Text>
+    </View>
+  );
+}
+
+export function ActionItem({
+  styles,
+  number,
+  title,
+  children,
+}: {
+  styles: GuideStyles;
+  number: number;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.actionItem}>
       <View style={styles.actionNumber}>
@@ -753,7 +996,12 @@ export function renderCell(cell: Cell, styles: GuideStyles) {
   return (
     <Text style={styles.tableCellText}>
       {cell.map((part, i) => (
-        <Text key={i} style={[part.bold ? styles.tableCellTextBold : undefined, part.color ? { color: part.color } : undefined]}>
+        <Text
+          key={i}
+          style={[
+            part.bold ? styles.tableCellTextBold : undefined,
+            part.color ? { color: part.color } : undefined,
+          ]}>
           {part.text}
         </Text>
       ))}
@@ -762,8 +1010,10 @@ export function renderCell(cell: Cell, styles: GuideStyles) {
 }
 
 export function TierBadge({ styles, tier }: { styles: GuideStyles; tier: 1 | 2 | 3 }) {
-  const boxStyle = tier === 1 ? styles.tierBadge1 : tier === 2 ? styles.tierBadge2 : styles.tierBadge3;
-  const textStyle = tier === 1 ? styles.tierBadgeText1 : tier === 2 ? styles.tierBadgeText2 : styles.tierBadgeText3;
+  const boxStyle =
+    tier === 1 ? styles.tierBadge1 : tier === 2 ? styles.tierBadge2 : styles.tierBadge3;
+  const textStyle =
+    tier === 1 ? styles.tierBadgeText1 : tier === 2 ? styles.tierBadgeText2 : styles.tierBadgeText3;
   return (
     <View style={[styles.tierBadge, boxStyle]}>
       <Text style={[styles.tierBadgeText, textStyle]}>Tier {tier}</Text>
@@ -771,7 +1021,17 @@ export function TierBadge({ styles, tier }: { styles: GuideStyles; tier: 1 | 2 |
   );
 }
 
-export function KeyValueRow({ styles, label, value, last }: { styles: GuideStyles; label: string; value: string; last?: boolean }) {
+export function KeyValueRow({
+  styles,
+  label,
+  value,
+  last,
+}: {
+  styles: GuideStyles;
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
   return (
     <View style={[styles.kvRow, last && styles.kvRowLast]}>
       <Text style={styles.kvLabel}>{label}</Text>
@@ -800,7 +1060,13 @@ export function SupplementCard({
         <TierBadge styles={styles} tier={tier} />
       </View>
       {rows.map((r, i) => (
-        <KeyValueRow key={i} styles={styles} label={r.label} value={r.value} last={i === rows.length - 1 && !children} />
+        <KeyValueRow
+          key={i}
+          styles={styles}
+          label={r.label}
+          value={r.value}
+          last={i === rows.length - 1 && !children}
+        />
       ))}
       {children}
     </View>

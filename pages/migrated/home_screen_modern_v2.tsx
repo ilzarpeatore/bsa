@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
-import { Platform ,
+import {
+  Platform,
   StyleSheet,
   ScrollView,
   RefreshControl,
@@ -51,10 +52,24 @@ import { useAppColorMode } from '../../helper/useAppColorMode';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
-import { CHAT_ENABLED, ACTIVITY_TRACKER_ENABLED, WATER_TRACKER_ENABLED } from '@constants/featureFlags';
-import { loadDiagnosticsEnabled, setDiagnosticsEnabled, getDiagnosticsReportText } from '@helper/logger';
+import {
+  CHAT_ENABLED,
+  ACTIVITY_TRACKER_ENABLED,
+  WATER_TRACKER_ENABLED,
+} from '@constants/featureFlags';
+import {
+  loadDiagnosticsEnabled,
+  setDiagnosticsEnabled,
+  getDiagnosticsReportText,
+} from '@helper/logger';
 import { showToast } from '@helper/toast';
-import { dashboardApi, BannerSliderItem, WaterSummary, StepsSummary, WorkoutSummary } from '../../api/dashboard';
+import {
+  dashboardApi,
+  BannerSliderItem,
+  WaterSummary,
+  StepsSummary,
+  WorkoutSummary,
+} from '../../api/dashboard';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { dietApi } from '../../api/diet';
@@ -230,7 +245,11 @@ const RESOURCE_CATEGORY_KEYWORDS: Record<ResourceCategory, string> = {
 
 function resourceImageSource(r: ResourceListItem) {
   if (r.image_url) return { uri: r.image_url };
-  const keyword = r.category ? RESOURCE_CATEGORY_KEYWORDS[r.category] : (r.type === 'video' ? 'video,camera' : 'reading,book');
+  const keyword = r.category
+    ? RESOURCE_CATEGORY_KEYWORDS[r.category]
+    : r.type === 'video'
+      ? 'video,camera'
+      : 'reading,book';
   return { uri: `https://loremflickr.com/400/300/${keyword}?lock=${r.id}` };
 }
 
@@ -273,9 +292,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // en 0 -- antes de que onLayout mida el valor real, scrollY también vale 0
   // así que el resultado sigue siendo HOME_BG_MIN_OPACITY, no hay parpadeo.
   const miPlanOffsetY = useSharedValue(0);
-  const handleMiPlanLayout = useCallback((e: LayoutChangeEvent) => {
-    miPlanOffsetY.value = e.nativeEvent.layout.y;
-  }, [miPlanOffsetY]);
+  const handleMiPlanLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      miPlanOffsetY.value = e.nativeEvent.layout.y;
+    },
+    [miPlanOffsetY],
+  );
   // Plegar la barra de pestañas al hacer scroll (pedido explícito, ver
   // store/TabBarScrollContext.tsx) -- reutiliza el mismo scrollY que ya
   // existía para el efecto de blur del hero. Mismo patrón que
@@ -302,18 +324,24 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const handleRateApp = useCallback(() => {
     if (Platform.OS === 'ios') {
       if (!APP_STORE_ID) {
-        showToast('Aún no disponible', { description: 'Be Stronger todavía no tiene ficha publicada en la App Store.', variant: 'info' });
+        showToast('Aún no disponible', {
+          description: 'Be Stronger todavía no tiene ficha publicada en la App Store.',
+          variant: 'info',
+        });
         return;
       }
       Linking.openURL(`itms-apps://itunes.apple.com/app/id${APP_STORE_ID}?action=write-review`);
     } else {
       if (!PLAY_STORE_PUBLISHED) {
-        showToast('Aún no disponible', { description: 'Be Stronger todavía no tiene ficha publicada en Google Play.', variant: 'info' });
+        showToast('Aún no disponible', {
+          description: 'Be Stronger todavía no tiene ficha publicada en Google Play.',
+          variant: 'info',
+        });
         return;
       }
       const pkg = Constants.expoConfig?.android?.package;
       Linking.openURL(`market://details?id=${pkg}`).catch(() =>
-        Linking.openURL(`https://play.google.com/store/apps/details?id=${pkg}`)
+        Linking.openURL(`https://play.google.com/store/apps/details?id=${pkg}`),
       );
     }
   }, []);
@@ -321,7 +349,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     const report = getDiagnosticsReportText();
     if (!report) {
       showToast('No hay registros que enviar', {
-        description: 'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.',
+        description:
+          'Activa "Habilitar diagnósticos" primero para que la app empiece a guardar registros que luego puedas enviar.',
         variant: 'warning',
       });
       return;
@@ -337,7 +366,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     () => scrollY.value > 8,
     (collapsed, prevCollapsed) => {
       if (collapsed !== prevCollapsed) runOnJS(reportScrollY)(scrollY.value);
-    }
+    },
   );
   // Oscurecido progresivo del fondo fijo de toda la pantalla (ver
   // HOME_BG_MIN/MAX_OPACITY y miPlanOffsetY arriba).
@@ -346,7 +375,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       scrollY.value,
       [0, Math.max(miPlanOffsetY.value, 1)],
       [HOME_BG_MIN_OPACITY, HOME_BG_MAX_OPACITY],
-      Extrapolation.CLAMP
+      Extrapolation.CLAMP,
     ),
   }));
   // Segunda capa, color de tema real -- mismo rango de scroll que
@@ -357,7 +386,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       scrollY.value,
       [0, Math.max(miPlanOffsetY.value, 1)],
       [0, 1],
-      Extrapolation.CLAMP
+      Extrapolation.CLAMP,
     ),
   }));
   // Este bloque ("Reto para empezar") es la entrada al tutorial guiado:
@@ -376,7 +405,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         done: isTutorialDone(challenge.id),
         onPress: () => startChallenge(challenge.id),
       })),
-    [isTutorialDone, startChallenge]
+    [isTutorialDone, startChallenge],
   );
   const { width: winW, height: winH } = useWindowDimensions();
   const sc = useMemo(() => Math.min(winW / FIGMA_W, winH / FIGMA_H), [winW, winH]);
@@ -438,194 +467,428 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const [readinessToday, setReadinessToday] = useState<ReadinessTodayResponse['data'] | null>(null);
   const [showReadinessSheet, setShowReadinessSheet] = useState(false);
 
-  const styles = useMemo(() => StyleSheet.create({
-    // Transparente a propósito (antes C.bg opaco): el fondo fijo de la foto
-    // (ver homeBgFixedLayer más abajo) vive por debajo de todo, y necesita
-    // que este contenedor y el ScrollView no lo tapen con un color sólido.
-    container: { flex: 1 },
-    // Oscurecido progresivo: negro fijo en ambos modos, nunca un color de
-    // chrome de la app (C.bg/tono por mood, como se hacía antes). Esta capa
-    // va SOBRE una foto, no sobre UI -- fundir hacia negro es lo único que de
-    // verdad se lee como "la foto se oscurece" al hacer scroll, sea cual sea
-    // el tema. Fundir hacia C.bg (#F4F4F7, opaco) es lo que causó el bloque
-    // gris claro plano del BUG-054: al subir la opacidad, en vez de oscurecer
-    // la foto la sustituía por un color sólido casi blanco. Con negro no hay
-    // ese riesgo: incluso al máximo (HOME_BG_MAX_OPACITY) la foto se ve muy
-    // oscura pero nunca se convierte en un bloque de color plano ajeno a ella.
-    homeBgDarkenLayer: { backgroundColor: '#000000' },
-    // Segunda capa, encima de homeBgDarkenLayer -- ver
-    // homeBgSolidAnimatedStyle. Esta sí es C.bg (el tema real, distinto en
-    // claro/oscuro): avanza en paralelo con homeBgDarkenLayer, del negro
-    // subiendo debajo a la vez, así que cuando el gris empieza a notarse ya
-    // hay foto oscurecida detrás -- no repite el bloque plano de BUG-054,
-    // que pasaba con la foto todavía nítida.
-    homeBgSolidLayer: { backgroundColor: C.bg },
-    // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
-    // con foto real de fondo (amanecer/atardecer, día o noche, ver
-    // getHeroMoodForHour). Sin border-radius inferior ni degradado de cierre a propósito (revisión 2026-08-26,
-    // pedido explícito repetido: la foto debe llenar la pantalla entera sin
-    // ningún degradado de transición, ni dentro de la foto ni entre esta y
-    // "Mi plan de hoy" -- los intentos anteriores con degradado de cierre
-    // (heroCloseGradient/seamGradient) se han quitado del todo).
-    // height: winH crudo, sin restar inset inferior ni barra de pestañas --
-    // versiones previas restaban esas zonas para dejar hueco a la barra
-    // flotante, pero el resultado seguía sin leerse como "pantalla
-    // completa" (reportado con captura, 2026-08-26); esta vez se prioriza
-    // que la foto ocupe el 100% del viewport visible al entrar, aunque deje
-    // más foto sin contenido de UI encima en pantallas altas.
-    heroHeader: {
-      height: winH,
-      paddingBottom: r(24),
-      paddingHorizontal: r(20),
-      overflow: 'hidden' as const,
-    },
-    // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
-    // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
-    // para poder quedar estática al hacer scroll. heroTopBar ya no forma
-    // parte del contenido que se desplaza.
-    heroTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' as const, paddingHorizontal: r(20), paddingBottom: r(12) },
-    heroIconBtn: { width: r(38), height: r(38), borderRadius: r(19), backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center' as const, justifyContent: 'center' as const },
-    heroGreeting: { flex: 1, fontSize: r(15), fontFamily: FONT.bold, color: '#FFFFFF', textAlign: 'center' as const, marginHorizontal: r(10) },
-    notifBadge: { position: 'absolute', top: r(-2), right: r(-2), width: r(16), height: r(16), borderRadius: r(8), backgroundColor: C.destructive, alignItems: 'center' as const, justifyContent: 'center' as const },
-    notifBadgeText: { fontSize: r(8), fontFamily: FONT.bold, color: '#FFFFFF' },
-    stickyHeader: { position: 'absolute' as const, top: 0, left: 0, right: 0, zIndex: 20, elevation: 20, overflow: 'hidden' as const },
-    // Altura del contenido de la barra fija (sin contar el inset superior) —
-    // se usa como paddingTop del header degradado para que ningún contenido
-    // del ScrollView quede tapado por la barra fija.
-    ringsRow: { alignItems: 'center' as const, justifyContent: 'center' as const, marginBottom: r(16), minHeight: r(120) },
-    ringSide: { flex: 1, justifyContent: 'center' as const },
-    // lineHeight explícito (mayor que el fontSize) — sin esto, con
-    // FONT.extraBold el número quedaba cortado por arriba/abajo dentro de su
-    // propia caja de texto (mismo patrón de "números entrecortados" ya visto
-    // en otras screens con fuentes bold). Ver nota de revisión 2026-08-19.
-    ringValue: { fontSize: r(26), lineHeight: r(32), fontFamily: FONT.extraBold, color: '#FFFFFF' },
-    ringLabel: { fontSize: r(10), lineHeight: r(14), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.65)', letterSpacing: 0.5, marginTop: r(2) },
-    ringSubLabel: { fontSize: r(9), lineHeight: r(13), color: 'rgba(255,255,255,0.5)' },
-    readinessCtaHint: { fontSize: r(11), color: 'rgba(255,255,255,0.6)', textAlign: 'center' as const, marginTop: r(-8) },
-    // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
-    // de demo, todavía sobre la foto), no a caballo sobre el degradado como
-    // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
-    // ya lo hereda de heroHeader.
-    miniCardsRow: { marginTop: r(16) },
-    heroPhrase: { fontSize: r(14), color: 'rgba(255,255,255,0.92)', textAlign: 'center' as const, lineHeight: r(20), marginBottom: r(16) },
-    bannerCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: r(18), padding: r(16), alignItems: 'center' as const, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
-    bannerTitle: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF', marginTop: r(8) },
-    bannerText: { fontSize: r(12), color: 'rgba(255,255,255,0.75)', textAlign: 'center' as const, marginTop: r(4), lineHeight: r(17) },
-    miniCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: r(16), padding: r(14) },
-    miniCardTitle: { fontSize: r(12), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.75)' },
-    miniCardValue: { fontSize: r(18), fontFamily: FONT.extraBold, color: '#FFFFFF', marginTop: r(8) },
-    miniCardValueMuted: { fontSize: r(12), fontFamily: FONT.semiBold, color: 'rgba(255,255,255,0.55)' },
-    miniCardAddBtn: {
-      width: r(22),
-      height: r(22),
-      borderRadius: r(11),
-      backgroundColor: 'rgba(255,255,255,0.18)',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    glassGrid: { flexWrap: 'wrap' as const, gap: r(4), marginTop: r(8) },
-    miniCardSubRow: { fontSize: r(10.5), fontFamily: FONT.medium, color: 'rgba(255,255,255,0.7)' },
-    sectionTitle: { fontSize: r(17), fontFamily: FONT.bold, color: C.white },
-    seeAll: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
-    todayWorkoutTitle: { fontSize: r(15), fontFamily: FONT.bold, color: C.white },
-    todayWorkoutSub: { fontSize: r(12), color: C.textSecondary, marginTop: r(2) },
-    noWorkoutText: { fontSize: r(13), color: C.textSecondary },
-    activityWeekTitle: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.white },
-    activityWeekCount: { fontSize: r(12), color: C.textSecondary },
-    nutritionCalCenter: { alignItems: 'center' as const },
-    // Antes fontSize r(20) dentro de un ring de r(96) — con valores de 4
-    // cifras (ej. 2734 kcal) el número se salía del círculo tanto en iOS
-    // como Android. Se agranda el ring y se reduce la fuente base (con
-    // adjustsFontSizeToFit + minimumFontScale como red de seguridad extra
-    // para 5 cifras) para que quepa con margen incluso en pantallas pequeñas.
-    nutritionCalValue: { fontSize: r(16), fontFamily: FONT.extraBold, color: C.white },
-    nutritionCalLabel: { fontSize: r(10), color: C.textSecondary },
-    nutritionSide: { alignItems: 'center' as const },
-    nutritionSideLabel: { fontSize: r(10), color: C.textSecondary },
-    nutritionSideValue: { fontSize: r(14), fontFamily: FONT.bold, color: C.white, marginTop: r(2) },
-    nutritionMsg: { fontSize: r(12), color: C.textSecondary, textAlign: 'center' as const, marginTop: r(8), marginBottom: r(8) },
-    nutritionLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: r(8) },
-    nutritionLinkText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
-    macroBar: { flex: 1, alignItems: 'center' as const },
-    macroTrack: { height: r(6), borderRadius: r(4), backgroundColor: C.gray70, width: '100%', overflow: 'hidden' },
-    macroFill: { height: r(6), borderRadius: r(4) },
-    macroLabel: { fontSize: r(10), color: C.textSecondary, marginTop: r(6) },
-    macroValue: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.white, marginTop: r(2) },
-    blogCard: { width: r(220), marginRight: r(14), backgroundColor: C.surfaceLight, borderRadius: r(16), borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-    blogImage: { height: r(100), backgroundColor: C.gray70, width: '100%' },
-    blogContent: { padding: r(12) },
-    blogTag: { backgroundColor: 'rgba(255,107,53,0.15)', borderRadius: r(8), paddingHorizontal: r(8), paddingVertical: r(2), alignSelf: 'flex-start' as const },
-    blogTagText: { fontSize: r(9), fontFamily: FONT.semiBold, color: C.orange },
-    blogTitle: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.white, marginTop: r(6) },
-    blogDate: { fontSize: r(10), color: C.textSecondary, marginTop: r(4) },
-    seeAllImage: { backgroundColor: C.orange, alignItems: 'center' as const, justifyContent: 'center' as const },
-    // Banner de la Guía de autogestión -- a diferencia de blogCard, el
-    // texto va superpuesto sobre la propia foto (no debajo, en una tarjeta
-    // aparte), de ahí el degradado oscuro y el blanco fijo en vez de
-    // C.white (que en este theme es casi negro, pensado para texto sobre
-    // superficie clara, no sobre foto).
-    guideBanner: {
-      height: r(110),
-      borderRadius: r(18),
-      overflow: 'hidden' as const,
-      backgroundColor: C.gray70,
-      justifyContent: 'center' as const,
-    },
-    guideBannerOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
-    guideBannerContent: { paddingHorizontal: r(18), paddingRight: r(48) },
-    guideBannerTitle: { fontSize: r(16), fontFamily: FONT.bold, color: '#FFFFFF' },
-    guideBannerSubtitle: { fontSize: r(12), fontFamily: FONT.medium, color: 'rgba(255,255,255,0.85)', marginTop: r(4) },
-    guideBannerIcon: { position: 'absolute' as const, right: r(16), top: '50%' as any, marginTop: -13 },
-    resourceTypeBadge: {
-      position: 'absolute' as const,
-      top: r(8),
-      right: r(8),
-      width: r(26),
-      height: r(26),
-      borderRadius: r(13),
-      backgroundColor: 'rgba(0,0,0,0.45)',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    lockBadge: { position: 'absolute' as const, top: r(8), right: r(8), flexDirection: 'row' as const, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: r(10), paddingHorizontal: r(7), paddingVertical: r(3), gap: r(4) },
-    lockBadgeText: { fontSize: r(9), color: '#FFFFFF', fontFamily: FONT.semiBold },
-    supportTitle: { flex: 1, fontSize: r(14), fontFamily: FONT.bold, color: C.white },
-    supportLink: { fontSize: r(12), fontFamily: FONT.semiBold, color: C.orange, marginTop: r(6) },
-    emptySection: { paddingHorizontal: r(20), paddingVertical: r(12), marginBottom: r(8) },
-    myProgramBadgeText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textPrimary },
-    seeAllTasksBtnText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
-    emptyText: { fontSize: r(13), color: C.textSecondary, textAlign: 'center' as const },
-    errorBanner: { backgroundColor: C.destructive10, borderRadius: r(12), padding: r(12), marginHorizontal: r(20), marginBottom: r(12), flexDirection: 'row', alignItems: 'center' },
-    errorText: { flex: 1, fontSize: r(12), color: C.destructive, marginLeft: r(8) },
-    loader: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center' as const, justifyContent: 'center' as const },
-    menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' as const },
-    menuSheet: { backgroundColor: C.bg, borderTopLeftRadius: r(24), borderTopRightRadius: r(24), paddingBottom: r(24), maxHeight: '85%' as const },
-    menuHandle: { width: r(40), height: r(4), borderRadius: r(2), backgroundColor: C.border, alignSelf: 'center' as const, marginTop: r(10), marginBottom: r(4) },
-    menuHeaderBar: { alignItems: 'center' as const, justifyContent: 'center' as const, paddingVertical: r(14), paddingHorizontal: r(20) },
-    menuTitle: { fontSize: r(17), fontFamily: FONT.bold, color: C.textPrimary },
-    menuCloseBtn: {
-      position: 'absolute' as const,
-      left: r(20),
-      width: r(32),
-      height: r(32),
-      borderRadius: r(16),
-      backgroundColor: C.surface,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    },
-    menuScroll: { paddingHorizontal: r(20) },
-    menuSectionLabel: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.textSecondary, marginTop: r(20), marginBottom: r(8), marginLeft: r(4) },
-    menuCard: { backgroundColor: C.surface, borderRadius: r(16), overflow: 'hidden' as const },
-    menuItemText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.textPrimary },
-    menuItemSubtext: { fontSize: r(12), color: C.textSecondary, marginTop: r(1) },
-    menuLogoutBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(20) },
-    menuLogoutText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.destructive },
-    menuActionBtn: { backgroundColor: C.surface, borderRadius: r(16), paddingVertical: r(14), alignItems: 'center' as const, marginTop: r(12) },
-    menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
-    menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
-    comingSoonPill: { backgroundColor: C.gray10, borderRadius: r(999), paddingHorizontal: r(10), paddingVertical: r(4) },
-    comingSoonPillText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textSecondary },
-  }), [sc, r, C, winH, heroMood]);
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        // Transparente a propósito (antes C.bg opaco): el fondo fijo de la foto
+        // (ver homeBgFixedLayer más abajo) vive por debajo de todo, y necesita
+        // que este contenedor y el ScrollView no lo tapen con un color sólido.
+        container: { flex: 1 },
+        // Oscurecido progresivo: negro fijo en ambos modos, nunca un color de
+        // chrome de la app (C.bg/tono por mood, como se hacía antes). Esta capa
+        // va SOBRE una foto, no sobre UI -- fundir hacia negro es lo único que de
+        // verdad se lee como "la foto se oscurece" al hacer scroll, sea cual sea
+        // el tema. Fundir hacia C.bg (#F4F4F7, opaco) es lo que causó el bloque
+        // gris claro plano del BUG-054: al subir la opacidad, en vez de oscurecer
+        // la foto la sustituía por un color sólido casi blanco. Con negro no hay
+        // ese riesgo: incluso al máximo (HOME_BG_MAX_OPACITY) la foto se ve muy
+        // oscura pero nunca se convierte en un bloque de color plano ajeno a ella.
+        homeBgDarkenLayer: { backgroundColor: '#000000' },
+        // Segunda capa, encima de homeBgDarkenLayer -- ver
+        // homeBgSolidAnimatedStyle. Esta sí es C.bg (el tema real, distinto en
+        // claro/oscuro): avanza en paralelo con homeBgDarkenLayer, del negro
+        // subiendo debajo a la vez, así que cuando el gris empieza a notarse ya
+        // hay foto oscurecida detrás -- no repite el bloque plano de BUG-054,
+        // que pasaba con la foto todavía nítida.
+        homeBgSolidLayer: { backgroundColor: C.bg },
+        // Nueva cabecera estilo Helix (docs/Nueva_Cabecera_Home_Helix.md). Fondo
+        // con foto real de fondo (amanecer/atardecer, día o noche, ver
+        // getHeroMoodForHour). Sin border-radius inferior ni degradado de cierre a propósito (revisión 2026-08-26,
+        // pedido explícito repetido: la foto debe llenar la pantalla entera sin
+        // ningún degradado de transición, ni dentro de la foto ni entre esta y
+        // "Mi plan de hoy" -- los intentos anteriores con degradado de cierre
+        // (heroCloseGradient/seamGradient) se han quitado del todo).
+        // height: winH crudo, sin restar inset inferior ni barra de pestañas --
+        // versiones previas restaban esas zonas para dejar hueco a la barra
+        // flotante, pero el resultado seguía sin leerse como "pantalla
+        // completa" (reportado con captura, 2026-08-26); esta vez se prioriza
+        // que la foto ocupe el 100% del viewport visible al entrar, aunque deje
+        // más foto sin contenido de UI encima en pantallas altas.
+        heroHeader: {
+          height: winH,
+          paddingBottom: r(24),
+          paddingHorizontal: r(20),
+          overflow: 'hidden' as const,
+        },
+        // Barra fija (calendario / saludo / notificaciones / ajustes) — vive
+        // FUERA del ScrollView como overlay con blur (ver stickyHeader más abajo)
+        // para poder quedar estática al hacer scroll. heroTopBar ya no forma
+        // parte del contenido que se desplaza.
+        heroTopBar: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between' as const,
+          paddingHorizontal: r(20),
+          paddingBottom: r(12),
+        },
+        heroIconBtn: {
+          width: r(38),
+          height: r(38),
+          borderRadius: r(19),
+          backgroundColor: 'rgba(255,255,255,0.16)',
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        heroGreeting: {
+          flex: 1,
+          fontSize: r(15),
+          fontFamily: FONT.bold,
+          color: '#FFFFFF',
+          textAlign: 'center' as const,
+          marginHorizontal: r(10),
+        },
+        notifBadge: {
+          position: 'absolute',
+          top: r(-2),
+          right: r(-2),
+          width: r(16),
+          height: r(16),
+          borderRadius: r(8),
+          backgroundColor: C.destructive,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        notifBadgeText: { fontSize: r(8), fontFamily: FONT.bold, color: '#FFFFFF' },
+        stickyHeader: {
+          position: 'absolute' as const,
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          elevation: 20,
+          overflow: 'hidden' as const,
+        },
+        // Altura del contenido de la barra fija (sin contar el inset superior) —
+        // se usa como paddingTop del header degradado para que ningún contenido
+        // del ScrollView quede tapado por la barra fija.
+        ringsRow: {
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+          marginBottom: r(16),
+          minHeight: r(120),
+        },
+        ringSide: { flex: 1, justifyContent: 'center' as const },
+        // lineHeight explícito (mayor que el fontSize) — sin esto, con
+        // FONT.extraBold el número quedaba cortado por arriba/abajo dentro de su
+        // propia caja de texto (mismo patrón de "números entrecortados" ya visto
+        // en otras screens con fuentes bold). Ver nota de revisión 2026-08-19.
+        ringValue: {
+          fontSize: r(26),
+          lineHeight: r(32),
+          fontFamily: FONT.extraBold,
+          color: '#FFFFFF',
+        },
+        ringLabel: {
+          fontSize: r(10),
+          lineHeight: r(14),
+          fontFamily: FONT.semiBold,
+          color: 'rgba(255,255,255,0.65)',
+          letterSpacing: 0.5,
+          marginTop: r(2),
+        },
+        ringSubLabel: { fontSize: r(9), lineHeight: r(13), color: 'rgba(255,255,255,0.5)' },
+        readinessCtaHint: {
+          fontSize: r(11),
+          color: 'rgba(255,255,255,0.6)',
+          textAlign: 'center' as const,
+          marginTop: r(-8),
+        },
+        // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
+        // de demo, todavía sobre la foto), no a caballo sobre el degradado como
+        // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
+        // ya lo hereda de heroHeader.
+        miniCardsRow: { marginTop: r(16) },
+        heroPhrase: {
+          fontSize: r(14),
+          color: 'rgba(255,255,255,0.92)',
+          textAlign: 'center' as const,
+          lineHeight: r(20),
+          marginBottom: r(16),
+        },
+        bannerCard: {
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderRadius: r(18),
+          padding: r(16),
+          alignItems: 'center' as const,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.14)',
+        },
+        bannerTitle: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF', marginTop: r(8) },
+        bannerText: {
+          fontSize: r(12),
+          color: 'rgba(255,255,255,0.75)',
+          textAlign: 'center' as const,
+          marginTop: r(4),
+          lineHeight: r(17),
+        },
+        miniCard: {
+          flex: 1,
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderRadius: r(16),
+          padding: r(14),
+        },
+        miniCardTitle: {
+          fontSize: r(12),
+          fontFamily: FONT.semiBold,
+          color: 'rgba(255,255,255,0.75)',
+        },
+        miniCardValue: {
+          fontSize: r(18),
+          fontFamily: FONT.extraBold,
+          color: '#FFFFFF',
+          marginTop: r(8),
+        },
+        miniCardValueMuted: {
+          fontSize: r(12),
+          fontFamily: FONT.semiBold,
+          color: 'rgba(255,255,255,0.55)',
+        },
+        miniCardAddBtn: {
+          width: r(22),
+          height: r(22),
+          borderRadius: r(11),
+          backgroundColor: 'rgba(255,255,255,0.18)',
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        glassGrid: { flexWrap: 'wrap' as const, gap: r(4), marginTop: r(8) },
+        miniCardSubRow: {
+          fontSize: r(10.5),
+          fontFamily: FONT.medium,
+          color: 'rgba(255,255,255,0.7)',
+        },
+        sectionTitle: { fontSize: r(17), fontFamily: FONT.bold, color: C.white },
+        seeAll: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
+        todayWorkoutTitle: { fontSize: r(15), fontFamily: FONT.bold, color: C.white },
+        todayWorkoutSub: { fontSize: r(12), color: C.textSecondary, marginTop: r(2) },
+        noWorkoutText: { fontSize: r(13), color: C.textSecondary },
+        activityWeekTitle: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.white },
+        activityWeekCount: { fontSize: r(12), color: C.textSecondary },
+        nutritionCalCenter: { alignItems: 'center' as const },
+        // Antes fontSize r(20) dentro de un ring de r(96) — con valores de 4
+        // cifras (ej. 2734 kcal) el número se salía del círculo tanto en iOS
+        // como Android. Se agranda el ring y se reduce la fuente base (con
+        // adjustsFontSizeToFit + minimumFontScale como red de seguridad extra
+        // para 5 cifras) para que quepa con margen incluso en pantallas pequeñas.
+        nutritionCalValue: { fontSize: r(16), fontFamily: FONT.extraBold, color: C.white },
+        nutritionCalLabel: { fontSize: r(10), color: C.textSecondary },
+        nutritionSide: { alignItems: 'center' as const },
+        nutritionSideLabel: { fontSize: r(10), color: C.textSecondary },
+        nutritionSideValue: {
+          fontSize: r(14),
+          fontFamily: FONT.bold,
+          color: C.white,
+          marginTop: r(2),
+        },
+        nutritionMsg: {
+          fontSize: r(12),
+          color: C.textSecondary,
+          textAlign: 'center' as const,
+          marginTop: r(8),
+          marginBottom: r(8),
+        },
+        nutritionLink: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: r(8),
+        },
+        nutritionLinkText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
+        macroBar: { flex: 1, alignItems: 'center' as const },
+        macroTrack: {
+          height: r(6),
+          borderRadius: r(4),
+          backgroundColor: C.gray70,
+          width: '100%',
+          overflow: 'hidden',
+        },
+        macroFill: { height: r(6), borderRadius: r(4) },
+        macroLabel: { fontSize: r(10), color: C.textSecondary, marginTop: r(6) },
+        macroValue: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.white, marginTop: r(2) },
+        blogCard: {
+          width: r(220),
+          marginRight: r(14),
+          backgroundColor: C.surfaceLight,
+          borderRadius: r(16),
+          borderWidth: 1,
+          borderColor: C.border,
+          overflow: 'hidden',
+        },
+        blogImage: { height: r(100), backgroundColor: C.gray70, width: '100%' },
+        blogContent: { padding: r(12) },
+        blogTag: {
+          backgroundColor: 'rgba(255,107,53,0.15)',
+          borderRadius: r(8),
+          paddingHorizontal: r(8),
+          paddingVertical: r(2),
+          alignSelf: 'flex-start' as const,
+        },
+        blogTagText: { fontSize: r(9), fontFamily: FONT.semiBold, color: C.orange },
+        blogTitle: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.white, marginTop: r(6) },
+        blogDate: { fontSize: r(10), color: C.textSecondary, marginTop: r(4) },
+        seeAllImage: {
+          backgroundColor: C.orange,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        // Banner de la Guía de autogestión -- a diferencia de blogCard, el
+        // texto va superpuesto sobre la propia foto (no debajo, en una tarjeta
+        // aparte), de ahí el degradado oscuro y el blanco fijo en vez de
+        // C.white (que en este theme es casi negro, pensado para texto sobre
+        // superficie clara, no sobre foto).
+        guideBanner: {
+          height: r(110),
+          borderRadius: r(18),
+          overflow: 'hidden' as const,
+          backgroundColor: C.gray70,
+          justifyContent: 'center' as const,
+        },
+        guideBannerOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
+        guideBannerContent: { paddingHorizontal: r(18), paddingRight: r(48) },
+        guideBannerTitle: { fontSize: r(16), fontFamily: FONT.bold, color: '#FFFFFF' },
+        guideBannerSubtitle: {
+          fontSize: r(12),
+          fontFamily: FONT.medium,
+          color: 'rgba(255,255,255,0.85)',
+          marginTop: r(4),
+        },
+        guideBannerIcon: {
+          position: 'absolute' as const,
+          right: r(16),
+          top: '50%' as any,
+          marginTop: -13,
+        },
+        resourceTypeBadge: {
+          position: 'absolute' as const,
+          top: r(8),
+          right: r(8),
+          width: r(26),
+          height: r(26),
+          borderRadius: r(13),
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        lockBadge: {
+          position: 'absolute' as const,
+          top: r(8),
+          right: r(8),
+          flexDirection: 'row' as const,
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          borderRadius: r(10),
+          paddingHorizontal: r(7),
+          paddingVertical: r(3),
+          gap: r(4),
+        },
+        lockBadgeText: { fontSize: r(9), color: '#FFFFFF', fontFamily: FONT.semiBold },
+        supportTitle: { flex: 1, fontSize: r(14), fontFamily: FONT.bold, color: C.white },
+        supportLink: {
+          fontSize: r(12),
+          fontFamily: FONT.semiBold,
+          color: C.orange,
+          marginTop: r(6),
+        },
+        emptySection: { paddingHorizontal: r(20), paddingVertical: r(12), marginBottom: r(8) },
+        myProgramBadgeText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textPrimary },
+        seeAllTasksBtnText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
+        emptyText: { fontSize: r(13), color: C.textSecondary, textAlign: 'center' as const },
+        errorBanner: {
+          backgroundColor: C.destructive10,
+          borderRadius: r(12),
+          padding: r(12),
+          marginHorizontal: r(20),
+          marginBottom: r(12),
+          flexDirection: 'row',
+          alignItems: 'center',
+        },
+        errorText: { flex: 1, fontSize: r(12), color: C.destructive, marginLeft: r(8) },
+        loader: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        menuOverlay: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'flex-end' as const,
+        },
+        menuSheet: {
+          backgroundColor: C.bg,
+          borderTopLeftRadius: r(24),
+          borderTopRightRadius: r(24),
+          paddingBottom: r(24),
+          maxHeight: '85%' as const,
+        },
+        menuHandle: {
+          width: r(40),
+          height: r(4),
+          borderRadius: r(2),
+          backgroundColor: C.border,
+          alignSelf: 'center' as const,
+          marginTop: r(10),
+          marginBottom: r(4),
+        },
+        menuHeaderBar: {
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+          paddingVertical: r(14),
+          paddingHorizontal: r(20),
+        },
+        menuTitle: { fontSize: r(17), fontFamily: FONT.bold, color: C.textPrimary },
+        menuCloseBtn: {
+          position: 'absolute' as const,
+          left: r(20),
+          width: r(32),
+          height: r(32),
+          borderRadius: r(16),
+          backgroundColor: C.surface,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        menuScroll: { paddingHorizontal: r(20) },
+        menuSectionLabel: {
+          fontSize: r(13),
+          fontFamily: FONT.semiBold,
+          color: C.textSecondary,
+          marginTop: r(20),
+          marginBottom: r(8),
+          marginLeft: r(4),
+        },
+        menuCard: { backgroundColor: C.surface, borderRadius: r(16), overflow: 'hidden' as const },
+        menuItemText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.textPrimary },
+        menuItemSubtext: { fontSize: r(12), color: C.textSecondary, marginTop: r(1) },
+        menuLogoutBtn: {
+          backgroundColor: C.surface,
+          borderRadius: r(16),
+          paddingVertical: r(14),
+          alignItems: 'center' as const,
+          marginTop: r(20),
+        },
+        menuLogoutText: { fontSize: r(15), fontFamily: FONT.semiBold, color: C.destructive },
+        menuActionBtn: {
+          backgroundColor: C.surface,
+          borderRadius: r(16),
+          paddingVertical: r(14),
+          alignItems: 'center' as const,
+          marginTop: r(12),
+        },
+        menuActionBtnText: { fontSize: r(14), fontFamily: FONT.semiBold, color: C.textPrimary },
+        menuFooterText: { fontSize: r(12), color: C.textSecondary, marginTop: r(6) },
+        comingSoonPill: {
+          backgroundColor: C.gray10,
+          borderRadius: r(999),
+          paddingHorizontal: r(10),
+          paddingVertical: r(4),
+        },
+        comingSoonPillText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textSecondary },
+      }),
+    [sc, r, C, winH, heroMood],
+  );
 
   const fetchData = useCallback(async (mode?: 'initial' | 'silent') => {
     if (mode !== 'silent') {
@@ -638,7 +901,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
 
-      const [dashRes, calendarRes, dietRes, blogRes, workoutTemplatesRes, resourcesRes, checkinsRes, habitsRes, phraseRes, completedRes, readinessRes] = await Promise.allSettled([
+      const [
+        dashRes,
+        calendarRes,
+        dietRes,
+        blogRes,
+        workoutTemplatesRes,
+        resourcesRes,
+        checkinsRes,
+        habitsRes,
+        phraseRes,
+        completedRes,
+        readinessRes,
+      ] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         workoutHistoryApi.getMyCalendar(currentMonth, currentYear),
         dietApi.getDailyPlan(todayStr),
@@ -678,9 +953,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       // el entrenamiento de cada día se completó de verdad, no solo si
       // había uno asignado. Se reutiliza el mismo Set para
       // setCompletedAssignmentIds() más abajo, sin recalcularlo dos veces.
-      const completedSessions: CompletedSessionItem[] = completedRes.status === 'fulfilled' ? (completedRes.value.data?.data ?? []) : [];
+      const completedSessions: CompletedSessionItem[] =
+        completedRes.status === 'fulfilled' ? (completedRes.value.data?.data ?? []) : [];
       const completedAssignmentIdSet = new Set(
-        completedSessions.filter((s) => s.program_day_assignment_id != null).map((s) => s.program_day_assignment_id as number)
+        completedSessions
+          .filter((s) => s.program_day_assignment_id != null)
+          .map((s) => s.program_day_assignment_id as number),
       );
 
       if (calendarRes.status === 'fulfilled') {
@@ -710,12 +988,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           // menos uno de los workouts asignados ese día esté en
           // completedAssignmentIdSet (mismas sesiones completadas que ya
           // usa "Mi plan de hoy" para distinguir tarjeta completada/pendiente).
-          const dayCompleted = dayWorkouts.some((w: any) => completedAssignmentIdSet.has(w.assignment_id));
+          const dayCompleted = dayWorkouts.some((w: any) =>
+            completedAssignmentIdSet.has(w.assignment_id),
+          );
           weekBools.push(dayCompleted);
           // Fracción completados/asignados ese día (pedido explícito, ver
           // weeklyWorkoutsProgress) -- p.ej. 2 asignados y 1 completado
           // rellena el anillo a la mitad. 0 si no hay nada asignado ese día.
-          const completedCount = dayWorkouts.filter((w: any) => completedAssignmentIdSet.has(w.assignment_id)).length;
+          const completedCount = dayWorkouts.filter((w: any) =>
+            completedAssignmentIdSet.has(w.assignment_id),
+          ).length;
           weekProgress.push(dayWorkouts.length > 0 ? completedCount / dayWorkouts.length : 0);
         }
         setWeeklyWorkouts(weekBools);
@@ -771,7 +1053,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     useCallback(() => {
       fetchData(firstLoadDone.current ? 'silent' : 'initial');
       firstLoadDone.current = true;
-    }, [fetchData])
+    }, [fetchData]),
   );
 
   // Motor de Auto-Regulación de Carga — Fase 4, readiness score (2026-08-12).
@@ -797,10 +1079,29 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         const source: HealthDataSource = Platform.OS === 'ios' ? 'apple_health' : 'google_health';
         const readings: HealthReading[] = [];
 
-        if (snapshot.hrv != null) readings.push({ source, metric_type: 'hrv', value: snapshot.hrv, recorded_date: today });
-        if (snapshot.restingHeartRateBpm != null) readings.push({ source, metric_type: 'resting_hr', value: snapshot.restingHeartRateBpm, recorded_date: today });
-        if (snapshot.sleepMinutes != null) readings.push({ source, metric_type: 'sleep_hours', value: Math.round((snapshot.sleepMinutes / 60) * 100) / 100, recorded_date: today });
-        if (snapshot.steps != null) readings.push({ source, metric_type: 'steps', value: snapshot.steps, recorded_date: today });
+        if (snapshot.hrv != null)
+          readings.push({ source, metric_type: 'hrv', value: snapshot.hrv, recorded_date: today });
+        if (snapshot.restingHeartRateBpm != null)
+          readings.push({
+            source,
+            metric_type: 'resting_hr',
+            value: snapshot.restingHeartRateBpm,
+            recorded_date: today,
+          });
+        if (snapshot.sleepMinutes != null)
+          readings.push({
+            source,
+            metric_type: 'sleep_hours',
+            value: Math.round((snapshot.sleepMinutes / 60) * 100) / 100,
+            recorded_date: today,
+          });
+        if (snapshot.steps != null)
+          readings.push({
+            source,
+            metric_type: 'steps',
+            value: snapshot.steps,
+            recorded_date: today,
+          });
 
         if (readings.length > 0) {
           await healthApi.sync(readings);
@@ -849,8 +1150,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       'Todos los retos volverán a aparecer como pendientes en "Reto para empezar".',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Reiniciar', style: 'destructive', onPress: () => { setShowMenu(false); resetTutorial(); } },
-      ]
+        {
+          text: 'Reiniciar',
+          style: 'destructive',
+          onPress: () => {
+            setShowMenu(false);
+            resetTutorial();
+          },
+        },
+      ],
     );
   };
 
@@ -869,13 +1177,24 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
     | { kind: 'checkin'; key: string; data: CheckInAssignment }
     | { kind: 'workout'; key: string; data: any };
   const todayItems: TodayItem[] = [
-    ...pendingCheckins.map((a): TodayItem => ({ kind: 'checkin', key: `checkin-${a.id}`, data: a })),
-    ...todayWorkouts.map((w: any, i: number): TodayItem => ({ kind: 'workout', key: `workout-${w.assignment_id}-${i}`, data: w })),
+    ...pendingCheckins.map((a): TodayItem => ({
+      kind: 'checkin',
+      key: `checkin-${a.id}`,
+      data: a,
+    })),
+    ...todayWorkouts.map((w: any, i: number): TodayItem => ({
+      kind: 'workout',
+      key: `workout-${w.assignment_id}-${i}`,
+      data: w,
+    })),
   ];
   const visibleTodayItems = todayItems.slice(0, 3);
 
   const renderTodayItem = (item: TodayItem, i: number) => {
-    const rowStyle = i > 0 ? { marginTop: r(12), paddingTop: r(12), borderTopWidth: 1, borderTopColor: C.border } : {};
+    const rowStyle =
+      i > 0
+        ? { marginTop: r(12), paddingTop: r(12), borderTopWidth: 1, borderTopColor: C.border }
+        : {};
     if (item.kind === 'checkin') {
       const a = item.data;
       // Solo el primer check-in visible actúa como objetivo del reto
@@ -885,10 +1204,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       const checkinCard = (
         <Pressable
           style={rowStyle}
-          onPress={() => navigation?.navigate('MigratedCheckInFill', { formAssignmentId: a.id, formId: a.form_id, title: a.form.title })}
-        >
+          onPress={() =>
+            navigation?.navigate('MigratedCheckInFill', {
+              formAssignmentId: a.id,
+              formId: a.form_id,
+              title: a.form.title,
+            })
+          }>
           <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
-            <AppIcon name="clipboard-outline" size={20} color={C.warning60} bg={C.warning10} containerSize={r(44)} borderRadius={r(12)} />
+            <AppIcon
+              name="clipboard-outline"
+              size={20}
+              color={C.warning60}
+              bg={C.warning10}
+              containerSize={r(44)}
+              borderRadius={r(12)}
+            />
             <VStack className="flex-1">
               <Text style={styles.todayWorkoutTitle}>{a.form.title}</Text>
               <Text style={styles.todayWorkoutSub}>{checkinTypeLabel(a)}</Text>
@@ -898,7 +1229,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         </Pressable>
       );
       return isFirstCheckin ? (
-        <TutorialTarget key={item.key} id="home-checkin-card" scrollRef={scrollRef}>{checkinCard}</TutorialTarget>
+        <TutorialTarget key={item.key} id="home-checkin-card" scrollRef={scrollRef}>
+          {checkinCard}
+        </TutorialTarget>
       ) : (
         <Box key={item.key}>{checkinCard}</Box>
       );
@@ -916,12 +1249,24 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         style={rowStyle}
         onPress={() =>
           isCompleted
-            ? navigation?.navigate('MigratedSessionHistoryDetail', { programDayAssignmentId: w.assignment_id, title: w.title || 'Entrenamiento' })
-            : navigation?.navigate('MigratedWorkoutPreview', { programDayAssignmentId: w.assignment_id, mTitle: w.title || 'Entrenamiento' })
-        }
-      >
+            ? navigation?.navigate('MigratedSessionHistoryDetail', {
+                programDayAssignmentId: w.assignment_id,
+                title: w.title || 'Entrenamiento',
+              })
+            : navigation?.navigate('MigratedWorkoutPreview', {
+                programDayAssignmentId: w.assignment_id,
+                mTitle: w.title || 'Entrenamiento',
+              })
+        }>
         <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
-          <AppIcon name="barbell" size={22} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={r(44)} borderRadius={r(12)} />
+          <AppIcon
+            name="barbell"
+            size={22}
+            color={C.orange}
+            bg="rgba(255,107,53,0.15)"
+            containerSize={r(44)}
+            borderRadius={r(12)}
+          />
           <VStack className="flex-1">
             <Text style={styles.todayWorkoutTitle}>{w.title || 'Entrenamiento'}</Text>
             <Text style={styles.todayWorkoutSub}>Toca para ver detalles</Text>
@@ -931,7 +1276,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       </Pressable>
     );
     return isFirstWorkout ? (
-      <TutorialTarget key={item.key} id="home-today-workout-card" scrollRef={scrollRef}>{workoutCard}</TutorialTarget>
+      <TutorialTarget key={item.key} id="home-today-workout-card" scrollRef={scrollRef}>
+        {workoutCard}
+      </TutorialTarget>
     ) : (
       <Box key={item.key}>{workoutCard}</Box>
     );
@@ -961,7 +1308,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // Recovery del anillo del hero -- null mientras no se resuelve la petición
   // (evita parpadeo del CTA), número real una vez que hay chequeo de hoy.
   const recoveryScore = readinessToday?.today ? computeRecoveryScore(readinessToday.today) : null;
-  const recoveryColor = recoveryScore == null ? '#FFFFFF' : recoveryScore >= 70 ? C.success : recoveryScore >= 40 ? C.warning : C.destructive;
+  const recoveryColor =
+    recoveryScore == null
+      ? '#FFFFFF'
+      : recoveryScore >= 70
+        ? C.success
+        : recoveryScore >= 40
+          ? C.warning
+          : C.destructive;
   const readinessCtaVisible = readinessToday != null && !readinessToday.submitted_today;
 
   return (
@@ -982,9 +1336,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           la hora del día, sin
           relación con el tema claro/oscuro. */}
       <Box style={StyleSheet.absoluteFill} pointerEvents="none">
-        <ExpoImage source={HERO_IMAGES[heroMood]} contentFit="cover" style={StyleSheet.absoluteFill} />
-        <Animated.View style={[StyleSheet.absoluteFill, styles.homeBgDarkenLayer, homeBgDarkenAnimatedStyle]} />
-        <Animated.View style={[StyleSheet.absoluteFill, styles.homeBgSolidLayer, homeBgSolidAnimatedStyle]} />
+        <ExpoImage
+          source={HERO_IMAGES[heroMood]}
+          contentFit="cover"
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View
+          style={[StyleSheet.absoluteFill, styles.homeBgDarkenLayer, homeBgDarkenAnimatedStyle]}
+        />
+        <Animated.View
+          style={[StyleSheet.absoluteFill, styles.homeBgSolidLayer, homeBgSolidAnimatedStyle]}
+        />
       </Box>
       {/* Barra fija con efecto glass (calendario / saludo / notificaciones /
           ajustes) — se mantiene estática al hacer scroll, mostrando
@@ -1015,7 +1377,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Icon name="notifications-outline" size={18} color="#FFFFFF" />
                 {notificationCount > 0 && (
                   <Box style={styles.notifBadge}>
-                    <Text style={styles.notifBadgeText}>{notificationCount > 9 ? '9+' : notificationCount}</Text>
+                    <Text style={styles.notifBadgeText}>
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </Text>
                   </Box>
                 )}
               </Pressable>
@@ -1045,8 +1409,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             }}
             tintColor={C.orange}
           />
-        }
-      >
+        }>
         {/* Header (nueva cabecera estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
             paddingTop incluye insets.top + la altura de la barra fija de
             arriba (stickyHeader, ~r(58)) para que ningún contenido quede
@@ -1071,8 +1434,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           <Pressable
             disabled={!readinessCtaVisible}
             onPress={() => setShowReadinessSheet(true)}
-            style={({ pressed }) => [pressed && readinessCtaVisible && { opacity: 0.75 }]}
-          >
+            style={({ pressed }) => [pressed && readinessCtaVisible && { opacity: 0.75 }]}>
             <HStack style={styles.ringsRow}>
               <VStack style={styles.ringSide}>
                 <Text style={[styles.ringValue, recoveryScore != null && { color: recoveryColor }]}>
@@ -1086,16 +1448,21 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 percent={recoveryScore ?? 0}
                 color={recoveryScore != null ? recoveryColor : 'rgba(255,255,255,0.85)'}
                 trackColor="rgba(255,255,255,0.18)"
-                duration={0}
-              >
-                <Icon name={readinessCtaVisible ? 'add-circle-outline' : 'fitness-outline'} size={26} color="rgba(255,255,255,0.6)" />
+                duration={0}>
+                <Icon
+                  name={readinessCtaVisible ? 'add-circle-outline' : 'fitness-outline'}
+                  size={26}
+                  color="rgba(255,255,255,0.6)"
+                />
               </AnimatedRing>
               <VStack style={[styles.ringSide, { alignItems: 'flex-end' as const }]}>
                 <Text style={styles.ringValue}>-%</Text>
                 <Text style={styles.ringLabel}>STRAIN</Text>
               </VStack>
             </HStack>
-            {readinessCtaVisible && <Text style={styles.readinessCtaHint}>Toca para registrar cómo llegas hoy</Text>}
+            {readinessCtaVisible && (
+              <Text style={styles.readinessCtaHint}>Toca para registrar cómo llegas hoy</Text>
+            )}
           </Pressable>
 
           {/* Frase contextual (motivational-phrase, ver sección 4) */}
@@ -1110,12 +1477,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               style={styles.bannerCard}
               onPress={() => {
                 if (activeBanner.type === 'workout' && activeBanner.workout_id) {
-                  navigation?.navigate('MigratedWorkoutPreview', { workoutTemplateId: activeBanner.workout_id, mTitle: activeBanner.title });
+                  navigation?.navigate('MigratedWorkoutPreview', {
+                    workoutTemplateId: activeBanner.workout_id,
+                    mTitle: activeBanner.title,
+                  });
                 }
-              }}
-            >
+              }}>
               {activeBanner.bannerslider_image ? (
-                <ExpoImage source={{ uri: activeBanner.bannerslider_image }} style={{ width: '100%', height: r(90), borderRadius: r(12) }} contentFit="cover" />
+                <ExpoImage
+                  source={{ uri: activeBanner.bannerslider_image }}
+                  style={{ width: '100%', height: r(90), borderRadius: r(12) }}
+                  contentFit="cover"
+                />
               ) : null}
               <Text style={styles.bannerTitle}>{activeBanner.title}</Text>
             </Pressable>
@@ -1130,8 +1503,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
               <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
               <Text style={styles.bannerText}>
-                Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar Apple Health o
-                Google Health, disponible en una próxima versión de la app.
+                Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar
+                Apple Health o Google Health, disponible en una próxima versión de la app.
               </Text>
             </Box>
           )}
@@ -1156,15 +1529,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   onPress={() =>
                     WATER_TRACKER_ENABLED
                       ? navigation?.navigate('MigratedWaterTracker')
-                      : showToast('Próximamente', { description: 'Podrás registrar tu agua en la próxima versión de la app.' })
+                      : showToast('Próximamente', {
+                          description: 'Podrás registrar tu agua en la próxima versión de la app.',
+                        })
                   }
-                  hitSlop={8}
-                >
+                  hitSlop={8}>
                   <Icon name="add" size={14} color="#FFFFFF" />
                 </Pressable>
               </HStack>
               <Text style={styles.miniCardValue}>
-                {waterTotal}<Text style={styles.miniCardValueMuted}>/{waterGoal || '--'} mL</Text>
+                {waterTotal}
+                <Text style={styles.miniCardValueMuted}>/{waterGoal || '--'} mL</Text>
               </Text>
               <HStack style={styles.glassGrid}>
                 {Array.from({ length: totalGlasses }, (_, i) => (
@@ -1190,18 +1565,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   onPress={() =>
                     ACTIVITY_TRACKER_ENABLED
                       ? navigation?.navigate('MigratedActivityTracker')
-                      : showToast('Próximamente', { description: 'Podrás registrar tu actividad en la próxima versión de la app.' })
+                      : showToast('Próximamente', {
+                          description:
+                            'Podrás registrar tu actividad en la próxima versión de la app.',
+                        })
                   }
-                  hitSlop={8}
-                >
+                  hitSlop={8}>
                   <Icon name="add" size={14} color="#FFFFFF" />
                 </Pressable>
               </HStack>
               <Text style={styles.miniCardValue}>
-                {activityKcal}<Text style={styles.miniCardValueMuted}>/{activityGoalKcal || '--'} kcal</Text>
+                {activityKcal}
+                <Text style={styles.miniCardValueMuted}>/{activityGoalKcal || '--'} kcal</Text>
               </Text>
               <VStack style={{ marginTop: r(6), gap: r(4) }}>
-                <Text style={styles.miniCardSubRow}>Pasos · {stepsCount} · {stepsKcal} kcal</Text>
+                <Text style={styles.miniCardSubRow}>
+                  Pasos · {stepsCount} · {stepsKcal} kcal
+                </Text>
                 <Text style={styles.miniCardSubRow}>Entrenamientos · {workoutKcal} kcal</Text>
               </VStack>
             </Box>
@@ -1233,7 +1613,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             defecto, sin necesidad de parámetros). onLayout mide dónde
             empieza esta sección para el oscurecido progresivo del fondo (ver
             miPlanOffsetY). */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }} onLayout={handleMiPlanLayout}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}
+          onLayout={handleMiPlanLayout}>
           <Text style={styles.sectionTitle}>
             {state.user?.is_personal_client ? 'Mi plan de hoy' : 'Actividad de Hoy'}
           </Text>
@@ -1242,7 +1625,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Pressable>
         </HStack>
         {state.user?.is_personal_client && (
-          <HStack className="items-center" style={{ gap: r(5), paddingHorizontal: r(20), marginBottom: r(8) }}>
+          <HStack
+            className="items-center"
+            style={{ gap: r(5), paddingHorizontal: r(20), marginBottom: r(8) }}>
             <Icon name="person-circle" size={14} color={C.textPrimary} />
             <Text style={styles.myProgramBadgeText}>Personalizado por tu coach</Text>
           </HStack>
@@ -1269,9 +1654,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Pressable onPress={() => navigation?.navigate('MigratedMyProgramCalendar')}>
                 <HStack
                   className="items-center justify-center"
-                  style={{ marginHorizontal: r(20), marginTop: r(-2), marginBottom: r(12), paddingVertical: r(6), gap: r(6) }}
-                >
-                  <Text style={styles.seeAllTasksBtnText}>Ver todas las tareas ({todayItems.length})</Text>
+                  style={{
+                    marginHorizontal: r(20),
+                    marginTop: r(-2),
+                    marginBottom: r(12),
+                    paddingVertical: r(6),
+                    gap: r(6),
+                  }}>
+                  <Text style={styles.seeAllTasksBtnText}>
+                    Ver todas las tareas ({todayItems.length})
+                  </Text>
                   <Icon name="arrow-forward" size={14} color={C.orange} />
                 </HStack>
               </Pressable>
@@ -1282,14 +1674,24 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           // glass también aquí para que no cambie de material según el
           // estado del día.
           <Card variant="glass" className="mx-5 p-4 items-center" style={{ marginBottom: r(12) }}>
-            <AppIcon name="bed-outline" size={26} color={C.textSecondary} bg={C.brand10} containerSize={r(48)} />
+            <AppIcon
+              name="bed-outline"
+              size={26}
+              color={C.textSecondary}
+              bg={C.brand10}
+              containerSize={r(48)}
+            />
             <Text style={[styles.noWorkoutText, { marginTop: r(8) }]}>Día de descanso</Text>
-            <Text style={[styles.noWorkoutText, { fontSize: r(11) }]}>No hay entrenamientos programados para hoy</Text>
+            <Text style={[styles.noWorkoutText, { fontSize: r(11) }]}>
+              No hay entrenamientos programados para hoy
+            </Text>
           </Card>
         )}
 
         {/* Actividad semanal */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Cumplimiento semanal</Text>
         </HStack>
         <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
@@ -1299,7 +1701,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
             </Text>
           </HStack>
-          <WeekComplianceRow completedDays={weeklyWorkouts} progressDays={weeklyWorkoutsProgress} color={C.orange} size={r(28)} />
+          <WeekComplianceRow
+            completedDays={weeklyWorkouts}
+            progressDays={weeklyWorkoutsProgress}
+            color={C.orange}
+            size={r(28)}
+          />
         </Card>
 
         {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
@@ -1308,11 +1715,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             la tarjeta es el único camino real para llegar a Añadir hábito
             (biblioteca o personal) — ocultarla dejaría al cliente sin forma
             de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Hábitos</Text>
           <TutorialTarget id="home-habits-link" scrollRef={scrollRef}>
-            <Pressable onPress={() => navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')}>
-              <Text style={styles.seeAll}>{habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}</Text>
+            <Pressable
+              onPress={() =>
+                navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')
+              }>
+              <Text style={styles.seeAll}>
+                {habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}
+              </Text>
             </Pressable>
           </TutorialTarget>
         </HStack>
@@ -1321,16 +1735,35 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             {habits.slice(0, 3).map((h, i) => (
               <Pressable
                 key={h.id}
-                style={i > 0 ? { marginTop: r(12), paddingTop: r(12), borderTopWidth: 1, borderTopColor: C.border } : {}}
-                onPress={() => navigation?.navigate('MigratedHabitDetail', { habitId: h.id })}
-              >
+                style={
+                  i > 0
+                    ? {
+                        marginTop: r(12),
+                        paddingTop: r(12),
+                        borderTopWidth: 1,
+                        borderTopColor: C.border,
+                      }
+                    : {}
+                }
+                onPress={() => navigation?.navigate('MigratedHabitDetail', { habitId: h.id })}>
                 {/* marginLeft explícito además del gap del HStack — el
                     icono y el título quedaban muy pegados sin margen visible. */}
                 <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
-                  <AppIcon name={habitIoniconFor(h.icon)} size={20} color={C.textPrimary} bg={C.bg} containerSize={r(44)} borderRadius={r(12)} />
+                  <AppIcon
+                    name={habitIoniconFor(h.icon)}
+                    size={20}
+                    color={C.textPrimary}
+                    bg={C.bg}
+                    containerSize={r(44)}
+                    borderRadius={r(12)}
+                  />
                   <VStack className="flex-1" style={{ marginLeft: r(10) }}>
                     <Text style={styles.todayWorkoutTitle}>{h.title}</Text>
-                    <Text style={styles.todayWorkoutSub}>{h.current_streak ? `🔥 ${h.current_streak} días de racha` : 'Sin racha activa todavía'}</Text>
+                    <Text style={styles.todayWorkoutSub}>
+                      {h.current_streak
+                        ? `🔥 ${h.current_streak} días de racha`
+                        : 'Sin racha activa todavía'}
+                    </Text>
                   </VStack>
                   <Icon name="chevron-forward" size={20} color={C.textSecondary} />
                 </HStack>
@@ -1347,10 +1780,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           <Pressable onPress={() => navigation?.navigate('MigratedHabitAdd')}>
             <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
               <HStack space="md" className="items-center">
-                <AppIcon name="flame-outline" size={20} color={C.textPrimary} bg={C.bg} containerSize={r(44)} borderRadius={r(12)} />
+                <AppIcon
+                  name="flame-outline"
+                  size={20}
+                  color={C.textPrimary}
+                  bg={C.bg}
+                  containerSize={r(44)}
+                  borderRadius={r(12)}
+                />
                 <VStack className="flex-1">
                   <Text style={styles.todayWorkoutTitle}>Todavía no tienes hábitos</Text>
-                  <Text style={styles.todayWorkoutSub}>Elige uno de la biblioteca o crea el tuyo propio</Text>
+                  <Text style={styles.todayWorkoutSub}>
+                    Elige uno de la biblioteca o crea el tuyo propio
+                  </Text>
                 </VStack>
                 <Icon name="chevron-forward" size={20} color={C.textSecondary} />
               </HStack>
@@ -1360,7 +1802,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
         {/* Nutrición — subida junto a las secciones de uso diario (antes vivía
             enterrada después de los catálogos y Programas). */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Nutrición</Text>
           <Pressable onPress={() => navigation?.navigate('DietDashboard')}>
             <Text style={styles.seeAll}>Ver dieta</Text>
@@ -1380,12 +1824,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <AnimatedRing
                     size={r(112)}
                     strokeWidth={r(8)}
-                    percent={Math.min(((dailyPlan.eaten ?? 0) / Math.max(dailyPlan.daily_kcal ?? 1, 1)) * 100, 100)}
+                    percent={Math.min(
+                      ((dailyPlan.eaten ?? 0) / Math.max(dailyPlan.daily_kcal ?? 1, 1)) * 100,
+                      100,
+                    )}
                     color={C.orange}
                     trackColor={C.gray70}
-                    duration={900}
-                  >
-                    <Text style={styles.nutritionCalValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{dailyPlan.eaten ?? 0}</Text>
+                    duration={900}>
+                    <Text
+                      style={styles.nutritionCalValue}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}>
+                      {dailyPlan.eaten ?? 0}
+                    </Text>
                     <Text style={styles.nutritionCalLabel}>consumido</Text>
                   </AnimatedRing>
                 </Box>
@@ -1397,21 +1849,45 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Box style={{ flexDirection: 'row', marginTop: r(12) }}>
                 <Box style={styles.macroBar}>
                   <Box style={styles.macroTrack}>
-                    <Box style={[styles.macroFill, { width: `${Math.min(((dailyPlan.protein ?? 0) / Math.max((dailyPlan.daily_kcal ?? 1) / 4, 1)) * 100, 100)}%`, backgroundColor: C.orange }]} />
+                    <Box
+                      style={[
+                        styles.macroFill,
+                        {
+                          width: `${Math.min(((dailyPlan.protein ?? 0) / Math.max((dailyPlan.daily_kcal ?? 1) / 4, 1)) * 100, 100)}%`,
+                          backgroundColor: C.orange,
+                        },
+                      ]}
+                    />
                   </Box>
                   <Text style={styles.macroLabel}>Proteína</Text>
                   <Text style={styles.macroValue}>{dailyPlan.protein ?? 0}g</Text>
                 </Box>
                 <Box style={[styles.macroBar, { marginHorizontal: r(12) }]}>
                   <Box style={styles.macroTrack}>
-                    <Box style={[styles.macroFill, { width: `${Math.min(((dailyPlan.fats ?? 0) / Math.max((dailyPlan.daily_kcal ?? 1) / 9, 1)) * 100, 100)}%`, backgroundColor: C.purple }]} />
+                    <Box
+                      style={[
+                        styles.macroFill,
+                        {
+                          width: `${Math.min(((dailyPlan.fats ?? 0) / Math.max((dailyPlan.daily_kcal ?? 1) / 9, 1)) * 100, 100)}%`,
+                          backgroundColor: C.purple,
+                        },
+                      ]}
+                    />
                   </Box>
                   <Text style={styles.macroLabel}>Grasas</Text>
                   <Text style={styles.macroValue}>{dailyPlan.fats ?? 0}g</Text>
                 </Box>
                 <Box style={styles.macroBar}>
                   <Box style={styles.macroTrack}>
-                    <Box style={[styles.macroFill, { width: `${Math.min(((dailyPlan.carbs ?? 0) / Math.max((dailyPlan.daily_kcal ?? 1) / 4, 1)) * 100, 100)}%`, backgroundColor: C.blue }]} />
+                    <Box
+                      style={[
+                        styles.macroFill,
+                        {
+                          width: `${Math.min(((dailyPlan.carbs ?? 0) / Math.max((dailyPlan.daily_kcal ?? 1) / 4, 1)) * 100, 100)}%`,
+                          backgroundColor: C.blue,
+                        },
+                      ]}
+                    />
                   </Box>
                   <Text style={styles.macroLabel}>Carbos</Text>
                   <Text style={styles.macroValue}>{dailyPlan.carbs ?? 0}g</Text>
@@ -1425,12 +1901,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             </>
           ) : (
             <Box style={{ alignItems: 'center', paddingVertical: r(12) }}>
-              <AppIcon name="nutrition-outline" size={26} color={C.success} bg={C.success10} containerSize={r(48)} />
-              <Text style={[styles.nutritionMsg, { marginTop: r(8) }]}>Sin plan de alimentación hoy</Text>
+              <AppIcon
+                name="nutrition-outline"
+                size={26}
+                color={C.success}
+                bg={C.success10}
+                containerSize={r(48)}
+              />
+              <Text style={[styles.nutritionMsg, { marginTop: r(8) }]}>
+                Sin plan de alimentación hoy
+              </Text>
             </Box>
           )}
           <TutorialTarget id="home-nutrition-link" scrollRef={scrollRef}>
-            <Pressable style={styles.nutritionLink} onPress={() => navigation?.navigate('MigratedPlan')}>
+            <Pressable
+              style={styles.nutritionLink}
+              onPress={() => navigation?.navigate('MigratedPlan')}>
               <Text style={styles.nutritionLinkText}>Añadir comidas</Text>
               <Icon name="arrow-forward" size={14} color={C.orange} style={{ marginLeft: r(8) }} />
             </Pressable>
@@ -1441,13 +1927,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             huérfana, retirada). MigratedRecipeMain es hoy el único punto de
             entrada real al catálogo libre de Recipe (Main/ListV2/CategoryList/
             TagList) — sin esta tarjeta ese catálogo queda inalcanzable. */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Explorar</Text>
         </HStack>
         <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
           <Pressable onPress={() => navigation?.navigate('MigratedRecipeMain')}>
             <HStack space="md" className="items-center">
-              <AppIcon name="restaurant-outline" size={20} color={C.success} bg={C.success10} containerSize={r(44)} borderRadius={r(12)} />
+              <AppIcon
+                name="restaurant-outline"
+                size={20}
+                color={C.success}
+                bg={C.success10}
+                containerSize={r(44)}
+                borderRadius={r(12)}
+              />
               <VStack className="flex-1">
                 <Text style={styles.todayWorkoutTitle}>Recetas y Nutrición</Text>
                 <Text style={styles.todayWorkoutSub}>Explora recetas y tu plan de comidas</Text>
@@ -1458,10 +1953,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           <Divider style={{ marginVertical: r(12) }} />
           <Pressable onPress={() => navigation?.navigate('MigratedViewBodyPart')}>
             <HStack space="md" className="items-center">
-              <AppIcon name="body-outline" size={20} color={C.blue} bg={C.blue10} containerSize={r(44)} borderRadius={r(12)} />
+              <AppIcon
+                name="body-outline"
+                size={20}
+                color={C.blue}
+                bg={C.blue10}
+                containerSize={r(44)}
+                borderRadius={r(12)}
+              />
               <VStack className="flex-1">
                 <Text style={styles.todayWorkoutTitle}>Buscar por músculo</Text>
-                <Text style={styles.todayWorkoutSub}>Toca una zona del mapa para ver sus ejercicios</Text>
+                <Text style={styles.todayWorkoutSub}>
+                  Toca una zona del mapa para ver sus ejercicios
+                </Text>
               </VStack>
               <Icon name="chevron-forward" size={20} color={C.textSecondary} />
             </HStack>
@@ -1476,18 +1980,27 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             "Mi Programa" arriba, así que este catálogo se oculta para ellos. */}
         {!state.user?.is_personal_client && (
           <>
-            <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+            <HStack
+              className="justify-between items-center px-5"
+              style={{ marginTop: r(24), marginBottom: r(12) }}>
               <Text style={styles.sectionTitle}>Entrenamientos</Text>
             </HStack>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ paddingLeft: 16 }}>
               {workoutTemplateList.map((w) => {
                 const locked = w.is_exclusive && !w.is_accessible;
                 return (
                   <Pressable
                     key={w.id}
                     style={styles.blogCard}
-                    onPress={() => navigation?.navigate('MigratedWorkoutPreview', { workoutTemplateId: w.id, mTitle: w.title })}
-                  >
+                    onPress={() =>
+                      navigation?.navigate('MigratedWorkoutPreview', {
+                        workoutTemplateId: w.id,
+                        mTitle: w.title,
+                      })
+                    }>
                     <ExpoImage
                       source={w.thumbnail ? { uri: w.thumbnail } : pickWorkoutFallbackImage(w.id)}
                       style={styles.blogImage}
@@ -1502,20 +2015,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                       </Box>
                     )}
                     <Box style={styles.blogContent}>
-                      <Text style={styles.blogTitle} numberOfLines={2}>{w.title}</Text>
+                      <Text style={styles.blogTitle} numberOfLines={2}>
+                        {w.title}
+                      </Text>
                     </Box>
                   </Pressable>
                 );
               })}
               <Pressable
                 style={styles.blogCard}
-                onPress={() => navigation?.navigate('MigratedWorkoutTemplateList')}
-              >
+                onPress={() => navigation?.navigate('MigratedWorkoutTemplateList')}>
                 <Box style={[styles.blogImage, styles.seeAllImage]}>
                   <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
                 </Box>
                 <Box style={styles.blogContent}>
-                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>Ver todos los workouts</Text>
+                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
+                    Ver todos los workouts
+                  </Text>
                 </Box>
               </Pressable>
             </ScrollView>
@@ -1527,40 +2043,64 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             documentos asignados individualmente por su coach. */}
         {resourcesList.length > 0 && (
           <>
-            <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+            <HStack
+              className="justify-between items-center px-5"
+              style={{ marginTop: r(24), marginBottom: r(12) }}>
               <Text style={styles.sectionTitle}>Recursos</Text>
             </HStack>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ paddingLeft: 16 }}>
               {resourcesList.map((r) => (
                 <Pressable
                   key={r.id}
                   style={styles.blogCard}
-                  onPress={() => navigation?.navigate('MigratedResourceDetail', { resourceId: r.id, title: r.title })}
-                >
+                  onPress={() =>
+                    navigation?.navigate('MigratedResourceDetail', {
+                      resourceId: r.id,
+                      title: r.title,
+                    })
+                  }>
                   <Box style={styles.blogImage}>
-                    <ExpoImage source={resourceImageSource(r)} style={styles.blogImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                    <ExpoImage
+                      source={resourceImageSource(r)}
+                      style={styles.blogImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
                     <Box style={styles.resourceTypeBadge}>
                       <Icon
-                        name={r.type === 'video' ? 'play-circle-outline' : r.type === 'link' ? 'link-outline' : 'document-text-outline'}
+                        name={
+                          r.type === 'video'
+                            ? 'play-circle-outline'
+                            : r.type === 'link'
+                              ? 'link-outline'
+                              : 'document-text-outline'
+                        }
                         size={16}
                         color="#FFFFFF"
                       />
                     </Box>
                   </Box>
                   <Box style={styles.blogContent}>
-                    <Text style={styles.blogTitle} numberOfLines={2}>{r.title}</Text>
+                    <Text style={styles.blogTitle} numberOfLines={2}>
+                      {r.title}
+                    </Text>
                   </Box>
                 </Pressable>
               ))}
               <Pressable
                 style={styles.blogCard}
-                onPress={() => navigation?.navigate('MigratedResourcesList')}
-              >
+                onPress={() => navigation?.navigate('MigratedResourcesList')}>
                 <Box style={[styles.blogImage, styles.seeAllImage]}>
                   <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
                 </Box>
                 <Box style={styles.blogContent}>
-                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>Ver todos los recursos</Text>
+                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
+                    Ver todos los recursos
+                  </Text>
                 </Box>
               </Pressable>
             </ScrollView>
@@ -1571,13 +2111,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             estático compartido por todos los usuarios (no viene del backend
             de Recursos, por eso vive fuera de ese bloque condicional y
             siempre está visible). */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Guías</Text>
         </HStack>
         <Pressable
           style={{ marginHorizontal: r(20), marginBottom: r(12) }}
-          onPress={() => navigation?.navigate('MigratedAutogestionGuide')}
-        >
+          onPress={() => navigation?.navigate('MigratedAutogestionGuide')}>
           <Box style={styles.guideBanner}>
             <ExpoImage
               source={require('../../assets/autogestion-guide-header.webp')}
@@ -1587,17 +2128,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             <Box style={styles.guideBannerOverlay} />
             <Box style={styles.guideBannerContent}>
               <Text style={styles.guideBannerTitle}>Guía de Autogestión</Text>
-              <Text style={styles.guideBannerSubtitle}>Cómo leer y ejecutar tu plan de entrenamiento</Text>
+              <Text style={styles.guideBannerSubtitle}>
+                Cómo leer y ejecutar tu plan de entrenamiento
+              </Text>
             </Box>
-            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+            <Icon
+              name="chevron-forward-circle"
+              size={26}
+              color="#FFFFFF"
+              style={styles.guideBannerIcon}
+            />
           </Box>
         </Pressable>
         {/* Guía de sobrentrenamiento -- pedido explícito 2026-08-30, mismo
             motivo que la de autogestión justo arriba. */}
         <Pressable
           style={{ marginHorizontal: r(20), marginBottom: r(12) }}
-          onPress={() => navigation?.navigate('MigratedOvertrainingGuide')}
-        >
+          onPress={() => navigation?.navigate('MigratedOvertrainingGuide')}>
           <Box style={styles.guideBanner}>
             <ExpoImage
               source={require('../../assets/overtraining-guide-header.png')}
@@ -1609,15 +2156,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.guideBannerTitle}>Guía de Sobrentrenamiento</Text>
               <Text style={styles.guideBannerSubtitle}>¿Entrenas mucho o entrenas bien?</Text>
             </Box>
-            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+            <Icon
+              name="chevron-forward-circle"
+              size={26}
+              color="#FFFFFF"
+              style={styles.guideBannerIcon}
+            />
           </Box>
         </Pressable>
         {/* Guía de suplementación -- pedido explícito 2026-08-30, mismo
             motivo que las dos anteriores. */}
         <Pressable
           style={{ marginHorizontal: r(20), marginBottom: r(12) }}
-          onPress={() => navigation?.navigate('MigratedSupplementationGuide')}
-        >
+          onPress={() => navigation?.navigate('MigratedSupplementationGuide')}>
           <Box style={styles.guideBanner}>
             <ExpoImage
               source={require('../../assets/supplementation-guide-header.jpg')}
@@ -1629,15 +2180,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.guideBannerTitle}>Guía de Suplementación</Text>
               <Text style={styles.guideBannerSubtitle}>Evidencia, dosis y stacks por objetivo</Text>
             </Box>
-            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+            <Icon
+              name="chevron-forward-circle"
+              size={26}
+              color="#FFFFFF"
+              style={styles.guideBannerIcon}
+            />
           </Box>
         </Pressable>
         {/* Guía de sueño -- pedido explícito 2026-08-30, mismo motivo que
             las tres anteriores. */}
         <Pressable
           style={{ marginHorizontal: r(20), marginBottom: r(12) }}
-          onPress={() => navigation?.navigate('MigratedSleepGuide')}
-        >
+          onPress={() => navigation?.navigate('MigratedSleepGuide')}>
           <Box style={styles.guideBanner}>
             <ExpoImage
               source={require('../../assets/sleep-guide-header.jpg')}
@@ -1649,15 +2204,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.guideBannerTitle}>Guía de Sueño y Recuperación</Text>
               <Text style={styles.guideBannerSubtitle}>Tu músculo crece cuando descansas</Text>
             </Box>
-            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+            <Icon
+              name="chevron-forward-circle"
+              size={26}
+              color="#FFFFFF"
+              style={styles.guideBannerIcon}
+            />
           </Box>
         </Pressable>
         {/* Guía de gestión del estrés -- pedido explícito 2026-08-30, mismo
             motivo que las cuatro anteriores. */}
         <Pressable
-          style={{ marginHorizontal: r(20) }}
-          onPress={() => navigation?.navigate('MigratedStressGuide')}
-        >
+          style={{ marginHorizontal: r(20), marginBottom: r(12) }}
+          onPress={() => navigation?.navigate('MigratedStressGuide')}>
           <Box style={styles.guideBanner}>
             <ExpoImage
               source={require('../../assets/stress-guide-header.jpg')}
@@ -1669,12 +2228,43 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.guideBannerTitle}>Guía de Gestión del Estrés</Text>
               <Text style={styles.guideBannerSubtitle}>Cómo el cortisol frena tu progreso</Text>
             </Box>
-            <Icon name="chevron-forward-circle" size={26} color="#FFFFFF" style={styles.guideBannerIcon} />
+            <Icon
+              name="chevron-forward-circle"
+              size={26}
+              color="#FFFFFF"
+              style={styles.guideBannerIcon}
+            />
+          </Box>
+        </Pressable>
+        {/* Manual de Mentalidad -- pedido explícito 2026-08-30, mismo motivo
+            que las cinco anteriores. */}
+        <Pressable
+          style={{ marginHorizontal: r(20) }}
+          onPress={() => navigation?.navigate('MigratedMindsetGuide')}>
+          <Box style={styles.guideBanner}>
+            <ExpoImage
+              source={require('../../assets/mindset-guide-header.webp')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            <Box style={styles.guideBannerOverlay} />
+            <Box style={styles.guideBannerContent}>
+              <Text style={styles.guideBannerTitle}>Manual de Mentalidad</Text>
+              <Text style={styles.guideBannerSubtitle}>El músculo más importante</Text>
+            </Box>
+            <Icon
+              name="chevron-forward-circle"
+              size={26}
+              color="#FFFFFF"
+              style={styles.guideBannerIcon}
+            />
           </Box>
         </Pressable>
 
         {/* Blog */}
-        <HStack className="justify-between items-center px-5" style={{ marginTop: r(24), marginBottom: r(12) }}>
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
           <Text style={styles.sectionTitle}>Blog</Text>
           <Pressable onPress={() => navigation?.navigate('MigratedViewAllBlog')}>
             <Text style={styles.seeAll}>Ver todos</Text>
@@ -1683,9 +2273,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         {blogPosts.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
             {blogPosts.map((post: any) => (
-              <Pressable key={post.id} style={styles.blogCard} onPress={() => navigation?.navigate('MigratedBlogDetail', { id: post.id })}>
+              <Pressable
+                key={post.id}
+                style={styles.blogCard}
+                onPress={() => navigation?.navigate('MigratedBlogDetail', { id: post.id })}>
                 {post.post_image ? (
-                  <ExpoImage source={{ uri: post.post_image }} style={styles.blogImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                  <ExpoImage
+                    source={{ uri: post.post_image }}
+                    style={styles.blogImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
                 ) : (
                   <Box style={styles.blogImage} />
                 )}
@@ -1695,17 +2294,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                       <Text style={styles.blogTagText}>{post.blog_category.title}</Text>
                     </Box>
                   )}
-                  <Text style={styles.blogTitle} numberOfLines={2}>{post.title}</Text>
+                  <Text style={styles.blogTitle} numberOfLines={2}>
+                    {post.title}
+                  </Text>
                   {post.datetime && <Text style={styles.blogDate}>{post.datetime}</Text>}
                 </Box>
               </Pressable>
             ))}
-            <Pressable style={styles.blogCard} onPress={() => navigation?.navigate('MigratedViewAllBlog')}>
+            <Pressable
+              style={styles.blogCard}
+              onPress={() => navigation?.navigate('MigratedViewAllBlog')}>
               <Box style={[styles.blogImage, styles.seeAllImage]}>
                 <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
               </Box>
               <Box style={styles.blogContent}>
-                <Text style={[styles.blogTitle, { textAlign: 'center' }]}>Ver todas las publicaciones</Text>
+                <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
+                  Ver todas las publicaciones
+                </Text>
               </Box>
             </Pressable>
           </ScrollView>
@@ -1724,16 +2329,25 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           onPress={() =>
             CHAT_ENABLED
               ? navigation?.navigate('MigratedChatting', { isDirect: true })
-              : showToast('Próximamente', { description: 'Podrás hablar con Be Stronger AI en la próxima versión de la app.' })
-          }
-        >
+              : showToast('Próximamente', {
+                  description: 'Podrás hablar con Be Stronger AI en la próxima versión de la app.',
+                })
+          }>
           <Card variant="outline" className="mx-5 p-4">
             <HStack className="items-center">
               <VStack className="flex-1">
-                <Text style={styles.supportTitle}>¿Necesitas ayuda? Soluciona tus dudas con el bot</Text>
+                <Text style={styles.supportTitle}>
+                  ¿Necesitas ayuda? Soluciona tus dudas con el bot
+                </Text>
                 <Text style={styles.supportLink}>Be Stronger AI</Text>
               </VStack>
-              <AppIcon name="chatbubble-ellipses" size={28} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={r(52)} />
+              <AppIcon
+                name="chatbubble-ellipses"
+                size={28}
+                color={C.orange}
+                bg="rgba(255,107,53,0.15)"
+                containerSize={r(52)}
+              />
             </HStack>
           </Card>
         </Pressable>
@@ -1747,7 +2361,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       <ReadinessCheckSheet
         visible={showReadinessSheet}
         onClose={() => setShowReadinessSheet(false)}
-        onSubmitted={(values) => setReadinessToday({ required: readinessToday?.required ?? false, submitted_today: true, today: values })}
+        onSubmitted={(values) =>
+          setReadinessToday({
+            required: readinessToday?.required ?? false,
+            submitted_today: true,
+            today: values,
+          })
+        }
       />
 
       {/* Menú de usuario (perfil, favoritos, ajustes, salud, comunidad, logout).
@@ -1756,7 +2376,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           tarjetas blancas agrupadas por sección sobre fondo gris, con una
           barra superior fija (cerrar + título "Ajustes"), igual que el
           "Ajustes" real de Bevel. */}
-      <Modal visible={showMenu} transparent animationType="slide" onRequestClose={() => setShowMenu(false)}>
+      <Modal
+        visible={showMenu}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMenu(false)}>
         {/* RNPressable nativo aqui a proposito, no el wrapper @components/ui/pressable
             (basado en usePress de react-aria) -- ese wrapper no bloquea de forma
             fiable la propagacion del toque al padre via stopPropagation, asi que
@@ -1772,7 +2396,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.menuTitle}>Ajustes</Text>
             </Box>
 
-            <ScrollView style={styles.menuScroll} contentContainerStyle={{ paddingBottom: r(24) }} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.menuScroll}
+              contentContainerStyle={{ paddingBottom: r(24) }}
+              showsVerticalScrollIndicator={false}>
               <Text style={styles.menuSectionLabel}>Cuenta</Text>
               <Box style={styles.menuCard}>
                 {/* MigratedProfileModal (no MigratedProfile) -- misma screen,
@@ -1781,7 +2408,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     duplicar el contenido de profile_screen.tsx. */}
                 <Pressable onPress={() => navigateFromMenu('MigratedProfileModal')}>
                   <HStack space="md" className="items-center px-4 py-3">
-                    <AvatarMem uri={user?.profile_image} name={user?.display_name || displayName} size={40} />
+                    <AvatarMem
+                      uri={user?.profile_image}
+                      name={user?.display_name || displayName}
+                      size={40}
+                    />
                     <VStack className="flex-1">
                       <Text style={styles.menuItemText}>{user?.display_name || displayName}</Text>
                       <Text style={styles.menuItemSubtext}>Ver tu perfil</Text>
@@ -1792,7 +2423,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Divider className="ml-4" />
                 <Pressable onPress={() => navigateFromMenu('MigratedFavourite')}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="heart-outline" size={18} color={C.destructive} bg={C.destructive10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="heart-outline"
+                      size={18}
+                      color={C.destructive}
+                      bg={C.destructive10}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Mis Favoritos</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
@@ -1806,11 +2445,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     showToast('Próximamente', {
                       description: `Podrás empezar a sincronizar ${HEALTH_SYNC_COMING_SOON_NAME} en la siguiente versión de la app.`,
                     })
-                  }
-                >
+                  }>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="fitness-outline" size={18} color={C.success} bg={C.success10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>{HEALTH_SYNC_COMING_SOON_NAME}</Text>
+                    <AppIcon
+                      name="fitness-outline"
+                      size={18}
+                      color={C.success}
+                      bg={C.success10}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>
+                      {HEALTH_SYNC_COMING_SOON_NAME}
+                    </Text>
                     <Box style={styles.comingSoonPill}>
                       <Text style={styles.comingSoonPillText}>Próximamente</Text>
                     </Box>
@@ -1820,12 +2468,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Pressable
                   onPress={() =>
                     showToast('Próximamente', {
-                      description: 'Podrás conectar tu smartwatch en una próxima versión de la app.',
+                      description:
+                        'Podrás conectar tu smartwatch en una próxima versión de la app.',
                     })
-                  }
-                >
+                  }>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="watch-outline" size={18} color={C.blue} bg={C.blue10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="watch-outline"
+                      size={18}
+                      color={C.blue}
+                      bg={C.blue10}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Smart Watch</Text>
                     <Box style={styles.comingSoonPill}>
                       <Text style={styles.comingSoonPillText}>Próximamente</Text>
@@ -1849,11 +2505,23 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Box style={styles.menuCard}>
                 <Pressable onPress={() => navigateFromMenu('MigratedAppearance')}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="contrast-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="contrast-outline"
+                      size={18}
+                      color={C.textPrimary}
+                      bg={C.brand10}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <VStack className="flex-1">
                       <Text style={styles.menuItemText}>Aspecto</Text>
                       <Text style={styles.menuItemSubtext}>
-                        {themePreference === 'auto' ? 'Automático' : themePreference === 'light' ? 'Leve' : 'Oscuro'}
+                        {themePreference === 'auto'
+                          ? 'Automático'
+                          : themePreference === 'light'
+                            ? 'Leve'
+                            : 'Oscuro'}
                       </Text>
                     </VStack>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
@@ -1866,7 +2534,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     permiso real del sistema, ver notification_settings_screen.tsx. */}
                 <Pressable onPress={() => navigateFromMenu('MigratedNotificationSettings')}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="notifications-outline" size={18} color={C.warning60} bg={C.warning10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="notifications-outline"
+                      size={18}
+                      color={C.warning60}
+                      bg={C.warning10}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Notificaciones</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
@@ -1877,7 +2553,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Box style={styles.menuCard}>
                 <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="people-outline"
+                      size={18}
+                      color={C.textPrimary}
+                      bg={C.brand10}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Comunidad</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
@@ -1898,17 +2582,37 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   inexistente. */}
               <Text style={styles.menuSectionLabel}>Recursos</Text>
               <Box style={styles.menuCard}>
-                <Pressable onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'feature_request' })}>
+                <Pressable
+                  onPress={() =>
+                    navigateFromMenu('MigratedAppFeedback', { type: 'feature_request' })
+                  }>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="bulb-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="bulb-outline"
+                      size={18}
+                      color={C.textSecondary}
+                      bg={C.gray70}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Solicitar una función</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
                 </Pressable>
                 <Divider className="ml-4" />
-                <Pressable onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'bug_report' })}>
+                <Pressable
+                  onPress={() => navigateFromMenu('MigratedAppFeedback', { type: 'bug_report' })}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="bug-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="bug-outline"
+                      size={18}
+                      color={C.textSecondary}
+                      bg={C.gray70}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Informar de un error</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
@@ -1916,8 +2620,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Divider className="ml-4" />
                 <Pressable onPress={handleRateApp}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="star-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>Valora Be Stronger en la tienda</Text>
+                    <AppIcon
+                      name="star-outline"
+                      size={18}
+                      color={C.textSecondary}
+                      bg={C.gray70}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
+                    <Text style={[styles.menuItemText, { flex: 1 }]}>
+                      Valora Be Stronger en la tienda
+                    </Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
                 </Pressable>
@@ -1937,10 +2651,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   onPress={() => {
                     setShowMenu(false);
                     Linking.openURL('https://bestronger.es/terms-and-conditions/');
-                  }}
-                >
+                  }}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="document-text-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="document-text-outline"
+                      size={18}
+                      color={C.textSecondary}
+                      bg={C.gray70}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Términos del servicio</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
@@ -1948,7 +2669,15 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Divider className="ml-4" />
                 <Pressable onPress={() => navigateFromMenu('MigratedPrivacyPolicy')}>
                   <HStack className="items-center px-4 py-3">
-                    <AppIcon name="shield-checkmark-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                    <AppIcon
+                      name="shield-checkmark-outline"
+                      size={18}
+                      color={C.textSecondary}
+                      bg={C.gray70}
+                      containerSize={r(36)}
+                      borderRadius={r(12)}
+                      style={{ marginRight: r(14) }}
+                    />
                     <Text style={[styles.menuItemText, { flex: 1 }]}>Política de privacidad</Text>
                     <Icon name="chevron-forward" size={18} color={C.textSecondary} />
                   </HStack>
@@ -1969,12 +2698,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     'Se recargará toda la app desde cero. Cualquier cambio sin guardar en la pantalla actual se perderá.',
                     [
                       { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Recargar', style: 'destructive', onPress: () => { setShowMenu(false); reloadApp(); } },
-                    ]
+                      {
+                        text: 'Recargar',
+                        style: 'destructive',
+                        onPress: () => {
+                          setShowMenu(false);
+                          reloadApp();
+                        },
+                      },
+                    ],
                   )
-                }
-              >
-                <Text style={styles.menuActionBtnText}>Borrar caché y recargar todos los datos</Text>
+                }>
+                <Text style={styles.menuActionBtnText}>
+                  Borrar caché y recargar todos los datos
+                </Text>
               </Pressable>
 
               <Pressable style={styles.menuActionBtn} onPress={handleResetTutorial}>
@@ -1990,10 +2727,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Text style={styles.menuSectionLabel}>Diagnóstico</Text>
               <Box style={styles.menuCard}>
                 <HStack className="items-center px-4 py-3">
-                  <AppIcon name="pulse-outline" size={18} color={C.textSecondary} bg={C.gray70} containerSize={r(36)} borderRadius={r(12)} style={{ marginRight: r(14) }} />
+                  <AppIcon
+                    name="pulse-outline"
+                    size={18}
+                    color={C.textSecondary}
+                    bg={C.gray70}
+                    containerSize={r(36)}
+                    borderRadius={r(12)}
+                    style={{ marginRight: r(14) }}
+                  />
                   <VStack className="flex-1" style={{ marginRight: r(12) }}>
                     <Text style={styles.menuItemText}>Habilitar diagnósticos</Text>
-                    <Text style={styles.menuItemSubtext}>Guarda un registro local que puedes enviar al desarrollador</Text>
+                    <Text style={styles.menuItemSubtext}>
+                      Guarda un registro local que puedes enviar al desarrollador
+                    </Text>
                   </VStack>
                   <Switch
                     value={diagnosticsOn}
@@ -2016,7 +2763,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <HStack className="justify-center" space="lg" style={{ marginTop: r(20) }}>
                   {SOCIAL_LINKS.map((s) => (
                     <Pressable key={s.name} onPress={() => Linking.openURL(s.url)}>
-                      <AppIcon name={s.icon} size={20} color={C.textSecondary} bg={C.gray70} containerSize={r(40)} />
+                      <AppIcon
+                        name={s.icon}
+                        size={20}
+                        color={C.textSecondary}
+                        bg={C.gray70}
+                        containerSize={r(40)}
+                      />
                     </Pressable>
                   ))}
                 </HStack>
@@ -2024,8 +2777,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
               {/* Logo + versión real (Constants.expoConfig), no hardcodeada. */}
               <Box className="items-center" style={{ marginTop: r(24), marginBottom: r(8) }}>
-                <ExpoImage source={require('../../assets/applogo.png')} style={{ width: r(32), height: r(32), borderRadius: r(8) }} contentFit="cover" />
-                <Text style={styles.menuFooterText}>Be Stronger {Constants.expoConfig?.version ?? ''}</Text>
+                <ExpoImage
+                  source={require('../../assets/applogo.png')}
+                  style={{ width: r(32), height: r(32), borderRadius: r(8) }}
+                  contentFit="cover"
+                />
+                <Text style={styles.menuFooterText}>
+                  Be Stronger {Constants.expoConfig?.version ?? ''}
+                </Text>
               </Box>
 
               <Pressable style={styles.menuLogoutBtn} onPress={handleLogout}>
