@@ -11,6 +11,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
+import { LOCAL_GUIDES, LocalGuide } from '@components/localGuides';
 
 type Tab = 'mine' | 'shared';
 
@@ -43,59 +44,6 @@ const TYPE_LABEL: Record<string, string> = {
   doc: 'Documento',
   guide: 'Guía',
 };
-
-// Guías estáticas compartidas por todos los usuarios (pedido explícito
-// 2026-08-30) -- no vienen del backend de Recursos (no hay endpoint de
-// creación/edición en api/resources.ts, solo getList/getDetail; la gestión
-// de contenido de Recursos vive en el panel de admin externo, ver
-// docs/PENDIENTE_BACKEND_ADMIN.md), así que se listan aquí como entradas
-// locales fijas dentro de "Compartidos", en vez de en una sección aparte del
-// Home (donde vivían antes, duplicando esta misma lista).
-interface LocalGuide {
-  key: string;
-  title: string;
-  category: ResourceCategory;
-  screen: string;
-}
-
-const LOCAL_GUIDES: LocalGuide[] = [
-  {
-    key: 'guide-autogestion',
-    title: 'Guía de Autogestión',
-    category: 'entrenamiento',
-    screen: 'MigratedAutogestionGuide',
-  },
-  {
-    key: 'guide-overtraining',
-    title: 'Guía de Sobrentrenamiento',
-    category: 'entrenamiento',
-    screen: 'MigratedOvertrainingGuide',
-  },
-  {
-    key: 'guide-supplementation',
-    title: 'Guía de Suplementación',
-    category: 'nutricion',
-    screen: 'MigratedSupplementationGuide',
-  },
-  {
-    key: 'guide-sleep',
-    title: 'Guía de Sueño y Recuperación',
-    category: 'habitos_mindset',
-    screen: 'MigratedSleepGuide',
-  },
-  {
-    key: 'guide-stress',
-    title: 'Guía de Gestión del Estrés',
-    category: 'habitos_mindset',
-    screen: 'MigratedStressGuide',
-  },
-  {
-    key: 'guide-mindset',
-    title: 'Manual de Mentalidad',
-    category: 'habitos_mindset',
-    screen: 'MigratedMindsetGuide',
-  },
-];
 
 // Item a mostrar en la lista: o bien un recurso real del backend, o bien una
 // de las guías locales -- mismo shape para poder reutilizar el agrupado por

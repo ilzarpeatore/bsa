@@ -77,6 +77,7 @@ import { blogApi } from '../../api/blog';
 import { workoutTemplateApi, WorkoutTemplateListItem } from '../../api/workoutTemplate';
 import { pickWorkoutFallbackImage } from './workoutViewShared';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
+import { LOCAL_GUIDES } from '@components/localGuides';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { habitsApi, Habit } from '../../api/habits';
 import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
@@ -2018,72 +2019,93 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
         {/* Recursos — visible para todos (free y 1:1), a diferencia de
             Workouts: un cliente 1:1 tambien puede tener guias o
-            documentos asignados individualmente por su coach. */}
-        {resourcesList.length > 0 && (
-          <>
-            <HStack
-              className="justify-between items-center px-5"
-              style={{ marginTop: r(24), marginBottom: r(12) }}>
-              <Text style={styles.sectionTitle}>Recursos</Text>
-            </HStack>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ paddingLeft: 16 }}>
-              {resourcesList.map((r) => (
-                <Pressable
-                  key={r.id}
-                  style={styles.blogCard}
-                  onPress={() =>
-                    navigation?.navigate('MigratedResourceDetail', {
-                      resourceId: r.id,
-                      title: r.title,
-                    })
-                  }>
-                  <Box style={styles.blogImage}>
-                    <ExpoImage
-                      source={resourceImageSource(r)}
-                      style={styles.blogImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
-                    />
-                    <Box style={styles.resourceTypeBadge}>
-                      <Icon
-                        name={
-                          r.type === 'video'
-                            ? 'play-circle-outline'
-                            : r.type === 'link'
-                              ? 'link-outline'
-                              : 'document-text-outline'
-                        }
-                        size={16}
-                        color="#FFFFFF"
-                      />
-                    </Box>
-                  </Box>
-                  <Box style={styles.blogContent}>
-                    <Text style={styles.blogTitle} numberOfLines={2}>
-                      {r.title}
-                    </Text>
-                  </Box>
-                </Pressable>
-              ))}
-              <Pressable
-                style={styles.blogCard}
-                onPress={() => navigation?.navigate('MigratedResourcesList')}>
-                <Box style={[styles.blogImage, styles.seeAllImage]}>
-                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+            documentos asignados individualmente por su coach. Las guías
+            estáticas (LOCAL_GUIDES) van primero -- son el contenido más
+            reciente añadido y sí tienen imagen real (a diferencia de los
+            recursos del backend, cuyo image_url aún no existe en la API,
+            ver resourceImageSource más arriba). */}
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Recursos</Text>
+        </HStack>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
+          {LOCAL_GUIDES.map((g) => (
+            <Pressable
+              key={g.key}
+              style={styles.blogCard}
+              onPress={() => navigation?.navigate(g.screen)}>
+              <Box style={styles.blogImage}>
+                <ExpoImage
+                  source={g.image}
+                  style={styles.blogImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Box style={styles.resourceTypeBadge}>
+                  <Icon name="book-outline" size={16} color="#FFFFFF" />
                 </Box>
-                <Box style={styles.blogContent}>
-                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
-                    Ver todos los recursos
-                  </Text>
+              </Box>
+              <Box style={styles.blogContent}>
+                <Text style={styles.blogTitle} numberOfLines={2}>
+                  {g.title}
+                </Text>
+              </Box>
+            </Pressable>
+          ))}
+          {resourcesList.map((r) => (
+            <Pressable
+              key={r.id}
+              style={styles.blogCard}
+              onPress={() =>
+                navigation?.navigate('MigratedResourceDetail', {
+                  resourceId: r.id,
+                  title: r.title,
+                })
+              }>
+              <Box style={styles.blogImage}>
+                <ExpoImage
+                  source={resourceImageSource(r)}
+                  style={styles.blogImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Box style={styles.resourceTypeBadge}>
+                  <Icon
+                    name={
+                      r.type === 'video'
+                        ? 'play-circle-outline'
+                        : r.type === 'link'
+                          ? 'link-outline'
+                          : 'document-text-outline'
+                    }
+                    size={16}
+                    color="#FFFFFF"
+                  />
                 </Box>
-              </Pressable>
-            </ScrollView>
-          </>
-        )}
+              </Box>
+              <Box style={styles.blogContent}>
+                <Text style={styles.blogTitle} numberOfLines={2}>
+                  {r.title}
+                </Text>
+              </Box>
+            </Pressable>
+          ))}
+          <Pressable
+            style={styles.blogCard}
+            onPress={() => navigation?.navigate('MigratedResourcesList')}>
+            <Box style={[styles.blogImage, styles.seeAllImage]}>
+              <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+            </Box>
+            <Box style={styles.blogContent}>
+              <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
+                Ver todos los recursos
+              </Text>
+            </Box>
+          </Pressable>
+        </ScrollView>
 
         {/* Blog */}
         <HStack
