@@ -129,6 +129,55 @@ La compra **dentro de la app se eliminó por completo** (cumplimiento de políti
 - La página de checkout real en `bestronger.es` (fuera de este repo) — el contrato que necesita (`client_reference_id` = user id, `metadata.plan_id` = plan comprado en la Stripe Checkout Session) ya está documentado.
 - Credenciales reales de Stripe (`STRIPE_SECRET_KEY`/`STRIPE_PUBLIC_KEY`/`STRIPE_WEBHOOK_SECRET`, hoy vacías en `.env`).
 
+### 13. Crear las 6 guías compartidas como `resources` (2026-08-30)
+
+Hasta ahora estas 6 guías vivían como 6 screens nativas de React Native
+(`pages/migrated/*_guide_screen.tsx`, con un componente compartido
+`GuideBlocks.tsx`), registradas a mano en `App.tsx`. Se han quitado del
+código a propósito: cualquier guía nueva (o cambio en una existente)
+obligaba a tocar código y sacar un build nuevo de la app, y ese no es el
+flujo correcto para contenido que un entrenador quiere poder publicar o
+actualizar él mismo. El sistema correcto para esto ya existe y ya está en
+producción: `resources` (`api/resources.ts`, `resources_list_screen.tsx`,
+`resource_detail_screen.tsx`) — scope `shared`/`assigned`, contenido HTML
+renderizado en un WebView con el tema (claro/oscuro) de la app.
+
+**Qué falta crear en el admin panel** — 6 filas nuevas en `resources`, todas
+con `scope: "shared"`, `type: "article"`. El HTML de cada una (fragmento,
+sin `<style>` propio para que herede el tema de la app — ver nota de
+`buildWrapperHtml()` en `resource_detail_screen.tsx`) está en
+`docs/resources-html/` de este repo:
+
+| Título                       | Categoría (`category`) | Archivo HTML                                      |
+| ---------------------------- | ---------------------- | ------------------------------------------------- |
+| Guía de Autogestión          | `entrenamiento`        | `docs/resources-html/guia-autogestion.html`       |
+| Guía de Sobrentrenamiento    | `entrenamiento`        | `docs/resources-html/guia-sobrentrenamiento.html` |
+| Guía de Suplementación       | `nutricion`            | `docs/resources-html/guia-suplementacion.html`    |
+| Guía de Sueño y Recuperación | `habitos_mindset`      | `docs/resources-html/guia-sueno.html`             |
+| Guía de Gestión del Estrés   | `habitos_mindset`      | `docs/resources-html/guia-gestion-estres.html`    |
+| Manual de Mentalidad         | `habitos_mindset`      | `docs/resources-html/guia-mentalidad.html`        |
+
+Pega el contenido de cada archivo tal cual en el campo `content` del
+recurso correspondiente al crearlo desde el admin. No hace falta ninguna
+imagen de cabecera (`image_url` sigue sin existir en el backend, ver
+punto 4 más arriba) — `resource_detail_screen.tsx` no muestra ninguna para
+recursos de tipo artículo, solo para la miniatura en el carrusel del Home
+en cuanto ese campo exista.
+
+**Lo que se pierde al migrar de screen nativa a HTML** (aceptado
+explícitamente, pedido 2026-08-30): la calculadora de dosis de
+suplementos, la calculadora de horas de sueño, los acordeones con estado
+y los checklists interactivos de la Guía de Sueño/Estrés eran interactivos
+de verdad (React state) en las screens nativas — en HTML (sin `<script>`,
+saneado por seguridad en `sanitizeHtml()`) pasan a ser contenido de
+referencia estático (tablas con ejemplos, listas). El HTML ya sustituye
+cada calculadora por una tabla de ejemplo para 2-3 escenarios habituales.
+
+**No se puede crear esto desde el propio repo de la app** — `api/resources.ts`
+solo expone `getList`/`getDetail` (lectura), sin ningún endpoint de
+creación/edición; la gestión de contenido de `resources` es 100% admin
+panel, fuera de este repo.
+
 ## Contenido — tareas de panel admin, no de código
 
 - **Ningún `WorkoutTemplate`/`Recipe` de producción está marcado `is_exclusive`/`is_premium` todavía** — el flag ya existe y funciona, falta que el coach decida y marque manualmente qué contenido es exclusivo desde el admin.

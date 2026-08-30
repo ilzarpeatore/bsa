@@ -45,7 +45,11 @@ const TYPE_LABEL: Record<string, string> = {
 function formatResourceDate(dateStr: string): string {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   } catch {
     return '';
   }
@@ -93,7 +97,7 @@ export default function ResourcesListScreen(props: Props) {
   const query = search.trim().toLowerCase();
   const activeList = useMemo(
     () => (query ? scopedList.filter((i) => i.title.toLowerCase().includes(query)) : scopedList),
-    [scopedList, query]
+    [scopedList, query],
   );
   const sectionDefs = activeTab === 'mine' ? MINE_SECTIONS : SHARED_SECTIONS;
 
@@ -118,11 +122,7 @@ export default function ResourcesListScreen(props: Props) {
       <Box className="px-4" style={{ marginTop: 12, marginBottom: 4 }}>
         <Input className="rounded-full bg-secondary px-4 gap-2" size="md">
           <Icon name="search" size={18} className="text-muted-foreground" />
-          <InputField
-            placeholder="Busca en tus recursos"
-            value={search}
-            onChangeText={setSearch}
-          />
+          <InputField placeholder="Busca en tus recursos" value={search} onChangeText={setSearch} />
           {search.length > 0 && (
             <InputSlot onPress={() => setSearch('')}>
               <Icon name="close-circle" size={18} className="text-muted-foreground" />
@@ -133,16 +133,26 @@ export default function ResourcesListScreen(props: Props) {
 
       <Box className="flex-row gap-6 px-4" style={{ marginTop: 16, marginBottom: 8 }}>
         <Pressable onPress={() => setActiveTab('mine')} style={{ paddingBottom: 8 }}>
-          <Text weight="bold" size="lg" className={activeTab === 'mine' ? 'text-foreground' : 'text-muted-foreground'}>
+          <Text
+            weight="bold"
+            size="lg"
+            className={activeTab === 'mine' ? 'text-foreground' : 'text-muted-foreground'}>
             Mis Recursos
           </Text>
-          {activeTab === 'mine' && <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />}
+          {activeTab === 'mine' && (
+            <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />
+          )}
         </Pressable>
         <Pressable onPress={() => setActiveTab('shared')} style={{ paddingBottom: 8 }}>
-          <Text weight="bold" size="lg" className={activeTab === 'shared' ? 'text-foreground' : 'text-muted-foreground'}>
+          <Text
+            weight="bold"
+            size="lg"
+            className={activeTab === 'shared' ? 'text-foreground' : 'text-muted-foreground'}>
             Compartidos
           </Text>
-          {activeTab === 'shared' && <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />}
+          {activeTab === 'shared' && (
+            <Box className="bg-foreground" style={{ height: 2, borderRadius: 1, marginTop: 6 }} />
+          )}
         </Pressable>
       </Box>
 
@@ -152,15 +162,24 @@ export default function ResourcesListScreen(props: Props) {
         </Box>
       ) : error ? (
         <Box className="flex-1 items-center justify-center" style={{ paddingTop: 60 }}>
-          <Text muted className="text-center px-8">No se pudieron cargar los recursos.</Text>
+          <Text muted className="text-center px-8">
+            No se pudieron cargar los recursos.
+          </Text>
         </Box>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE,
+          }}
+          showsVerticalScrollIndicator={false}>
           {activeList.length === 0 ? (
             <Box className="flex-1 items-center justify-center" style={{ paddingTop: 60 }}>
               <Icon name="folder-open-outline" size={40} className="text-muted-foreground" />
               <Text muted className="text-center px-8" style={{ marginTop: 12 }}>
-                {activeTab === 'mine' ? 'Todavía no tienes recursos asignados.' : 'Aún no hay recursos compartidos.'}
+                {activeTab === 'mine'
+                  ? 'Todavía no tienes recursos asignados.'
+                  : 'Aún no hay recursos compartidos.'}
               </Text>
             </Box>
           ) : (
@@ -176,12 +195,12 @@ export default function ResourcesListScreen(props: Props) {
                         <Pressable
                           key={item.id}
                           className="flex-row items-center gap-3 bg-card rounded-lg p-3"
-                          onPress={() => openResource(item)}
-                        >
+                          onPress={() => openResource(item)}>
                           <Box
                             className="w-[68px] h-[68px] rounded-lg items-center justify-center"
-                            style={{ backgroundColor: `${TYPE_COLOR[item.type] ?? C.textPrimary}1A` }}
-                          >
+                            style={{
+                              backgroundColor: `${TYPE_COLOR[item.type] ?? C.textPrimary}1A`,
+                            }}>
                             <Icon
                               name={TYPE_ICON[item.type] ?? 'document-text-outline'}
                               size={28}
@@ -199,12 +218,16 @@ export default function ResourcesListScreen(props: Props) {
                               {formatResourceDate(item.created_at)}
                             </Text>
                           </Box>
-                          <Icon name="chevron-forward" size={18} className="text-muted-foreground" />
+                          <Icon
+                            name="chevron-forward"
+                            size={18}
+                            className="text-muted-foreground"
+                          />
                         </Pressable>
                       ))}
                     </Box>
                   </Box>
-                )
+                ),
               )}
             </Box>
           )}
