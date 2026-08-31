@@ -370,9 +370,22 @@ jobs:
             if [ "$USE_SIGNING" = "true" ]; then
               # Must archive, not build: the IPA step below exports
               # build/App.xcarchive whenever signing is on.
+              #
+              # PROVISIONING_PROFILE_SPECIFIER is deliberately NOT overridden
+              # here (2026-08-31, real failure): a blanket command-line value
+              # applies to every target in the archive, including any app
+              # extension (Live Activities widget, share extension, etc.) --
+              # those have their own bundle id and need their own profile,
+              # so a single global override breaks them ("Provisioning
+              # profile ... has app ID X, which does not match the bundle ID
+              # Y"). Each target now sets its own CODE_SIGN_STYLE/
+              # CODE_SIGN_IDENTITY/PROVISIONING_PROFILE_SPECIFIER directly in
+              # project.pbxproj (Release config) instead -- see the main
+              # "bestronger" target and "bestrongerWidgetsExtension".
+              # DEVELOPMENT_TEAM stays a command-line override: it's the
+              # same team for every target, no reason to duplicate it
+              # per-target in the project file.
               BUILD_CMD="$BUILD_CMD DEVELOPMENT_TEAM='$DEVELOPMENT_TEAM'"
-              BUILD_CMD="$BUILD_CMD CODE_SIGN_STYLE=Manual"
-              BUILD_CMD="$BUILD_CMD PROVISIONING_PROFILE_SPECIFIER='$PROVISIONING_PROFILE_NAME'"
               BUILD_CMD="$BUILD_CMD -archivePath '$GITHUB_WORKSPACE/build/App.xcarchive' archive"
             else
               BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO build"
