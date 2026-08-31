@@ -244,8 +244,17 @@ export default function BlogDetailScreen({ navigation, route }: any) {
         onScroll={heroScrollHandler}
         scrollEventThrottle={16}
       >
-        {/* Hero */}
-        <Box style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.42, position: 'relative', overflow: 'hidden' }}>
+        {/* Hero -- borde inferior redondeado (pedido explícito). */}
+        <Box
+          style={{
+            width: SCREEN_WIDTH,
+            height: SCREEN_HEIGHT * 0.42,
+            position: 'relative',
+            overflow: 'hidden',
+            borderBottomLeftRadius: 24,
+            borderBottomRightRadius: 24,
+          }}
+        >
           {blog?.post_image ? (
             <ExpoImage source={{ uri: blog.post_image }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           ) : (

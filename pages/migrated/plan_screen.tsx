@@ -554,16 +554,11 @@ export default function PlanScreen(props: any) {
               style={[s.weekDayPill, isSelected && s.weekDayPillSelected]}
               onPress={() => setSelectedDay(day)}
             >
-              {/* Borde "con vida" solo en el día seleccionado (pedido
-                  explícito 2026-08-29) -- el resto de días se queda con el
-                  brillo estático (shadowColor) que ya llevaba la píldora. */}
-              {isSelected ? (
-                <AnimatedGlowBorder borderRadius={RADIUS.pill} strokeWidth={1.5} duration={2800} style={s.weekDayPillGlow}>
-                  {pillContent}
-                </AnimatedGlowBorder>
-              ) : (
-                pillContent
-              )}
+              {/* El borde "con vida" (AnimatedGlowBorder) del día seleccionado
+                  se trasladó al resumen de ingesta (pedido explícito) -- el
+                  día seleccionado se queda con el brillo estático
+                  (shadowColor) que ya llevaba la píldora. */}
+              {pillContent}
             </Pressable>
           );
         })}
@@ -575,29 +570,35 @@ export default function PlanScreen(props: any) {
   // extender el material Liquid Glass real (mismo que ya usa compactBar más
   // arriba) al resto de bloques de esta pantalla. En Android/iOS<26 cae
   // igual que antes a bg-card/80 (ver components/ui/card), sin regresión.
+  // El borde "con vida" (AnimatedGlowBorder) que antes tenía el día
+  // seleccionado del calendario semanal se trasladó aquí (pedido explícito,
+  // resumen de ingesta "abierto") -- margen en el wrapper para que el
+  // brillo trace justo el borde de la tarjeta.
   const renderNutrientGraph = () => (
-    <Card variant="glass" style={s.nutrientCard}>
-      <Box style={s.kcalSection}>
-        <Text style={s.kcalValue}>{kcalCurrent}</Text>
-        <Text style={s.kcalTarget}>/ {kcalTarget} kcal</Text>
-      </Box>
-      <HStack style={s.nutrientRow}>
-        {[
-          { label: 'Proteína', current: proteinCurrent, target: proteinTarget, progress: proteinProgress, color: C.textPrimary },
-          { label: 'Carbos', current: carbsCurrent, target: carbsTarget, progress: carbsProgress, color: C.orange },
-          { label: 'Grasas', current: fatsCurrent, target: fatsTarget, progress: fatsProgress, color: C.red },
-        ].map((n) => (
-          <Box key={n.label} style={s.nutrientItem}>
-            <Text style={s.nutrientLabel}>{n.label}</Text>
-            <Text style={s.nutrientValue}>{n.current}g</Text>
-            <Text style={s.nutrientTarget}>de {n.target}g</Text>
-            <Box style={s.nutrientBar}>
-              <Box style={[s.nutrientBarFill, { width: `${n.progress * 100}%`, backgroundColor: n.color }]} />
+    <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={2800} style={s.nutrientCard}>
+      <Card variant="glass">
+        <Box style={s.kcalSection}>
+          <Text style={s.kcalValue}>{kcalCurrent}</Text>
+          <Text style={s.kcalTarget}>/ {kcalTarget} kcal</Text>
+        </Box>
+        <HStack style={s.nutrientRow}>
+          {[
+            { label: 'Proteína', current: proteinCurrent, target: proteinTarget, progress: proteinProgress, color: C.textPrimary },
+            { label: 'Carbos', current: carbsCurrent, target: carbsTarget, progress: carbsProgress, color: C.orange },
+            { label: 'Grasas', current: fatsCurrent, target: fatsTarget, progress: fatsProgress, color: C.red },
+          ].map((n) => (
+            <Box key={n.label} style={s.nutrientItem}>
+              <Text style={s.nutrientLabel}>{n.label}</Text>
+              <Text style={s.nutrientValue}>{n.current}g</Text>
+              <Text style={s.nutrientTarget}>de {n.target}g</Text>
+              <Box style={s.nutrientBar}>
+                <Box style={[s.nutrientBarFill, { width: `${n.progress * 100}%`, backgroundColor: n.color }]} />
+              </Box>
             </Box>
-          </Box>
-        ))}
-      </HStack>
-    </Card>
+          ))}
+        </HStack>
+      </Card>
+    </AnimatedGlowBorder>
   );
 
   // Único objetivo del reto "Marca una comida como realizada" -- el primer
@@ -737,13 +738,18 @@ export default function PlanScreen(props: any) {
       {showCompactSummary && (
         // variant="glass" (opt-in del design system, ver components/ui/card)
         // en vez de "ghost" -- misma barra glass del calendario justo
-        // encima, en vez del bloque plano opaco que había antes.
-        <Card variant="glass" className="flex-row justify-between" style={s.compactBar}>
-          {renderCompactStat('Kcal', `${kcalCurrent}/${kcalTarget}`, kcalProgress)}
-          {renderCompactStat('Proteína', `${proteinCurrent}/${proteinTarget}g`, proteinProgress)}
-          {renderCompactStat('Carbos', `${carbsCurrent}/${carbsTarget}g`, carbsProgress)}
-          {renderCompactStat('Grasas', `${fatsCurrent}/${fatsTarget}g`, fatsProgress)}
-        </Card>
+        // encima, en vez del bloque plano opaco que había antes. Mismo
+        // AnimatedGlowBorder que el resumen de ingesta "abierto" más abajo
+        // -- se mantiene también en el estado "cerrado" (barra compacta al
+        // hacer scroll), pedido explícito.
+        <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={2800} style={s.compactBar}>
+          <Card variant="glass" className="flex-row justify-between">
+            {renderCompactStat('Kcal', `${kcalCurrent}/${kcalTarget}`, kcalProgress)}
+            {renderCompactStat('Proteína', `${proteinCurrent}/${proteinTarget}g`, proteinProgress)}
+            {renderCompactStat('Carbos', `${carbsCurrent}/${carbsTarget}g`, carbsProgress)}
+            {renderCompactStat('Grasas', `${fatsCurrent}/${fatsTarget}g`, fatsProgress)}
+          </Card>
+        </AnimatedGlowBorder>
       )}
       <Animated.ScrollView
         ref={scrollRef}

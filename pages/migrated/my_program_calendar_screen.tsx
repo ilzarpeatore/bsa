@@ -1259,8 +1259,16 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     backgroundColor: C.surface,
     paddingTop: 10,
     paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: C.border,
+    // Bordes estáticos (pedido explícito) -- antes solo tenía la línea
+    // inferior de separación; ahora un borde completo, sin animación,
+    // radius-md del design system (ver global.css) para que combine con el
+    // resto de tarjetas de la app. marginHorizontal para que el borde/radio
+    // se vean enteros en vez de tocar el borde de la pantalla.
+    marginHorizontal: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   weekdayHeaderRow: {
     flexDirection: 'row',
