@@ -17,6 +17,7 @@ import ScreenExplorerFab from '@components/ScreenExplorerFab';
 import WorkoutMinimizedBar from '@components/WorkoutMinimizedBar';
 import TutorialOverlay from '@components/tutorial/TutorialOverlay';
 import ToastHost from '@components/ToastHost';
+import { DEV_TOOLS_ENABLED } from '@constants/featureFlags';
 import { TutorialProvider } from '@store/TutorialContext';
 import { hydratePersistedWorkoutSession } from '@helper/workoutSessionBus';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -562,8 +563,17 @@ export default function App() {
                     navigationRef={screenReviewNavigationRef}
                     onReady={onLayoutRootView}
                   />
-                  <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
-                  <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
+                  {/* Ocultos para el build oficial (pedido explícito
+                      2026-08-31, ver constants/featureFlags.ts,
+                      DEV_TOOLS_ENABLED) -- no son para usuarios finales.
+                      No se desmontan del árbol, se reactivan después de
+                      este build. */}
+                  {DEV_TOOLS_ENABLED && (
+                    <>
+                      <ScreenReviewFab navigationRef={screenReviewNavigationRef} />
+                      <ScreenExplorerFab navigationRef={screenReviewNavigationRef} />
+                    </>
+                  )}
                   <WorkoutMinimizedBar navigationRef={screenReviewNavigationRef} />
                   <TutorialOverlay />
                   <ToastHost />

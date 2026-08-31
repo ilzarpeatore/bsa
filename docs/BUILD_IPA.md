@@ -63,9 +63,33 @@ Queda en `false` (default) mientras no haya cuenta de pago de Apple Developer Pr
 
 **No hace falta un Mac propio (ni siquiera una VM) para nada de esto.** `ios-build.yml` ya corre en un runner `macos-latest` de GitHub Actions con Xcode real — generar el certificado y el perfil de aprovisionamiento se hace desde el portal web de Apple Developer (developer.apple.com) + `openssl` para el CSR/`.p12`, ambos sin macOS. Detalle paso a paso pedido explícitamente por el usuario: preguntar en la conversación si hace falta, no repetirlo aquí para no duplicar mantenimiento.
 
+**`IOS_PROVISIONING_PROFILE_WIDGETS` (opcional, 2026-08-31)** — perfil "App Store" separado para `bestrongerWidgetsExtension` (la extensión de Live Activities, bundle id `com.pfndesign.bestronger.bestrongerWidgets`), también en base64. Cualquier app extension necesita su propio App ID + perfil, distinto del de la app principal — un `PROVISIONING_PROFILE_SPECIFIER` global no vale para los dos a la vez (fallo real del run #77: `Provisioning profile ... has app ID X, which does not match the bundle ID Y`). El nombre del perfil que se genere en Apple tiene que ser literalmente `Be Stronger Widgets App Store` — así está hardcodeado en `project.pbxproj` (target `bestrongerWidgetsExtension`, Release). Si el proyecto suma más app extensions en el futuro, cada una necesita su propio secret + su propio `PROVISIONING_PROFILE_SPECIFIER` en el pbxproj, siguiendo este mismo patrón.
+
+## Subida automática a App Store Connect/TestFlight (`upload_to_app_store`, 2026-08-31)
+
+Pedido explícito: el usuario no tiene Mac, así que no puede usar Transporter para subir el `.ipa` una vez generado. Nuevo input `upload_to_app_store` (bool, default `false`) — cuando es `true` (y `use_signing: true` + `export_method: "app-store"`), un paso nuevo del workflow (`Upload to App Store Connect`) sube el `.ipa` firmado directamente desde el runner `macos-latest` con `xcrun altool --upload-app`, sin intervención manual.
+
+**Requiere 3 secrets nuevos, distintos de los de firma** (`IOS_CERTIFICATE`/`IOS_CERTIFICATE_PASSWORD`/`IOS_PROVISIONING_PROFILE` son para firmar el binario; estos son para autenticar la subida a App Store Connect):
+
+- `APPSTORE_API_KEY_ID` — el Key ID de la API key
+- `APPSTORE_API_ISSUER_ID` — el Issuer ID de la cuenta (mismo para todas las keys de esa cuenta)
+- `APPSTORE_API_KEY_P8` — el contenido del archivo `AuthKey_XXXXXXXXXX.p8`, **en base64** (igual que `IOS_CERTIFICATE`/`IOS_PROVISIONING_PROFILE` — no el `.p8` en crudo)
+
+**Cómo generar la API key** (appstoreconnect.apple.com, no developer.apple.com — es un portal distinto, misma cuenta):
+
+1. [appstoreconnect.apple.com/access/integrations/api](https://appstoreconnect.apple.com/access/integrations/api) → pestaña **"Team Keys"**
+2. Pulsa **"+"** para generar una key nueva
+3. Nombre libre (p.ej. "CI Upload"), rol **"App Manager"** (o "Admin") — el mínimo que permite subir builds
+4. Apple te enseña el `.p8` **una sola vez** — descárgalo en el momento, no se puede volver a descargar después (si se pierde, hay que generar una key nueva)
+5. Apunta el **Key ID** y el **Issuer ID** (visible en la misma pantalla, arriba de la tabla de keys)
+6. Codifica el `.p8` en base64 (`base64 -w0 AuthKey_XXXXXXXXXX.p8`) y súbelo como `APPSTORE_API_KEY_P8`
+
+Sin `upload_to_app_store: true`, el workflow se comporta exactamente igual que antes (solo deja el `.ipa` como artifact descargable) — este paso es 100% opt-in, no afecta a ningún build existente.
+
 ## Resumen — checklist antes de lanzar un build "de verdad"
 
 - [ ] `ios_path: "ios"`
 - [ ] `configuration: "Release"` (salvo que el build sea explícitamente para conectarse a Metro)
 - [ ] `build_id` único (se usa para nombrar el `.ipa` final)
 - [ ] Si es para App Store Connect/TestFlight: `use_signing: true` + `export_method: "app-store"` + secrets de certificado de Distribution/perfil "App Store" configurados
+- [ ] Si además quieres que se suba solo (sin Mac/Transporter): `upload_to_app_store: true` + secrets `APPSTORE_API_KEY_ID`/`APPSTORE_API_ISSUER_ID`/`APPSTORE_API_KEY_P8` configurados

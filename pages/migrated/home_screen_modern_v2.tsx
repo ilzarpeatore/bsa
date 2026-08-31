@@ -53,9 +53,9 @@ import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
 import {
-  CHAT_ENABLED,
   ACTIVITY_TRACKER_ENABLED,
   WATER_TRACKER_ENABLED,
+  STARTUP_CHALLENGE_ENABLED,
 } from '@constants/featureFlags';
 import {
   loadDiagnosticsEnabled,
@@ -65,11 +65,12 @@ import {
 import { showToast } from '@helper/toast';
 import {
   dashboardApi,
-  BannerSliderItem,
   WaterSummary,
   StepsSummary,
   WorkoutSummary,
 } from '../../api/dashboard';
+import { muscleVolumeApi, MuscleVolumeData } from '../../api/muscleVolume';
+import { ViewSide } from '../../constants/bodyMusclesPaths';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { dietApi } from '../../api/diet';
@@ -81,6 +82,7 @@ import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/chec
 import { habitsApi, Habit } from '../../api/habits';
 import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
 import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
+import MuscleBodyMap from '@components/MuscleBodyMap';
 import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
 import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
@@ -427,13 +429,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
   // Nueva cabecera (estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
   const [motivationalPhrase, setMotivationalPhrase] = useState<string | null>(null);
-  const [activeBanner, setActiveBanner] = useState<BannerSliderItem | null>(null);
-  // Estado B del banner (slider real conectado) solo aplica si el cliente ya
-  // dio permisos de HealthKit/Health Connect -- esa integracion (ver
-  // react-native-health-link en el doc) todavia no existe en la app, asi que
-  // por ahora esto siempre es false y el Estado A (demo) es el unico
-  // disponible. El codigo del Estado B ya queda listo, solo inactivo.
-  const hasHealthConnected = false;
+  // Volumen muscular (misma fuente que la tarjeta "Entrenamiento" de
+  // progress_screen.tsx, muscleVolumeApi.getMy(7)) -- alimenta el mini
+  // heat map de la tarjeta "Volumen muscular" (pedido explícito
+  // 2026-08-31, sustituye al banner de demo quitado más abajo).
+  const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeData | null>(null);
 
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<boolean[]>([]);
@@ -593,11 +593,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           textAlign: 'center' as const,
           marginTop: r(-8),
         },
-        // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
-        // de demo, todavía sobre la foto), no a caballo sobre el degradado como
-        // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
-        // ya lo hereda de heroHeader.
-        miniCardsRow: { marginTop: r(16) },
+        // Agua/Actividad -- ahora viven DENTRO de heroHeader, primer bloque
+        // bajo heroPhrase (antes iban debajo del banner de demo, quitado).
+        // Sin marginTop propio: el hueco con heroPhrase de arriba lo da
+        // heroPhrase.marginBottom, igual que antes lo daba con el banner.
+        // Sin paddingHorizontal propio: ya lo hereda de heroHeader.
+        miniCardsRow: {},
         heroPhrase: {
           fontSize: r(14),
           color: 'rgba(255,255,255,0.92)',
@@ -605,27 +606,21 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           lineHeight: r(20),
           marginBottom: r(16),
         },
-        bannerCard: {
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: r(18),
-          padding: r(16),
-          alignItems: 'center' as const,
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.14)',
-        },
-        bannerTitle: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF', marginTop: r(8) },
-        bannerText: {
-          fontSize: r(12),
-          color: 'rgba(255,255,255,0.75)',
-          textAlign: 'center' as const,
-          marginTop: r(4),
-          lineHeight: r(17),
-        },
         miniCard: {
           flex: 1,
           backgroundColor: 'rgba(255,255,255,0.1)',
           borderRadius: r(16),
           padding: r(14),
+        },
+        // "Volumen muscular" -- mismo fondo/radio/padding que miniCard, sin
+        // flex:1 (ocupa el ancho completo, no la mitad) y con el marginTop
+        // que antes separaba el banner de demo de Agua/Actividad (16),
+        // ahora entre Agua/Actividad y esta tarjeta.
+        muscleCard: {
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderRadius: r(16),
+          padding: r(14),
+          marginTop: r(16),
         },
         miniCardTitle: {
           fontSize: r(12),
@@ -761,12 +756,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         },
         lockBadgeText: { fontSize: r(9), color: '#FFFFFF', fontFamily: FONT.semiBold },
         supportTitle: { flex: 1, fontSize: r(14), fontFamily: FONT.bold, color: C.white },
-        supportLink: {
-          fontSize: r(12),
-          fontFamily: FONT.semiBold,
-          color: C.orange,
-          marginTop: r(6),
+        supportSubtitle: { fontSize: r(12.5), color: C.textSecondary, marginTop: r(2) },
+        // Botón de WhatsApp -- color de marca de WhatsApp (#25D366) a
+        // propósito, no C.orange: es un enlace externo a otra app, no una
+        // acción dentro de Be Stronger, así que no debe leerse como el
+        // resto de CTAs de la marca.
+        whatsappBtn: {
+          flexDirection: 'row' as const,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+          gap: r(8),
+          backgroundColor: '#25D366',
+          borderRadius: r(24),
+          paddingVertical: r(11),
+          marginTop: r(14),
         },
+        whatsappBtnText: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF' },
         emptySection: { paddingHorizontal: r(20), paddingVertical: r(12), marginBottom: r(8) },
         myProgramBadgeText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textPrimary },
         seeAllTasksBtnText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
@@ -891,6 +896,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         phraseRes,
         completedRes,
         readinessRes,
+        muscleVolumeRes,
       ] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         workoutHistoryApi.getMyCalendar(currentMonth, currentYear),
@@ -903,6 +909,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         motivationalPhraseApi.getPhrase(),
         workoutHistoryApi.getMyCompletedSessions(),
         readinessApi.getToday(),
+        muscleVolumeApi.getMy(7),
       ]);
 
       const errors: string[] = [];
@@ -910,11 +917,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       if (dashRes.status === 'fulfilled') {
         const d: any = dashRes.value.data.data;
         setNotificationCount(d?.notification_data?.unread_total_count ?? 0);
-        // Estado B del banner (ver seccion 2 del encargo) -- solo se pinta si
-        // hasHealthConnected es true (todavia no, sin integracion de salud),
-        // pero se guarda igual para que el codigo ya quede conectado.
-        const banners: BannerSliderItem[] = d?.banner_slider ?? [];
-        setActiveBanner(banners.length > 0 ? banners[0] : null);
         setWater(d?.water ?? null);
         setSteps(d?.steps ?? null);
         setWorkout(d?.workout ?? null);
@@ -1014,6 +1016,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
       if (readinessRes.status === 'fulfilled') {
         setReadinessToday(readinessRes.value.data.data);
+      }
+
+      if (muscleVolumeRes.status === 'fulfilled') {
+        setMuscleVolume(muscleVolumeRes.value.data?.data ?? null);
       }
 
       if (errors.length > 0) {
@@ -1446,53 +1452,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* Frase contextual (motivational-phrase, ver sección 4) */}
           {motivationalPhrase && <Text style={styles.heroPhrase}>{motivationalPhrase}</Text>}
 
-          {/* Banner condicional — Estado A (demo) por defecto; Estado B
-              (BannerSlider real, ya conectado vía dashboard-detail) solo si
-              hasHealthConnected — hoy siempre false, sin integración de salud
-              todavía, deja el código listo para cuando exista. */}
-          {hasHealthConnected && activeBanner ? (
-            <Pressable
-              style={styles.bannerCard}
-              onPress={() => {
-                if (activeBanner.type === 'workout' && activeBanner.workout_id) {
-                  navigation?.navigate('MigratedWorkoutPreview', {
-                    workoutTemplateId: activeBanner.workout_id,
-                    mTitle: activeBanner.title,
-                  });
-                }
-              }}>
-              {activeBanner.bannerslider_image ? (
-                <ExpoImage
-                  source={{ uri: activeBanner.bannerslider_image }}
-                  style={{ width: '100%', height: r(90), borderRadius: r(12) }}
-                  contentFit="cover"
-                />
-              ) : null}
-              <Text style={styles.bannerTitle}>{activeBanner.title}</Text>
-            </Pressable>
-          ) : (
-            // Sin botón "Continuar" a propósito (pedido explícito
-            // 2026-08-29): descartaba el aviso vía demoBannerDismissed y no
-            // había ningún banner real (activeBanner) detrás que ocupara su
-            // sitio -- la pantalla se quedaba con un hueco vacío donde antes
-            // estaba este aviso. Fijo mientras no haya banners reales que
-            // mostrar en su lugar.
-            <Box style={styles.bannerCard}>
-              <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
-              <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
-              <Text style={styles.bannerText}>
-                Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar
-                Apple Health o Google Health, disponible en una próxima versión de la app.
-              </Text>
-            </Box>
-          )}
-
-          {/* Agua / Actividad -- sustituyen los placeholders "Sueño"/"Balance
-              de carga" (pedido explícito: moverlas dentro de la foto del
-              hero, justo debajo del banner de demo, y sacar "Reto para
-              empezar" fuera de la imagen). Datos reales de dashboard-detail
-              (agua: total/goal en ml; actividad: kcal estimadas de pasos +
-              kcal reales de entrenamientos). */}
+          {/* Agua / Actividad -- pedido explícito 2026-08-31: suben a ocupar
+              el hueco que dejó el banner "esto son datos de demostración"
+              (quitado; el Estado B del banner real -- BannerSlider vía
+              dashboard-detail -- nunca llegó a activarse, hasHealthConnected
+              fue siempre false, así que no había nada real que perder al
+              quitarlo). Sin marginTop propio: el hueco con heroPhrase de
+              arriba lo sigue dando heroPhrase.marginBottom, igual que antes
+              lo daba con el banner. Datos reales de dashboard-detail (agua:
+              total/goal en ml; actividad: kcal estimadas de pasos + kcal
+              reales de entrenamientos). */}
           <HStack space="sm" style={styles.miniCardsRow}>
             <Box style={styles.miniCard}>
               <HStack className="items-center justify-between">
@@ -1564,6 +1533,48 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               </VStack>
             </Box>
           </HStack>
+
+          {/* Volumen muscular -- pedido explícito 2026-08-31: ocupa el hueco
+              que dejaban Agua/Actividad antes de subir de sitio, mismo
+              diseño que esas dos tarjetas (miniCard: mismo fondo/radio/
+              padding, mismo botón "+"). El "+" lleva a MigratedProgress
+              (la pantalla que agrupa Estadísticas + Progreso muscular, ver
+              progress_screen.tsx) en vez de abrir un tracker propio --
+              "ver todas las métricas" es esa pantalla, no una nueva.
+              Mismos datos que su tarjeta "Entrenamiento"
+              (muscleVolumeApi.getMy(7), ver fetchData). */}
+          <Box style={styles.muscleCard}>
+            <HStack className="items-center justify-between">
+              <HStack space="xs" className="items-center">
+                <Icon name="body" size={15} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.miniCardTitle}>Volumen muscular</Text>
+              </HStack>
+              <Pressable
+                style={styles.miniCardAddBtn}
+                onPress={() => navigation?.navigate('MigratedProgress')}
+                hitSlop={8}>
+                <Icon name="add" size={14} color="#FFFFFF" />
+              </Pressable>
+            </HStack>
+            <HStack className="items-center justify-between" style={{ marginTop: r(10) }}>
+              <VStack>
+                <Text style={styles.miniCardValue}>
+                  {muscleVolume ? Math.round(muscleVolume.totalVolume).toLocaleString('es-ES') : '--'}
+                  <Text style={styles.miniCardValueMuted}> kg</Text>
+                </Text>
+                <VStack style={{ marginTop: r(6), gap: r(4) }}>
+                  <Text style={styles.miniCardSubRow}>{muscleVolume?.sessionsCount ?? 0} sesiones</Text>
+                  <Text style={styles.miniCardSubRow}>Últimos 7 días</Text>
+                </VStack>
+              </VStack>
+              <MuscleBodyMap
+                data={muscleVolume?.volumeByMuscle}
+                height={r(72)}
+                showToggle={false}
+                forcedView={ViewSide.FRONT}
+              />
+            </HStack>
+          </Box>
         </Box>
 
         {errorMessage && (
@@ -1576,9 +1587,39 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </HStack>
         )}
 
-        <Box style={{ paddingHorizontal: r(20), marginTop: r(16) }}>
-          <StartupChecklist steps={startupSteps} />
-        </Box>
+        {/* Oculto para el build oficial (pedido explícito 2026-08-31): el
+            sistema de retos todavía no está terminado. Solo se esconde la
+            entrada -- useTutorial()/startupSteps siguen calculándose arriba
+            sin tocar, por si otro TutorialTarget de esta pantalla depende
+            del mismo contexto. Ver constants/featureFlags.ts,
+            STARTUP_CHALLENGE_ENABLED. */}
+        {STARTUP_CHALLENGE_ENABLED && (
+          <Box style={{ paddingHorizontal: r(20), marginTop: r(16) }}>
+            <StartupChecklist steps={startupSteps} />
+          </Box>
+        )}
+
+        {/* Actividad semanal -- pedido explícito 2026-08-31: reordenado antes
+            de "Mi plan de hoy" (nuevo orden de secciones del Home). */}
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Cumplimiento semanal</Text>
+        </HStack>
+        <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+          <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>
+            <Text style={styles.activityWeekTitle}>Esta semana</Text>
+            <Text style={styles.activityWeekCount}>
+              {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
+            </Text>
+          </HStack>
+          <WeekComplianceRow
+            completedDays={weeklyWorkouts}
+            progressDays={weeklyWorkoutsProgress}
+            color={C.orange}
+            size={r(28)}
+          />
+        </Card>
 
         {/* Mi plan de hoy — para un cliente 1:1 esta ES su sección personalizada
             (viene del calendario que le asigna su coach, ProgramDayAssignment),
@@ -1612,13 +1653,29 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         )}
         {todayItems.length > 0 ? (
           <>
-            {/* Antes llevaba AnimatedGlowBorder -- el brillo con vida se
-                trasladó a la tarjeta de Nutrición más abajo (pedido
-                explícito), esta vuelve a ser Liquid Glass real sin
-                animación de borde. */}
-            <Card variant="glass" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-              {visibleTodayItems.map((item, i) => renderTodayItem(item, i))}
-            </Card>
+            {/* Antes variant="outline" sin animación -- pedido explícito
+                2026-08-29 ("todos los botones"/color de marca + bordes con
+                vida): tarjeta destacada del día con Liquid Glass real
+                (mismo material que compactBar de plan_screen.tsx) y un
+                brillo que recorre el borde en bucle (ver
+                AnimatedGlowBorder). El margen horizontal/inferior que antes
+                llevaba el propio Card se saca al wrapper para que el
+                brillo trace justo el borde de la tarjeta, no el hueco del
+                margen. disableSelfClip: AnimatedGlowBorder ya recorta con
+                el mismo overflow:hidden/borderRadius -- duplicarlo con el
+                wrapper propio del Card alrededor del GlassView nativo le
+                apagaba el brillo dinámico real de Liquid Glass (bug
+                detectado 2026-08-31, ver Card::disableSelfClip). Un cambio
+                paralelo había trasladado este borde a Nutrición en su
+                lugar -- pedido explícito 2026-08-31: va en las DOS
+                tarjetas, no es un traslado. */}
+            <Box style={{ marginHorizontal: r(20), marginBottom: r(12) }}>
+              <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={4200}>
+                <Card variant="glass" className="p-4" disableSelfClip>
+                  {visibleTodayItems.map((item, i) => renderTodayItem(item, i))}
+                </Card>
+              </AnimatedGlowBorder>
+            </Box>
             {todayItems.length > 3 && (
               <Pressable onPress={() => navigation?.navigate('MigratedMyProgramCalendar')}>
                 <HStack
@@ -1657,120 +1714,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Card>
         )}
 
-        {/* Actividad semanal */}
-        <HStack
-          className="justify-between items-center px-5"
-          style={{ marginTop: r(24), marginBottom: r(12) }}>
-          <Text style={styles.sectionTitle}>Cumplimiento semanal</Text>
-        </HStack>
-        <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-          <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>
-            <Text style={styles.activityWeekTitle}>Esta semana</Text>
-            <Text style={styles.activityWeekCount}>
-              {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
-            </Text>
-          </HStack>
-          <WeekComplianceRow
-            completedDays={weeklyWorkouts}
-            progressDays={weeklyWorkoutsProgress}
-            color={C.orange}
-            size={r(28)}
-          />
-        </Card>
-
-        {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
-            pendiente porque el cliente no puede crear uno por su cuenta),
-            esta sección SIEMPRE se muestra: con 0 hábitos, "Ver todos"/tocar
-            la tarjeta es el único camino real para llegar a Añadir hábito
-            (biblioteca o personal) — ocultarla dejaría al cliente sin forma
-            de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
-        <HStack
-          className="justify-between items-center px-5"
-          style={{ marginTop: r(24), marginBottom: r(12) }}>
-          <Text style={styles.sectionTitle}>Hábitos</Text>
-          <TutorialTarget id="home-habits-link" scrollRef={scrollRef}>
-            <Pressable
-              onPress={() =>
-                navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')
-              }>
-              <Text style={styles.seeAll}>
-                {habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}
-              </Text>
-            </Pressable>
-          </TutorialTarget>
-        </HStack>
-        {habits.length > 0 ? (
-          <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-            {habits.slice(0, 3).map((h, i) => (
-              <Pressable
-                key={h.id}
-                style={
-                  i > 0
-                    ? {
-                        marginTop: r(12),
-                        paddingTop: r(12),
-                        borderTopWidth: 1,
-                        borderTopColor: C.border,
-                      }
-                    : {}
-                }
-                onPress={() => navigation?.navigate('MigratedHabitDetail', { habitId: h.id })}>
-                {/* marginLeft explícito además del gap del HStack — el
-                    icono y el título quedaban muy pegados sin margen visible. */}
-                <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
-                  <AppIcon
-                    name={habitIoniconFor(h.icon)}
-                    size={20}
-                    color={C.textPrimary}
-                    bg={C.bg}
-                    containerSize={r(44)}
-                    borderRadius={r(12)}
-                  />
-                  <VStack className="flex-1" style={{ marginLeft: r(10) }}>
-                    <Text style={styles.todayWorkoutTitle}>{h.title}</Text>
-                    <Text style={styles.todayWorkoutSub}>
-                      {h.current_streak
-                        ? `🔥 ${h.current_streak} días de racha`
-                        : 'Sin racha activa todavía'}
-                    </Text>
-                  </VStack>
-                  <Icon name="chevron-forward" size={20} color={C.textSecondary} />
-                </HStack>
-                <WeekComplianceRow
-                  completedDays={computeWeekCompliance(h.logs)}
-                  progressDays={computeWeekProgress(h.logs, h.target_value)}
-                  color={C.orange}
-                  size={r(24)}
-                />
-              </Pressable>
-            ))}
-          </Card>
-        ) : (
-          <Pressable onPress={() => navigation?.navigate('MigratedHabitAdd')}>
-            <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-              <HStack space="md" className="items-center">
-                <AppIcon
-                  name="flame-outline"
-                  size={20}
-                  color={C.textPrimary}
-                  bg={C.bg}
-                  containerSize={r(44)}
-                  borderRadius={r(12)}
-                />
-                <VStack className="flex-1">
-                  <Text style={styles.todayWorkoutTitle}>Todavía no tienes hábitos</Text>
-                  <Text style={styles.todayWorkoutSub}>
-                    Elige uno de la biblioteca o crea el tuyo propio
-                  </Text>
-                </VStack>
-                <Icon name="chevron-forward" size={20} color={C.textSecondary} />
-              </HStack>
-            </Card>
-          </Pressable>
-        )}
-
-        {/* Nutrición — subida junto a las secciones de uso diario (antes vivía
-            enterrada después de los catálogos y Programas). */}
+        {/* Nutrición — pedido explícito 2026-08-31: reordenada antes de
+            Hábitos (nuevo orden de secciones del Home). */}
         <HStack
           className="justify-between items-center px-5"
           style={{ marginTop: r(24), marginBottom: r(12) }}>
@@ -1781,12 +1726,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         </HStack>
         {/* Antes variant="outline" -- misma extensión de Liquid Glass real
             que el resto de tarjetas. El brillo con vida (AnimatedGlowBorder)
-            que antes tenía la tarjeta de "Mi plan de hoy" se trasladó aquí
-            (pedido explícito) -- margen horizontal/inferior en el wrapper
-            para que el brillo trace justo el borde de la tarjeta. */}
+            va también aquí, además de en "Mi plan de hoy" (pedido explícito
+            2026-08-31: en las dos tarjetas, no es un traslado) -- margen
+            horizontal/inferior en el wrapper para que el brillo trace justo
+            el borde de la tarjeta. disableSelfClip: mismo bug que en "Mi
+            plan de hoy" (ver Card::disableSelfClip) -- el wrapper propio
+            del Card alrededor del GlassView nativo, duplicado con el de
+            AnimatedGlowBorder, apagaba el brillo dinámico real de Liquid
+            Glass. */}
         <Box style={{ marginHorizontal: r(20), marginBottom: r(12) }}>
           <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={4200}>
-        <Card variant="glass" className="p-4">
+            <Card variant="glass" className="p-4" disableSelfClip>
           {dailyPlan ? (
             <>
               <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>
@@ -1895,9 +1845,171 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Icon name="arrow-forward" size={14} color={C.orange} style={{ marginLeft: r(8) }} />
             </Pressable>
           </TutorialTarget>
-        </Card>
+            </Card>
           </AnimatedGlowBorder>
         </Box>
+
+        {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
+            pendiente porque el cliente no puede crear uno por su cuenta),
+            esta sección SIEMPRE se muestra: con 0 hábitos, "Ver todos"/tocar
+            la tarjeta es el único camino real para llegar a Añadir hábito
+            (biblioteca o personal) — ocultarla dejaría al cliente sin forma
+            de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Hábitos</Text>
+          <TutorialTarget id="home-habits-link" scrollRef={scrollRef}>
+            <Pressable
+              onPress={() =>
+                navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')
+              }>
+              <Text style={styles.seeAll}>
+                {habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}
+              </Text>
+            </Pressable>
+          </TutorialTarget>
+        </HStack>
+        {habits.length > 0 ? (
+          <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+            {habits.slice(0, 3).map((h, i) => (
+              <Pressable
+                key={h.id}
+                style={
+                  i > 0
+                    ? {
+                        marginTop: r(12),
+                        paddingTop: r(12),
+                        borderTopWidth: 1,
+                        borderTopColor: C.border,
+                      }
+                    : {}
+                }
+                onPress={() => navigation?.navigate('MigratedHabitDetail', { habitId: h.id })}>
+                {/* marginLeft explícito además del gap del HStack — el
+                    icono y el título quedaban muy pegados sin margen visible. */}
+                <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
+                  <AppIcon
+                    name={habitIoniconFor(h.icon)}
+                    size={20}
+                    color={C.textPrimary}
+                    bg={C.bg}
+                    containerSize={r(44)}
+                    borderRadius={r(12)}
+                  />
+                  <VStack className="flex-1" style={{ marginLeft: r(10) }}>
+                    <Text style={styles.todayWorkoutTitle}>{h.title}</Text>
+                    <Text style={styles.todayWorkoutSub}>
+                      {h.current_streak
+                        ? `🔥 ${h.current_streak} días de racha`
+                        : 'Sin racha activa todavía'}
+                    </Text>
+                  </VStack>
+                  <Icon name="chevron-forward" size={20} color={C.textSecondary} />
+                </HStack>
+                <WeekComplianceRow
+                  completedDays={computeWeekCompliance(h.logs)}
+                  progressDays={computeWeekProgress(h.logs, h.target_value)}
+                  color={C.orange}
+                  size={r(24)}
+                />
+              </Pressable>
+            ))}
+          </Card>
+        ) : (
+          <Pressable onPress={() => navigation?.navigate('MigratedHabitAdd')}>
+            <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+              <HStack space="md" className="items-center">
+                <AppIcon
+                  name="flame-outline"
+                  size={20}
+                  color={C.textPrimary}
+                  bg={C.bg}
+                  containerSize={r(44)}
+                  borderRadius={r(12)}
+                />
+                <VStack className="flex-1">
+                  <Text style={styles.todayWorkoutTitle}>Todavía no tienes hábitos</Text>
+                  <Text style={styles.todayWorkoutSub}>
+                    Elige uno de la biblioteca o crea el tuyo propio
+                  </Text>
+                </VStack>
+                <Icon name="chevron-forward" size={20} color={C.textSecondary} />
+              </HStack>
+            </Card>
+          </Pressable>
+        )}
+
+        {/* Recursos — pedido explícito 2026-08-31: reordenado antes de
+            Explorar/Entrenamientos (nuevo orden de secciones del Home).
+            Visible para todos (free y 1:1), a diferencia de Workouts: un
+            cliente 1:1 tambien puede tener guias o documentos asignados
+            individualmente por su coach. */}
+        {resourcesList.length > 0 && (
+          <>
+            <HStack
+              className="justify-between items-center px-5"
+              style={{ marginTop: r(24), marginBottom: r(12) }}>
+              <Text style={styles.sectionTitle}>Recursos</Text>
+            </HStack>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ paddingLeft: 16 }}>
+              {resourcesList.map((r) => (
+                <Pressable
+                  key={r.id}
+                  style={styles.blogCard}
+                  onPress={() =>
+                    navigation?.navigate('MigratedResourceDetail', {
+                      resourceId: r.id,
+                      title: r.title,
+                    })
+                  }>
+                  <Box style={styles.blogImage}>
+                    <ExpoImage
+                      source={resourceImageSource(r)}
+                      style={styles.blogImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
+                    <Box style={styles.resourceTypeBadge}>
+                      <Icon
+                        name={
+                          r.type === 'video'
+                            ? 'play-circle-outline'
+                            : r.type === 'link'
+                              ? 'link-outline'
+                              : 'document-text-outline'
+                        }
+                        size={16}
+                        color="#FFFFFF"
+                      />
+                    </Box>
+                  </Box>
+                  <Box style={styles.blogContent}>
+                    <Text style={styles.blogTitle} numberOfLines={2}>
+                      {r.title}
+                    </Text>
+                  </Box>
+                </Pressable>
+              ))}
+              <Pressable
+                style={styles.blogCard}
+                onPress={() => navigation?.navigate('MigratedResourcesList')}>
+                <Box style={[styles.blogImage, styles.seeAllImage]}>
+                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+                </Box>
+                <Box style={styles.blogContent}>
+                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
+                    Ver todos los recursos
+                  </Text>
+                </Box>
+              </Pressable>
+            </ScrollView>
+          </>
+        )}
 
         {/* Explorar — accesos directos portados desde pages/Today.tsx (pantalla
             huérfana, retirada). MigratedRecipeMain es hoy el único punto de
@@ -2014,75 +2126,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </>
         )}
 
-        {/* Recursos — visible para todos (free y 1:1), a diferencia de
-            Workouts: un cliente 1:1 tambien puede tener guias o
-            documentos asignados individualmente por su coach. */}
-        {resourcesList.length > 0 && (
-          <>
-            <HStack
-              className="justify-between items-center px-5"
-              style={{ marginTop: r(24), marginBottom: r(12) }}>
-              <Text style={styles.sectionTitle}>Recursos</Text>
-            </HStack>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ paddingLeft: 16 }}>
-              {resourcesList.map((r) => (
-                <Pressable
-                  key={r.id}
-                  style={styles.blogCard}
-                  onPress={() =>
-                    navigation?.navigate('MigratedResourceDetail', {
-                      resourceId: r.id,
-                      title: r.title,
-                    })
-                  }>
-                  <Box style={styles.blogImage}>
-                    <ExpoImage
-                      source={resourceImageSource(r)}
-                      style={styles.blogImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
-                    />
-                    <Box style={styles.resourceTypeBadge}>
-                      <Icon
-                        name={
-                          r.type === 'video'
-                            ? 'play-circle-outline'
-                            : r.type === 'link'
-                              ? 'link-outline'
-                              : 'document-text-outline'
-                        }
-                        size={16}
-                        color="#FFFFFF"
-                      />
-                    </Box>
-                  </Box>
-                  <Box style={styles.blogContent}>
-                    <Text style={styles.blogTitle} numberOfLines={2}>
-                      {r.title}
-                    </Text>
-                  </Box>
-                </Pressable>
-              ))}
-              <Pressable
-                style={styles.blogCard}
-                onPress={() => navigation?.navigate('MigratedResourcesList')}>
-                <Box style={[styles.blogImage, styles.seeAllImage]}>
-                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
-                </Box>
-                <Box style={styles.blogContent}>
-                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
-                    Ver todos los recursos
-                  </Text>
-                </Box>
-              </Pressable>
-            </ScrollView>
-          </>
-        )}
-
         {/* Blog */}
         <HStack
           className="justify-between items-center px-5"
@@ -2142,37 +2185,36 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Box>
         )}
 
-        {/* Need Help → FitBot -- chat desactivado en esta primera versión
-            (ver constants/featureFlags.ts, CHAT_ENABLED): sin moderación ni
-            forma de reportar mensajes todavía, riesgo real de rechazo en
-            revisión de Apple/Google. */}
+        {/* Need Help → WhatsApp -- pedido explícito 2026-08-31: sustituye el
+            acceso al bot de chat (CHAT_ENABLED sigue en false, ver
+            constants/featureFlags.ts -- sin moderación ni forma de reportar
+            mensajes todavía, riesgo real de rechazo en revisión de
+            Apple/Google) por un contacto directo por WhatsApp mientras
+            tanto. CHAT_ENABLED/MigratedChatting no se tocan -- profile_screen.tsx
+            sigue teniendo su propio punto de entrada ("Soporte") detrás del
+            mismo flag, listo para cuando el chat se reactive. */}
         <Box style={{ height: r(16) }} />
-        <Pressable
-          onPress={() =>
-            CHAT_ENABLED
-              ? navigation?.navigate('MigratedChatting', { isDirect: true })
-              : showToast('Próximamente', {
-                  description: 'Podrás hablar con Be Stronger AI en la próxima versión de la app.',
-                })
-          }>
-          <Card variant="outline" className="mx-5 p-4">
-            <HStack className="items-center">
-              <VStack className="flex-1">
-                <Text style={styles.supportTitle}>
-                  ¿Necesitas ayuda? Soluciona tus dudas con el bot
-                </Text>
-                <Text style={styles.supportLink}>Be Stronger AI</Text>
-              </VStack>
-              <AppIcon
-                name="chatbubble-ellipses"
-                size={28}
-                color={C.orange}
-                bg="rgba(255,107,53,0.15)"
-                containerSize={r(52)}
-              />
-            </HStack>
-          </Card>
-        </Pressable>
+        <Card variant="outline" className="mx-5 p-4">
+          <HStack className="items-center" space="md">
+            <AppIcon
+              name="logo-whatsapp"
+              size={26}
+              color="#25D366"
+              bg="rgba(37,211,102,0.15)"
+              containerSize={r(52)}
+            />
+            <VStack className="flex-1">
+              <Text style={styles.supportTitle}>¿Necesitas ayuda?</Text>
+              <Text style={styles.supportSubtitle}>Recuerda que estoy para ayudarte.</Text>
+            </VStack>
+          </HStack>
+          <Pressable
+            style={styles.whatsappBtn}
+            onPress={() => Linking.openURL('https://wa.me/34643991086')}>
+            <Icon name="logo-whatsapp" size={16} color="#FFFFFF" />
+            <Text style={styles.whatsappBtnText}>Contactar por WhatsApp</Text>
+          </Pressable>
+        </Card>
 
         <Box style={{ height: TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
