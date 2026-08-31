@@ -287,14 +287,14 @@ export default function ReadinessWizard({ onDone }: ReadinessWizardProps) {
             </Animated.View>
           ) : (
             <Animated.View key="summary" entering={FadeIn.duration(220)} exiting={FadeOut.duration(120)} style={{ flex: 1 }}>
-              <Box style={{ alignItems: 'center' }}>
-                <Box style={[styles.badge, { backgroundColor: C.success10 }]}>
-                  <Icon name="checkmark-circle" size={22} color={C.success60} />
+              <Box style={styles.summaryHeader}>
+                <Box style={[styles.summaryBadge, { backgroundColor: C.success10 }]}>
+                  <Icon name="checkmark-circle" size={28} color={C.success60} />
                 </Box>
-                <Text style={[styles.title, { color: C.textPrimary }]}>Todo listo</Text>
-                <Text style={[styles.subtitle, { color: C.textSecondary }]}>Revisa tus respuestas antes de empezar</Text>
+                <Text style={[styles.summaryTitle, { color: C.textPrimary }]}>Todo listo</Text>
+                <Text style={[styles.summarySubtitle, { color: C.textSecondary }]}>Revisa tus respuestas antes de empezar</Text>
               </Box>
-              <Box style={{ marginTop: 16 }}>
+              <Box style={{ marginTop: 32 }}>
                 {METRICS.map((m, i) => {
                   const v = values[m.key];
                   return (
@@ -309,14 +309,14 @@ export default function ReadinessWizard({ onDone }: ReadinessWizardProps) {
                       style={[styles.summaryRow, { borderBottomColor: C.border }]}
                     >
                       <Box style={styles.summaryLeft}>
-                        <Icon name={m.icon as any} size={16} color={C.textSecondary} />
-                        <Text style={{ fontFamily: FONT.medium, fontSize: 14, color: C.textPrimary }}>{m.title}</Text>
+                        <Icon name={m.icon as any} size={20} color={C.textSecondary} />
+                        <Text style={{ fontFamily: FONT.medium, fontSize: 16, color: C.textPrimary }}>{m.title}</Text>
                       </Box>
                       <Box style={styles.summaryRight}>
-                        <Text style={{ fontFamily: FONT.bold, fontSize: 15, color: C.textPrimary }}>
+                        <Text style={{ fontFamily: FONT.bold, fontSize: 17, color: C.textPrimary }}>
                           {v ?? '--'} {v ? m.emojis[v - 1] : ''}
                         </Text>
-                        <Icon name="chevron-forward" size={14} color={C.textSecondary} />
+                        <Icon name="chevron-forward" size={16} color={C.textSecondary} />
                       </Box>
                     </Pressable>
                   );
@@ -368,9 +368,16 @@ const styles = StyleSheet.create({
   valueLabel: { fontFamily: FONT.bold, fontSize: 14, marginTop: 20 },
   scaleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 34 },
   scaleChip: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1 },
-  summaryLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  summaryRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Cabecera y filas del resumen (pantalla "Todo listo") -- estilos propios
+  // en vez de reutilizar badge/title/subtitle: esos son compartidos con las
+  // 4 preguntas y no debían crecer solo porque el resumen pida más tamaño.
+  summaryHeader: { alignItems: 'center', marginBottom: 8 },
+  summaryBadge: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  summaryTitle: { fontFamily: FONT.extraBold, fontSize: 26, textAlign: 'center' },
+  summarySubtitle: { fontFamily: FONT.regular, fontSize: 15, textAlign: 'center', marginTop: 8, lineHeight: 21, paddingHorizontal: 12 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20, borderBottomWidth: 1 },
+  summaryLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  summaryRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12 },
   backBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4 },
 });
