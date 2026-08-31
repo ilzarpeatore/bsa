@@ -24,3 +24,19 @@ export const CHAT_ENABLED = false;
 // docs/TAREAS.md) -- sus datos son hardcodeados, sin ningún api/* real.
 export const ACTIVITY_TRACKER_ENABLED = false;
 export const WATER_TRACKER_ENABLED = false;
+
+// "Reto para empezar" (StartupChecklist, home_screen_modern_v2.tsx) --
+// pedido explícito 2026-08-31: el sistema de retos todavía no está
+// terminado, se sigue puliendo. Solo se oculta la tarjeta de entrada en
+// Home -- useTutorial()/TutorialOverlay/TutorialTarget y el resto del
+// sistema (constants/tutorialChallenges.ts) NO se tocan, siguen activos
+// por si algún TutorialTarget de otra pantalla depende de ese contexto.
+// Reactivar: cambiar a true cuando el sistema de retos esté listo.
+export const STARTUP_CHALLENGE_ENABLED = false;
+
+// ScreenReviewFab ("Revisar pantalla") y ScreenExplorerFab (mapa de
+// pantallas) -- herramientas de desarrollo montadas globalmente en
+// App.tsx. Pedido explícito 2026-08-31: ocultarlas para el build oficial
+// de tienda (no son para usuarios finales), sin desmontarlas del árbol --
+// se reactivan después de este build.
+export const DEV_TOOLS_ENABLED = false;

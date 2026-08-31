@@ -53,9 +53,9 @@ import { useTabBarScroll } from '@store/TabBarScrollContext';
 import { useAppReload } from '@store/AppReloadContext';
 import { APP_STORE_ID, PLAY_STORE_PUBLISHED, SOCIAL_LINKS } from '@constants/appLinks';
 import {
-  CHAT_ENABLED,
   ACTIVITY_TRACKER_ENABLED,
   WATER_TRACKER_ENABLED,
+  STARTUP_CHALLENGE_ENABLED,
 } from '@constants/featureFlags';
 import {
   loadDiagnosticsEnabled,
@@ -756,12 +756,22 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         },
         lockBadgeText: { fontSize: r(9), color: '#FFFFFF', fontFamily: FONT.semiBold },
         supportTitle: { flex: 1, fontSize: r(14), fontFamily: FONT.bold, color: C.white },
-        supportLink: {
-          fontSize: r(12),
-          fontFamily: FONT.semiBold,
-          color: C.orange,
-          marginTop: r(6),
+        supportSubtitle: { fontSize: r(12.5), color: C.textSecondary, marginTop: r(2) },
+        // Botón de WhatsApp -- color de marca de WhatsApp (#25D366) a
+        // propósito, no C.orange: es un enlace externo a otra app, no una
+        // acción dentro de Be Stronger, así que no debe leerse como el
+        // resto de CTAs de la marca.
+        whatsappBtn: {
+          flexDirection: 'row' as const,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+          gap: r(8),
+          backgroundColor: '#25D366',
+          borderRadius: r(24),
+          paddingVertical: r(11),
+          marginTop: r(14),
         },
+        whatsappBtnText: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF' },
         emptySection: { paddingHorizontal: r(20), paddingVertical: r(12), marginBottom: r(8) },
         myProgramBadgeText: { fontSize: r(11), fontFamily: FONT.semiBold, color: C.textPrimary },
         seeAllTasksBtnText: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.orange },
@@ -1577,9 +1587,39 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </HStack>
         )}
 
-        <Box style={{ paddingHorizontal: r(20), marginTop: r(16) }}>
-          <StartupChecklist steps={startupSteps} />
-        </Box>
+        {/* Oculto para el build oficial (pedido explícito 2026-08-31): el
+            sistema de retos todavía no está terminado. Solo se esconde la
+            entrada -- useTutorial()/startupSteps siguen calculándose arriba
+            sin tocar, por si otro TutorialTarget de esta pantalla depende
+            del mismo contexto. Ver constants/featureFlags.ts,
+            STARTUP_CHALLENGE_ENABLED. */}
+        {STARTUP_CHALLENGE_ENABLED && (
+          <Box style={{ paddingHorizontal: r(20), marginTop: r(16) }}>
+            <StartupChecklist steps={startupSteps} />
+          </Box>
+        )}
+
+        {/* Actividad semanal -- pedido explícito 2026-08-31: reordenado antes
+            de "Mi plan de hoy" (nuevo orden de secciones del Home). */}
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Cumplimiento semanal</Text>
+        </HStack>
+        <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+          <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>
+            <Text style={styles.activityWeekTitle}>Esta semana</Text>
+            <Text style={styles.activityWeekCount}>
+              {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
+            </Text>
+          </HStack>
+          <WeekComplianceRow
+            completedDays={weeklyWorkouts}
+            progressDays={weeklyWorkoutsProgress}
+            color={C.orange}
+            size={r(28)}
+          />
+        </Card>
 
         {/* Mi plan de hoy — para un cliente 1:1 esta ES su sección personalizada
             (viene del calendario que le asigna su coach, ProgramDayAssignment),
@@ -1671,120 +1711,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Card>
         )}
 
-        {/* Actividad semanal */}
-        <HStack
-          className="justify-between items-center px-5"
-          style={{ marginTop: r(24), marginBottom: r(12) }}>
-          <Text style={styles.sectionTitle}>Cumplimiento semanal</Text>
-        </HStack>
-        <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-          <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>
-            <Text style={styles.activityWeekTitle}>Esta semana</Text>
-            <Text style={styles.activityWeekCount}>
-              {weeklyWorkouts.filter(Boolean).length} de {Math.max(weeklyWorkouts.length, 7)} días
-            </Text>
-          </HStack>
-          <WeekComplianceRow
-            completedDays={weeklyWorkouts}
-            progressDays={weeklyWorkoutsProgress}
-            color={C.orange}
-            size={r(28)}
-          />
-        </Card>
-
-        {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
-            pendiente porque el cliente no puede crear uno por su cuenta),
-            esta sección SIEMPRE se muestra: con 0 hábitos, "Ver todos"/tocar
-            la tarjeta es el único camino real para llegar a Añadir hábito
-            (biblioteca o personal) — ocultarla dejaría al cliente sin forma
-            de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
-        <HStack
-          className="justify-between items-center px-5"
-          style={{ marginTop: r(24), marginBottom: r(12) }}>
-          <Text style={styles.sectionTitle}>Hábitos</Text>
-          <TutorialTarget id="home-habits-link" scrollRef={scrollRef}>
-            <Pressable
-              onPress={() =>
-                navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')
-              }>
-              <Text style={styles.seeAll}>
-                {habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}
-              </Text>
-            </Pressable>
-          </TutorialTarget>
-        </HStack>
-        {habits.length > 0 ? (
-          <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-            {habits.slice(0, 3).map((h, i) => (
-              <Pressable
-                key={h.id}
-                style={
-                  i > 0
-                    ? {
-                        marginTop: r(12),
-                        paddingTop: r(12),
-                        borderTopWidth: 1,
-                        borderTopColor: C.border,
-                      }
-                    : {}
-                }
-                onPress={() => navigation?.navigate('MigratedHabitDetail', { habitId: h.id })}>
-                {/* marginLeft explícito además del gap del HStack — el
-                    icono y el título quedaban muy pegados sin margen visible. */}
-                <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
-                  <AppIcon
-                    name={habitIoniconFor(h.icon)}
-                    size={20}
-                    color={C.textPrimary}
-                    bg={C.bg}
-                    containerSize={r(44)}
-                    borderRadius={r(12)}
-                  />
-                  <VStack className="flex-1" style={{ marginLeft: r(10) }}>
-                    <Text style={styles.todayWorkoutTitle}>{h.title}</Text>
-                    <Text style={styles.todayWorkoutSub}>
-                      {h.current_streak
-                        ? `🔥 ${h.current_streak} días de racha`
-                        : 'Sin racha activa todavía'}
-                    </Text>
-                  </VStack>
-                  <Icon name="chevron-forward" size={20} color={C.textSecondary} />
-                </HStack>
-                <WeekComplianceRow
-                  completedDays={computeWeekCompliance(h.logs)}
-                  progressDays={computeWeekProgress(h.logs, h.target_value)}
-                  color={C.orange}
-                  size={r(24)}
-                />
-              </Pressable>
-            ))}
-          </Card>
-        ) : (
-          <Pressable onPress={() => navigation?.navigate('MigratedHabitAdd')}>
-            <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
-              <HStack space="md" className="items-center">
-                <AppIcon
-                  name="flame-outline"
-                  size={20}
-                  color={C.textPrimary}
-                  bg={C.bg}
-                  containerSize={r(44)}
-                  borderRadius={r(12)}
-                />
-                <VStack className="flex-1">
-                  <Text style={styles.todayWorkoutTitle}>Todavía no tienes hábitos</Text>
-                  <Text style={styles.todayWorkoutSub}>
-                    Elige uno de la biblioteca o crea el tuyo propio
-                  </Text>
-                </VStack>
-                <Icon name="chevron-forward" size={20} color={C.textSecondary} />
-              </HStack>
-            </Card>
-          </Pressable>
-        )}
-
-        {/* Nutrición — subida junto a las secciones de uso diario (antes vivía
-            enterrada después de los catálogos y Programas). */}
+        {/* Nutrición — pedido explícito 2026-08-31: reordenada antes de
+            Hábitos (nuevo orden de secciones del Home). */}
         <HStack
           className="justify-between items-center px-5"
           style={{ marginTop: r(24), marginBottom: r(12) }}>
@@ -1906,6 +1834,168 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </TutorialTarget>
         </Card>
 
+        {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
+            pendiente porque el cliente no puede crear uno por su cuenta),
+            esta sección SIEMPRE se muestra: con 0 hábitos, "Ver todos"/tocar
+            la tarjeta es el único camino real para llegar a Añadir hábito
+            (biblioteca o personal) — ocultarla dejaría al cliente sin forma
+            de empezar. Mismo patrón que Recursos (visible con estado vacío). */}
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Hábitos</Text>
+          <TutorialTarget id="home-habits-link" scrollRef={scrollRef}>
+            <Pressable
+              onPress={() =>
+                navigation?.navigate(habits.length > 0 ? 'MigratedHabits' : 'MigratedHabitAdd')
+              }>
+              <Text style={styles.seeAll}>
+                {habits.length > 0 ? `Ver todos (${habits.length})` : 'Añadir'}
+              </Text>
+            </Pressable>
+          </TutorialTarget>
+        </HStack>
+        {habits.length > 0 ? (
+          <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+            {habits.slice(0, 3).map((h, i) => (
+              <Pressable
+                key={h.id}
+                style={
+                  i > 0
+                    ? {
+                        marginTop: r(12),
+                        paddingTop: r(12),
+                        borderTopWidth: 1,
+                        borderTopColor: C.border,
+                      }
+                    : {}
+                }
+                onPress={() => navigation?.navigate('MigratedHabitDetail', { habitId: h.id })}>
+                {/* marginLeft explícito además del gap del HStack — el
+                    icono y el título quedaban muy pegados sin margen visible. */}
+                <HStack space="md" className="items-center" style={{ marginBottom: r(12) }}>
+                  <AppIcon
+                    name={habitIoniconFor(h.icon)}
+                    size={20}
+                    color={C.textPrimary}
+                    bg={C.bg}
+                    containerSize={r(44)}
+                    borderRadius={r(12)}
+                  />
+                  <VStack className="flex-1" style={{ marginLeft: r(10) }}>
+                    <Text style={styles.todayWorkoutTitle}>{h.title}</Text>
+                    <Text style={styles.todayWorkoutSub}>
+                      {h.current_streak
+                        ? `🔥 ${h.current_streak} días de racha`
+                        : 'Sin racha activa todavía'}
+                    </Text>
+                  </VStack>
+                  <Icon name="chevron-forward" size={20} color={C.textSecondary} />
+                </HStack>
+                <WeekComplianceRow
+                  completedDays={computeWeekCompliance(h.logs)}
+                  progressDays={computeWeekProgress(h.logs, h.target_value)}
+                  color={C.orange}
+                  size={r(24)}
+                />
+              </Pressable>
+            ))}
+          </Card>
+        ) : (
+          <Pressable onPress={() => navigation?.navigate('MigratedHabitAdd')}>
+            <Card variant="outline" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+              <HStack space="md" className="items-center">
+                <AppIcon
+                  name="flame-outline"
+                  size={20}
+                  color={C.textPrimary}
+                  bg={C.bg}
+                  containerSize={r(44)}
+                  borderRadius={r(12)}
+                />
+                <VStack className="flex-1">
+                  <Text style={styles.todayWorkoutTitle}>Todavía no tienes hábitos</Text>
+                  <Text style={styles.todayWorkoutSub}>
+                    Elige uno de la biblioteca o crea el tuyo propio
+                  </Text>
+                </VStack>
+                <Icon name="chevron-forward" size={20} color={C.textSecondary} />
+              </HStack>
+            </Card>
+          </Pressable>
+        )}
+
+        {/* Recursos — pedido explícito 2026-08-31: reordenado antes de
+            Explorar/Entrenamientos (nuevo orden de secciones del Home).
+            Visible para todos (free y 1:1), a diferencia de Workouts: un
+            cliente 1:1 tambien puede tener guias o documentos asignados
+            individualmente por su coach. */}
+        {resourcesList.length > 0 && (
+          <>
+            <HStack
+              className="justify-between items-center px-5"
+              style={{ marginTop: r(24), marginBottom: r(12) }}>
+              <Text style={styles.sectionTitle}>Recursos</Text>
+            </HStack>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ paddingLeft: 16 }}>
+              {resourcesList.map((r) => (
+                <Pressable
+                  key={r.id}
+                  style={styles.blogCard}
+                  onPress={() =>
+                    navigation?.navigate('MigratedResourceDetail', {
+                      resourceId: r.id,
+                      title: r.title,
+                    })
+                  }>
+                  <Box style={styles.blogImage}>
+                    <ExpoImage
+                      source={resourceImageSource(r)}
+                      style={styles.blogImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
+                    <Box style={styles.resourceTypeBadge}>
+                      <Icon
+                        name={
+                          r.type === 'video'
+                            ? 'play-circle-outline'
+                            : r.type === 'link'
+                              ? 'link-outline'
+                              : 'document-text-outline'
+                        }
+                        size={16}
+                        color="#FFFFFF"
+                      />
+                    </Box>
+                  </Box>
+                  <Box style={styles.blogContent}>
+                    <Text style={styles.blogTitle} numberOfLines={2}>
+                      {r.title}
+                    </Text>
+                  </Box>
+                </Pressable>
+              ))}
+              <Pressable
+                style={styles.blogCard}
+                onPress={() => navigation?.navigate('MigratedResourcesList')}>
+                <Box style={[styles.blogImage, styles.seeAllImage]}>
+                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+                </Box>
+                <Box style={styles.blogContent}>
+                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
+                    Ver todos los recursos
+                  </Text>
+                </Box>
+              </Pressable>
+            </ScrollView>
+          </>
+        )}
+
         {/* Explorar — accesos directos portados desde pages/Today.tsx (pantalla
             huérfana, retirada). MigratedRecipeMain es hoy el único punto de
             entrada real al catálogo libre de Recipe (Main/ListV2/CategoryList/
@@ -2021,75 +2111,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </>
         )}
 
-        {/* Recursos — visible para todos (free y 1:1), a diferencia de
-            Workouts: un cliente 1:1 tambien puede tener guias o
-            documentos asignados individualmente por su coach. */}
-        {resourcesList.length > 0 && (
-          <>
-            <HStack
-              className="justify-between items-center px-5"
-              style={{ marginTop: r(24), marginBottom: r(12) }}>
-              <Text style={styles.sectionTitle}>Recursos</Text>
-            </HStack>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ paddingLeft: 16 }}>
-              {resourcesList.map((r) => (
-                <Pressable
-                  key={r.id}
-                  style={styles.blogCard}
-                  onPress={() =>
-                    navigation?.navigate('MigratedResourceDetail', {
-                      resourceId: r.id,
-                      title: r.title,
-                    })
-                  }>
-                  <Box style={styles.blogImage}>
-                    <ExpoImage
-                      source={resourceImageSource(r)}
-                      style={styles.blogImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
-                    />
-                    <Box style={styles.resourceTypeBadge}>
-                      <Icon
-                        name={
-                          r.type === 'video'
-                            ? 'play-circle-outline'
-                            : r.type === 'link'
-                              ? 'link-outline'
-                              : 'document-text-outline'
-                        }
-                        size={16}
-                        color="#FFFFFF"
-                      />
-                    </Box>
-                  </Box>
-                  <Box style={styles.blogContent}>
-                    <Text style={styles.blogTitle} numberOfLines={2}>
-                      {r.title}
-                    </Text>
-                  </Box>
-                </Pressable>
-              ))}
-              <Pressable
-                style={styles.blogCard}
-                onPress={() => navigation?.navigate('MigratedResourcesList')}>
-                <Box style={[styles.blogImage, styles.seeAllImage]}>
-                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
-                </Box>
-                <Box style={styles.blogContent}>
-                  <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
-                    Ver todos los recursos
-                  </Text>
-                </Box>
-              </Pressable>
-            </ScrollView>
-          </>
-        )}
-
         {/* Blog */}
         <HStack
           className="justify-between items-center px-5"
@@ -2149,37 +2170,36 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Box>
         )}
 
-        {/* Need Help → FitBot -- chat desactivado en esta primera versión
-            (ver constants/featureFlags.ts, CHAT_ENABLED): sin moderación ni
-            forma de reportar mensajes todavía, riesgo real de rechazo en
-            revisión de Apple/Google. */}
+        {/* Need Help → WhatsApp -- pedido explícito 2026-08-31: sustituye el
+            acceso al bot de chat (CHAT_ENABLED sigue en false, ver
+            constants/featureFlags.ts -- sin moderación ni forma de reportar
+            mensajes todavía, riesgo real de rechazo en revisión de
+            Apple/Google) por un contacto directo por WhatsApp mientras
+            tanto. CHAT_ENABLED/MigratedChatting no se tocan -- profile_screen.tsx
+            sigue teniendo su propio punto de entrada ("Soporte") detrás del
+            mismo flag, listo para cuando el chat se reactive. */}
         <Box style={{ height: r(16) }} />
-        <Pressable
-          onPress={() =>
-            CHAT_ENABLED
-              ? navigation?.navigate('MigratedChatting', { isDirect: true })
-              : showToast('Próximamente', {
-                  description: 'Podrás hablar con Be Stronger AI en la próxima versión de la app.',
-                })
-          }>
-          <Card variant="outline" className="mx-5 p-4">
-            <HStack className="items-center">
-              <VStack className="flex-1">
-                <Text style={styles.supportTitle}>
-                  ¿Necesitas ayuda? Soluciona tus dudas con el bot
-                </Text>
-                <Text style={styles.supportLink}>Be Stronger AI</Text>
-              </VStack>
-              <AppIcon
-                name="chatbubble-ellipses"
-                size={28}
-                color={C.orange}
-                bg="rgba(255,107,53,0.15)"
-                containerSize={r(52)}
-              />
-            </HStack>
-          </Card>
-        </Pressable>
+        <Card variant="outline" className="mx-5 p-4">
+          <HStack className="items-center" space="md">
+            <AppIcon
+              name="logo-whatsapp"
+              size={26}
+              color="#25D366"
+              bg="rgba(37,211,102,0.15)"
+              containerSize={r(52)}
+            />
+            <VStack className="flex-1">
+              <Text style={styles.supportTitle}>¿Necesitas ayuda?</Text>
+              <Text style={styles.supportSubtitle}>Recuerda que estoy para ayudarte.</Text>
+            </VStack>
+          </HStack>
+          <Pressable
+            style={styles.whatsappBtn}
+            onPress={() => Linking.openURL('https://wa.me/34643991086')}>
+            <Icon name="logo-whatsapp" size={16} color="#FFFFFF" />
+            <Text style={styles.whatsappBtnText}>Contactar por WhatsApp</Text>
+          </Pressable>
+        </Card>
 
         <Box style={{ height: TAB_BAR_CLEARANCE }} />
       </Animated.ScrollView>
