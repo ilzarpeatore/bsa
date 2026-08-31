@@ -14,7 +14,6 @@ import {  VStack  } from '@components/ui/vstack';
 import {  Divider  } from '@components/ui/divider';
 import {  Button, ButtonText  } from '@components/ui/button';
 import ScreenHeader from '@components/ScreenHeader';
-import AnimatedGlowBorder from '@components/AnimatedGlowBorder';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { FONT, RADIUS } from './theme';
 import {  blogApi, BlogListItem, BlogCategory  } from '../../api/blog';
@@ -204,16 +203,8 @@ export default function BlogScreen({ navigation }: any) {
         </Box>
       </Pressable>
     );
-    // Borde "con vida" solo en el primer destacado (el más grande,
-    // featuredCardLarge) -- pedido explícito 2026-08-29 para tarjetas
-    // destacado/recomendado.
-    return index === 0 ? (
-      <AnimatedGlowBorder key={item.id} borderRadius={RADIUS.md} strokeWidth={2}>
-        {card}
-      </AnimatedGlowBorder>
-    ) : (
-      <React.Fragment key={item.id}>{card}</React.Fragment>
-    );
+    // El borde "con vida" del primer destacado se quitó (pedido explícito).
+    return <React.Fragment key={item.id}>{card}</React.Fragment>;
   };
 
   return (
@@ -448,7 +439,17 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     right: 16,
   },
   featuredTitle: { fontSize: 16, fontFamily: FONT.bold, color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-  blogImage: { width: 100, height: 100 },
+  // Bordes redondeados explícitos (pedido explícito) -- solo en el lado
+  // izquierdo (pegado al panel de texto a la derecha, sin hueco), en el
+  // estilo del propio Image y no solo en el overflow:hidden del Card
+  // contenedor, para que se recorten de verdad sea cual sea el radio que
+  // resuelva la className "rounded-sm" del Card.
+  blogImage: {
+    width: 100,
+    height: 100,
+    borderTopLeftRadius: RADIUS.sm,
+    borderBottomLeftRadius: RADIUS.sm,
+  },
   blogInfo: { flex: 1, padding: 12, justifyContent: 'center' },
   blogTitle: { fontSize: 14, fontFamily: FONT.semiBold, color: C.white, marginBottom: 4 },
   blogExcerpt: { fontSize: 12, fontFamily: FONT.regular, color: C.gray40, lineHeight: 18 },

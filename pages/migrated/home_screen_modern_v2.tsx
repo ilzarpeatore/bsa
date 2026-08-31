@@ -1665,7 +1665,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 el mismo overflow:hidden/borderRadius -- duplicarlo con el
                 wrapper propio del Card alrededor del GlassView nativo le
                 apagaba el brillo dinámico real de Liquid Glass (bug
-                detectado 2026-08-31, ver Card::disableSelfClip). */}
+                detectado 2026-08-31, ver Card::disableSelfClip). Un cambio
+                paralelo había trasladado este borde a Nutrición en su
+                lugar -- pedido explícito 2026-08-31: va en las DOS
+                tarjetas, no es un traslado. */}
             <Box style={{ marginHorizontal: r(20), marginBottom: r(12) }}>
               <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={4200}>
                 <Card variant="glass" className="p-4" disableSelfClip>
@@ -1722,8 +1725,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Pressable>
         </HStack>
         {/* Antes variant="outline" -- misma extensión de Liquid Glass real
-            que la tarjeta de hoy más arriba. */}
-        <Card variant="glass" className="mx-5 p-4" style={{ marginBottom: r(12) }}>
+            que el resto de tarjetas. El brillo con vida (AnimatedGlowBorder)
+            va también aquí, además de en "Mi plan de hoy" (pedido explícito
+            2026-08-31: en las dos tarjetas, no es un traslado) -- margen
+            horizontal/inferior en el wrapper para que el brillo trace justo
+            el borde de la tarjeta. disableSelfClip: mismo bug que en "Mi
+            plan de hoy" (ver Card::disableSelfClip) -- el wrapper propio
+            del Card alrededor del GlassView nativo, duplicado con el de
+            AnimatedGlowBorder, apagaba el brillo dinámico real de Liquid
+            Glass. */}
+        <Box style={{ marginHorizontal: r(20), marginBottom: r(12) }}>
+          <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={4200}>
+            <Card variant="glass" className="p-4" disableSelfClip>
           {dailyPlan ? (
             <>
               <HStack className="justify-between items-center" style={{ marginBottom: r(12) }}>
@@ -1832,7 +1845,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Icon name="arrow-forward" size={14} color={C.orange} style={{ marginLeft: r(8) }} />
             </Pressable>
           </TutorialTarget>
-        </Card>
+            </Card>
+          </AnimatedGlowBorder>
+        </Box>
 
         {/* Hábitos — a diferencia de Check-ins (que se oculta si no hay nada
             pendiente porque el cliente no puede crear uno por su cuenta),
