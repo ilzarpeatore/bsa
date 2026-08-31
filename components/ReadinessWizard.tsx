@@ -14,7 +14,6 @@ import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { Button, ButtonText } from '@components/ui/button';
 import GlassButton from './GlassButton';
 import { WORKOUT_MINIBAR_CLEARANCE } from './WorkoutMinimizedBar';
 import { FONT } from '../pages/migrated/theme';
@@ -95,6 +94,9 @@ const METRICS: MetricConfig[] = [
 
 const TOTAL_METRIC_STEPS = METRICS.length;
 const SUMMARY_STEP = TOTAL_METRIC_STEPS;
+// Respiro entre tocar una respuesta y el auto-avance -- deja ver el chip
+// resaltado un instante antes de saltar de paso (ver selectValue).
+const ANSWER_ADVANCE_DELAY = 350;
 // Mismo casi-negro que components/GlassButton.tsx (LABEL_COLOR) -- texto
 // sobre relleno teal sólido NUNCA blanco (contraste real ~2.1:1,
 // insuficiente; ~9.9:1 con este tono).
@@ -189,7 +191,6 @@ export default function ReadinessWizard({ onDone }: ReadinessWizardProps) {
   const isSummary = step === SUMMARY_STEP;
   const currentMetric = isSummary ? null : METRICS[step];
   const currentValue = currentMetric ? values[currentMetric.key] : null;
-  const canGoNext = currentMetric ? currentValue !== null : false;
   const allAnswered = METRICS.every((m) => values[m.key] !== null);
 
   // Atrás por paso en vez de salir de la pantalla -- mismo criterio que el
@@ -209,18 +210,32 @@ export default function ReadinessWizard({ onDone }: ReadinessWizardProps) {
     return () => sub.remove();
   }, [step]);
 
+  // Auto-avance (pedido explícito 2026-08-31): al responder, un pequeño
+  // respiro (ver ANSWER_ADVANCE_DELAY) deja ver la selección resaltada
+  // antes de pasar de paso -- sin él, el cambio de pantalla sería
+  // instantáneo y no daría tiempo a percibir qué se tocó. advanceTimeoutRef
+  // permite cancelar el avance pendiente si el usuario cambia de respuesta
+  // dentro de esa ventana (el timer se reinicia, no se acumulan dos avances).
+  const advanceTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    };
+  }, []);
+
   const selectValue = (n: number) => {
     if (!currentMetric) return;
     setValues((prev) => ({ ...prev, [currentMetric.key]: n }));
-  };
-
-  const goNext = () => {
-    if (!canGoNext) return;
-    hapticSoft();
-    setStep((s) => Math.min(s + 1, SUMMARY_STEP));
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = setTimeout(() => {
+      hapticSoft();
+      setStep((s) => Math.min(s + 1, SUMMARY_STEP));
+    }, ANSWER_ADVANCE_DELAY);
   };
 
   const goBack = () => {
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
     if (step === 0) return;
     hapticSoft();
     setStep((s) => Math.max(s - 1, 0));
@@ -324,17 +339,15 @@ export default function ReadinessWizard({ onDone }: ReadinessWizardProps) {
             <Text style={{ fontFamily: FONT.medium, fontSize: 14, color: C.textSecondary, marginLeft: 2 }}>Atrás</Text>
           </Pressable>
 
-          <Box style={{ flex: 1 }}>
-            {isSummary ? (
+          {/* Sin botón "Siguiente" en los pasos de pregunta -- pedido
+              explícito 2026-08-31: responder ya avanza sola (ver
+              selectValue/ANSWER_ADVANCE_DELAY). El resumen sí conserva su
+              CTA final porque no es una respuesta, es el envío. */}
+          {isSummary && (
+            <Box style={{ flex: 1 }}>
               <GlassButton label="CONTINUAR AL ENTRENAMIENTO" loading={saving} disabled={!allAnswered} onPress={onSubmit} />
-            ) : (
-              <Button onPress={goNext} disabled={!canGoNext} radius="pill" className="py-4" style={{ opacity: canGoNext ? 1 : 0.35 }}>
-                <ButtonText style={{ fontFamily: FONT.bold, fontSize: 15, letterSpacing: 0.3 }}>
-                  {step === TOTAL_METRIC_STEPS - 1 ? 'Ver resumen' : 'Siguiente'}
-                </ButtonText>
-              </Button>
-            )}
-          </Box>
+            </Box>
+          )}
         </Box>
       </Box>
     </SafeAreaView>
@@ -345,15 +358,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
   content: { flex: 1 },
   stepInner: { flex: 1, alignItems: 'center' },
-  progressRow: { flexDirection: 'row', gap: 4, marginBottom: 22 },
+  progressRow: { flexDirection: 'row', gap: 4, marginBottom: 32 },
   progressDot: { flex: 1, height: 4, borderRadius: 2 },
-  stepLabel: { fontFamily: FONT.semiBold, fontSize: 12.5, letterSpacing: 0.3, marginBottom: 10, textAlign: 'center' },
-  emoji: { fontSize: 68, textAlign: 'center', lineHeight: 78, marginBottom: 2 },
-  badge: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  stepLabel: { fontFamily: FONT.semiBold, fontSize: 12.5, letterSpacing: 0.3, marginBottom: 22, textAlign: 'center' },
+  emoji: { fontSize: 68, textAlign: 'center', lineHeight: 78, marginBottom: 18 },
+  badge: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   title: { fontFamily: FONT.extraBold, fontSize: 22, textAlign: 'center' },
-  subtitle: { fontFamily: FONT.regular, fontSize: 13.5, textAlign: 'center', marginTop: 4, lineHeight: 19, paddingHorizontal: 12 },
-  valueLabel: { fontFamily: FONT.bold, fontSize: 14, marginTop: 12 },
-  scaleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 22 },
+  subtitle: { fontFamily: FONT.regular, fontSize: 13.5, textAlign: 'center', marginTop: 14, lineHeight: 19, paddingHorizontal: 12 },
+  valueLabel: { fontFamily: FONT.bold, fontSize: 14, marginTop: 20 },
+  scaleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 34 },
   scaleChip: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1 },
   summaryLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
