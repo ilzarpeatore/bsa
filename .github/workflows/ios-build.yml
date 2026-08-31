@@ -206,6 +206,13 @@ jobs:
           IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          # Perfil de la extensión de Live Activities (bestrongerWidgetsExtension,
+          # bundle id com.pfndesign.bestronger.bestrongerWidgets) -- opcional, solo
+          # hace falta si el proyecto tiene app extensions con su propio bundle id.
+          # Ver PROVISIONING_PROFILE_SPECIFIER en project.pbxproj (target
+          # bestrongerWidgetsExtension, Release) -- el nombre del perfil que
+          # generes en Apple tiene que coincidir literal con ese valor.
+          IOS_PROVISIONING_PROFILE_WIDGETS: ${{ secrets.IOS_PROVISIONING_PROFILE_WIDGETS }}
         run: |
           set -e
 
@@ -250,6 +257,22 @@ jobs:
           echo "  profile: $PROFILE_NAME ($PROFILE_UUID)"
           echo "  app id:  $PROFILE_BUNDLE_ID"
           echo "If the build fails on a provisioning mismatch, the app's PRODUCT_BUNDLE_IDENTIFIER must match the app id above."
+
+          # Perfil(es) extra para app extensions (opcional) -- cada target de
+          # extensión fija su propio PROVISIONING_PROFILE_SPECIFIER en
+          # project.pbxproj, así que aquí basta con dejar el .mobileprovision
+          # instalado bajo el UUID correcto para que xcodebuild lo encuentre
+          # por nombre; no hace falta exportar ningún env var nuevo por él.
+          if [ -n "$IOS_PROVISIONING_PROFILE_WIDGETS" ]; then
+            WIDGETS_PROFILE_PATH=$RUNNER_TEMP/profile-widgets.mobileprovision
+            echo "$IOS_PROVISIONING_PROFILE_WIDGETS" | base64 --decode > "$WIDGETS_PROFILE_PATH"
+            WIDGETS_PROFILE_PLIST=$RUNNER_TEMP/profile-widgets.plist
+            security cms -D -i "$WIDGETS_PROFILE_PATH" > "$WIDGETS_PROFILE_PLIST"
+            WIDGETS_PROFILE_UUID=$(plutil -extract UUID raw -o - "$WIDGETS_PROFILE_PLIST")
+            WIDGETS_PROFILE_NAME=$(plutil -extract Name raw -o - "$WIDGETS_PROFILE_PLIST")
+            cp "$WIDGETS_PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$WIDGETS_PROFILE_UUID".mobileprovision
+            echo "  extra profile: $WIDGETS_PROFILE_NAME ($WIDGETS_PROFILE_UUID)"
+          fi
 
       - name: Build IPA
         env:
