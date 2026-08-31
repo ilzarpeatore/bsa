@@ -608,7 +608,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         bannerCard: {
           backgroundColor: 'rgba(255,255,255,0.1)',
           borderRadius: r(18),
-          padding: r(16),
+          paddingTop: r(22),
+          paddingBottom: r(12),
+          paddingHorizontal: r(16),
           alignItems: 'center' as const,
           borderWidth: 1,
           borderColor: 'rgba(255,255,255,0.14)',
