@@ -34,15 +34,36 @@ type ICardProps = ViewProps &
     glassEffectStyle?: GlassStyle;
     /** Solo con variant="glass". */
     tintColor?: string;
+    /**
+     * Solo con variant="glass". Omite el wrapper propio de recorte
+     * (overflow:hidden + borderRadius) cuando quien llama ya envuelve este
+     * Card en OTRO contenedor que recorta al mismo radio (p.ej.
+     * AnimatedGlowBorder) -- anidar dos overflow:hidden alrededor del
+     * GlassView nativo (UIVisualEffectView con Liquid Glass real) le impide
+     * renderizar su brillo dinámico propio, el mismo timing de montaje ya
+     * documentado abajo pero agravado por el doble recorte. @default false
+     */
+    disableSelfClip?: boolean;
   };
 
 const Card = React.forwardRef<React.ComponentRef<typeof View>, ICardProps>(
   function Card(
-    { className, variant = 'outline', glassEffectStyle = 'regular', tintColor, ...props },
+    { className, variant = 'outline', glassEffectStyle = 'regular', tintColor, disableSelfClip, ...props },
     ref
   ) {
     const resolvedClassName = cardStyle({ variant, class: className });
     if (variant === 'glass') {
+      if (disableSelfClip) {
+        return (
+          <GlassView
+            glassEffectStyle={glassEffectStyle}
+            tintColor={tintColor}
+            className={resolvedClassName}
+            {...props}
+            ref={ref}
+          />
+        );
+      }
       // GlassView (expo-glass-effect) solo aplica su borderRadius nativo
       // cuando el Liquid Glass real esta disponible y ya se monto -- sin
       // este wrapper, la esquina de la card se ve cuadrada por detras

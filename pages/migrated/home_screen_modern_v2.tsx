@@ -1620,10 +1620,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 AnimatedGlowBorder). El margen horizontal/inferior que antes
                 llevaba el propio Card se saca al wrapper para que el
                 brillo trace justo el borde de la tarjeta, no el hueco del
-                margen. */}
+                margen. disableSelfClip: AnimatedGlowBorder ya recorta con
+                el mismo overflow:hidden/borderRadius -- duplicarlo con el
+                wrapper propio del Card alrededor del GlassView nativo le
+                apagaba el brillo dinámico real de Liquid Glass (bug
+                detectado 2026-08-31, ver Card::disableSelfClip). */}
             <Box style={{ marginHorizontal: r(20), marginBottom: r(12) }}>
               <AnimatedGlowBorder borderRadius={20} strokeWidth={1.5} duration={4200}>
-                <Card variant="glass" className="p-4">
+                <Card variant="glass" className="p-4" disableSelfClip>
                   {visibleTodayItems.map((item, i) => renderTodayItem(item, i))}
                 </Card>
               </AnimatedGlowBorder>
