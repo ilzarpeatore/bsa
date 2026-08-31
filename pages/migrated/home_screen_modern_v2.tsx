@@ -65,11 +65,12 @@ import {
 import { showToast } from '@helper/toast';
 import {
   dashboardApi,
-  BannerSliderItem,
   WaterSummary,
   StepsSummary,
   WorkoutSummary,
 } from '../../api/dashboard';
+import { muscleVolumeApi, MuscleVolumeData } from '../../api/muscleVolume';
+import { ViewSide } from '../../constants/bodyMusclesPaths';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
 import { dietApi } from '../../api/diet';
@@ -81,6 +82,7 @@ import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/chec
 import { habitsApi, Habit } from '../../api/habits';
 import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
 import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
+import MuscleBodyMap from '@components/MuscleBodyMap';
 import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
 import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
@@ -427,13 +429,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
   // Nueva cabecera (estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
   const [motivationalPhrase, setMotivationalPhrase] = useState<string | null>(null);
-  const [activeBanner, setActiveBanner] = useState<BannerSliderItem | null>(null);
-  // Estado B del banner (slider real conectado) solo aplica si el cliente ya
-  // dio permisos de HealthKit/Health Connect -- esa integracion (ver
-  // react-native-health-link en el doc) todavia no existe en la app, asi que
-  // por ahora esto siempre es false y el Estado A (demo) es el unico
-  // disponible. El codigo del Estado B ya queda listo, solo inactivo.
-  const hasHealthConnected = false;
+  // Volumen muscular (misma fuente que la tarjeta "Entrenamiento" de
+  // progress_screen.tsx, muscleVolumeApi.getMy(7)) -- alimenta el mini
+  // heat map de la tarjeta "Volumen muscular" (pedido explícito
+  // 2026-08-31, sustituye al banner de demo quitado más abajo).
+  const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeData | null>(null);
 
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<boolean[]>([]);
@@ -593,11 +593,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           textAlign: 'center' as const,
           marginTop: r(-8),
         },
-        // Agua/Actividad -- ahora viven DENTRO de heroHeader (debajo del banner
-        // de demo, todavía sobre la foto), no a caballo sobre el degradado como
-        // las tarjetas placeholder que sustituyen. Sin paddingHorizontal propio:
-        // ya lo hereda de heroHeader.
-        miniCardsRow: { marginTop: r(16) },
+        // Agua/Actividad -- ahora viven DENTRO de heroHeader, primer bloque
+        // bajo heroPhrase (antes iban debajo del banner de demo, quitado).
+        // Sin marginTop propio: el hueco con heroPhrase de arriba lo da
+        // heroPhrase.marginBottom, igual que antes lo daba con el banner.
+        // Sin paddingHorizontal propio: ya lo hereda de heroHeader.
+        miniCardsRow: {},
         heroPhrase: {
           fontSize: r(14),
           color: 'rgba(255,255,255,0.92)',
@@ -605,29 +606,21 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           lineHeight: r(20),
           marginBottom: r(16),
         },
-        bannerCard: {
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: r(18),
-          paddingTop: r(22),
-          paddingBottom: r(12),
-          paddingHorizontal: r(16),
-          alignItems: 'center' as const,
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.14)',
-        },
-        bannerTitle: { fontSize: r(14), fontFamily: FONT.bold, color: '#FFFFFF', marginTop: r(8) },
-        bannerText: {
-          fontSize: r(12),
-          color: 'rgba(255,255,255,0.75)',
-          textAlign: 'center' as const,
-          marginTop: r(4),
-          lineHeight: r(17),
-        },
         miniCard: {
           flex: 1,
           backgroundColor: 'rgba(255,255,255,0.1)',
           borderRadius: r(16),
           padding: r(14),
+        },
+        // "Volumen muscular" -- mismo fondo/radio/padding que miniCard, sin
+        // flex:1 (ocupa el ancho completo, no la mitad) y con el marginTop
+        // que antes separaba el banner de demo de Agua/Actividad (16),
+        // ahora entre Agua/Actividad y esta tarjeta.
+        muscleCard: {
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          borderRadius: r(16),
+          padding: r(14),
+          marginTop: r(16),
         },
         miniCardTitle: {
           fontSize: r(12),
@@ -893,6 +886,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         phraseRes,
         completedRes,
         readinessRes,
+        muscleVolumeRes,
       ] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         workoutHistoryApi.getMyCalendar(currentMonth, currentYear),
@@ -905,6 +899,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         motivationalPhraseApi.getPhrase(),
         workoutHistoryApi.getMyCompletedSessions(),
         readinessApi.getToday(),
+        muscleVolumeApi.getMy(7),
       ]);
 
       const errors: string[] = [];
@@ -912,11 +907,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       if (dashRes.status === 'fulfilled') {
         const d: any = dashRes.value.data.data;
         setNotificationCount(d?.notification_data?.unread_total_count ?? 0);
-        // Estado B del banner (ver seccion 2 del encargo) -- solo se pinta si
-        // hasHealthConnected es true (todavia no, sin integracion de salud),
-        // pero se guarda igual para que el codigo ya quede conectado.
-        const banners: BannerSliderItem[] = d?.banner_slider ?? [];
-        setActiveBanner(banners.length > 0 ? banners[0] : null);
         setWater(d?.water ?? null);
         setSteps(d?.steps ?? null);
         setWorkout(d?.workout ?? null);
@@ -1016,6 +1006,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
       if (readinessRes.status === 'fulfilled') {
         setReadinessToday(readinessRes.value.data.data);
+      }
+
+      if (muscleVolumeRes.status === 'fulfilled') {
+        setMuscleVolume(muscleVolumeRes.value.data?.data ?? null);
       }
 
       if (errors.length > 0) {
@@ -1448,53 +1442,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           {/* Frase contextual (motivational-phrase, ver sección 4) */}
           {motivationalPhrase && <Text style={styles.heroPhrase}>{motivationalPhrase}</Text>}
 
-          {/* Banner condicional — Estado A (demo) por defecto; Estado B
-              (BannerSlider real, ya conectado vía dashboard-detail) solo si
-              hasHealthConnected — hoy siempre false, sin integración de salud
-              todavía, deja el código listo para cuando exista. */}
-          {hasHealthConnected && activeBanner ? (
-            <Pressable
-              style={styles.bannerCard}
-              onPress={() => {
-                if (activeBanner.type === 'workout' && activeBanner.workout_id) {
-                  navigation?.navigate('MigratedWorkoutPreview', {
-                    workoutTemplateId: activeBanner.workout_id,
-                    mTitle: activeBanner.title,
-                  });
-                }
-              }}>
-              {activeBanner.bannerslider_image ? (
-                <ExpoImage
-                  source={{ uri: activeBanner.bannerslider_image }}
-                  style={{ width: '100%', height: r(90), borderRadius: r(12) }}
-                  contentFit="cover"
-                />
-              ) : null}
-              <Text style={styles.bannerTitle}>{activeBanner.title}</Text>
-            </Pressable>
-          ) : (
-            // Sin botón "Continuar" a propósito (pedido explícito
-            // 2026-08-29): descartaba el aviso vía demoBannerDismissed y no
-            // había ningún banner real (activeBanner) detrás que ocupara su
-            // sitio -- la pantalla se quedaba con un hueco vacío donde antes
-            // estaba este aviso. Fijo mientras no haya banners reales que
-            // mostrar en su lugar.
-            <Box style={styles.bannerCard}>
-              <Icon name="information-circle-outline" size={26} color="#FFFFFF" />
-              <Text style={styles.bannerTitle}>Esto son datos de demostración</Text>
-              <Text style={styles.bannerText}>
-                Los anillos de Recovery/Strain se activarán con datos reales cuando puedas conectar
-                Apple Health o Google Health, disponible en una próxima versión de la app.
-              </Text>
-            </Box>
-          )}
-
-          {/* Agua / Actividad -- sustituyen los placeholders "Sueño"/"Balance
-              de carga" (pedido explícito: moverlas dentro de la foto del
-              hero, justo debajo del banner de demo, y sacar "Reto para
-              empezar" fuera de la imagen). Datos reales de dashboard-detail
-              (agua: total/goal en ml; actividad: kcal estimadas de pasos +
-              kcal reales de entrenamientos). */}
+          {/* Agua / Actividad -- pedido explícito 2026-08-31: suben a ocupar
+              el hueco que dejó el banner "esto son datos de demostración"
+              (quitado; el Estado B del banner real -- BannerSlider vía
+              dashboard-detail -- nunca llegó a activarse, hasHealthConnected
+              fue siempre false, así que no había nada real que perder al
+              quitarlo). Sin marginTop propio: el hueco con heroPhrase de
+              arriba lo sigue dando heroPhrase.marginBottom, igual que antes
+              lo daba con el banner. Datos reales de dashboard-detail (agua:
+              total/goal en ml; actividad: kcal estimadas de pasos + kcal
+              reales de entrenamientos). */}
           <HStack space="sm" style={styles.miniCardsRow}>
             <Box style={styles.miniCard}>
               <HStack className="items-center justify-between">
@@ -1566,6 +1523,48 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               </VStack>
             </Box>
           </HStack>
+
+          {/* Volumen muscular -- pedido explícito 2026-08-31: ocupa el hueco
+              que dejaban Agua/Actividad antes de subir de sitio, mismo
+              diseño que esas dos tarjetas (miniCard: mismo fondo/radio/
+              padding, mismo botón "+"). El "+" lleva a MigratedProgress
+              (la pantalla que agrupa Estadísticas + Progreso muscular, ver
+              progress_screen.tsx) en vez de abrir un tracker propio --
+              "ver todas las métricas" es esa pantalla, no una nueva.
+              Mismos datos que su tarjeta "Entrenamiento"
+              (muscleVolumeApi.getMy(7), ver fetchData). */}
+          <Box style={styles.muscleCard}>
+            <HStack className="items-center justify-between">
+              <HStack space="xs" className="items-center">
+                <Icon name="body" size={15} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.miniCardTitle}>Volumen muscular</Text>
+              </HStack>
+              <Pressable
+                style={styles.miniCardAddBtn}
+                onPress={() => navigation?.navigate('MigratedProgress')}
+                hitSlop={8}>
+                <Icon name="add" size={14} color="#FFFFFF" />
+              </Pressable>
+            </HStack>
+            <HStack className="items-center justify-between" style={{ marginTop: r(10) }}>
+              <VStack>
+                <Text style={styles.miniCardValue}>
+                  {muscleVolume ? Math.round(muscleVolume.totalVolume).toLocaleString('es-ES') : '--'}
+                  <Text style={styles.miniCardValueMuted}> kg</Text>
+                </Text>
+                <VStack style={{ marginTop: r(6), gap: r(4) }}>
+                  <Text style={styles.miniCardSubRow}>{muscleVolume?.sessionsCount ?? 0} sesiones</Text>
+                  <Text style={styles.miniCardSubRow}>Últimos 7 días</Text>
+                </VStack>
+              </VStack>
+              <MuscleBodyMap
+                data={muscleVolume?.volumeByMuscle}
+                height={r(72)}
+                showToggle={false}
+                forcedView={ViewSide.FRONT}
+              />
+            </HStack>
+          </Box>
         </Box>
 
         {errorMessage && (
