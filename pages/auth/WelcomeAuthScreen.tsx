@@ -42,19 +42,9 @@ export default function WelcomeAuthScreen() {
 
       <SafeAreaView style={styles.container}>
         <View style={styles.top}>
-          {/* logoBackdrop (2026-08-31, pedido explícito -- "se ve mal y
-              borroso, además de lo blanco"): el PNG en sí ya es así de
-              origen -- un acabado "cristal" translúcido sin contorno sólido
-              (mismo arte que assets/applogo.png, el icono de la app), no un
-              problema de escalado. Sin nada sólido detrás se lava contra la
-              foto de fondo. Placa oscura semitransparente redondeada detrás
-              SOLO en esta pantalla (no se toca el PNG compartido con el
-              icono de la app) para que el contraste no dependa de qué haya
-              justo detrás en la foto. */}
-          <View style={styles.logoWrap}>
-            <View style={styles.logoBackdrop} />
-            <ExpoImage source={require("../../assets/bestronger-logo.png")} style={styles.logo} contentFit="contain" />
-          </View>
+          {/* Logo quitado de esta pantalla (pedido explícito 2026-09-01) --
+              el PNG (assets/bestronger-logo.png) seguía sin verse bien
+              contra la foto de fondo pese a la placa de contraste. */}
           <Text style={styles.title}>Bienvenido a{"\n"}Be Stronger!</Text>
           <Text style={styles.subtitle}>Elige cómo quieres continuar.</Text>
         </View>
@@ -103,31 +93,6 @@ function useStyle() {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-    },
-    // Logo real (assets/bestronger-logo.png, fondo blanco recortado a
-    // transparente) sustituye al círculo gris con una "S" de antes
-    // (SandowLogo, ya eliminado -- sin más usos en la app). Proporción
-    // 959x551 del PNG original -- ancho fijo, alto en la misma relación
-    // para no deformarlo.
-    logoWrap: {
-      width: "220@ratio",
-      height: "140@ratio",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    // Placa de contraste detrás del logo (ver comentario junto al JSX) --
-    // algo más pequeña que logoWrap, para que se note como un respaldo con
-    // aire alrededor y no como un rectángulo pegado a los bordes del logo.
-    logoBackdrop: {
-      position: "absolute",
-      width: "210@ratio",
-      height: "130@ratio",
-      borderRadius: "28@ratio",
-      backgroundColor: "rgba(0,0,0,0.4)",
-    },
-    logo: {
-      width: "180@ratio",
-      height: "103.5@ratio",
     },
     title: {
       fontFamily: "Gilroy-ExtraBold",
