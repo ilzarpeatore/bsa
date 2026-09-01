@@ -56,7 +56,13 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    timeout-minutes: 30
+    # 30 no bastaba con un DerivedData cache Miss (build limpio desde cero,
+    # sin incremental) -- reportado con el summary real de un run cancelado
+    # justo al llegar a los 30m0s, 2026-09-01. El caché puede desalojarse
+    # con uso intensivo (varios builds seguidos el mismo día, límite de 10GB
+    # por repo de GitHub Actions), así que el job tiene que aguantar un
+    # clean build completo sin depender de que el caché siempre esté.
+    timeout-minutes: 55
 
     steps:
       - name: Checkout repository
