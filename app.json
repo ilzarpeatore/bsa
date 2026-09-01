@@ -3,7 +3,7 @@
     "name": "Be Stronger",
     "slug": "bestronger",
     "description": "A Product By OneRed",
-    "version": "1.2.0",
+    "version": "1.0",
     "orientation": "portrait",
     "icon": "./assets/applogo.png",
     "splash": {
