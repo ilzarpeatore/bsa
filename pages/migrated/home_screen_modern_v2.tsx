@@ -634,11 +634,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         // Fila "Volumen muscular": métricas a la izquierda, mapa muscular a
         // la derecha (pedido explícito 2026-09-01 -- el layout apilado
         // anterior, todo debajo, ocupaba demasiado alto y tapaba
-        // "Cumplimiento semanal"). alignItems flex-start: la columna de
-        // métricas (4 filas) es más alta que el mapa, así que centrarlos
-        // dejaría el mapa descolgado a media altura.
+        // "Cumplimiento semanal"). alignItems center (pedido explícito,
+        // mismo día): la columna de métricas queda alineada con el centro
+        // vertical del cuerpo, no con su borde superior.
         muscleContentRow: {
-          alignItems: 'flex-start' as const,
+          alignItems: 'center' as const,
           marginTop: r(14),
         },
         // Grid 2x2 de métricas -- 2 columnas via flexWrap + basis 47%, ahora
