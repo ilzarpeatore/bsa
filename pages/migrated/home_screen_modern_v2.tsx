@@ -145,7 +145,11 @@ const HEALTH_SYNC_ENABLED = false;
 // quedó corto en uso real -- la foto se veía demasiado y costaba leer el
 // texto (título "Recovery/Strain", aviso de datos de demostración) nada más
 // entrar, antes de tocar el scroll.
-const HOME_BG_MIN_OPACITY = 0.4;
+// MIN subido de 0.4 a 0.55 (pedido explícito con captura, 2026-09-01): "poner
+// un poco de opacidad o blur a la imagen para que no se vea tanto" -- 0.4
+// seguía dejando la foto demasiado presente/brillante en reposo, sobre todo
+// detrás de los anillos Recovery/Strain.
+const HOME_BG_MIN_OPACITY = 0.55;
 const HOME_BG_MAX_OPACITY = 0.9;
 
 // Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
