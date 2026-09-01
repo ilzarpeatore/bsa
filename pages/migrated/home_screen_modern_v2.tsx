@@ -631,35 +631,42 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           padding: r(14),
           marginTop: r(16),
         },
-        // Grid 2x2 de métricas dentro de "Volumen muscular" (ampliación
-        // 2026-09-01) -- 2 columnas via flexWrap + basis 47% con gap.
+        // Fila "Volumen muscular": métricas a la izquierda, mapa muscular a
+        // la derecha (pedido explícito 2026-09-01 -- el layout apilado
+        // anterior, todo debajo, ocupaba demasiado alto y tapaba
+        // "Cumplimiento semanal"). alignItems flex-start: la columna de
+        // métricas (4 filas) es más alta que el mapa, así que centrarlos
+        // dejaría el mapa descolgado a media altura.
+        muscleContentRow: {
+          alignItems: 'flex-start' as const,
+          marginTop: r(14),
+        },
+        // Grid 2x2 de métricas -- 2 columnas via flexWrap + basis 47%, ahora
+        // dentro de flex:1 (columna izquierda) en vez de a ancho completo.
         muscleStatsGrid: {
+          flex: 1,
           flexWrap: 'wrap' as const,
           gap: r(12),
-          marginTop: r(16),
+          marginRight: r(10),
         },
         muscleStatItem: {
           flexBasis: '47%',
         },
         muscleStatValue: {
-          fontSize: r(20),
+          fontSize: r(18),
           fontFamily: FONT.extraBold,
           color: '#FFFFFF',
         },
         muscleStatValueMuted: {
-          fontSize: r(13),
+          fontSize: r(12),
           fontFamily: FONT.semiBold,
           color: 'rgba(255,255,255,0.55)',
         },
         muscleStatLabel: {
-          fontSize: r(11),
+          fontSize: r(10.5),
           fontFamily: FONT.medium,
           color: 'rgba(255,255,255,0.65)',
           marginTop: r(2),
-        },
-        muscleMapWrap: {
-          alignItems: 'center' as const,
-          marginTop: r(18),
         },
         miniCardTitle: {
           fontSize: r(12),
@@ -1585,17 +1592,19 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             </Box>
           </HStack>
 
-          {/* Volumen muscular -- pedido explícito 2026-08-31 (creación) y
+          {/* Volumen muscular -- pedido explícito 2026-08-31 (creación),
               2026-09-01 (ampliación: más grande, mapa muscular más grande,
-              más métricas). El "+" lleva a MigratedProgress (la pantalla
-              que agrupa Estadísticas + Progreso muscular, ver
+              más métricas) y 2026-09-01 (layout lado a lado: métricas a la
+              izquierda, mapa a la derecha, para que el bloque no ocupe
+              tanto alto de pantalla -- el layout apilado anterior tapaba
+              "Cumplimiento semanal" debajo). El "+" lleva a MigratedProgress
+              (la pantalla que agrupa Estadísticas + Progreso muscular, ver
               progress_screen.tsx) en vez de abrir un tracker propio --
               "ver todas las métricas" es esa pantalla, no una nueva.
               4 métricas en grid 2x2 (volumen total y sesiones de
               muscleVolumeApi.getMy(7); récords este mes de
               exerciseStatsApi.getMyPersonalRecords(), filtrado por mes en
-              fetchData; series totales de muscleVolumeData.totalSeries) +
-              mapa muscular grande a ancho completo debajo. */}
+              fetchData; series totales de muscleVolumeData.totalSeries). */}
           <Box style={styles.muscleCard}>
             <HStack className="items-center justify-between">
               <HStack space="xs" className="items-center">
@@ -1611,36 +1620,36 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             </HStack>
             <Text style={styles.miniCardSubRow}>Últimos 7 días</Text>
 
-            <HStack style={styles.muscleStatsGrid}>
-              <VStack style={styles.muscleStatItem}>
-                <Text style={styles.muscleStatValue}>
-                  {muscleVolume ? Math.round(muscleVolume.totalVolume).toLocaleString('es-ES') : '--'}
-                  <Text style={styles.muscleStatValueMuted}> kg</Text>
-                </Text>
-                <Text style={styles.muscleStatLabel}>Volumen total</Text>
-              </VStack>
-              <VStack style={styles.muscleStatItem}>
-                <Text style={styles.muscleStatValue}>{muscleVolume?.sessionsCount ?? 0}</Text>
-                <Text style={styles.muscleStatLabel}>Sesiones</Text>
-              </VStack>
-              <VStack style={styles.muscleStatItem}>
-                <Text style={styles.muscleStatValue}>{recordsThisMonth}</Text>
-                <Text style={styles.muscleStatLabel}>Récords este mes</Text>
-              </VStack>
-              <VStack style={styles.muscleStatItem}>
-                <Text style={styles.muscleStatValue}>{muscleVolume?.totalSeries ?? 0}</Text>
-                <Text style={styles.muscleStatLabel}>Series totales</Text>
-              </VStack>
-            </HStack>
+            <HStack style={styles.muscleContentRow}>
+              <HStack style={styles.muscleStatsGrid}>
+                <VStack style={styles.muscleStatItem}>
+                  <Text style={styles.muscleStatValue}>
+                    {muscleVolume ? Math.round(muscleVolume.totalVolume).toLocaleString('es-ES') : '--'}
+                    <Text style={styles.muscleStatValueMuted}> kg</Text>
+                  </Text>
+                  <Text style={styles.muscleStatLabel}>Volumen total</Text>
+                </VStack>
+                <VStack style={styles.muscleStatItem}>
+                  <Text style={styles.muscleStatValue}>{muscleVolume?.sessionsCount ?? 0}</Text>
+                  <Text style={styles.muscleStatLabel}>Sesiones</Text>
+                </VStack>
+                <VStack style={styles.muscleStatItem}>
+                  <Text style={styles.muscleStatValue}>{recordsThisMonth}</Text>
+                  <Text style={styles.muscleStatLabel}>Récords este mes</Text>
+                </VStack>
+                <VStack style={styles.muscleStatItem}>
+                  <Text style={styles.muscleStatValue}>{muscleVolume?.totalSeries ?? 0}</Text>
+                  <Text style={styles.muscleStatLabel}>Series totales</Text>
+                </VStack>
+              </HStack>
 
-            <Box style={styles.muscleMapWrap}>
               <MuscleBodyMap
                 data={muscleVolume?.volumeByMuscle}
-                height={r(190)}
+                height={r(150)}
                 showToggle={false}
                 forcedView={ViewSide.FRONT}
               />
-            </Box>
+            </HStack>
           </Box>
         </Box>
 
