@@ -70,6 +70,7 @@ import {
   WorkoutSummary,
 } from '../../api/dashboard';
 import { muscleVolumeApi, MuscleVolumeData } from '../../api/muscleVolume';
+import { exerciseStatsApi } from '../../api/exerciseStats';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
@@ -434,6 +435,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // heat map de la tarjeta "Volumen muscular" (pedido explícito
   // 2026-08-31, sustituye al banner de demo quitado más abajo).
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeData | null>(null);
+  // Récords personales logrados este mes (para la tarjeta "Volumen
+  // muscular" ampliada) -- cuenta sobre exerciseStatsApi.getMyPersonalRecords(),
+  // filtrando por achieved_at dentro del mes/año actual.
+  const [recordsThisMonth, setRecordsThisMonth] = useState<number>(0);
 
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([]);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<boolean[]>([]);
@@ -621,6 +626,36 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           borderRadius: r(16),
           padding: r(14),
           marginTop: r(16),
+        },
+        // Grid 2x2 de métricas dentro de "Volumen muscular" (ampliación
+        // 2026-09-01) -- 2 columnas via flexWrap + basis 47% con gap.
+        muscleStatsGrid: {
+          flexWrap: 'wrap' as const,
+          gap: r(12),
+          marginTop: r(16),
+        },
+        muscleStatItem: {
+          flexBasis: '47%',
+        },
+        muscleStatValue: {
+          fontSize: r(20),
+          fontFamily: FONT.extraBold,
+          color: '#FFFFFF',
+        },
+        muscleStatValueMuted: {
+          fontSize: r(13),
+          fontFamily: FONT.semiBold,
+          color: 'rgba(255,255,255,0.55)',
+        },
+        muscleStatLabel: {
+          fontSize: r(11),
+          fontFamily: FONT.medium,
+          color: 'rgba(255,255,255,0.65)',
+          marginTop: r(2),
+        },
+        muscleMapWrap: {
+          alignItems: 'center' as const,
+          marginTop: r(18),
         },
         miniCardTitle: {
           fontSize: r(12),
@@ -897,6 +932,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         completedRes,
         readinessRes,
         muscleVolumeRes,
+        personalRecordsRes,
       ] = await Promise.allSettled([
         dashboardApi.getDashboard(),
         workoutHistoryApi.getMyCalendar(currentMonth, currentYear),
@@ -910,6 +946,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         workoutHistoryApi.getMyCompletedSessions(),
         readinessApi.getToday(),
         muscleVolumeApi.getMy(7),
+        exerciseStatsApi.getMyPersonalRecords(),
       ]);
 
       const errors: string[] = [];
@@ -1020,6 +1057,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
       if (muscleVolumeRes.status === 'fulfilled') {
         setMuscleVolume(muscleVolumeRes.value.data?.data ?? null);
+      }
+
+      if (personalRecordsRes.status === 'fulfilled') {
+        const records = personalRecordsRes.value.data?.data ?? [];
+        const count = records.filter((rec) => {
+          if (!rec.achieved_at) return false;
+          const achieved = new Date(rec.achieved_at);
+          return achieved.getMonth() === currentMonth - 1 && achieved.getFullYear() === currentYear;
+        }).length;
+        setRecordsThisMonth(count);
       }
 
       if (errors.length > 0) {
@@ -1534,15 +1581,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             </Box>
           </HStack>
 
-          {/* Volumen muscular -- pedido explícito 2026-08-31: ocupa el hueco
-              que dejaban Agua/Actividad antes de subir de sitio, mismo
-              diseño que esas dos tarjetas (miniCard: mismo fondo/radio/
-              padding, mismo botón "+"). El "+" lleva a MigratedProgress
-              (la pantalla que agrupa Estadísticas + Progreso muscular, ver
+          {/* Volumen muscular -- pedido explícito 2026-08-31 (creación) y
+              2026-09-01 (ampliación: más grande, mapa muscular más grande,
+              más métricas). El "+" lleva a MigratedProgress (la pantalla
+              que agrupa Estadísticas + Progreso muscular, ver
               progress_screen.tsx) en vez de abrir un tracker propio --
               "ver todas las métricas" es esa pantalla, no una nueva.
-              Mismos datos que su tarjeta "Entrenamiento"
-              (muscleVolumeApi.getMy(7), ver fetchData). */}
+              4 métricas en grid 2x2 (volumen total y sesiones de
+              muscleVolumeApi.getMy(7); récords este mes de
+              exerciseStatsApi.getMyPersonalRecords(), filtrado por mes en
+              fetchData; series totales de muscleVolumeData.totalSeries) +
+              mapa muscular grande a ancho completo debajo. */}
           <Box style={styles.muscleCard}>
             <HStack className="items-center justify-between">
               <HStack space="xs" className="items-center">
@@ -1556,24 +1605,38 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Icon name="add" size={14} color="#FFFFFF" />
               </Pressable>
             </HStack>
-            <HStack className="items-center justify-between" style={{ marginTop: r(10) }}>
-              <VStack>
-                <Text style={styles.miniCardValue}>
+            <Text style={styles.miniCardSubRow}>Últimos 7 días</Text>
+
+            <HStack style={styles.muscleStatsGrid}>
+              <VStack style={styles.muscleStatItem}>
+                <Text style={styles.muscleStatValue}>
                   {muscleVolume ? Math.round(muscleVolume.totalVolume).toLocaleString('es-ES') : '--'}
-                  <Text style={styles.miniCardValueMuted}> kg</Text>
+                  <Text style={styles.muscleStatValueMuted}> kg</Text>
                 </Text>
-                <VStack style={{ marginTop: r(6), gap: r(4) }}>
-                  <Text style={styles.miniCardSubRow}>{muscleVolume?.sessionsCount ?? 0} sesiones</Text>
-                  <Text style={styles.miniCardSubRow}>Últimos 7 días</Text>
-                </VStack>
+                <Text style={styles.muscleStatLabel}>Volumen total</Text>
               </VStack>
+              <VStack style={styles.muscleStatItem}>
+                <Text style={styles.muscleStatValue}>{muscleVolume?.sessionsCount ?? 0}</Text>
+                <Text style={styles.muscleStatLabel}>Sesiones</Text>
+              </VStack>
+              <VStack style={styles.muscleStatItem}>
+                <Text style={styles.muscleStatValue}>{recordsThisMonth}</Text>
+                <Text style={styles.muscleStatLabel}>Récords este mes</Text>
+              </VStack>
+              <VStack style={styles.muscleStatItem}>
+                <Text style={styles.muscleStatValue}>{muscleVolume?.totalSeries ?? 0}</Text>
+                <Text style={styles.muscleStatLabel}>Series totales</Text>
+              </VStack>
+            </HStack>
+
+            <Box style={styles.muscleMapWrap}>
               <MuscleBodyMap
                 data={muscleVolume?.volumeByMuscle}
-                height={r(72)}
+                height={r(190)}
                 showToggle={false}
                 forcedView={ViewSide.FRONT}
               />
-            </HStack>
+            </Box>
           </Box>
         </Box>
 
