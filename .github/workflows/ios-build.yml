@@ -260,9 +260,15 @@ jobs:
 
           # Perfil(es) extra para app extensions (opcional) -- cada target de
           # extensión fija su propio PROVISIONING_PROFILE_SPECIFIER en
-          # project.pbxproj, así que aquí basta con dejar el .mobileprovision
-          # instalado bajo el UUID correcto para que xcodebuild lo encuentre
-          # por nombre; no hace falta exportar ningún env var nuevo por él.
+          # project.pbxproj, así que basta con esto para que el ARCHIVE
+          # encuentre el perfil por nombre. El EXPORT es un paso aparte
+          # (xcodebuild -exportArchive con su propio ExportOptions.plist,
+          # ver más abajo) que SÍ necesita saber explícitamente qué perfil
+          # usar para cada bundle id de la extensión -- si no se le dice,
+          # falla con "exportArchive ... requires a provisioning profile"
+          # aunque el archive en sí haya firmado bien (fallo real, run #79).
+          # Por eso aquí también se extrae el bundle id del perfil y se
+          # exportan ambos a GITHUB_ENV.
           if [ -n "$IOS_PROVISIONING_PROFILE_WIDGETS" ]; then
             WIDGETS_PROFILE_PATH=$RUNNER_TEMP/profile-widgets.mobileprovision
             echo "$IOS_PROVISIONING_PROFILE_WIDGETS" | base64 --decode > "$WIDGETS_PROFILE_PATH"
@@ -270,8 +276,12 @@ jobs:
             security cms -D -i "$WIDGETS_PROFILE_PATH" > "$WIDGETS_PROFILE_PLIST"
             WIDGETS_PROFILE_UUID=$(plutil -extract UUID raw -o - "$WIDGETS_PROFILE_PLIST")
             WIDGETS_PROFILE_NAME=$(plutil -extract Name raw -o - "$WIDGETS_PROFILE_PLIST")
+            WIDGETS_TEAM_ID=$(plutil -extract TeamIdentifier.0 raw -o - "$WIDGETS_PROFILE_PLIST")
+            WIDGETS_APP_ID=$(plutil -extract Entitlements.application-identifier raw -o - "$WIDGETS_PROFILE_PLIST")
             cp "$WIDGETS_PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$WIDGETS_PROFILE_UUID".mobileprovision
-            echo "  extra profile: $WIDGETS_PROFILE_NAME ($WIDGETS_PROFILE_UUID)"
+            echo "WIDGETS_PROFILE_NAME=$WIDGETS_PROFILE_NAME" >> $GITHUB_ENV
+            echo "WIDGETS_APP_BUNDLE_ID=${WIDGETS_APP_ID#"$WIDGETS_TEAM_ID".}" >> $GITHUB_ENV
+            echo "  extra profile: $WIDGETS_PROFILE_NAME ($WIDGETS_PROFILE_UUID), app id: ${WIDGETS_APP_ID#"$WIDGETS_TEAM_ID".}"
           fi
 
       - name: Build IPA
@@ -469,6 +479,21 @@ jobs:
             APP_BUNDLE_ID=$(plutil -extract ApplicationProperties.CFBundleIdentifier raw -o - build/App.xcarchive/Info.plist)
             echo "Exporting $APP_BUNDLE_ID with profile '$PROVISIONING_PROFILE_NAME' (team $DEVELOPMENT_TEAM)"
 
+            # provisioningProfiles necesita UNA entrada por cada bundle id
+            # que vaya dentro del archive -- la app principal siempre, más
+            # una por cada app extension firmada manualmente (ver el paso
+            # "Install certificate and provisioning profile", WIDGETS_*).
+            # Sin la entrada de una extension, el export falla con
+            # "exportArchive ... requires a provisioning profile" aunque el
+            # archive en sí haya ido bien (fallo real, run #79) -- añadir
+            # más extensions en el futuro sigue este mismo patrón.
+            EXTRA_PROFILE_ENTRIES=""
+            if [ -n "$WIDGETS_APP_BUNDLE_ID" ] && [ -n "$WIDGETS_PROFILE_NAME" ]; then
+              EXTRA_PROFILE_ENTRIES="        <key>${WIDGETS_APP_BUNDLE_ID}</key>
+              <string>${WIDGETS_PROFILE_NAME}</string>"
+              echo "Also exporting $WIDGETS_APP_BUNDLE_ID with profile '$WIDGETS_PROFILE_NAME'"
+            fi
+
             printf '%s\n' \
               '<?xml version="1.0" encoding="UTF-8"?>' \
               '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
@@ -484,6 +509,7 @@ jobs:
               '    <dict>' \
               "        <key>${APP_BUNDLE_ID}</key>" \
               "        <string>${PROVISIONING_PROFILE_NAME}</string>" \
+              "${EXTRA_PROFILE_ENTRIES}" \
               '    </dict>' \
               '</dict>' \
               '</plist>' > ExportOptions.plist
