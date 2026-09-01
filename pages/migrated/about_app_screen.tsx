@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Linking, ScrollView } from 'react-native';
+import { Alert, Linking, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -66,6 +66,23 @@ export default function AboutAppScreen({ navigation }: any) {
         <Divider />
         {mOption('information-circle-outline', 'Sobre nosotros', () => {
           navigation.navigate('MigratedAboutUs');
+        })}
+        <Divider />
+        {/* Requisito de atribución de la licencia Apache 2.0 del mapa
+            muscular (github.com/vulovix/body-muscles, ver
+            LICENSE-body-muscles.txt en el repo) -- esa licencia exige que el
+            aviso de copyright llegue también al usuario final de la app
+            compilada, no solo a quien lea el código fuente. Un Alert basta
+            (no hace falta pantalla propia): reproduce el aviso íntegro del
+            NOTICE. */}
+        {mOption('ribbon-outline', 'Licencias de terceros', () => {
+          Alert.alert(
+            'Licencias de terceros',
+            'Mapa muscular (Body Muscles)\n' +
+              'Copyright 2024 Ivan Vulović\n' +
+              'https://github.com/vulovix/body-muscles\n' +
+              'Licenciado bajo Apache License, Version 2.0.',
+          );
         })}
         <Divider />
         {aboutPages.map((page: any, index: number) => (
