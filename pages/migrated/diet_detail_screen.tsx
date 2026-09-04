@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {  StyleSheet, ScrollView, Dimensions  } from 'react-native';
+import {  StyleSheet, ScrollView, Dimensions, Linking  } from 'react-native';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
@@ -325,6 +325,22 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
             {getVitamins('nutrition-outline', `${dietState.protein || '0'} g`, 'Proteína')}
           </HStack>
 
+          {/* Cita de la fuente de los datos nutricionales (Guideline 1.4.1,
+              rechazo real de Apple 2026-09-04: "provides health or medical
+              recommendations in the Recetas section without citations").
+              Los valores de calorías/macros de esta pantalla salen de la API
+              de USDA FoodData Central (ver UsdaNutritionService.php en el
+              backend) -- enlace real a esa fuente, no un texto genérico. */}
+          <Pressable
+            style={localStyles.sourceLink}
+            onPress={() => Linking.openURL('https://fdc.nal.usda.gov/')}
+          >
+            <Icon name="information-circle-outline" size={13} color={C.textSecondary} />
+            <Text style={localStyles.sourceLinkText}>
+              Datos nutricionales: USDA FoodData Central
+            </Text>
+          </Pressable>
+
           <Divider className="mx-4" style={{ height: 0.5 }} />
 
           {/* Tabs: Ingredients / Instruction -- Liquid Glass real en iOS
@@ -374,6 +390,18 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   // que esta pantalla nunca tuvo (se registra como push normal en App.tsx),
   // así que se veía como un velo negro translúcido sobre toda la pantalla.
   container: { flex: 1, backgroundColor: C.bg },
+  sourceLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'center',
+    paddingBottom: 10,
+  },
+  sourceLinkText: {
+    fontSize: 11,
+    color: C.textSecondary,
+    textDecorationLine: 'underline',
+  },
   headerSection: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT * 0.37,
