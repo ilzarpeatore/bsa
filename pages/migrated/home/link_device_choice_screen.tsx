@@ -18,6 +18,27 @@ const HEALTH_APP_NAME = Platform.OS === "ios" ? "Apple Salud" : "Health Connect"
 // personal/gratuito (vía iloader) -> el entitlement no se puede conceder y cualquier
 // llamada a HealthKit crashea la app al instante. Oculto en iOS hasta tener cuenta de pago;
 // Health Connect en Android no tiene esta restricción, se deja activo.
+//
+// AUDITORÍA PLAY STORE (2026-09-06): pese a HEALTH_INTEGRATION_AVAILABLE=true en Android,
+// esta pantalla (LinkDeviceChoiceScreen, handleConnectHealthApp más abajo) sigue sin tener
+// ningún llamador real en producción -- su única referencia es pages/ScreenExplorer.tsx, que
+// a su vez solo es alcanzable con DEV_TOOLS_ENABLED=true (constants/featureFlags.ts), false
+// para el build de tienda. El punto de entrada real y visible ("Dispositivos" en
+// profile_screen.tsx) apunta a MigratedComingSoon, no aquí -- mismo criterio que resolvió el
+// rechazo real de Apple (Guideline 2.5.1, ver commit "Identifica Apple Health/HealthKit en la
+// UI"). Por eso hoy NO hace falta declarar permisos de Health Connect (android.permissions) ni
+// registrar el plugin de Expo de 'react-native-health-connect' en app.json -- declararlos sin
+// que esta pantalla sea alcanzable reproduciría en Android el mismo patrón de "permiso
+// declarado sin función visible" que causó el rechazo de Apple. Si en el futuro se conecta de
+// verdad "Dispositivos" a esta pantalla (o se activa DEV_TOOLS_ENABLED de forma duradera),
+// hacen falta AMBAS cosas antes de subir a Play Console: (1) declarar en app.json los permisos
+// Health Connect que se usen de verdad (helper/health.ts pide Steps/HeartRate/SleepSession/
+// Hydration/HeartRateVariabilityRmssd/RestingHeartRate) vía el plugin de la librería o
+// android.permissions, verificando el nombre exacto de cada permiso contra
+// https://matinzd.github.io/react-native-health-connect/docs/permissions antes de asumirlo; y
+// (2) rellenar la sección "Health Connect permissions"/Data safety de la ficha de Play
+// Console explicando el uso -- declarar el permiso en el manifest no sustituye esa declaración
+// en la consola, son dos pasos independientes.
 const HEALTH_INTEGRATION_AVAILABLE = Platform.OS === "android";
 
 const renderOption = (
