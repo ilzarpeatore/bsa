@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Constants from 'expo-constants';
@@ -69,7 +69,22 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
         // Todavía no hay integración real con wearables (backend pendiente)
         // -- entrada visible ya, pantalla honesta "Próximamente" en vez de
         // fingir datos, mismo criterio que se aplicó a "Sueño" en el Informe.
-        { icon: 'watch-outline', title: 'Dispositivos', subtitle: 'Conecta tu reloj o app de salud', route: 'MigratedComingSoon', params: { title: 'Dispositivos' }, iconColor: C.blue, iconBg: C.blue10 },
+        // Subtítulo/descripción nombran "Apple Health" explícitamente (pedido
+        // de Apple, Guideline 2.5.1 -- rechazo real 2026-09-06: el binario
+        // enlaza HealthKit vía @kingstinct/react-native-healthkit pero la
+        // función no se identificaba en ningún sitio de la interfaz).
+        {
+          icon: 'watch-outline',
+          title: 'Dispositivos',
+          subtitle: `Conecta tu reloj o ${Platform.OS === 'ios' ? 'Apple Health' : 'Health Connect'}`,
+          route: 'MigratedComingSoon',
+          params: {
+            title: 'Dispositivos',
+            description: `Próximamente podrás conectar tu cuenta de ${Platform.OS === 'ios' ? 'Apple Health' : 'Health Connect'} para sincronizar pasos, ritmo cardíaco y sueño.`,
+          },
+          iconColor: C.blue,
+          iconBg: C.blue10,
+        },
         { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
         // Desactivada para esta primera versión (pedido explícito): los
         // usuarios todavía no pueden acceder a MigratedLanguage. Mismo
