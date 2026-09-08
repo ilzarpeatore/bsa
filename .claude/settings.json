@@ -20,7 +20,7 @@
         ]
       },
       {
-        "matcher": "Bash|mcp__graft__",
+        "matcher": "Bash|mcp__graft__|Read|Grep|Glob",
         "hooks": [
           {
             "type": "command",
@@ -73,15 +73,8 @@
       }
     ]
   },
-  "footerLinksRegexes": [
-    "graft/[\\w./-]+\\.md"
-  ],
+  "footerLinksRegexes": ["graft/[\\w./-]+\\.md"],
   "permissions": {
-    "allow": [
-      "Bash(graft:*)",
-      "Bash(npx graft:*)",
-      "Bash(graft-dev:*)",
-      "Bash(node dist/cli.js:*)"
-    ]
+    "allow": ["Bash(graft:*)", "Bash(npx graft:*)", "Bash(graft-dev:*)", "Bash(node dist/cli.js:*)"]
   }
 }
