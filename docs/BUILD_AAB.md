@@ -2,7 +2,9 @@
 
 El workflow `.github/workflows/android-build.yml` (`workflow_dispatch`) compila un `.apk`/`.aab` en un runner `ubuntu-latest`. Se dispara con `mcp__github__actions_run_trigger` (`method: run_workflow`, `workflow_id: android-build.yml`, `owner: ilzarpeatore`, `repo: bsa`).
 
-**Estado (2026-08-28): workflow recién creado, sin ninguna ejecución real todavía.** No hay carpeta `android/` nativa en el repo (se genera en el propio job vía `expo prebuild --platform android`, igual que `ios/` se genera en `prebuild-ios.yml` pero sin committearla), y este entorno de agente no tiene Android SDK/Gradle para poder probarlo en local antes de documentarlo — mismo tipo de limitación ya documentado para `pod install` en `docs/BUILD_IPA.md`. **La primera vez que se lance, revisar el log completo del step "Build Android" aunque termine en verde**, no solo el resumen.
+**Estado (2026-09-08): primera ejecución real (`use_signing: true`) falló, causa raíz identificada y corregida.** No hay carpeta `android/` nativa en el repo (se genera en el propio job vía `expo prebuild --platform android`, igual que `ios/` se genera en `prebuild-ios.yml` pero sin committearla). El run [`34267068990`](https://github.com/ilzarpeatore/bsa/actions/runs/34267068990) falló en el step "Install release keystore": el `android/app/build.gradle` que genera `expo prebuild` en el **SDK 57 de este proyecto no define ningún `signingConfigs.release` ni lee propiedades `MYAPP_*`** — a diferencia de la plantilla clásica de React Native (reactnative.dev/docs/signed-apk-android), el `buildTypes.release` viene hardcodeado a `signingConfig signingConfigs.debug`. Confirmado corriendo `expo prebuild --platform android` en local e inspeccionando el archivo generado.
+
+El workflow ahora inyecta el `signingConfigs.release` a mano vía `.github/scripts/android-inject-release-signing.py` (llamado desde el step "Install release keystore" solo cuando `use_signing: true`) en vez de asumir que el hook de firma ya existe. El script falla explícitamente con un mensaje claro si algún bloque esperado de `build.gradle` no aparece (la plantilla de `expo prebuild` cambió), en vez de dejar pasar en silencio un AAB firmado con la keystore de debug. **Pendiente: verificar con una ejecución real que el fix funciona end-to-end (el fallo anterior era temprano, antes de llegar a `./gradlew bundleRelease`)** — revisar el log completo del step "Build Android" la primera vez que este fix se ejecute hasta el final, no solo el resumen en verde.
 
 ## Inputs
 
@@ -25,12 +27,12 @@ El workflow de iOS (`ios-build.yml`) tiene un input `configuration` (Debug/Relea
 
 No configurados todavía. Hay que crearlos en `Settings → Secrets and variables → Actions` del repo antes de poder usar `use_signing: true`:
 
-| Secret | Contenido |
-| --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | El fichero `.keystore`/`.jks` de release, codificado en base64 (`base64 -i mi-release.keystore \| pbcopy` en Mac, o `base64 -w0 mi-release.keystore` en Linux) |
-| `ANDROID_KEYSTORE_PASSWORD` | Contraseña del keystore |
-| `ANDROID_KEY_ALIAS` | Alias de la clave dentro del keystore |
-| `ANDROID_KEY_PASSWORD` | Contraseña de esa clave (puede coincidir con la del keystore) |
+| Secret                      | Contenido                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ANDROID_KEYSTORE_BASE64`   | El fichero `.keystore`/`.jks` de release, codificado en base64 (`base64 -i mi-release.keystore \| pbcopy` en Mac, o `base64 -w0 mi-release.keystore` en Linux) |
+| `ANDROID_KEYSTORE_PASSWORD` | Contraseña del keystore                                                                                                                                        |
+| `ANDROID_KEY_ALIAS`         | Alias de la clave dentro del keystore                                                                                                                          |
+| `ANDROID_KEY_PASSWORD`      | Contraseña de esa clave (puede coincidir con la del keystore)                                                                                                  |
 
 ### Cómo generar el keystore de release (una sola vez, guardar para siempre)
 
@@ -43,9 +45,11 @@ keytool -genkeypair -v -storetype PKCS12 \
 
 **Guardar `befit-release.keystore` + sus contraseñas fuera de este repo, en un gestor de contraseñas real.** Si se pierde, no se puede recuperar, y Google Play no permite subir una actualización de una app existente firmada con una keystore distinta a la original — perder este fichero obliga a publicar la app como una ficha nueva desde cero, perdiendo reseñas/instalaciones/histórico. (Nota: si en algún momento se activa **Play App Signing** de Google al crear la ficha, Google gestiona la keystore final de firma de la app y esta keystore local pasa a ser solo la de "subida" (upload key) — igual de importante no perderla, pero el riesgo de "perder la app para siempre" se mitiga porque Google puede reemitir la upload key en ese caso.)
 
-### Por qué el workflow verifica en vez de asumir
+### Por qué el workflow inyecta el signingConfigs.release en vez de asumir que existe
 
-El paso "Install release keystore" escribe `android/gradle.properties` con **dos** juegos de nombres de propiedad (`MYAPP_UPLOAD_*` y `MYAPP_RELEASE_*`) porque la plantilla oficial de React Native ha usado ambos nombres según la versión, y no se ha podido confirmar en este entorno cuál genera exactamente `expo prebuild` en el SDK 57 de este proyecto. Después de escribirlas, el step comprueba con `grep` que `android/app/build.gradle` (ya generado por el prebuild de un paso antes) de verdad referencia alguno de los dos nombres — si no encuentra ninguno, **falla el build explícitamente** en vez de generar en silencio un `.aab` firmado con la keystore de debug (que Play Console rechazaría de todas formas, pero sin decir por qué). Si eso pasa, hay que abrir el log, mirar el `android/app/build.gradle` real generado en ese run, y ajustar el nombre de propiedad en este workflow al que ese archivo espera de verdad.
+El paso "Install release keystore" escribe `android/gradle.properties` con las propiedades `MYAPP_UPLOAD_*` (nombres de la plantilla oficial de React Native, reactnative.dev/docs/signed-apk-android). Pero el `android/app/build.gradle` que genera `expo prebuild` en el SDK 57 de este proyecto **no lee esas propiedades en ningún sitio** — el `buildTypes.release` viene hardcodeado a `signingConfig signingConfigs.debug`, sin ningún `signingConfigs.release` definido. Esto se confirmó ejecutando `expo prebuild --platform android` en local e inspeccionando el archivo generado, después de que el run [`34267068990`](https://github.com/ilzarpeatore/bsa/actions/runs/34267068990) fallara la verificación anterior (un simple `grep` que buscaba esos nombres de propiedad y no los encontraba).
+
+Por eso el step llama a `.github/scripts/android-inject-release-signing.py`, que parchea `build.gradle` a mano: añade un bloque `signingConfigs.release` que lee `MYAPP_UPLOAD_STORE_FILE` (con fallback a la keystore de debug si la propiedad no existe, para no romper el caso `use_signing: false`) y cambia `buildTypes.release` para que apunte a él en vez de a `signingConfigs.debug`. El script verifica que los bloques de texto que espera encontrar en `build.gradle` existan de verdad antes de tocar nada, y **falla explícitamente** con un mensaje claro si no — por ejemplo si una futura versión del SDK cambia la plantilla — en vez de generar en silencio un `.aab` firmado con la keystore de debug (que Play Console rechazaría igualmente, pero sin decir por qué). Si eso pasa, hay que abrir el log, mirar el `android/app/build.gradle` real generado en ese run, y ajustar `.github/scripts/android-inject-release-signing.py` a lo que ese archivo tiene de verdad.
 
 ## `versionCode`/`buildNumber`
 

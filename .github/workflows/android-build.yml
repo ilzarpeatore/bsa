@@ -81,7 +81,7 @@ jobs:
       # build. Igual que expo prebuild --platform ios en prebuild-ios.yml.
       - name: Expo prebuild (Android only)
         env:
-          CI: "1"
+          CI: '1'
         run: npx expo prebuild --platform android
 
       - name: Install release keystore
@@ -101,31 +101,24 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-upload.keystore
 
           # Nombres de propiedad que usa la plantilla oficial de React Native
-          # (reactnative.dev/docs/signed-apk-android) -- Expo prebuild genera
-          # android/app/build.gradle a partir de esa misma plantilla. Se
-          # escriben ambos juegos de nombres (MYAPP_UPLOAD_* y el alias mas
-          # antiguo MYAPP_RELEASE_*) por si esta version de Expo usa el otro.
+          # (reactnative.dev/docs/signed-apk-android), leidos por el
+          # signingConfigs.release que android-inject-release-signing.py
+          # inyecta a continuacion.
           cat >> android/gradle.properties <<EOF
           MYAPP_UPLOAD_STORE_FILE=release-upload.keystore
           MYAPP_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
           MYAPP_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
           MYAPP_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
-          MYAPP_RELEASE_STORE_FILE=release-upload.keystore
-          MYAPP_RELEASE_KEY_ALIAS=$ANDROID_KEY_ALIAS
-          MYAPP_RELEASE_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
-          MYAPP_RELEASE_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
           EOF
 
-          # No confiar a ciegas en que el build.gradle generado enganche
-          # estas propiedades -- verificar de verdad y fallar con un mensaje
-          # claro en vez de producir en silencio un AAB firmado con la
-          # keystore de debug (que Play Console rechazaria igualmente, pero
-          # sin decir por que).
-          if ! grep -qE "MYAPP_(UPLOAD|RELEASE)_STORE_FILE" android/app/build.gradle; then
-            echo "::error::android/app/build.gradle generado por 'expo prebuild' no referencia MYAPP_UPLOAD_STORE_FILE ni MYAPP_RELEASE_STORE_FILE -- la firma no se aplicaria. Revisar el signingConfigs.release de ese archivo a mano (ver docs/BUILD_AAB.md) y ajustar este paso con el nombre de propiedad real antes de reintentar."
-            exit 1
-          fi
-          echo "Keystore instalada, build.gradle referencia el hook de firma esperado."
+          # El build.gradle que genera 'expo prebuild' en el SDK 57 de este
+          # proyecto no define ningun signingConfigs.release ni lee
+          # propiedades MYAPP_* -- el buildType release queda hardcodeado a
+          # signingConfig signingConfigs.debug (confirmado inspeccionando el
+          # archivo generado). Este script lo inyecta a mano y falla
+          # explicitamente si la plantilla de prebuild cambia en vez de
+          # producir en silencio un AAB firmado con la keystore de debug.
+          python3 .github/scripts/android-inject-release-signing.py
 
       - name: Build Android
         env:
