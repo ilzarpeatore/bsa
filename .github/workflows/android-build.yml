@@ -104,6 +104,14 @@ jobs:
           # (reactnative.dev/docs/signed-apk-android), leidos por el
           # signingConfigs.release que android-inject-release-signing.py
           # inyecta a continuacion.
+          #
+          # El gradle.properties que genera 'expo prebuild' termina sin salto
+          # de linea final (ultima linea: android.targetSdkVersion=36) -- sin
+          # el 'echo' de abajo, este cat se pega directamente detras de esa
+          # linea (ej. "...targetSdkVersion=36MYAPP_UPLOAD_STORE_FILE=...")
+          # y Gradle revienta con NumberFormatException al intentar parsear
+          # targetSdkVersion como entero. Confirmado en el run 34268596955.
+          echo >> android/gradle.properties
           cat >> android/gradle.properties <<EOF
           MYAPP_UPLOAD_STORE_FILE=release-upload.keystore
           MYAPP_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
