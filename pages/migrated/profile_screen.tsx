@@ -16,7 +16,7 @@ import AppIcon from '@components/AppIcon';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { useAuth } from '../../store/AuthContext';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
-import { CHAT_ENABLED } from '@constants/featureFlags';
+import { CHAT_ENABLED, COMMUNITY_ENABLED } from '@constants/featureFlags';
 import { workoutHistoryApi } from '../../api/workoutHistory';
 
 interface MenuItem {
@@ -235,15 +235,21 @@ export default function ProfileScreen(props: any) {
           </Card>
 
           <HStack style={{ marginTop: 16, gap: 12 }}>
-            <Pressable
-              className="flex-1 rounded-lg"
-              style={{ backgroundColor: C.surface, padding: 16 }}
-              onPress={() => props.navigation?.navigate('MigratedCommunity')}
-            >
-              <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
-              <Text weight="bold" size="sm">Comunidad</Text>
-              <Text size="xs" muted style={{ marginTop: 2 }}>Ver publicaciones</Text>
-            </Pressable>
+            {/* Comunidad desactivada (ver constants/featureFlags.ts,
+                COMMUNITY_ENABLED) -- sin reporte de comentarios ni bloqueo de
+                usuarios todavía, mismo riesgo real de rechazo 1.2 que ya se
+                identificó para el chat. */}
+            {COMMUNITY_ENABLED && (
+              <Pressable
+                className="flex-1 rounded-lg"
+                style={{ backgroundColor: C.surface, padding: 16 }}
+                onPress={() => props.navigation?.navigate('MigratedCommunity')}
+              >
+                <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
+                <Text weight="bold" size="sm">Comunidad</Text>
+                <Text size="xs" muted style={{ marginTop: 2 }}>Ver publicaciones</Text>
+              </Pressable>
+            )}
             {/* Chat desactivado en esta primera versión (ver
                 constants/featureFlags.ts, CHAT_ENABLED) -- sin moderación ni
                 forma de reportar mensajes todavía, riesgo real de rechazo en

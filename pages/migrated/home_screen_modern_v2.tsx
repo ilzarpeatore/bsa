@@ -56,6 +56,7 @@ import {
   ACTIVITY_TRACKER_ENABLED,
   WATER_TRACKER_ENABLED,
   STARTUP_CHALLENGE_ENABLED,
+  COMMUNITY_ENABLED,
 } from '@constants/featureFlags';
 import {
   loadDiagnosticsEnabled,
@@ -2351,24 +2352,32 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Pressable>
               </Box>
 
-              <Text style={styles.menuSectionLabel}>Más</Text>
-              <Box style={styles.menuCard}>
-                <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
-                  <HStack className="items-center px-4 py-3">
-                    <AppIcon
-                      name="people-outline"
-                      size={18}
-                      color={C.textPrimary}
-                      bg={C.brand10}
-                      containerSize={r(36)}
-                      borderRadius={r(12)}
-                      style={{ marginRight: r(14) }}
-                    />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>Comunidad</Text>
-                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
-                  </HStack>
-                </Pressable>
-              </Box>
+              {/* Comunidad desactivada (ver constants/featureFlags.ts,
+                  COMMUNITY_ENABLED) -- sin reporte de comentarios ni bloqueo
+                  de usuarios todavía, mismo riesgo real de rechazo 1.2 que
+                  ya se identificó para el chat (CHAT_ENABLED). */}
+              {COMMUNITY_ENABLED && (
+                <>
+                  <Text style={styles.menuSectionLabel}>Más</Text>
+                  <Box style={styles.menuCard}>
+                    <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
+                      <HStack className="items-center px-4 py-3">
+                        <AppIcon
+                          name="people-outline"
+                          size={18}
+                          color={C.textPrimary}
+                          bg={C.brand10}
+                          containerSize={r(36)}
+                          borderRadius={r(12)}
+                          style={{ marginRight: r(14) }}
+                        />
+                        <Text style={[styles.menuItemText, { flex: 1 }]}>Comunidad</Text>
+                        <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                      </HStack>
+                    </Pressable>
+                  </Box>
+                </>
+              )}
 
               {/* "Recursos" (pedido explícito, captura de referencia). Las 2
                   primeras filas abren MigratedAppFeedback -- formulario real

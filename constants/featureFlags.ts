@@ -12,6 +12,20 @@
 // Reactivar: cambiar a true en cuanto exista moderación/reporte de mensajes.
 export const CHAT_ENABLED = false;
 
+// Comunidad (MigratedCommunity, publicaciones/comentarios entre usuarios
+// reales) -- mismo motivo que CHAT_ENABLED, auditoría Guideline 1.2
+// (2026-09-10): tiene reporte de publicaciones (api/posts.ts, report()) pero
+// NO tiene reporte de comentarios, ni ningún mecanismo para bloquear a un
+// usuario abusivo (grep exhaustivo de blockUser/bloquear sin resultados en
+// todo el repo), y docs/PENDIENTE_BACKEND_ADMIN.md confirma que tampoco hay
+// panel de administración para revisar lo reportado. Los 3 puntos de
+// entrada (components/NavigationTab.tsx "+", profile_screen.tsx,
+// home_screen_modern_v2.tsx menú "Más") comprueban este flag -- las
+// pantallas y su ruta en App.tsx NO se quitan, igual que CHAT_ENABLED.
+// Reactivar cuando exista bloqueo de usuarios + reporte de comentarios +
+// forma real de que un admin/coach actúe sobre lo reportado.
+export const COMMUNITY_ENABLED = false;
+
 // Activity Tracker (MigratedActivityTracker) y Water Tracker
 // (MigratedWaterTracker) -- rechazo real Guideline 2.2 (2026-09-10): los
 // botones "+" de las tarjetas Agua/Actividad en home_screen_modern_v2.tsx
