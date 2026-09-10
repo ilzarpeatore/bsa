@@ -159,17 +159,6 @@ const WorkoutFeedbackScreen = React.lazy(() => import('@pages/migrated/workout_f
 const WorkoutSummaryScreenMig = React.lazy(() => import('@pages/migrated/workout_summary_screen'));
 const YoutubePlayerScreen = React.lazy(() => import('@pages/migrated/youtube_player_screen'));
 
-const DeviceConnectedScreen = React.lazy(
-  () => import('@pages/migrated/home/device_connected_screen'),
-);
-const EmparejandoScreen = React.lazy(() => import('@pages/migrated/home/emparejando_screen'));
-const LinkDeviceChoiceScreen = React.lazy(
-  () => import('@pages/migrated/home/link_device_choice_screen'),
-);
-const LinkDeviceListScreen = React.lazy(
-  () => import('@pages/migrated/home/link_device_list_screen'),
-);
-
 const AssessmentResultScreen = React.lazy(
   () => import('@pages/migrated/onboarding/assessment_result_screen'),
 );
@@ -366,10 +355,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedWorkoutSummary" component={WorkoutSummaryScreenMig} />
       <MStack.Screen name="MigratedWorkoutTemplateList" component={WorkoutTemplateListScreen} />
       <MStack.Screen name="MigratedYoutubePlayer" component={YoutubePlayerScreen} />
-      <MStack.Screen name="MigratedDeviceConnected" component={DeviceConnectedScreen} />
-      <MStack.Screen name="MigratedEmparejando" component={EmparejandoScreen} />
-      <MStack.Screen name="MigratedLinkDeviceChoice" component={LinkDeviceChoiceScreen} />
-      <MStack.Screen name="MigratedLinkDeviceList" component={LinkDeviceListScreen} />
       <MStack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
     </MStack.Navigator>
   );

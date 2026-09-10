@@ -84,8 +84,6 @@ import { habitsApi, Habit } from '../../api/habits';
 import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
 import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
 import MuscleBodyMap from '@components/MuscleBodyMap';
-import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
-import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '@components/WeekComplianceRow';
 import { computeWeekCompliance, computeWeekProgress } from '@components/weekCompliance';
@@ -93,22 +91,6 @@ import { useAuth } from '../../store/AuthContext';
 
 const FIGMA_W = 375;
 const FIGMA_H = 812;
-
-// Apple Health / Google Health diferido a una próxima versión (2026-08-28,
-// pedido explícito). Esta app nunca ha pedido permiso de salud desde ningún
-// flujo alcanzable (requestHealthPermissions() solo vive en
-// link_device_choice_screen.tsx, pantalla sin ruta de navegación desde Home
-// -- ver docs/DEAD_SCREENS.md), así que el sync automático de más abajo
-// intentaba leer HealthKit/Health Connect sin autorización real. En iOS
-// concretamente esto es más que "no trae datos": sin la capability
-// `com.apple.developer.healthkit` (bloqueada por cuenta gratuita de Apple
-// Developer, ver docs/PENDIENTE_BACKEND_ADMIN.md) cualquier llamada real a
-// HealthKit puede crashear la app -- mismo motivo ya documentado en
-// link_device_choice_screen.tsx para ocultar la integración en iOS.
-// Apágalo aquí (una sola constante) cuando exista permiso real de la tienda
-// para usarlo: cuenta de pago de Apple Developer (HealthKit) + declaración
-// de Health Connect aprobada en Play Console (Android).
-const HEALTH_SYNC_ENABLED = false;
 
 // Fondo fijo de Home v2 (pedido explícito 2026-08-26, con 2 capturas de
 // referencia de otra app): la misma foto del hero, pero FUERA del
@@ -424,14 +406,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // de fondo mostrar (ver HERO_IMAGES arriba).
   const heroMood = getHeroMoodForHour(new Date().getHours());
   const [showMenu, setShowMenu] = useState(false);
-  // Antes: dos Switch reales (appleHealthOn por defecto en `true`, sin
-  // ninguna llamada a HealthKit/Health Connect detrás) -- parecían un ajuste
-  // persistido y funcional cuando no hacían nada. Ninguna integración de
-  // salud/wearable existe todavía en esta versión (ver
-  // docs/PENDIENTE_BACKEND_ADMIN.md, "Bloqueantes de infraestructura"), así
-  // que la fila ahora es un aviso "Próximamente", no un control.
-  const HEALTH_SYNC_COMING_SOON_NAME = Platform.OS === 'ios' ? 'Apple Health' : 'Google Health';
-
   // Nueva cabecera (estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
   const [motivationalPhrase, setMotivationalPhrase] = useState<string | null>(null);
   // Volumen muscular (misma fuente que la tarjeta "Entrenamiento" de
@@ -1103,65 +1077,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       firstLoadDone.current = true;
     }, [fetchData]),
   );
-
-  // Motor de Auto-Regulación de Carga — Fase 4, readiness score (2026-08-12).
-  // Sync de salud SOLO en primer plano, al montar Home, máximo 1 vez/día
-  // (gate por AsyncStorage) — deliberadamente sin expo-background-fetch/
-  // expo-task-manager, para no introducir una dependencia nativa nueva ni
-  // un rebuild. Corre una sola vez por sesión de la app (useEffect de
-  // montaje, no useFocusEffect — evita repetir en cada vuelta a Home).
-  useEffect(() => {
-    if (!HEALTH_SYNC_ENABLED) return;
-    const LAST_SYNC_KEY = 'health_last_sync_date';
-
-    (async () => {
-      try {
-        const today = localDateKey(new Date());
-        const lastSync = await AsyncStorage.getItem(LAST_SYNC_KEY);
-        if (lastSync === today) return;
-
-        const available = await isHealthAvailable();
-        if (!available) return;
-
-        const snapshot = await getHealthSnapshot();
-        const source: HealthDataSource = Platform.OS === 'ios' ? 'apple_health' : 'google_health';
-        const readings: HealthReading[] = [];
-
-        if (snapshot.hrv != null)
-          readings.push({ source, metric_type: 'hrv', value: snapshot.hrv, recorded_date: today });
-        if (snapshot.restingHeartRateBpm != null)
-          readings.push({
-            source,
-            metric_type: 'resting_hr',
-            value: snapshot.restingHeartRateBpm,
-            recorded_date: today,
-          });
-        if (snapshot.sleepMinutes != null)
-          readings.push({
-            source,
-            metric_type: 'sleep_hours',
-            value: Math.round((snapshot.sleepMinutes / 60) * 100) / 100,
-            recorded_date: today,
-          });
-        if (snapshot.steps != null)
-          readings.push({
-            source,
-            metric_type: 'steps',
-            value: snapshot.steps,
-            recorded_date: today,
-          });
-
-        if (readings.length > 0) {
-          await healthApi.sync(readings);
-        }
-        await AsyncStorage.setItem(LAST_SYNC_KEY, today);
-      } catch {
-        // Silencioso a propósito: el sync de salud nunca debe romper Home
-        // ni mostrar un error al cliente — es una mejora en segundo plano,
-        // no una acción que el cliente haya pedido.
-      }
-    })();
-  }, []);
 
   if (isLoading) {
     // Fondo opaco explícito -- a diferencia del render principal (más abajo),
@@ -2379,31 +2294,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
               <Text style={styles.menuSectionLabel}>Salud y dispositivos</Text>
               <Box style={styles.menuCard}>
-                <Pressable
-                  onPress={() =>
-                    showToast('Próximamente', {
-                      description: `Podrás empezar a sincronizar ${HEALTH_SYNC_COMING_SOON_NAME} en la siguiente versión de la app.`,
-                    })
-                  }>
-                  <HStack className="items-center px-4 py-3">
-                    <AppIcon
-                      name="fitness-outline"
-                      size={18}
-                      color={C.success}
-                      bg={C.success10}
-                      containerSize={r(36)}
-                      borderRadius={r(12)}
-                      style={{ marginRight: r(14) }}
-                    />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>
-                      {HEALTH_SYNC_COMING_SOON_NAME}
-                    </Text>
-                    <Box style={styles.comingSoonPill}>
-                      <Text style={styles.comingSoonPillText}>Próximamente</Text>
-                    </Box>
-                  </HStack>
-                </Pressable>
-                <Divider className="ml-4" />
                 <Pressable
                   onPress={() =>
                     showToast('Próximamente', {

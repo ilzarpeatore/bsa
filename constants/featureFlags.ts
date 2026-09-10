@@ -40,16 +40,8 @@ export const STARTUP_CHALLENGE_ENABLED = false;
 // de tienda (no son para usuarios finales), sin desmontarlas del árbol --
 // se reactivan después de este build.
 //
-// AVISO (auditoría Play Store, 2026-09-06): este flag hace doble función sin
-// que sea obvio -- además de ocultar las herramientas de dev, es también la
-// única puerta de entrada real a pages/ScreenExplorer.tsx, y por tanto a
-// MigratedLinkDeviceChoice (link_device_choice_screen.tsx), la única pantalla
-// del proyecto que llama de verdad a Health Connect
-// (isHealthAvailable()/requestHealthPermissions() de helper/health.ts) en
-// Android. app.json HOY NO declara ningún permiso de Health Connect ni
-// registra el plugin de Expo de 'react-native-health-connect' (ver nota
-// completa en link_device_choice_screen.tsx) -- si se activa este flag en un
-// build que se vaya a subir a Play Console (no solo para QA interno), hay
-// que resolver antes esa declaración de permisos/plugin, o la pantalla
-// fallará en un dispositivo real al pedir el permiso del sistema.
+// (auditoría Play Store 2026-09-06: este flag también era la única puerta de
+// entrada real a MigratedLinkDeviceChoice, la pantalla que llamaba a Health
+// Connect/HealthKit -- esa integración entera se eliminó del proyecto
+// 2026-09-10 tras el rechazo Guideline 2.2, así que esa nota ya no aplica.)
 export const DEV_TOOLS_ENABLED = false;

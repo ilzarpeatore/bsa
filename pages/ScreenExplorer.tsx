@@ -172,12 +172,6 @@ const ALL_SCREENS: ScreenItem[] = [
   // === MIGRATED - AUTH ===
   { name: 'Change Pwd', route: 'MigratedChangePwd', category: 'Migrated - Auth', file: 'change_pwd_screen.tsx', gluestackMigrated: true },
 
-  // === MIGRATED - HOME (Health Tracking) ===
-  { name: 'Emparejando', route: 'MigratedEmparejando', category: 'Migrated - Home', file: 'emparejando_screen.tsx', gluestackMigrated: true },
-  { name: 'Device Connected', route: 'MigratedDeviceConnected', category: 'Migrated - Home', file: 'device_connected_screen.tsx', gluestackMigrated: true },
-  { name: 'Link Device Choice', route: 'MigratedLinkDeviceChoice', category: 'Migrated - Home', file: 'link_device_choice_screen.tsx', gluestackMigrated: true },
-  { name: 'Link Device List', route: 'MigratedLinkDeviceList', category: 'Migrated - Home', file: 'link_device_list_screen.tsx', gluestackMigrated: true },
-
   // === MIGRATED - ONBOARDING ===
   { name: 'Assessment Result', route: 'MigratedAssessmentResult', category: 'Migrated - Onboarding', file: 'assessment_result_screen.tsx' },
 
