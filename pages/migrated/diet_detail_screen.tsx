@@ -199,13 +199,18 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
     }
   };
 
+  // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): esta rama ya no
+  // debería alcanzarse navegando dentro de la app (recipe_list_screen_v2.tsx /
+  // recipe_main_screen.tsx filtran las recetas exclusivas no accesibles antes
+  // de enlazar aquí) -- se deja como red de seguridad para un favorito
+  // guardado antes del filtro, sin sugerir compra ni sujeto ("tu coach").
   const isLockedRecipe = isRecipeMode && dietState.isPremium === 1 && dietState.isAccessible === 0;
 
   const ingredients = () =>
     isLockedRecipe ? (
       <Box style={localStyles.htmlContent}>
         <Text style={localStyles.htmlText}>
-          Contenido exclusivo de tu coach.
+          Este contenido no está disponible en este momento.
         </Text>
       </Box>
     ) : isRecipeMode ? (
@@ -234,7 +239,7 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
     isLockedRecipe ? (
       <Box style={localStyles.htmlContent}>
         <Text style={localStyles.htmlText}>
-          Contenido exclusivo de tu coach.
+          Este contenido no está disponible en este momento.
         </Text>
       </Box>
     ) : isRecipeMode ? (

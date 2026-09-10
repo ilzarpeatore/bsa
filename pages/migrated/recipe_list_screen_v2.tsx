@@ -114,15 +114,20 @@ export default function RecipeListScreenV2(props: any) {
         is_favourite: filter.isFavourite ?? undefined,
         page,
       });
-      const items = (res.data.data ?? []).map((r) => ({
-        id: r.id,
-        title: r.title,
-        recipeImage: r.recipe_image ?? undefined,
-        calories: r.calories,
-        isFavourite: !!r.is_favourite,
-        isPremium: r.is_premium,
-        isAccessible: r.is_accessible,
-      }));
+      // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): no listar recetas
+      // exclusivas que solo se desbloquean fuera de la app (cliente 1:1) -- ver
+      // mismo filtro en workout_template_list_screen.tsx.
+      const items = (res.data.data ?? [])
+        .filter((r) => !(r.is_premium && !r.is_accessible))
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          recipeImage: r.recipe_image ?? undefined,
+          calories: r.calories,
+          isFavourite: !!r.is_favourite,
+          isPremium: r.is_premium,
+          isAccessible: r.is_accessible,
+        }));
       if (page === 1) {
         setRecipeList(items);
       } else {
@@ -226,23 +231,6 @@ export default function RecipeListScreenV2(props: any) {
             />
           ) : (
             <Box className="bg-card" style={{ width: columnWidth, height: 130, borderRadius: RADIUS.sm }} />
-          )}
-          {item.isPremium && !item.isAccessible && (
-            <HStack
-              className="items-center rounded-pill"
-              style={{
-                position: 'absolute',
-                top: 8,
-                left: 8,
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                gap: 4,
-              }}
-            >
-              <Icon name="lock-closed" size={12} color="#FFFFFF" />
-              <Text size="xs" weight="semibold" style={{ color: '#FFFFFF' }}>Exclusive</Text>
-            </HStack>
           )}
         </Box>
         <Text weight="bold" size="sm" numberOfLines={2} style={{ marginTop: 8 }}>

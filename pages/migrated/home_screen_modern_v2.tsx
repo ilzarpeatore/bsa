@@ -1043,7 +1043,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       }
 
       if (workoutTemplatesRes.status === 'fulfilled') {
-        setWorkoutTemplateList((workoutTemplatesRes.value.data.data ?? []).slice(0, 3));
+        // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): no listar
+        // workouts exclusivos que solo se desbloquean fuera de la app (cliente
+        // 1:1 / paquete) -- ver mismo filtro en workout_template_list_screen.tsx.
+        const accessible = (workoutTemplatesRes.value.data.data ?? []).filter(
+          (w) => !(w.is_exclusive && !w.is_accessible)
+        );
+        setWorkoutTemplateList(accessible.slice(0, 3));
       }
 
       if (resourcesRes.status === 'fulfilled') {
@@ -2154,7 +2160,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               showsHorizontalScrollIndicator={false}
               style={{ paddingLeft: 16 }}>
               {workoutTemplateList.map((w) => {
-                const locked = w.is_exclusive && !w.is_accessible;
                 return (
                   <Pressable
                     key={w.id}
@@ -2172,12 +2177,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                       cachePolicy="memory-disk"
                       transition={200}
                     />
-                    {locked && (
-                      <Box style={styles.lockBadge}>
-                        <Icon name="lock-closed" size={11} color={'#FFFFFF'} />
-                        <Text style={styles.lockBadgeText}>Exclusivo</Text>
-                      </Box>
-                    )}
                     <Box style={styles.blogContent}>
                       <Text style={styles.blogTitle} numberOfLines={2}>
                         {w.title}

@@ -198,6 +198,12 @@ export default function WorkoutPreviewScreen(props: Props) {
   }
 
   if (workout.isExclusive && !workout.isAccessible) {
+    // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): esta rama ya no
+    // debería alcanzarse navegando dentro de la app (las listas filtran el
+    // contenido exclusivo no accesible antes de enlazar aquí, ver
+    // workout_template_list_screen.tsx / home_screen_modern_v2.tsx) -- se deja
+    // como red de seguridad para un deep link o favorito antiguo, sin ningún
+    // mensaje que sugiera comprar o hacerse cliente fuera de la app.
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <Pressable style={[styles.backBtnStatic, { marginTop: insets.top + 8 }]} onPress={() => navigation?.goBack()}>
@@ -207,7 +213,7 @@ export default function WorkoutPreviewScreen(props: Props) {
           <Icon name="lock-closed-outline" size={40} color={C.textSecondary} />
           <Text style={[styles.title, { textAlign: 'center', marginTop: 16 }]}>{workout.title}</Text>
           <Text style={[styles.emptyText, { marginTop: 8 }]}>
-            Contenido exclusivo — hazte cliente 1:1 o compra un paquete con acceso completo a Workouts.
+            Este contenido no está disponible en este momento.
           </Text>
         </Box>
       </SafeAreaView>
