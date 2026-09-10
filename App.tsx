@@ -36,7 +36,6 @@ import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
 const screenReviewNavigationRef = createNavigationContainerRef(); // registra el handler de notificaciones locales al arrancar, sin depender de visitar las pantallas de recordatorios
 
-const Home = React.lazy(() => import('@pages/Home'));
 
 const WelcomeAuthScreen = React.lazy(() => import('@pages/auth/WelcomeAuthScreen'));
 const LoginScreen = React.lazy(() => import('@pages/auth/LoginScreen'));
