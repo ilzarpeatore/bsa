@@ -61,7 +61,6 @@ const BlogScreen = React.lazy(() => import('@pages/migrated/blog_screen'));
 const BodyMetricsScreen = React.lazy(() => import('@pages/migrated/body_metrics_screen'));
 const BookmarkScreen = React.lazy(() => import('@pages/migrated/bookmark_screen'));
 const ChangePwdScreen = React.lazy(() => import('@pages/migrated/change_pwd_screen'));
-const ChattingImageScreen = React.lazy(() => import('@pages/migrated/chatting_image_screen'));
 const ChattingScreen = React.lazy(() => import('@pages/migrated/chatting_screen'));
 const CheckInsListScreen = React.lazy(() => import('@pages/migrated/checkins_list_screen'));
 const CheckInFillScreen = React.lazy(() => import('@pages/migrated/checkin_fill_screen'));
@@ -262,7 +261,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedBodyMetrics" component={BodyMetricsScreen} />
       <MStack.Screen name="MigratedBookmark" component={BookmarkScreen} />
       <MStack.Screen name="MigratedChangePwd" component={ChangePwdScreen} />
-      <MStack.Screen name="MigratedChattingImage" component={ChattingImageScreen} />
       <MStack.Screen name="MigratedChatting" component={ChattingScreen} />
       <MStack.Screen name="MigratedCheckIns" component={CheckInsListScreen} />
       <MStack.Screen name="MigratedCheckInFill" component={CheckInFillScreen} />

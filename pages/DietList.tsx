@@ -74,7 +74,7 @@ export default function DietList({ navigation }: Props) {
         }
         totalPagesRef.current = res.data?.pagination?.totalPages ?? 1;
       } catch {
-        setError("Failed to load diet list.");
+        setError("No se pudo cargar la lista de dietas.");
       } finally {
         setLoading(false);
         loadingMoreRef.current = false;
@@ -211,7 +211,7 @@ export default function DietList({ navigation }: Props) {
         <Ionicons name="search-outline" size={20} color={Colors.TEXT_MUTED} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search diets..."
+          placeholder="Buscar dietas..."
           placeholderTextColor={Colors.TEXT_MUTED}
           value={searchQuery}
           onChangeText={onSearchChange}
@@ -273,7 +273,7 @@ export default function DietList({ navigation }: Props) {
             >
               <Ionicons name="chevron-back" size={22} color="#000000" />
             </Pressable>
-            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Diet List</Text>
+            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Lista de dietas</Text>
             <View style={{ width: 40 }} />
           </View>
           <View style={styles.skeletonWrap}>
@@ -303,7 +303,7 @@ export default function DietList({ navigation }: Props) {
             >
               <Ionicons name="chevron-back" size={22} color="#000000" />
             </Pressable>
-            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Diet List</Text>
+            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Lista de dietas</Text>
             <View style={{ width: 40 }} />
           </View>
           <ErrorRetryMem message={error} onRetry={() => fetchData(selectedCategory, searchQuery, 1)} />
@@ -325,7 +325,7 @@ export default function DietList({ navigation }: Props) {
           >
             <Ionicons name="chevron-back" size={22} color="#000000" />
           </Pressable>
-          <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Diet List</Text>
+          <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Lista de dietas</Text>
           <View style={{ width: 40 }} />
         </View>
         <FlatList
@@ -335,8 +335,8 @@ export default function DietList({ navigation }: Props) {
           ListEmptyComponent={
             <EmptyStateMem
               icon="nutrition-outline"
-              title="No Diets Found"
-              message="Try a different search or category."
+              title="No se encontraron dietas"
+              message="Prueba con otra búsqueda o categoría."
             />
           }
           renderItem={renderDietItem}

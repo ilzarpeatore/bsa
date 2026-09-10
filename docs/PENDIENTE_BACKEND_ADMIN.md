@@ -2,6 +2,8 @@
 
 Compilado a partir de `docs/TAREAS.md` y `docs/ONBOARDING_V2.md` (estado a 2026-08-23). Cada item indica qué falta, por qué, y el archivo/endpoint de referencia en la app para no tener que re-investigar desde cero. El frontend (app React Native) ya está preparado/cableado para todo esto salvo que se diga lo contrario — en la mayoría de los casos solo falta la pieza de servidor.
 
+**Actualización 2026-09-10 — este documento está desactualizado, verificar en vivo antes de asumir nada de aquí.** Una auditoría contra las App Store Review Guidelines señaló varios endpoints de este documento como "no implementados todavía" (calendario, feedback, borrado de cuenta, onboarding). Se comprobó cada uno en vivo contra `https://testapp.bestronger.es` (backend real de producción, ver `api/client.ts`) con una petición sin token — una ruta que de verdad no existe responde `404 not_found`; una ruta registrada que solo le falta el token responde `401 unauthenticated`. Los 8 endpoints marcados como pendientes en este documento (`POST v1/onboarding/par-q`, `training-questionnaire`, `nutrition-questionnaire`, `complete`, `POST v1/my-calendar-move-assignments`, `POST v1/app-feedback`, `POST v1/delete-account`) devuelven **401, no 404** — es decir, **ya están registrados en el backend**. No se ha podido verificar desde esta sesión (sin token de usuario real) si la lógica de negocio detrás de cada uno es correcta, solo que la ruta existe y no es un placeholder ausente. Antes de reenviar a revisión, probar cada botón afectado con una cuenta real en TestFlight en vez de asumir que sigue roto por lo que dice el resto de este documento.
+
 ---
 
 ## Prioridad alta — bloquea features ya visibles en la app
