@@ -165,7 +165,6 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Progress', route: 'MigratedProgress', category: 'Migrated - Progress', file: 'progress_screen.tsx', gluestackMigrated: true },
   { name: 'Profile (migrated)', route: 'MigratedProfile', category: 'Migrated - Profile', file: 'profile_screen.tsx', gluestackMigrated: true },
   { name: 'Edit Profile', route: 'MigratedEditProfile', category: 'Migrated - Profile', file: 'edit_profile_screen.tsx', gluestackMigrated: true },
-  { name: 'Language', route: 'MigratedLanguage', category: 'Migrated - Profile', file: 'language_screen.tsx', gluestackMigrated: true },
   { name: 'Notification', route: 'MigratedNotification', category: 'Migrated - Profile', file: 'notification_screen.tsx', gluestackMigrated: true },
   { name: 'My Program Calendar', route: 'MigratedMyProgramCalendar', category: 'Migrated - Schedule', file: 'my_program_calendar_screen.tsx', gluestackMigrated: true },
 

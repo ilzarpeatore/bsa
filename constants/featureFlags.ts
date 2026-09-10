@@ -13,17 +13,18 @@
 export const CHAT_ENABLED = false;
 
 // Activity Tracker (MigratedActivityTracker) y Water Tracker
-// (MigratedWaterTracker) desactivados para la primera versión -- pedido
-// explícito: los usuarios todavía no pueden acceder a esas pantallas. Punto
-// de entrada único a cada una: los botones "+" de las tarjetas Agua/
-// Actividad en home_screen_modern_v2.tsx, que comprueban estos flags y
-// muestran "disponible en la próxima versión" en vez de navegar. Las
-// pantallas y sus rutas en App.tsx NO se quitan, igual que CHAT_ENABLED.
-// MigratedActivityTracker en concreto ya estaba documentada como bloqueada
-// por la falta de integración real Apple Health/Google Fit (ver
-// docs/TAREAS.md) -- sus datos son hardcodeados, sin ningún api/* real.
-export const ACTIVITY_TRACKER_ENABLED = false;
-export const WATER_TRACKER_ENABLED = false;
+// (MigratedWaterTracker) -- rechazo real Guideline 2.2 (2026-09-10): los
+// botones "+" de las tarjetas Agua/Actividad en home_screen_modern_v2.tsx
+// solo mostraban "disponible en la próxima versión", y las dos pantallas de
+// destino tampoco eran funcionales (water_tracker_screen.tsx tenía las
+// llamadas a la API comentadas; activity_tracker_screen.tsx mostraba datos
+// 100% inventados en el código). Las dos pantallas se reescribieron
+// 2026-09-10 como registro manual real (pasos/agua) contra endpoints ya
+// existentes en el backend (usergraph-save/list + user-daily-*-goal-save/
+// list) -- se activan aquí para que el "+" navegue a la pantalla real en vez
+// de mostrar el aviso.
+export const ACTIVITY_TRACKER_ENABLED = true;
+export const WATER_TRACKER_ENABLED = true;
 
 // "Reto para empezar" (StartupChecklist, home_screen_modern_v2.tsx) --
 // pedido explícito 2026-08-31: el sistema de retos todavía no está

@@ -80,7 +80,6 @@ const HomeScreenModernV2 = React.lazy(() => import('@pages/migrated/home_screen_
 const HabitsListScreen = React.lazy(() => import('@pages/migrated/habits_list_screen'));
 const HabitDetailScreen = React.lazy(() => import('@pages/migrated/habit_detail_screen'));
 const HabitAddScreen = React.lazy(() => import('@pages/migrated/habit_add_screen'));
-const LanguageScreen = React.lazy(() => import('@pages/migrated/language_screen'));
 const MuscleProgressScreen = React.lazy(() => import('@pages/migrated/muscle_progress_screen'));
 const MyProgramCalendarScreen = React.lazy(
   () => import('@pages/migrated/my_program_calendar_screen'),
@@ -280,7 +279,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedFavouriteRecipe" component={FavouriteRecipeScreen} />
       <MStack.Screen name="MigratedFavourite" component={FavouriteScreen as any} />
       <MStack.Screen name="MigratedHomeModernV2" component={HomeScreenModernV2} />
-      <MStack.Screen name="MigratedLanguage" component={LanguageScreen} />
       <MStack.Screen name="MigratedMuscleProgress" component={MuscleProgressScreen} />
       <MStack.Screen name="MigratedMyProgramCalendar" component={MyProgramCalendarScreen} />
       <MStack.Screen name="MigratedNotification" component={NotificationScreen} />

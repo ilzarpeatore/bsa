@@ -8,7 +8,6 @@ import { ForgotOptionTile } from "@components/auth/ForgotOptionTile";
 import { AuthLinkRow } from "@components/auth/AuthLinkRow";
 import { useResponsiveStyleSheet } from "@helper/responsiveStyleSheet";
 import { Colors } from "@constants/colors";
-import { showToast } from "@helper/toast";
 
 export default function ForgotPasswordOptionsScreen() {
   const navigation = useNavigation<any>();
@@ -46,11 +45,6 @@ export default function ForgotPasswordOptionsScreen() {
               icon="mail-outline"
               label="Restablecer por Email"
               onPress={() => navigation.navigate("ForgotEmail")}
-            />
-            <ForgotOptionTile
-              icon="chatbubble-outline"
-              label="Restablecer por SMS"
-              onPress={() => showToast("Próximamente", { description: "El restablecimiento por SMS estará disponible pronto.", variant: "info" })}
             />
           </View>
         </View>

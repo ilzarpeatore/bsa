@@ -1448,8 +1448,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Icon name="water" size={15} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.miniCardTitle}>Agua</Text>
                 </HStack>
-                {/* Water Tracker desactivado en esta primera versión (ver
-                    constants/featureFlags.ts, WATER_TRACKER_ENABLED). */}
+                {/* WATER_TRACKER_ENABLED (constants/featureFlags.ts) -- ver
+                    water_tracker_screen.tsx, registro manual real. */}
                 <Pressable
                   style={styles.miniCardAddBtn}
                   onPress={() =>
@@ -1484,8 +1484,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Icon name="walk" size={15} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.miniCardTitle}>Actividad</Text>
                 </HStack>
-                {/* Activity Tracker desactivado en esta primera versión (ver
-                    constants/featureFlags.ts, ACTIVITY_TRACKER_ENABLED). */}
+                {/* ACTIVITY_TRACKER_ENABLED (constants/featureFlags.ts) -- ver
+                    activity_tracker_screen.tsx, registro manual real de pasos. */}
                 <Pressable
                   style={styles.miniCardAddBtn}
                   onPress={() =>
@@ -2292,33 +2292,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Pressable>
               </Box>
 
-              <Text style={styles.menuSectionLabel}>Salud y dispositivos</Text>
-              <Box style={styles.menuCard}>
-                <Pressable
-                  onPress={() =>
-                    showToast('Próximamente', {
-                      description:
-                        'Podrás conectar tu smartwatch en una próxima versión de la app.',
-                    })
-                  }>
-                  <HStack className="items-center px-4 py-3">
-                    <AppIcon
-                      name="watch-outline"
-                      size={18}
-                      color={C.blue}
-                      bg={C.blue10}
-                      containerSize={r(36)}
-                      borderRadius={r(12)}
-                      style={{ marginRight: r(14) }}
-                    />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>Smart Watch</Text>
-                    <Box style={styles.comingSoonPill}>
-                      <Text style={styles.comingSoonPillText}>Próximamente</Text>
-                    </Box>
-                  </HStack>
-                </Pressable>
-              </Box>
-
               {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue
                   la hora del dispositivo (isNightHour en theme.ts), el usuario
                   puede fijarlo a Claro/Oscuro y eso manda hasta que vuelva a
@@ -2551,8 +2524,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   crash-reporting instalado, el switch activa/desactiva un
                   buffer real en memoria de los propios logs de la app (ver
                   helper/logger.ts), no un flag decorativo. Fila con Switch,
-                  no un botón de tap: es un ajuste persistente (igual que
-                  Apple Health/Smart Watch arriba), no una acción puntual. */}
+                  no un botón de tap: es un ajuste persistente, no una acción
+                  puntual. */}
               <Text style={styles.menuSectionLabel}>Diagnóstico</Text>
               <Box style={styles.menuCard}>
                 <HStack className="items-center px-4 py-3">

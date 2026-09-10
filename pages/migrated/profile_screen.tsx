@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Constants from 'expo-constants';
@@ -73,12 +73,6 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
         // completo en vez de dejar un "Próximamente" -- ver mismo criterio en
         // home_screen_modern_v2.tsx ("Salud y dispositivos").
         { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
-        // Desactivada para esta primera versión (pedido explícito): los
-        // usuarios todavía no pueden acceder a MigratedLanguage. Mismo
-        // patrón ya usado arriba para "Dispositivos" -- apunta al
-        // placeholder honesto MigratedComingSoon en vez de a la pantalla
-        // real, sin tocar ésta ni su ruta en App.tsx.
-        { icon: 'language-outline', title: 'Idioma', route: 'MigratedComingSoon', params: { title: 'Idioma' }, iconColor: C.success60, iconBg: C.success10 },
       ],
     },
     {
@@ -253,14 +247,17 @@ export default function ProfileScreen(props: any) {
             {/* Chat desactivado en esta primera versión (ver
                 constants/featureFlags.ts, CHAT_ENABLED) -- sin moderación ni
                 forma de reportar mensajes todavía, riesgo real de rechazo en
-                revisión de Apple/Google. */}
+                revisión de Apple/Google. Rechazo real Guideline 2.2
+                (2026-09-10): un "Próximamente" aquí es el mismo callejón sin
+                salida ya corregido en home_screen_modern_v2.tsx -- mismo
+                fix, WhatsApp directo en vez de un aviso. */}
             <Pressable
               className="flex-1 rounded-lg"
               style={{ backgroundColor: C.surface, padding: 16 }}
               onPress={() =>
                 CHAT_ENABLED
                   ? props.navigation?.navigate('MigratedChatting', { isDirect: true })
-                  : Alert.alert('Próximamente', 'Podrás chatear con el soporte en la próxima versión de la app.')
+                  : Linking.openURL('https://wa.me/34643991086')
               }
             >
               <AppIcon name="chatbubble-ellipses-outline" size={18} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
