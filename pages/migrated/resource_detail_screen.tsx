@@ -11,6 +11,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { resourcesApi, ResourceListItem } from '../../api/resources';
+import { RADIUS } from './theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -46,14 +47,32 @@ const renderYouTubeEmbeds = (html: string): string => {
 // el momento de cargar el módulo -- convertido a función para que el HTML
 // generado use siempre los colores del tema actual (claro/oscuro).
 //
+// Qué está realmente sincronizado con el resto de la app y qué no
+// (pregunta explícita 2026-08-30):
+// - Colores (todo lo que usa `${C....}`): SÍ, de verdad. `C` viene de
+//   useAppColorMode(), el mismo hook que pinta cualquier botón/pantalla
+//   nativa; esta función se vuelve a ejecutar en cada render del
+//   componente, así que al cambiar de tema el WebView recibe un `<style>`
+//   nuevo con los valores de ese momento (no son variables CSS "vivas",
+//   es la app quien reconstruye el HTML).
+// - Curvaturas (`border-radius`): SÍ, pero solo porque se leen de
+//   `RADIUS` (./theme.ts) en vez de estar escritas a mano -- ese token es
+//   estático (no cambia con el tema), pero es la misma fuente que usa el
+//   resto de la app, no un número inventado que coincida por casualidad.
+// - Tipografía, paddings, tamaños de tabla: NO. Son números fijos en este
+//   archivo (14px, 12px de padding, etc.), no leídos de ningún token de
+//   la app -- una elección de diseño razonable para este wrapper genérico,
+//   pero si algún día se quiere igualar pixel a pixel con GuideBlocks.tsx,
+//   son estos los valores a revisar.
+//
 // Clases .box/.box-info/.box-success/.box-warning/.box-danger (pedido
 // explícito 2026-08-30, para migrar las guías estáticas de GuideBlocks a
 // Recursos sin perder su lenguaje visual): mismos tokens de color que
 // HighlightBox en components/GuideBlocks.tsx (C.orange10/blue10/success10/
-// warning10/destructive10), recalculados en cada render con el tema actual
-// -- un recurso que use estas clases respeta claro/oscuro igual que el
-// resto del wrapper, a diferencia de un documento HTML completo con su
-// propio <style> fijo (ver docs/PENDIENTE_BACKEND_ADMIN.md).
+// warning10/destructive10) -- un recurso que use estas clases respeta
+// claro/oscuro igual que el resto del wrapper, a diferencia de un
+// documento HTML completo con su propio <style> fijo (ver
+// docs/PENDIENTE_BACKEND_ADMIN.md).
 function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): string {
   return `<!DOCTYPE html>
 <html>
@@ -61,7 +80,7 @@ function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): stri
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     body { margin:0; padding:0; background-color:${C.surface}; color:${C.textPrimary}; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
-    img { max-width:100%; height:auto; border-radius:8px; margin:8px 0; }
+    img { max-width:100%; height:auto; border-radius:${RADIUS.xs}px; margin:8px 0; }
     p, li { font-size:15px; line-height:1.7; color:${C.textSecondary}; margin:8px 0; }
     h1 { color:${C.textPrimary}; font-size:24px; margin:4px 0 6px; }
     h2 { color:${C.textPrimary}; font-size:20px; margin:22px 0 10px; padding-bottom:8px; border-bottom:1px solid ${C.orange10}; }
@@ -74,8 +93,8 @@ function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): stri
     th { background:${C.blue60}; color:#FFFFFF; }
     blockquote { border-left:3px solid ${C.accentBlack}; padding-left:12px; margin:12px 0; color:${C.textSecondary}; }
     a { color:${C.blue60}; }
-    iframe { border-radius:12px; }
-    .box { border-left:4px solid ${C.orange}; background:${C.orange10}; padding:12px 14px; border-radius:8px; margin:14px 0; }
+    iframe { border-radius:${RADIUS.sm}px; }
+    .box { border-left:4px solid ${C.orange}; background:${C.orange10}; padding:12px 14px; border-radius:${RADIUS.sm}px; margin:14px 0; }
     .box p, .box li { color:${C.textPrimary}; margin:4px 0; }
     .box .box-title { display:block; color:${C.orange60}; font-weight:700; margin-bottom:6px; }
     .box-info { border-left-color:${C.blue}; background:${C.blue10}; }
