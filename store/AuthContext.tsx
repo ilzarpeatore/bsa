@@ -6,6 +6,7 @@ import { onboardingV2Api } from '../api/onboardingV2';
 import { setLogoutHandler } from '../api/client';
 import { getToken, setToken, removeToken } from '../helper/secureToken';
 import { ACTIVE_SESSION_STORAGE_KEY } from '../helper/workoutSessionBus';
+import { registerPushTokenAsync } from '../helper/pushNotifications';
 import logger from '../helper/logger';
 
 interface AuthState {
@@ -210,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       const onboardingCompleted = await resolveOnboardingCompleted(user);
       dispatch({ type: 'RESTORE_TOKEN', token, user, onboardingCompleted });
+      if (token) void registerPushTokenAsync();
     } catch {
       dispatch({ type: 'RESTORE_TOKEN', token: null, user: null, onboardingCompleted: false });
     }
@@ -227,6 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
     const onboardingCompleted = await resolveOnboardingCompleted(userData);
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
+    void registerPushTokenAsync();
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload) => {
@@ -237,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
     const onboardingCompleted = await resolveOnboardingCompleted(userData);
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
+    void registerPushTokenAsync();
   }, []);
 
   // Pedido explícito 2026-08-29: la screen de registro aparte desaparece --
@@ -261,6 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem(onboardingCompletedKey(userData.id), 'true');
     }
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted: onboardingCompletedNow });
+    void registerPushTokenAsync();
   }, []);
 
   const logout = useCallback(async () => {

@@ -38,7 +38,10 @@
       "policy": "sdkVersion"
     },
     "extra": {
-      "apiBaseUrl": "https://testapp.bestronger.es/api"
+      "apiBaseUrl": "https://testapp.bestronger.es/api",
+      "eas": {
+        "projectId": "e4a24c99-7e50-462c-a430-e2843f03846d"
+      }
     },
     "experiments": {
       "tsconfigPaths": true
