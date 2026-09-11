@@ -53,6 +53,26 @@ function formatLastPerformance(ex: UnifiedExercise): string | null {
   return `${parts.join(' × ')} · ${sets.length} ${sets.length === 1 ? 'serie' : 'series'}`;
 }
 
+// Motor de Auto-Regulación de Carga: texto de la sugerencia para este
+// ejercicio -- ex.prescribed (sets) ya trae la carga final aplicada cuando
+// el motor la aprobó automáticamente, así que aquí solo se anuncia QUÉ pasó
+// y con qué valor propuesto, no se recalcula nada.
+function formatLoadSuggestion(suggestion: NonNullable<UnifiedExercise['loadSuggestion']>): string {
+  const parts: string[] = [];
+  if (suggestion.proposed_weight != null) parts.push(`${suggestion.proposed_weight} kg`);
+  if (suggestion.proposed_reps != null) parts.push(`${suggestion.proposed_reps} reps`);
+  const value = parts.length > 0 ? parts.join(' × ') : null;
+
+  if (suggestion.status === 'pendiente') {
+    return value
+      ? `Tu entrenador está revisando un ajuste a ${value}`
+      : 'Tu entrenador está revisando un ajuste de carga para este ejercicio';
+  }
+  return value
+    ? `El motor ajustó la carga a ${value}`
+    : 'El motor ajustó la carga de este ejercicio';
+}
+
 // El gate diario de readiness (formulario obligatorio salvo que el admin lo
 // desactive para este cliente, un registro por usuario/dia -- backend:
 // daily_readiness_checks) vive en components/ReadinessWizard.tsx desde el
@@ -347,6 +367,22 @@ export default function WorkoutPreviewScreen(props: Props) {
                       </>
                     )}
 
+                    {ex.loadSuggestion ? (
+                      <>
+                        <Divider style={{ marginTop: 10 }} />
+                        <HStack space="xs" className="items-center" style={{ paddingTop: 10 }}>
+                          <Icon
+                            name={ex.loadSuggestion.status === 'pendiente' ? 'hourglass-outline' : 'trending-up'}
+                            size={15}
+                            color={C.orange60}
+                          />
+                          <Text style={styles.loadSuggestionText} numberOfLines={2}>
+                            {formatLoadSuggestion(ex.loadSuggestion)}
+                          </Text>
+                        </HStack>
+                      </>
+                    ) : null}
+
                     {ex.coachNotes ? (
                       <Pressable
                         style={styles.coachNoteBanner}
@@ -515,6 +551,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontFamily: FONT.medium,
     fontSize: 12,
     color: C.textSecondary,
+    flex: 1,
+  },
+  loadSuggestionText: {
+    fontFamily: FONT.medium,
+    fontSize: 12,
+    color: C.orange60,
     flex: 1,
   },
   coachNoteBanner: {
