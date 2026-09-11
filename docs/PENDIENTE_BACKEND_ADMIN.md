@@ -119,6 +119,32 @@ El pedido original era "que el entrenador o administrador pueda borrar el post d
 
 ---
 
+## Motor de Auto-Regulación de Carga — integración en el admin panel (2026-09-11)
+
+El backend (`Bckbs`) completó esta sesión el plan de optimización del motor (16 Rondas, 45 ítems — RIR/e1RM/ACWR, reglas de progresión configurables, sustitución de ejercicio, feed de logros, readiness, planes semanales adaptativos, periodización/deload). Nada de esto es visible ni gestionable desde ningún panel hoy: el panel React (`admin-testapp.bestronger.es`) vive sin control de versiones en la VPS (`/var/www/testapp/admin`, sin `.git` propio, en proceso de subirse a un repo nuevo) y no se ha podido auditar todavía qué consume ya de esto y qué no. Lo de abajo asume que ninguna de estas piezas está conectada — verificar contra el código real del panel en cuanto tenga repo.
+
+### Prioridad alta — sin ningún endpoint, bloquea la gestión del coach por completo
+
+- **Sustituciones de ejercicio (`exercise_substitutions`)** — cero endpoints, ni admin ni coach. La tabla existe (`coach_id`, `original_exercise_id`, `substitute_exercise_id`, `category`, `carga_ratio`) y el motor ya la consume (`SessionProgressionRuleEngine::findSubstitution()`, prioriza `category` según el motivo inferido de la regla; `carga_ratio` propone peso de arranque), pero hoy solo se pueden crear/editar filas a mano en la base de datos — ningún coach puede configurar sus propias variantes de ejercicio. Falta: `GET/POST/PUT/DELETE` (listar por coach, crear, editar, borrar) + pantalla nueva en el panel (selector de ejercicio original → ejercicio sustituto, categoría de motivo, ratio de carga opcional).
+- **Achievement events / feed de logros** — sin ningún endpoint admin de listado. Esta sesión añadió 2 tipos nuevos (`MEJOR_MARCA_RECIENTE`, `MANTIENE_FUERZA_EN_DEFICIT`, además de `PR_CARGA`/`MEJORA_E1RM`/`PR_REPS` ya existentes) — el cliente los recibe por notificación, pero no hay ningún sitio para que el coach los revise por cliente/ejercicio. Falta `GET` (filtrable por cliente, tipo, rango de fechas) + pantalla de listado.
+- **Readiness scores** — sin ningún endpoint admin. Solo existen `readiness-today`/`readiness-store`/`readiness-summary` para que el propio cliente vea los suyos; el coach no tiene forma de consultar el `band`/`combined_score`/`acwr` de un cliente concreto antes de decidir algo. Falta `GET` admin (por cliente, rango de fechas) + pantalla o pestaña en la ficha del cliente.
+
+### Prioridad media — el backend ya tiene API admin, falta confirmar/construir la UI que la consuma
+
+- **Reglas de progresión** (`SessionProgressionRuleController`) — CRUD completo ya existe: `GET/POST/PUT/DELETE admin/session-progression/rules`, más `simulate`, `shadow-evaluations` y `audit` por regla. Incluye el campo nuevo de esta sesión `min_condiciones_requeridas` (operador "N de M condiciones" en un grupo de condiciones, en vez de exigir todas) — confirmar que el formulario de condiciones del panel ya lo soporta; si no, es el único campo que faltaría añadir a un formulario que probablemente ya existe para el resto de columnas.
+- **Sugerencias de progresión pendientes** — `POST admin/session-progression/suggestions/{id}/approve|edit|reject` ya existen. Falta confirmar si hay una bandeja en el panel que las liste y permita actuar.
+- **Planes semanales adaptativos** — `POST admin/adaptive-week-plans/{id}/approve|reject` ya existen (además de los propios del coach: `generate`/`approve`/`reject`/`request-unavailable`). Falta confirmar si el panel ya tiene una pantalla de revisión.
+- **Excepciones de coach** (Panel de Excepciones) — `GET admin/coach-exceptions` + `coaches`/`unread-summary` + `POST .../resolve|dismiss` ya existen — por los nombres y por tener `resolved_by`/`resolved_at`, parece la pieza más probable de estar YA conectada en el panel real; confirmar en cuanto se pueda leer el código.
+- **Override de experiencia del cliente** (Ronda 7) — `POST admin-onboarding-training-experience-update` ya existe (meses de experiencia real + nivel de técnica, prioridad sobre lo autoevaluado por el cliente). Requiere que el cliente ya tenga fila en `training_questionnaire_answers` (devuelve 422 si no) — falta un formulario simple en la ficha del cliente.
+
+### Prioridad baja — feature nueva de esta sesión, sin caso de uso real todavía
+
+- **Marcar semana de descarga planificada** (Ronda 16, `is_deload`) — `POST training-program-mark-week-deload` es coach-facing (no admin), recién creado, sin ningún botón/toggle en ningún panel. Sin UI, el flag es inalcanzable en la práctica — mismo riesgo que el modelador de deload que se retiró antes por no usarse nunca (ver `docs/Motor_Autorregulacion_Analisis.md` en `Bckbs`, Ronda 16). Falta un toggle por semana en la vista de gestión del mesociclo del coach.
+
+Contrato completo de cada endpoint (payloads, modelos, migraciones) en `Bckbs`: `docs/Motor_Autorregulacion_Analisis.md` (plan completo) y `docs/Handoff_Rondas1-6_Verificacion.md` (detalle de implementación + checklist de verificación pendiente contra BD real, todavía sin hacer).
+
+---
+
 ## Pagos — checkout externo (no es trabajo de este backend/admin, pero es el bloqueante real)
 
 La compra **dentro de la app se eliminó por completo** (cumplimiento de políticas de Apple/Google): el cliente paga en la web `bestronger.es`, la app es solo login + contenido ya desbloqueado. Todo el lado de este repo/backend/admin ya está construido y verificado en producción:
