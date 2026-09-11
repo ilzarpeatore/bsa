@@ -10,7 +10,6 @@ import {  Spinner  } from '@components/ui/spinner';
 import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
 import {  Button  } from '@components/ui/button';
-import {  Badge, BadgeText  } from '@components/ui/badge';
 import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useResponsiveStyleSheet  } from '@helper/responsiveStyleSheet';
@@ -68,6 +67,13 @@ function mapRecipe(r: RecipeListItem): RecipeCardItem {
   };
 }
 
+// App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): no listar recetas
+// exclusivas que solo se desbloquean fuera de la app (cliente 1:1) -- ver
+// mismo filtro en workout_template_list_screen.tsx.
+function isRecipeAccessible(r: RecipeListItem): boolean {
+  return !(r.is_premium && !r.is_accessible);
+}
+
 export default function RecipeMainScreen(props: any) {
   const { colors: C } = useAppColorMode();
   const s = useMemo(() => createStyles(C), [C]);
@@ -97,10 +103,13 @@ export default function RecipeMainScreen(props: any) {
         recipesApi.getFilteredList({ page: 1 }),
         ...MEAL_SECTIONS.map((section) => recipesApi.getFilteredList({ meal_type: [section.key], page: 1 })),
       ]);
-      setFeaturedRecipes((featuredRes.data.data ?? []).slice(0, 6).map(mapRecipe));
+      setFeaturedRecipes((featuredRes.data.data ?? []).filter(isRecipeAccessible).slice(0, 6).map(mapRecipe));
       const nextSections: Record<string, RecipeCardItem[]> = {};
       MEAL_SECTIONS.forEach((section, index) => {
-        nextSections[section.key] = (sectionResponses[index].data.data ?? []).slice(0, 6).map(mapRecipe);
+        nextSections[section.key] = (sectionResponses[index].data.data ?? [])
+          .filter(isRecipeAccessible)
+          .slice(0, 6)
+          .map(mapRecipe);
       });
       setMealSections(nextSections);
     } catch (e) {
@@ -126,7 +135,7 @@ export default function RecipeMainScreen(props: any) {
     }
     try {
       const res = await recipesApi.getFilteredList({ title: query, per_page: 20, page });
-      const items = (res.data.data ?? []).map(mapRecipe);
+      const items = (res.data.data ?? []).filter(isRecipeAccessible).map(mapRecipe);
       setSearchResults((prev) => (page === 1 ? items : [...prev, ...items]));
       const totalPages = res.data?.pagination?.totalPages ?? 1;
       searchIsLastPageRef.current = page >= totalPages;
@@ -203,12 +212,6 @@ export default function RecipeMainScreen(props: any) {
           <Image source={{ uri: item.image }} style={s.recipeImage} contentFit="cover" />
         ) : (
           <Box style={[s.recipeImage, { backgroundColor: C.surfaceLight }]} />
-        )}
-        {item.isPremium && !item.isAccessible && (
-          <Badge action="muted" className="bg-black/60" style={{ position: 'absolute', top: 8, left: 8 }}>
-            <Icon name="lock-closed" size={11} className="text-white" />
-            <BadgeText className="text-white" style={{ fontSize: 11 }}>Exclusive</BadgeText>
-          </Badge>
         )}
         <Pressable
           style={s.favBtn}

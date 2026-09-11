@@ -87,7 +87,12 @@ function WorkoutsFavContent({ navigation }: { navigation: any }) {
     setIsLoading(true);
     try {
       const res = await workoutTemplateApi.getFavourite(1, 50);
-      setWorkouts(res.data.data ?? []);
+      // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): mismo filtro que
+      // workout_template_list_screen.tsx -- un template marcado favorito antes de
+      // dejar de ser accesible no debe listarse aqui, para no llevar al callejon
+      // sin salida de workout_preview_screen.tsx.
+      const data = (res.data.data ?? []).filter((item: any) => !(item.is_exclusive && !item.is_accessible));
+      setWorkouts(data);
     } catch (e) {
       logger.error(e);
     } finally {
@@ -161,7 +166,12 @@ function RecipesFavContent({ navigation }: { navigation: any }) {
     setIsLoading(true);
     try {
       const res = await recipesApi.getFavourite(1);
-      setRecipes(res.data.data ?? []);
+      // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): mismo filtro que
+      // recipe_main_screen.tsx / recipe_list_screen_v2.tsx -- una receta marcada
+      // favorita antes de dejar de ser accesible no debe listarse aqui, para no
+      // llevar al callejon sin salida de diet_detail_screen.tsx.
+      const data = (res.data.data ?? []).filter((item: any) => !(item.is_premium && !item.is_accessible));
+      setRecipes(data);
     } catch (e) {
       logger.error(e);
     } finally {

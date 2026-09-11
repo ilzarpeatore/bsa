@@ -8,21 +8,22 @@ import AnimatedRing from '@components/AnimatedRing';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  waterApi  } from '../../api/water';
+import logger from '@helper/logger';
 
-type WaterChartFilter = 'week' | 'month' | 'year' | 'every';
+// Mismo tamaño de vaso que la mini-tarjeta de Inicio (home_screen_modern_v2.tsx,
+// GLASS_SIZE_ML) -- se guarda siempre en mL (nombre real del campo del
+// backend, `goal_ml`) para que ambas pantallas muestren el mismo número.
+const GLASS_SIZE_ML = 250;
 
-const FILTER_LABELS: Record<WaterChartFilter, string> = {
-  week: 'Semana',
-  month: 'Mes',
-  year: 'Año',
-  every: 'Todo',
-};
+function todayDateKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+}
 
 export default function WaterTrackerScreen(props: any) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
-  // Dentro del componente (no a nivel de módulo) para poder capturar `C` y
-  // `styles` -- ambos dependen del tema en vivo.
   const roundBtn = (icon: string, onPress: () => void) => (
     <Pressable style={({ pressed }) => [styles.roundBtn, pressed && { opacity: 0.2 }]} onPress={onPress}>
       <Ionicons name={icon as any} size={24} color={C.blue} />
@@ -31,11 +32,10 @@ export default function WaterTrackerScreen(props: any) {
   const [logValue, setLogValue] = useState(0);
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalText, setGoalText] = useState('');
-  const [consumed, setConsumed] = useState(0);
-  const [dailyGoal, setDailyGoal] = useState(0);
-  const [currentFilter, setCurrentFilter] = useState<WaterChartFilter>('week');
-  const [logList, setLogList] = useState<any[]>([]);
+  const [consumedMl, setConsumedMl] = useState(0);
+  const [dailyGoalGlasses, setDailyGoalGlasses] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     initWaterData();
@@ -43,18 +43,36 @@ export default function WaterTrackerScreen(props: any) {
 
   const initWaterData = async () => {
     setIsLoading(true);
+    const today = todayDateKey();
     try {
-      // await waterController.init() equivalent
-      // Load consumed, dailyGoal, logList from API
+      const [goalRes, logRes] = await Promise.all([
+        waterApi.getGoalList(today),
+        waterApi.getTodayLog(today),
+      ]);
+      const goalItems = goalRes.data.data ?? [];
+      const latestGoal = goalItems.reduce<typeof goalItems[number] | null>(
+        (max, item) => (!max || item.id > max.id ? item : max),
+        null
+      );
+      setDailyGoalGlasses(latestGoal ? Math.round(latestGoal.goal_ml / GLASS_SIZE_ML) : 0);
+
+      const logItems = logRes.data.data ?? [];
+      const latestLog = logItems.reduce<typeof logItems[number] | null>(
+        (max, item) => (!max || item.id > max.id ? item : max),
+        null
+      );
+      setConsumedMl(latestLog ? Number(latestLog.value) || 0 : 0);
     } catch (e) {
+      logger.error(e);
+      showToast('Error', { description: 'No se pudo cargar tu registro de agua.', variant: 'error' });
     } finally {
       setIsLoading(false);
     }
   };
 
   const getBannerText = () => {
-    if (dailyGoal === 0) return 'Configura tu objetivo diario de agua';
-    const diff = dailyGoal - consumed;
+    if (dailyGoalGlasses === 0) return 'Configura tu objetivo diario de agua';
+    const diff = dailyGoalGlasses - consumedGlasses;
     if (diff > 0) return `Solo ${diff} vasos para alcanzar tu objetivo`;
     if (diff === 0) return '¡Has alcanzado tu objetivo diario!';
     return `Has superado tu objetivo por ${Math.abs(diff)} vasos`;
@@ -69,7 +87,7 @@ export default function WaterTrackerScreen(props: any) {
   };
 
   const logNow = async () => {
-    if (dailyGoal === 0) {
+    if (dailyGoalGlasses === 0) {
       showToast('Info', { description: 'Configura primero tu objetivo diario de agua', variant: 'info' });
       return;
     }
@@ -78,35 +96,41 @@ export default function WaterTrackerScreen(props: any) {
       return;
     }
 
-    const total = consumed + logValue;
-    const now = new Date();
-    const currentDate = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-
-    const req = {
-      value: total,
-      date: currentDate,
-      time: currentTime,
-    };
-
+    const totalMl = consumedMl + logValue * GLASS_SIZE_ML;
+    setIsSaving(true);
     try {
-      // await setUserDailyWaterGoalApi(req);
+      await waterApi.logIntake(totalMl, todayDateKey());
+      setConsumedMl(totalMl);
       setLogValue(0);
-      await initWaterData();
     } catch (e) {
+      logger.error(e);
+      showToast('Error', { description: 'No se pudo registrar el agua. Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const saveGoal = async () => {
     const goal = parseInt(goalText, 10);
-    if (!isNaN(goal) && goal > 0) {
-      setDailyGoal(goal);
+    if (isNaN(goal) || goal <= 0) {
+      showToast('Info', { description: 'Introduce un número de vasos válido', variant: 'info' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await waterApi.saveGoal(goal * GLASS_SIZE_ML, todayDateKey());
+      setDailyGoalGlasses(goal);
       setEditingGoal(false);
-      // await waterController.saveGoal()
+    } catch (e) {
+      logger.error(e);
+      showToast('Error', { description: 'No se pudo guardar el objetivo. Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const progress = dailyGoal > 0 ? Math.min(consumed / dailyGoal, 1) : 0;
+  const consumedGlasses = Math.floor(consumedMl / GLASS_SIZE_ML);
+  const progress = dailyGoalGlasses > 0 ? Math.min(consumedGlasses / dailyGoalGlasses, 1) : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -131,7 +155,7 @@ export default function WaterTrackerScreen(props: any) {
           <AnimatedRing size={240} strokeWidth={12} percent={progress * 100} color={C.blue} trackColor={C.gray10}>
             <View style={styles.progressInner}>
               <Ionicons name="water" size={60} color={C.blue} />
-              <Text style={styles.consumedValue}>{consumed}</Text>
+              <Text style={styles.consumedValue}>{consumedGlasses}</Text>
               <Text style={styles.glassesLabel}>Vasos</Text>
             </View>
           </AnimatedRing>
@@ -145,8 +169,16 @@ export default function WaterTrackerScreen(props: any) {
         </View>
 
         {/* Log Now Button */}
-        <Pressable style={({ pressed }) => [styles.logBtn, pressed && { opacity: 0.2 }]} onPress={logNow}>
-          <Text style={styles.logBtnText}>Registrar ahora</Text>
+        <Pressable
+          style={({ pressed }) => [styles.logBtn, pressed && { opacity: 0.2 }, isSaving && { opacity: 0.5 }]}
+          onPress={logNow}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.logBtnText}>Registrar ahora</Text>
+          )}
         </Pressable>
 
         {/* Daily Goal Card */}
@@ -184,44 +216,9 @@ export default function WaterTrackerScreen(props: any) {
               </Pressable>
             </View>
           ) : (
-            <Text style={styles.goalValue}>{dailyGoal} vasos</Text>
+            <Text style={styles.goalValue}>{dailyGoalGlasses} vasos</Text>
           )}
         </LinearGradient>
-
-        {/* Chart Section */}
-        {logList.length > 0 && dailyGoal !== 0 && (
-          <View style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>Consumo diario de agua</Text>
-              <View style={styles.filterRow}>
-                {(['week', 'month', 'year', 'every'] as WaterChartFilter[]).map((filter) => (
-                  <Pressable
-                    key={filter}
-                    style={({ pressed }) => [
-                      styles.filterChip,
-                      currentFilter === filter && styles.filterChipActive,
-                      pressed && { opacity: 0.2 },
-                    ]}
-                    onPress={() => setCurrentFilter(filter)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        currentFilter === filter && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {FILTER_LABELS[filter]}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            {/* Chart placeholder */}
-            <View style={styles.chartPlaceholder}>
-              <Text style={styles.chartPlaceholderText}>Área del gráfico</Text>
-            </View>
-          </View>
-        )}
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -372,56 +369,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontFamily: FONT.bold,
     fontSize: 14,
     color: C.orange,
-  },
-  chartCard: {
-    backgroundColor: C.surfaceLight,
-    borderRadius: RADIUS.md,
-    padding: 12,
-    marginTop: 30,
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  chartTitle: {
-    fontFamily: FONT.bold,
-    fontSize: 17,
-    color: C.textPrimary,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  filterChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  filterChipActive: {
-    backgroundColor: C.blue10,
-  },
-  filterChipText: {
-    fontFamily: FONT.regular,
-    fontSize: 12,
-    color: C.textSecondary,
-  },
-  filterChipTextActive: {
-    color: C.blue,
-  },
-  chartPlaceholder: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chartPlaceholderText: {
-    fontFamily: FONT.regular,
-    fontSize: 14,
-    color: C.gray40,
   },
   loaderOverlay: {
     ...StyleSheet.absoluteFill,

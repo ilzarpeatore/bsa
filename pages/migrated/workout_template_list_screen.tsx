@@ -32,7 +32,12 @@ export default function WorkoutTemplateListScreen(props: any) {
     setIsLoading(true);
     try {
       const res = await workoutTemplateApi.getList(page, 20);
-      const data = res.data.data ?? [];
+      // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): mostrar contenido
+      // exclusivo que solo se desbloquea haciéndose cliente 1:1 o comprando un
+      // paquete fuera de la app es un callejón sin salida para el revisor y
+      // contenido de pago sin IAP. Se filtra aquí, en el origen, en vez de solo
+      // ocultar el badge -- así nunca se navega a algo que no se puede ver.
+      const data = (res.data.data ?? []).filter((item) => !(item.is_exclusive && !item.is_accessible));
       if (page === 1) {
         setItems(data);
       } else {
@@ -61,7 +66,6 @@ export default function WorkoutTemplateListScreen(props: any) {
 
   const renderWorkoutItem = useCallback(
     ({ item }: { item: WorkoutTemplateListItem }) => {
-      const locked = item.is_exclusive && !item.is_accessible;
       return (
         <Pressable
           style={{ width: columnWidth, marginBottom: 16 }}
@@ -77,26 +81,6 @@ export default function WorkoutTemplateListScreen(props: any) {
             style={{ width: columnWidth, height: 140, borderRadius: RADIUS.sm }}
             contentFit="cover"
           />
-          {locked && (
-            <Box
-              className="flex-row items-center"
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                borderRadius: RADIUS.sm,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                gap: 4,
-              }}
-            >
-              <Icon name="lock-closed" size={14} color="#FFFFFF" />
-              <Text size="xs" weight="semibold" style={{ color: '#FFFFFF' }}>
-                Exclusive
-              </Text>
-            </Box>
-          )}
           <Text weight="bold" numberOfLines={1} style={{ marginTop: 8 }}>
             {item.title}
           </Text>

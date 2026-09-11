@@ -165,18 +165,11 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Progress', route: 'MigratedProgress', category: 'Migrated - Progress', file: 'progress_screen.tsx', gluestackMigrated: true },
   { name: 'Profile (migrated)', route: 'MigratedProfile', category: 'Migrated - Profile', file: 'profile_screen.tsx', gluestackMigrated: true },
   { name: 'Edit Profile', route: 'MigratedEditProfile', category: 'Migrated - Profile', file: 'edit_profile_screen.tsx', gluestackMigrated: true },
-  { name: 'Language', route: 'MigratedLanguage', category: 'Migrated - Profile', file: 'language_screen.tsx', gluestackMigrated: true },
   { name: 'Notification', route: 'MigratedNotification', category: 'Migrated - Profile', file: 'notification_screen.tsx', gluestackMigrated: true },
   { name: 'My Program Calendar', route: 'MigratedMyProgramCalendar', category: 'Migrated - Schedule', file: 'my_program_calendar_screen.tsx', gluestackMigrated: true },
 
   // === MIGRATED - AUTH ===
   { name: 'Change Pwd', route: 'MigratedChangePwd', category: 'Migrated - Auth', file: 'change_pwd_screen.tsx', gluestackMigrated: true },
-
-  // === MIGRATED - HOME (Health Tracking) ===
-  { name: 'Emparejando', route: 'MigratedEmparejando', category: 'Migrated - Home', file: 'emparejando_screen.tsx', gluestackMigrated: true },
-  { name: 'Device Connected', route: 'MigratedDeviceConnected', category: 'Migrated - Home', file: 'device_connected_screen.tsx', gluestackMigrated: true },
-  { name: 'Link Device Choice', route: 'MigratedLinkDeviceChoice', category: 'Migrated - Home', file: 'link_device_choice_screen.tsx', gluestackMigrated: true },
-  { name: 'Link Device List', route: 'MigratedLinkDeviceList', category: 'Migrated - Home', file: 'link_device_list_screen.tsx', gluestackMigrated: true },
 
   // === MIGRATED - ONBOARDING ===
   { name: 'Assessment Result', route: 'MigratedAssessmentResult', category: 'Migrated - Onboarding', file: 'assessment_result_screen.tsx' },
@@ -195,7 +188,6 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Exercise Info (implementacion unica; el antiguo alias root ExerciseInfo apuntaba al mismo archivo y se elimino de este listado)', route: 'MigratedExerciseInfo', category: 'Migrated - Exercise', file: 'exercise_info_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Template List', route: 'MigratedWorkoutTemplateList', category: 'Migrated - Workout', file: 'workout_template_list_screen.tsx', gluestackMigrated: true },
   { name: 'Chatting', route: 'MigratedChatting', category: 'Migrated - Social', file: 'chatting_screen.tsx', gluestackMigrated: true },
-  { name: 'Chatting Image', route: 'MigratedChattingImage', category: 'Migrated - Social', file: 'chatting_image_screen.tsx', gluestackMigrated: true },
   { name: 'Habits List', route: 'MigratedHabits', category: 'Migrated - Habits', file: 'habits_list_screen.tsx', gluestackMigrated: true },
   { name: 'Habit Detail', route: 'MigratedHabitDetail', category: 'Migrated - Habits', file: 'habit_detail_screen.tsx', gluestackMigrated: true },
   { name: 'Habit Add', route: 'MigratedHabitAdd', category: 'Migrated - Habits', file: 'habit_add_screen.tsx', gluestackMigrated: true },

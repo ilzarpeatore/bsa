@@ -15,6 +15,8 @@ export default function ComingSoonScreen(props: Props) {
   const { colors: C } = useAppColorMode();
   const { navigation, route } = props;
   const title: string = route?.params?.title || 'Próximamente';
+  const description: string =
+    route?.params?.description || 'Estamos trabajando en esta pantalla. Vuelve pronto.';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
@@ -28,7 +30,7 @@ export default function ComingSoonScreen(props: Props) {
           <Icon name="construct-outline" size={30} className="text-muted-foreground" />
         </Box>
         <Text weight="bold" size="lg" className="text-center">{title}</Text>
-        <Text muted className="text-center" style={{ marginTop: 8 }}>Estamos trabajando en esta pantalla. Vuelve pronto.</Text>
+        <Text muted className="text-center" style={{ marginTop: 8 }}>{description}</Text>
       </Box>
     </SafeAreaView>
   );

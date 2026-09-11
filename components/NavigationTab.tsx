@@ -17,6 +17,7 @@ import { Text } from "@components/ui/text";
 import { FONT } from "../pages/migrated/theme";
 import { useAppColorMode } from "@helper/useAppColorMode";
 import { useTabBarScroll } from "@store/TabBarScrollContext";
+import { COMMUNITY_ENABLED } from "@constants/featureFlags";
 
 // Espacio que las pantallas RAÍZ de una pestaña (las únicas que muestran
 // esta barra flotante -- ver tabBarVisible en App.tsx) deben reservar al
@@ -49,13 +50,16 @@ interface QuickAction {
 // fija como "Inicio" (sustituyendo a Perfil, que pasaba desapercibido ahí
 // -- ver App.tsx Homenavigator), así que Perfil se muda aquí, al "+", junto
 // a Blog/Comunidad/Métricas/Check-ins.
+// "community" se filtra en tiempo de render si COMMUNITY_ENABLED es false
+// (ver constants/featureFlags.ts) -- se mantiene aquí definido, igual que el
+// resto de flags de esta app, para reactivarlo con un solo cambio.
 const QUICK_ACTIONS: QuickAction[] = [
   { id: "profile", label: "Perfil", icon: "person-outline", route: "MigratedProfile" },
   { id: "blog", label: "Blog", icon: "newspaper-outline", route: "MigratedBlog" },
   { id: "community", label: "Comunidad", icon: "people-outline", route: "MigratedCommunity" },
   { id: "metrics", label: "Métricas", icon: "body-outline", route: "MigratedBodyMetrics" },
   { id: "checkins", label: "Check-ins", icon: "clipboard-outline", route: "MigratedCheckIns" },
-];
+].filter((action) => COMMUNITY_ENABLED || action.id !== "community");
 
 /**
  * NavigationTab

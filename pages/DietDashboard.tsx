@@ -45,10 +45,10 @@ export default function DietDashboard({ navigation }: Props) {
         setAssignedMealsGoal(assignedMealsRes.value.data?.goal ?? null);
       }
       if (dashboardRes.status === "rejected") {
-        setError("Failed to load diet dashboard.");
+        setError("No se pudo cargar el panel de dietas.");
       }
     } catch {
-      setError("Failed to load diet dashboard.");
+      setError("No se pudo cargar el panel de dietas.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function DietDashboard({ navigation }: Props) {
             >
               <Ionicons name="chevron-back" size={22} color="#000000" />
             </Pressable>
-            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Diet</Text>
+            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Dieta</Text>
             <View style={{ width: 40 }} />
           </View>
           <View style={styles.skeletonWrap}>
@@ -132,7 +132,7 @@ export default function DietDashboard({ navigation }: Props) {
             >
               <Ionicons name="chevron-back" size={22} color="#000000" />
             </Pressable>
-            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Diet</Text>
+            <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Dieta</Text>
             <View style={{ width: 40 }} />
           </View>
           <ErrorRetryMem message={error} onRetry={fetchData} />
@@ -154,7 +154,7 @@ export default function DietDashboard({ navigation }: Props) {
           >
             <Ionicons name="chevron-back" size={22} color="#000000" />
           </Pressable>
-          <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Diet</Text>
+          <Text style={{ flex: 1, fontSize: 18, fontFamily: 'Gilroy-Bold', color: '#000000' }}>Dieta</Text>
           <View style={{ width: 40 }} />
         </View>
         <ScrollView
@@ -220,14 +220,14 @@ export default function DietDashboard({ navigation }: Props) {
                   onPress={() => navigation.navigate("DietList")}
                   style={({ pressed }) => pressed && { opacity: 0.2 }}
                 >
-                  <Text style={styles.viewAll}>View All</Text>
+                  <Text style={styles.viewAll}>Ver todas</Text>
                 </Pressable>
               </View>
               {otherDiets.length === 0 ? (
                 <EmptyStateMem
                   icon="nutrition-outline"
-                  title="No Diets Yet"
-                  message="Your coach hasn't published any public diets yet."
+                  title="Todavía no hay dietas"
+                  message="Tu coach aún no ha publicado ninguna dieta pública."
                 />
               ) : (
                 <View style={styles.grid}>

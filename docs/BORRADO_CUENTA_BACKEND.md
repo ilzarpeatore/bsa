@@ -1,6 +1,19 @@
 # Borrado de cuenta — lo que falta en el backend
 
-**Fecha:** 2026-08-28
+**Actualización 2026-09-10:** `POST /api/v1/delete-account` ya está registrado en el
+backend real (`https://testapp.bestronger.es`) — comprobado en vivo con curl:
+un método no permitido (`GET`) devuelve `405`, y sin token devuelve `401
+unauthenticated`, no `404 not_found` (una ruta que de verdad no existe en
+este backend sí devuelve `404`, confirmado contra una ruta inventada como
+control). Es decir, el botón "Eliminar cuenta" del cliente **ya no falla
+con 404** como decía este documento. No se ha podido verificar desde esta
+sesión (sin token de usuario real ni acceso a la base de datos) que el
+endpoint borre/anonimice los datos tal y como describe la sección 2 más
+abajo -- solo que la ruta existe y acepta el método/payload esperado. El
+resto de este documento (fechado 2026-08-28) se conserva como referencia de
+lo que se pidió implementar.
+
+**Fecha original:** 2026-08-28
 **Por qué existe este documento:** Apple (App Store Review Guideline 5.1.1(v)) y Google Play exigen que, si una app permite crear una cuenta, también permita **eliminarla desde dentro de la app**, sin depender de un email o llamada a soporte. Es un requisito de publicación, no una mejora de producto — sin esto la app no pasa review de Apple.
 
 **Lo que ya existe (este repo, cliente React Native):**

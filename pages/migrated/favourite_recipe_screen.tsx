@@ -39,7 +39,13 @@ export default function FavouriteRecipeScreen(props: FavouriteRecipeScreenProps)
     if (page === 1) setIsLoading(true);
     try {
       const value = await recipesApi.getFavourite(page);
-      const items: RecipeItem[] = (value.data.data ?? []).map((r) => ({
+      // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): mismo filtro que
+      // recipe_main_screen.tsx / recipe_list_screen_v2.tsx -- una receta marcada
+      // favorita antes de dejar de ser accesible no debe listarse aqui, para no
+      // llevar al callejon sin salida de diet_detail_screen.tsx.
+      const items: RecipeItem[] = (value.data.data ?? [])
+        .filter((r) => !(r.is_premium && !r.is_accessible))
+        .map((r) => ({
         id: r.id,
         title: r.title,
         recipeImage: r.recipe_image || '',

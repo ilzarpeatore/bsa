@@ -56,6 +56,7 @@ import {
   ACTIVITY_TRACKER_ENABLED,
   WATER_TRACKER_ENABLED,
   STARTUP_CHALLENGE_ENABLED,
+  COMMUNITY_ENABLED,
 } from '@constants/featureFlags';
 import {
   loadDiagnosticsEnabled,
@@ -84,8 +85,6 @@ import { habitsApi, Habit } from '../../api/habits';
 import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
 import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
 import MuscleBodyMap from '@components/MuscleBodyMap';
-import { healthApi, HealthReading, HealthDataSource } from '../../api/health';
-import { isHealthAvailable, getHealthSnapshot } from '../../helper/health';
 import { habitIoniconFor } from '../../constants/habitIcons';
 import WeekComplianceRow from '@components/WeekComplianceRow';
 import { computeWeekCompliance, computeWeekProgress } from '@components/weekCompliance';
@@ -93,22 +92,6 @@ import { useAuth } from '../../store/AuthContext';
 
 const FIGMA_W = 375;
 const FIGMA_H = 812;
-
-// Apple Health / Google Health diferido a una próxima versión (2026-08-28,
-// pedido explícito). Esta app nunca ha pedido permiso de salud desde ningún
-// flujo alcanzable (requestHealthPermissions() solo vive en
-// link_device_choice_screen.tsx, pantalla sin ruta de navegación desde Home
-// -- ver docs/DEAD_SCREENS.md), así que el sync automático de más abajo
-// intentaba leer HealthKit/Health Connect sin autorización real. En iOS
-// concretamente esto es más que "no trae datos": sin la capability
-// `com.apple.developer.healthkit` (bloqueada por cuenta gratuita de Apple
-// Developer, ver docs/PENDIENTE_BACKEND_ADMIN.md) cualquier llamada real a
-// HealthKit puede crashear la app -- mismo motivo ya documentado en
-// link_device_choice_screen.tsx para ocultar la integración en iOS.
-// Apágalo aquí (una sola constante) cuando exista permiso real de la tienda
-// para usarlo: cuenta de pago de Apple Developer (HealthKit) + declaración
-// de Health Connect aprobada en Play Console (Android).
-const HEALTH_SYNC_ENABLED = false;
 
 // Fondo fijo de Home v2 (pedido explícito 2026-08-26, con 2 capturas de
 // referencia de otra app): la misma foto del hero, pero FUERA del
@@ -424,14 +407,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // de fondo mostrar (ver HERO_IMAGES arriba).
   const heroMood = getHeroMoodForHour(new Date().getHours());
   const [showMenu, setShowMenu] = useState(false);
-  // Antes: dos Switch reales (appleHealthOn por defecto en `true`, sin
-  // ninguna llamada a HealthKit/Health Connect detrás) -- parecían un ajuste
-  // persistido y funcional cuando no hacían nada. Ninguna integración de
-  // salud/wearable existe todavía en esta versión (ver
-  // docs/PENDIENTE_BACKEND_ADMIN.md, "Bloqueantes de infraestructura"), así
-  // que la fila ahora es un aviso "Próximamente", no un control.
-  const HEALTH_SYNC_COMING_SOON_NAME = Platform.OS === 'ios' ? 'Apple Health' : 'Google Health';
-
   // Nueva cabecera (estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
   const [motivationalPhrase, setMotivationalPhrase] = useState<string | null>(null);
   // Volumen muscular (misma fuente que la tarjeta "Entrenamiento" de
@@ -1043,7 +1018,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       }
 
       if (workoutTemplatesRes.status === 'fulfilled') {
-        setWorkoutTemplateList((workoutTemplatesRes.value.data.data ?? []).slice(0, 3));
+        // App Store rejection (Guideline 2.2 + 3.1.1, 2026-09-10): no listar
+        // workouts exclusivos que solo se desbloquean fuera de la app (cliente
+        // 1:1 / paquete) -- ver mismo filtro en workout_template_list_screen.tsx.
+        const accessible = (workoutTemplatesRes.value.data.data ?? []).filter(
+          (w) => !(w.is_exclusive && !w.is_accessible)
+        );
+        setWorkoutTemplateList(accessible.slice(0, 3));
       }
 
       if (resourcesRes.status === 'fulfilled') {
@@ -1097,65 +1078,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       firstLoadDone.current = true;
     }, [fetchData]),
   );
-
-  // Motor de Auto-Regulación de Carga — Fase 4, readiness score (2026-08-12).
-  // Sync de salud SOLO en primer plano, al montar Home, máximo 1 vez/día
-  // (gate por AsyncStorage) — deliberadamente sin expo-background-fetch/
-  // expo-task-manager, para no introducir una dependencia nativa nueva ni
-  // un rebuild. Corre una sola vez por sesión de la app (useEffect de
-  // montaje, no useFocusEffect — evita repetir en cada vuelta a Home).
-  useEffect(() => {
-    if (!HEALTH_SYNC_ENABLED) return;
-    const LAST_SYNC_KEY = 'health_last_sync_date';
-
-    (async () => {
-      try {
-        const today = localDateKey(new Date());
-        const lastSync = await AsyncStorage.getItem(LAST_SYNC_KEY);
-        if (lastSync === today) return;
-
-        const available = await isHealthAvailable();
-        if (!available) return;
-
-        const snapshot = await getHealthSnapshot();
-        const source: HealthDataSource = Platform.OS === 'ios' ? 'apple_health' : 'google_health';
-        const readings: HealthReading[] = [];
-
-        if (snapshot.hrv != null)
-          readings.push({ source, metric_type: 'hrv', value: snapshot.hrv, recorded_date: today });
-        if (snapshot.restingHeartRateBpm != null)
-          readings.push({
-            source,
-            metric_type: 'resting_hr',
-            value: snapshot.restingHeartRateBpm,
-            recorded_date: today,
-          });
-        if (snapshot.sleepMinutes != null)
-          readings.push({
-            source,
-            metric_type: 'sleep_hours',
-            value: Math.round((snapshot.sleepMinutes / 60) * 100) / 100,
-            recorded_date: today,
-          });
-        if (snapshot.steps != null)
-          readings.push({
-            source,
-            metric_type: 'steps',
-            value: snapshot.steps,
-            recorded_date: today,
-          });
-
-        if (readings.length > 0) {
-          await healthApi.sync(readings);
-        }
-        await AsyncStorage.setItem(LAST_SYNC_KEY, today);
-      } catch {
-        // Silencioso a propósito: el sync de salud nunca debe romper Home
-        // ni mostrar un error al cliente — es una mejora en segundo plano,
-        // no una acción que el cliente haya pedido.
-      }
-    })();
-  }, []);
 
   if (isLoading) {
     // Fondo opaco explícito -- a diferencia del render principal (más abajo),
@@ -1527,8 +1449,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Icon name="water" size={15} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.miniCardTitle}>Agua</Text>
                 </HStack>
-                {/* Water Tracker desactivado en esta primera versión (ver
-                    constants/featureFlags.ts, WATER_TRACKER_ENABLED). */}
+                {/* WATER_TRACKER_ENABLED (constants/featureFlags.ts) -- ver
+                    water_tracker_screen.tsx, registro manual real. */}
                 <Pressable
                   style={styles.miniCardAddBtn}
                   onPress={() =>
@@ -1563,8 +1485,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Icon name="walk" size={15} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.miniCardTitle}>Actividad</Text>
                 </HStack>
-                {/* Activity Tracker desactivado en esta primera versión (ver
-                    constants/featureFlags.ts, ACTIVITY_TRACKER_ENABLED). */}
+                {/* ACTIVITY_TRACKER_ENABLED (constants/featureFlags.ts) -- ver
+                    activity_tracker_screen.tsx, registro manual real de pasos. */}
                 <Pressable
                   style={styles.miniCardAddBtn}
                   onPress={() =>
@@ -2154,7 +2076,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               showsHorizontalScrollIndicator={false}
               style={{ paddingLeft: 16 }}>
               {workoutTemplateList.map((w) => {
-                const locked = w.is_exclusive && !w.is_accessible;
                 return (
                   <Pressable
                     key={w.id}
@@ -2172,12 +2093,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                       cachePolicy="memory-disk"
                       transition={200}
                     />
-                    {locked && (
-                      <Box style={styles.lockBadge}>
-                        <Icon name="lock-closed" size={11} color={'#FFFFFF'} />
-                        <Text style={styles.lockBadgeText}>Exclusivo</Text>
-                      </Box>
-                    )}
                     <Box style={styles.blogContent}>
                       <Text style={styles.blogTitle} numberOfLines={2}>
                         {w.title}
@@ -2378,58 +2293,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Pressable>
               </Box>
 
-              <Text style={styles.menuSectionLabel}>Salud y dispositivos</Text>
-              <Box style={styles.menuCard}>
-                <Pressable
-                  onPress={() =>
-                    showToast('Próximamente', {
-                      description: `Podrás empezar a sincronizar ${HEALTH_SYNC_COMING_SOON_NAME} en la siguiente versión de la app.`,
-                    })
-                  }>
-                  <HStack className="items-center px-4 py-3">
-                    <AppIcon
-                      name="fitness-outline"
-                      size={18}
-                      color={C.success}
-                      bg={C.success10}
-                      containerSize={r(36)}
-                      borderRadius={r(12)}
-                      style={{ marginRight: r(14) }}
-                    />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>
-                      {HEALTH_SYNC_COMING_SOON_NAME}
-                    </Text>
-                    <Box style={styles.comingSoonPill}>
-                      <Text style={styles.comingSoonPillText}>Próximamente</Text>
-                    </Box>
-                  </HStack>
-                </Pressable>
-                <Divider className="ml-4" />
-                <Pressable
-                  onPress={() =>
-                    showToast('Próximamente', {
-                      description:
-                        'Podrás conectar tu smartwatch en una próxima versión de la app.',
-                    })
-                  }>
-                  <HStack className="items-center px-4 py-3">
-                    <AppIcon
-                      name="watch-outline"
-                      size={18}
-                      color={C.blue}
-                      bg={C.blue10}
-                      containerSize={r(36)}
-                      borderRadius={r(12)}
-                      style={{ marginRight: r(14) }}
-                    />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>Smart Watch</Text>
-                    <Box style={styles.comingSoonPill}>
-                      <Text style={styles.comingSoonPillText}>Próximamente</Text>
-                    </Box>
-                  </HStack>
-                </Pressable>
-              </Box>
-
               {/* Modo oscuro automático por hora (2026-08-21) -- "Auto" sigue
                   la hora del dispositivo (isNightHour en theme.ts), el usuario
                   puede fijarlo a Claro/Oscuro y eso manda hasta que vuelva a
@@ -2489,24 +2352,32 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Pressable>
               </Box>
 
-              <Text style={styles.menuSectionLabel}>Más</Text>
-              <Box style={styles.menuCard}>
-                <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
-                  <HStack className="items-center px-4 py-3">
-                    <AppIcon
-                      name="people-outline"
-                      size={18}
-                      color={C.textPrimary}
-                      bg={C.brand10}
-                      containerSize={r(36)}
-                      borderRadius={r(12)}
-                      style={{ marginRight: r(14) }}
-                    />
-                    <Text style={[styles.menuItemText, { flex: 1 }]}>Comunidad</Text>
-                    <Icon name="chevron-forward" size={18} color={C.textSecondary} />
-                  </HStack>
-                </Pressable>
-              </Box>
+              {/* Comunidad desactivada (ver constants/featureFlags.ts,
+                  COMMUNITY_ENABLED) -- sin reporte de comentarios ni bloqueo
+                  de usuarios todavía, mismo riesgo real de rechazo 1.2 que
+                  ya se identificó para el chat (CHAT_ENABLED). */}
+              {COMMUNITY_ENABLED && (
+                <>
+                  <Text style={styles.menuSectionLabel}>Más</Text>
+                  <Box style={styles.menuCard}>
+                    <Pressable onPress={() => navigateFromMenu('MigratedCommunity')}>
+                      <HStack className="items-center px-4 py-3">
+                        <AppIcon
+                          name="people-outline"
+                          size={18}
+                          color={C.textPrimary}
+                          bg={C.brand10}
+                          containerSize={r(36)}
+                          borderRadius={r(12)}
+                          style={{ marginRight: r(14) }}
+                        />
+                        <Text style={[styles.menuItemText, { flex: 1 }]}>Comunidad</Text>
+                        <Icon name="chevron-forward" size={18} color={C.textSecondary} />
+                      </HStack>
+                    </Pressable>
+                  </Box>
+                </>
+              )}
 
               {/* "Recursos" (pedido explícito, captura de referencia). Las 2
                   primeras filas abren MigratedAppFeedback -- formulario real
@@ -2662,8 +2533,8 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   crash-reporting instalado, el switch activa/desactiva un
                   buffer real en memoria de los propios logs de la app (ver
                   helper/logger.ts), no un flag decorativo. Fila con Switch,
-                  no un botón de tap: es un ajuste persistente (igual que
-                  Apple Health/Smart Watch arriba), no una acción puntual. */}
+                  no un botón de tap: es un ajuste persistente, no una acción
+                  puntual. */}
               <Text style={styles.menuSectionLabel}>Diagnóstico</Text>
               <Box style={styles.menuCard}>
                 <HStack className="items-center px-4 py-3">

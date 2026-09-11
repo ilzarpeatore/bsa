@@ -37,6 +37,8 @@
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
     <key>NSAppTransportSecurity</key>
     <dict>
       <key>NSAllowsArbitraryLoads</key>
@@ -70,15 +72,18 @@
     <string>Light</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
-    <key>NSHealthShareUsageDescription</key>
-    <string>Be Stronger usa tus datos de Salud (pasos, ritmo cardíaco, sueño) para mostrarte tu progreso real.</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>Be Stronger puede registrar entrenamientos y métricas en tu app de Salud.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Permite a Be Stronger acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Permite a Be Stronger guardar la imagen de tu resumen de entrenamiento en tu galería.</string>
     <key>NSCameraUsageDescription</key>
     <string>Permite a Be Stronger usar la cámara para que puedas añadir una foto a tus publicaciones.</string>
     <key>NSSupportsLiveActivities</key>
     <true/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>instagram</string>
+      <string>instagram-stories</string>
+    </array>
   </dict>
 </plist>

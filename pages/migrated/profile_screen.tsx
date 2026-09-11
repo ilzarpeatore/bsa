@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Constants from 'expo-constants';
@@ -16,7 +16,7 @@ import AppIcon from '@components/AppIcon';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { useAuth } from '../../store/AuthContext';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
-import { CHAT_ENABLED } from '@constants/featureFlags';
+import { CHAT_ENABLED, COMMUNITY_ENABLED } from '@constants/featureFlags';
 import { workoutHistoryApi } from '../../api/workoutHistory';
 
 interface MenuItem {
@@ -66,17 +66,13 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
     {
       label: 'Preferencias',
       items: [
-        // Todavía no hay integración real con wearables (backend pendiente)
-        // -- entrada visible ya, pantalla honesta "Próximamente" en vez de
-        // fingir datos, mismo criterio que se aplicó a "Sueño" en el Informe.
-        { icon: 'watch-outline', title: 'Dispositivos', subtitle: 'Conecta tu reloj o app de salud', route: 'MigratedComingSoon', params: { title: 'Dispositivos' }, iconColor: C.blue, iconBg: C.blue10 },
+        // Rechazo real Guideline 2.2 (2026-09-10): Apple exige que la app no
+        // muestre integraciones sin terminar (HealthKit/Health Connect,
+        // permission strings sin capability real detrás -- ver
+        // helper/health.ts, ahora eliminado). Se quita esta entrada por
+        // completo en vez de dejar un "Próximamente" -- ver mismo criterio en
+        // home_screen_modern_v2.tsx ("Salud y dispositivos").
         { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
-        // Desactivada para esta primera versión (pedido explícito): los
-        // usuarios todavía no pueden acceder a MigratedLanguage. Mismo
-        // patrón ya usado arriba para "Dispositivos" -- apunta al
-        // placeholder honesto MigratedComingSoon en vez de a la pantalla
-        // real, sin tocar ésta ni su ruta en App.tsx.
-        { icon: 'language-outline', title: 'Idioma', route: 'MigratedComingSoon', params: { title: 'Idioma' }, iconColor: C.success60, iconBg: C.success10 },
       ],
     },
     {
@@ -239,26 +235,35 @@ export default function ProfileScreen(props: any) {
           </Card>
 
           <HStack style={{ marginTop: 16, gap: 12 }}>
-            <Pressable
-              className="flex-1 rounded-lg"
-              style={{ backgroundColor: C.surface, padding: 16 }}
-              onPress={() => props.navigation?.navigate('MigratedCommunity')}
-            >
-              <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
-              <Text weight="bold" size="sm">Comunidad</Text>
-              <Text size="xs" muted style={{ marginTop: 2 }}>Ver publicaciones</Text>
-            </Pressable>
+            {/* Comunidad desactivada (ver constants/featureFlags.ts,
+                COMMUNITY_ENABLED) -- sin reporte de comentarios ni bloqueo de
+                usuarios todavía, mismo riesgo real de rechazo 1.2 que ya se
+                identificó para el chat. */}
+            {COMMUNITY_ENABLED && (
+              <Pressable
+                className="flex-1 rounded-lg"
+                style={{ backgroundColor: C.surface, padding: 16 }}
+                onPress={() => props.navigation?.navigate('MigratedCommunity')}
+              >
+                <AppIcon name="people-outline" size={18} color={C.textPrimary} bg={C.brand10} containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
+                <Text weight="bold" size="sm">Comunidad</Text>
+                <Text size="xs" muted style={{ marginTop: 2 }}>Ver publicaciones</Text>
+              </Pressable>
+            )}
             {/* Chat desactivado en esta primera versión (ver
                 constants/featureFlags.ts, CHAT_ENABLED) -- sin moderación ni
                 forma de reportar mensajes todavía, riesgo real de rechazo en
-                revisión de Apple/Google. */}
+                revisión de Apple/Google. Rechazo real Guideline 2.2
+                (2026-09-10): un "Próximamente" aquí es el mismo callejón sin
+                salida ya corregido en home_screen_modern_v2.tsx -- mismo
+                fix, WhatsApp directo en vez de un aviso. */}
             <Pressable
               className="flex-1 rounded-lg"
               style={{ backgroundColor: C.surface, padding: 16 }}
               onPress={() =>
                 CHAT_ENABLED
                   ? props.navigation?.navigate('MigratedChatting', { isDirect: true })
-                  : Alert.alert('Próximamente', 'Podrás chatear con el soporte en la próxima versión de la app.')
+                  : Linking.openURL('https://wa.me/34643991086')
               }
             >
               <AppIcon name="chatbubble-ellipses-outline" size={18} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />

@@ -1,198 +1,225 @@
-import React, { useState, useMemo } from 'react';
-import {  View, Text, StyleSheet, ScrollView, Pressable, Dimensions  } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import {  View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator  } from 'react-native';
+import { showToast } from '@helper/toast';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Ionicons  } from '@expo/vector-icons';
 import {  LinearGradient  } from 'expo-linear-gradient';
-import {  useAppColorMode  } from '@helper/useAppColorMode';
-import GlassSegmentedBar from '@components/GlassSegmentedBar';
+import AnimatedRing from '@components/AnimatedRing';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { FONT, RADIUS } from './theme';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import {  useAppColorMode  } from '@helper/useAppColorMode';
+import {  stepsApi  } from '../../api/steps';
+import logger from '@helper/logger';
 
-function StatCard({ icon, iconColor, value, label, target, progress, bgColor, styles }: any) {
-  return (
-    <View style={styles.statCard}>
-      <View style={[styles.statIconWrap, { backgroundColor: bgColor }]}>
-        <Ionicons name={icon} size={20} color={iconColor} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: iconColor }]} />
-      </View>
-      <Text style={styles.statGoal}>Goal: {target}</Text>
-    </View>
-  );
+// Antes (Guideline 2.2, rechazo 2026-09-10): esta pantalla mostraba pasos,
+// calorías, minutos, una gráfica semanal y una lista de "actividades de hoy"
+// -- todo literal en el código ("6,842", barras con alturas fijas, "Upper
+// Body Workout"...), sin ningún estado ni llamada a la API detrás. Se
+// sustituye por un registro manual real de pasos (mismo patrón que
+// water_tracker_screen.tsx) -- las calorías/minutos/entrenamientos de hoy no
+// tienen todavía un endpoint de agregación diaria fiable (ver nota en
+// pages/migrated/home_screen_modern_v2.tsx sobre dashboard-detail), así que
+// no se inventan: se deja solo lo que sí se puede registrar y mostrar real.
+
+function todayDateKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 }
 
-function ActivityListItem({ icon, iconBgColor, iconColor, title, subtitle, time, value, styles }: any) {
-  return (
-    <View style={styles.activityItem}>
-      <View style={[styles.activityIconWrap, { backgroundColor: iconBgColor }]}>
-        <Ionicons name={icon} size={22} color={iconColor} />
-      </View>
-      <View style={styles.activityInfo}>
-        <Text style={styles.activityTitle}>{title}</Text>
-        <Text style={styles.activitySubtitle}>{subtitle}</Text>
-        <Text style={styles.activityTime}>{time}</Text>
-      </View>
-      {value ? <Text style={styles.activityValue}>{value}</Text> : null}
-    </View>
-  );
-}
-
-function Bar({ day, heightFactor, isHighlighted = false, styles, C }: any) {
-  return (
-    <View style={styles.barCol}>
-      <View
-        style={[
-          styles.bar,
-          {
-            height: 140 * heightFactor,
-            backgroundColor: isHighlighted ? C.orange : 'rgba(255, 152, 0, 0.35)',
-            opacity: isHighlighted ? 1 : 0.7,
-          },
-        ]}
-      />
-      <Text style={styles.barLabel}>{day}</Text>
-    </View>
-  );
-}
-
-const ACTIVITY_PERIODS = ['Today', 'Week', 'Month', 'Year'];
-
-export default function ActivityTrackerScreen({ navigation }: any) {
+export default function ActivityTrackerScreen(props: any) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
-  const [selectedPeriod, setSelectedPeriod] = useState('Today');
-  const periods = ACTIVITY_PERIODS;
+  const [stepsToAdd, setStepsToAdd] = useState('');
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalText, setGoalText] = useState('');
+  const [steps, setSteps] = useState(0);
+  const [dailyGoal, setDailyGoal] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    initStepsData();
+  }, []);
+
+  const initStepsData = async () => {
+    setIsLoading(true);
+    const today = todayDateKey();
+    try {
+      const [goalRes, logRes] = await Promise.all([
+        stepsApi.getGoalList(today),
+        stepsApi.getTodayLog(today),
+      ]);
+      const goalItems = goalRes.data.data ?? [];
+      const latestGoal = goalItems.reduce<typeof goalItems[number] | null>(
+        (max, item) => (!max || item.id > max.id ? item : max),
+        null
+      );
+      setDailyGoal(latestGoal ? latestGoal.value : 0);
+
+      const logItems = logRes.data.data ?? [];
+      const latestLog = logItems.reduce<typeof logItems[number] | null>(
+        (max, item) => (!max || item.id > max.id ? item : max),
+        null
+      );
+      setSteps(latestLog ? Number(latestLog.value) || 0 : 0);
+    } catch (e) {
+      logger.error(e);
+      showToast('Error', { description: 'No se pudo cargar tu registro de pasos.', variant: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getBannerText = () => {
+    if (dailyGoal === 0) return 'Configura tu objetivo diario de pasos';
+    const diff = dailyGoal - steps;
+    if (diff > 0) return `Solo ${diff.toLocaleString()} pasos para alcanzar tu objetivo`;
+    if (diff === 0) return '¡Has alcanzado tu objetivo diario!';
+    return `Has superado tu objetivo por ${Math.abs(diff).toLocaleString()} pasos`;
+  };
+
+  const logNow = async () => {
+    if (dailyGoal === 0) {
+      showToast('Info', { description: 'Configura primero tu objetivo diario de pasos', variant: 'info' });
+      return;
+    }
+    const toAdd = parseInt(stepsToAdd, 10);
+    if (isNaN(toAdd) || toAdd <= 0) {
+      showToast('Info', { description: 'Introduce un número de pasos válido', variant: 'info' });
+      return;
+    }
+
+    const total = steps + toAdd;
+    setIsSaving(true);
+    try {
+      await stepsApi.logSteps(total, todayDateKey());
+      setSteps(total);
+      setStepsToAdd('');
+    } catch (e) {
+      logger.error(e);
+      showToast('Error', { description: 'No se pudo registrar los pasos. Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveGoal = async () => {
+    const goal = parseInt(goalText, 10);
+    if (isNaN(goal) || goal <= 0) {
+      showToast('Info', { description: 'Introduce un número de pasos válido', variant: 'info' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await stepsApi.saveGoal(goal, todayDateKey());
+      setDailyGoal(goal);
+      setEditingGoal(false);
+    } catch (e) {
+      logger.error(e);
+      showToast('Error', { description: 'No se pudo guardar el objetivo. Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const progress = dailyGoal > 0 ? Math.min(steps / dailyGoal, 1) : 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.2 }]}
-        >
-          <Ionicons name="chevron-back" size={24} color={C.white} />
+        <Pressable onPress={() => props.navigation?.goBack()} style={({ pressed }) => pressed && { opacity: 0.2 }}>
+          <Ionicons name="chevron-back" size={24} color={C.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Activity Tracker</Text>
-        <Pressable style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.2 }]}>
-          <Ionicons name="options-outline" size={22} color={C.gray30} />
-        </Pressable>
+        <Text style={styles.headerTitle}>Registro de pasos</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Period selector */}
-        <View style={styles.periodWrap}>
-          {/* Liquid Glass real en iOS 26+ (pedido explícito 2026-08-29). */}
-          <GlassSegmentedBar style={styles.periodContainer}>
-            {periods.map((period) => {
-              const isSelected = period === selectedPeriod;
-              return (
-                <Pressable
-                  key={period}
-                  style={({ pressed }) => [
-                    styles.periodBtn,
-                    isSelected && styles.periodBtnActive,
-                    pressed && { opacity: 0.7 },
-                  ]}
-                  onPress={() => setSelectedPeriod(period)}
-                >
-                  <Text style={[styles.periodText, isSelected && styles.periodTextActive]}>
-                    {period}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </GlassSegmentedBar>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={{ height: 10 }} />
+
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{getBannerText()}</Text>
         </View>
 
-        {/* Main stats */}
-        <View style={styles.statsRow}>
-          <StatCard
-            icon="walk-outline"
-            iconColor={C.orange}
-            value="6,842"
-            label="Steps"
-            target="10,000"
-            progress={0.68}
-            bgColor="#431407"
-            styles={styles}
-          />
-          <StatCard
-            icon="flame-outline"
-            iconColor={C.red}
-            value="486"
-            label="Calories"
-            target="600"
-            progress={0.81}
-            bgColor="#4C0519"
-            styles={styles}
-          />
-          <StatCard
-            icon="timer-outline"
-            iconColor={C.blue}
-            value="32"
-            label="Minutes"
-            target="45"
-            progress={0.71}
-            bgColor="#172554"
-            styles={styles}
+        <View style={styles.progressContainer}>
+          <AnimatedRing size={240} strokeWidth={12} percent={progress * 100} color={C.orange} trackColor={C.gray10}>
+            <View style={styles.progressInner}>
+              <Ionicons name="walk" size={60} color={C.orange} />
+              <Text style={styles.consumedValue}>{steps.toLocaleString()}</Text>
+              <Text style={styles.glassesLabel}>Pasos</Text>
+            </View>
+          </AnimatedRing>
+        </View>
+
+        <View style={styles.addRow}>
+          <TextInput
+            style={styles.addInput}
+            value={stepsToAdd}
+            onChangeText={setStepsToAdd}
+            keyboardType="numeric"
+            placeholder="Añadir pasos"
+            placeholderTextColor={C.gray40}
           />
         </View>
 
-        {/* Weekly overview chart */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Weekly Overview</Text>
-            <Text style={styles.chartSubtitle}>This Week</Text>
+        <Pressable
+          style={({ pressed }) => [styles.logBtn, pressed && { opacity: 0.2 }, isSaving && { opacity: 0.5 }]}
+          onPress={logNow}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.logBtnText}>Registrar ahora</Text>
+          )}
+        </Pressable>
+
+        <LinearGradient
+          colors={[C.orangeGradient1, C.orangeGradient2]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.goalCard}
+        >
+          <View style={styles.goalHeader}>
+            <View style={styles.goalHeaderLeft}>
+              <Ionicons name="walk" size={22} color="#FFFFFF" />
+              <Text style={styles.goalTitle}>Objetivo diario</Text>
+            </View>
+            <Pressable onPress={() => setEditingGoal(!editingGoal)} style={({ pressed }) => pressed && { opacity: 0.2 }}>
+              <Ionicons name="pencil" size={20} color="#FFFFFF" />
+            </Pressable>
           </View>
-          <View style={styles.barRow}>
-            <Bar day="Mon" heightFactor={0.6} styles={styles} C={C} />
-            <Bar day="Tue" heightFactor={0.8} styles={styles} C={C} />
-            <Bar day="Wed" heightFactor={0.45} styles={styles} C={C} />
-            <Bar day="Thu" heightFactor={0.9} isHighlighted styles={styles} C={C} />
-            <Bar day="Fri" heightFactor={0.7} styles={styles} C={C} />
-            <Bar day="Sat" heightFactor={0.5} styles={styles} C={C} />
-            <Bar day="Sun" heightFactor={0.35} styles={styles} C={C} />
-          </View>
-        </View>
 
-        {/* Today's activities */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Activities</Text>
-          <ActivityListItem
-            icon="walk-outline"
-            iconBgColor="#431407"
-            iconColor={C.orange}
-            title="Walking"
-            subtitle="6,842 steps \u2022 5.2 km"
-            time="Today, 8:30 AM"
-            value="32 min"
-            styles={styles}
-          />
-          <ActivityListItem
-            icon="barbell-outline"
-            iconBgColor="#172554"
-            iconColor={C.blue}
-            title="Upper Body Workout"
-            subtitle="12 exercises completed"
-            time="Today, 10:00 AM"
-            value="45 min"
-            styles={styles}
-          />
-          <ActivityListItem
-            icon="water-outline"
-            iconBgColor="#1C3D3A"
-            iconColor={C.blue}
-            title="Water Intake"
-            subtitle="1.5L of 2.5L goal"
-            time="Throughout the day"
-            value=""
-            styles={styles}
-          />
-        </View>
+          {editingGoal ? (
+            <View>
+              <TextInput
+                style={styles.goalInput}
+                value={goalText}
+                onChangeText={setGoalText}
+                keyboardType="numeric"
+                placeholder="Introduce los pasos"
+                placeholderTextColor={C.gray40}
+              />
+              <Pressable
+                style={({ pressed }) => [styles.goalSaveBtn, pressed && { opacity: 0.2 }]}
+                onPress={saveGoal}
+              >
+                <Text style={styles.goalSaveBtnText}>Guardar</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={styles.goalValue}>{dailyGoal.toLocaleString()} pasos</Text>
+          )}
+        </LinearGradient>
+
+        <View style={{ height: 30 }} />
       </ScrollView>
+
+      {isLoading && (
+        <View style={styles.loaderOverlay}>
+          <ActivityIndicator size="large" color={C.orange} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -205,71 +232,133 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     backgroundColor: C.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontFamily: FONT.bold, color: C.white },
-  body: { flex: 1 },
-  periodWrap: { paddingHorizontal: 20, paddingTop: 16 },
-  periodContainer: {
-    flexDirection: 'row',
-    backgroundColor: C.surface,
+  headerTitle: {
+    fontFamily: FONT.semiBold,
+    fontSize: 20,
+    color: C.textPrimary,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 30 + WORKOUT_MINIBAR_CLEARANCE,
+  },
+  banner: {
+    padding: 14,
+    backgroundColor: C.brand10,
     borderRadius: RADIUS.sm,
-    padding: 4,
   },
-  periodBtn: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.xs, alignItems: 'center' },
-  periodBtnActive: { backgroundColor: C.orange },
-  periodText: { fontSize: 13, fontFamily: FONT.semiBold, color: C.gray30, textAlign: 'center' },
-  periodTextActive: { color: '#FFFFFF' },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 24, gap: 12 },
-  statCard: {
-    flex: 1,
-    backgroundColor: C.surface,
-    borderRadius: RADIUS.md,
-    padding: 16,
+  bannerText: {
+    fontFamily: FONT.semiBold,
+    fontSize: 14,
+    color: C.textPrimary,
   },
-  statIconWrap: { width: 40, height: 40, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
-  statValue: { fontSize: 24, lineHeight: 29, fontFamily: FONT.bold, color: C.white, marginTop: 12 },
-  statLabel: { fontSize: 12, fontFamily: FONT.regular, color: C.gray30, marginTop: 2 },
-  progressTrack: { height: 4, backgroundColor: C.bg, borderRadius: 4, marginTop: 8, overflow: 'hidden' },
-  progressFill: { height: 4, borderRadius: 4 },
-  statGoal: { fontSize: 10, fontFamily: FONT.regular, color: C.gray30, marginTop: 4 },
-  chartCard: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    backgroundColor: C.surface,
-    borderRadius: RADIUS.md,
-    padding: 20,
+  progressContainer: {
+    width: 240,
+    height: 240,
+    alignSelf: 'center',
+    marginTop: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chartTitle: { fontSize: 16, fontFamily: FONT.semiBold, color: C.white },
-  chartSubtitle: { fontSize: 12, fontFamily: FONT.regular, color: C.gray30 },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 180,
+  progressInner: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  consumedValue: {
+    fontFamily: FONT.bold,
+    fontSize: 32,
+    lineHeight: 38,
+    color: C.textPrimary,
+    marginTop: 8,
+  },
+  glassesLabel: {
+    fontFamily: FONT.regular,
+    fontSize: 16,
+    color: C.textSecondary,
+    marginTop: 4,
+  },
+  addRow: {
     marginTop: 20,
   },
-  barCol: { alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: 32, borderRadius: RADIUS.xs },
-  barLabel: { fontSize: 11, fontFamily: FONT.regular, color: C.gray30, marginTop: 8 },
-  section: { paddingHorizontal: 20, marginTop: 24, marginBottom: 32 },
-  sectionTitle: { fontSize: 18, fontFamily: FONT.bold, color: C.white, marginBottom: 16 },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  addInput: {
     backgroundColor: C.surface,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 14,
+    fontSize: 16,
+    fontFamily: FONT.medium,
+    color: C.textPrimary,
+    textAlign: 'center',
+  },
+  logBtn: {
+    backgroundColor: C.orange,
+    borderRadius: RADIUS.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    alignSelf: 'center',
+    marginTop: 14,
+    marginBottom: 20,
+  },
+  logBtnText: {
+    fontFamily: FONT.semiBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  goalCard: {
     borderRadius: RADIUS.md,
     padding: 16,
-    marginBottom: 12,
   },
-  activityIconWrap: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  activityInfo: { flex: 1, marginLeft: 14 },
-  activityTitle: { fontSize: 15, fontFamily: FONT.semiBold, color: C.white },
-  activitySubtitle: { fontSize: 12, fontFamily: FONT.regular, color: C.gray30, marginTop: 4 },
-  activityTime: { fontSize: 11, fontFamily: FONT.regular, color: C.gray50, marginTop: 2 },
-  activityValue: { fontSize: 14, fontFamily: FONT.semiBold, color: C.orange },
+  goalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  goalTitle: {
+    fontFamily: FONT.semiBold,
+    fontSize: 20,
+    color: '#FFFFFF',
+  },
+  goalValue: {
+    fontFamily: FONT.medium,
+    fontSize: 18,
+    color: '#FFFFFF',
+    marginTop: 8,
+  },
+  goalInput: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.sm,
+    padding: 12,
+    fontSize: 16,
+    color: C.textPrimary,
+    marginTop: 8,
+  },
+  goalSaveBtn: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.xs,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  goalSaveBtnText: {
+    fontFamily: FONT.bold,
+    fontSize: 14,
+    color: C.orange,
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
   });
 }

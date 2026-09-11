@@ -36,7 +36,6 @@ import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
 const screenReviewNavigationRef = createNavigationContainerRef(); // registra el handler de notificaciones locales al arrancar, sin depender de visitar las pantallas de recordatorios
 
-const Home = React.lazy(() => import('@pages/Home'));
 
 const WelcomeAuthScreen = React.lazy(() => import('@pages/auth/WelcomeAuthScreen'));
 const LoginScreen = React.lazy(() => import('@pages/auth/LoginScreen'));
@@ -62,7 +61,6 @@ const BlogScreen = React.lazy(() => import('@pages/migrated/blog_screen'));
 const BodyMetricsScreen = React.lazy(() => import('@pages/migrated/body_metrics_screen'));
 const BookmarkScreen = React.lazy(() => import('@pages/migrated/bookmark_screen'));
 const ChangePwdScreen = React.lazy(() => import('@pages/migrated/change_pwd_screen'));
-const ChattingImageScreen = React.lazy(() => import('@pages/migrated/chatting_image_screen'));
 const ChattingScreen = React.lazy(() => import('@pages/migrated/chatting_screen'));
 const CheckInsListScreen = React.lazy(() => import('@pages/migrated/checkins_list_screen'));
 const CheckInFillScreen = React.lazy(() => import('@pages/migrated/checkin_fill_screen'));
@@ -80,7 +78,6 @@ const HomeScreenModernV2 = React.lazy(() => import('@pages/migrated/home_screen_
 const HabitsListScreen = React.lazy(() => import('@pages/migrated/habits_list_screen'));
 const HabitDetailScreen = React.lazy(() => import('@pages/migrated/habit_detail_screen'));
 const HabitAddScreen = React.lazy(() => import('@pages/migrated/habit_add_screen'));
-const LanguageScreen = React.lazy(() => import('@pages/migrated/language_screen'));
 const MuscleProgressScreen = React.lazy(() => import('@pages/migrated/muscle_progress_screen'));
 const MyProgramCalendarScreen = React.lazy(
   () => import('@pages/migrated/my_program_calendar_screen'),
@@ -158,17 +155,6 @@ const WorkoutSessionScreenMig = React.lazy(() => import('@pages/migrated/workout
 const WorkoutFeedbackScreen = React.lazy(() => import('@pages/migrated/workout_feedback_screen'));
 const WorkoutSummaryScreenMig = React.lazy(() => import('@pages/migrated/workout_summary_screen'));
 const YoutubePlayerScreen = React.lazy(() => import('@pages/migrated/youtube_player_screen'));
-
-const DeviceConnectedScreen = React.lazy(
-  () => import('@pages/migrated/home/device_connected_screen'),
-);
-const EmparejandoScreen = React.lazy(() => import('@pages/migrated/home/emparejando_screen'));
-const LinkDeviceChoiceScreen = React.lazy(
-  () => import('@pages/migrated/home/link_device_choice_screen'),
-);
-const LinkDeviceListScreen = React.lazy(
-  () => import('@pages/migrated/home/link_device_list_screen'),
-);
 
 const AssessmentResultScreen = React.lazy(
   () => import('@pages/migrated/onboarding/assessment_result_screen'),
@@ -275,7 +261,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedBodyMetrics" component={BodyMetricsScreen} />
       <MStack.Screen name="MigratedBookmark" component={BookmarkScreen} />
       <MStack.Screen name="MigratedChangePwd" component={ChangePwdScreen} />
-      <MStack.Screen name="MigratedChattingImage" component={ChattingImageScreen} />
       <MStack.Screen name="MigratedChatting" component={ChattingScreen} />
       <MStack.Screen name="MigratedCheckIns" component={CheckInsListScreen} />
       <MStack.Screen name="MigratedCheckInFill" component={CheckInFillScreen} />
@@ -291,7 +276,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedFavouriteRecipe" component={FavouriteRecipeScreen} />
       <MStack.Screen name="MigratedFavourite" component={FavouriteScreen as any} />
       <MStack.Screen name="MigratedHomeModernV2" component={HomeScreenModernV2} />
-      <MStack.Screen name="MigratedLanguage" component={LanguageScreen} />
       <MStack.Screen name="MigratedMuscleProgress" component={MuscleProgressScreen} />
       <MStack.Screen name="MigratedMyProgramCalendar" component={MyProgramCalendarScreen} />
       <MStack.Screen name="MigratedNotification" component={NotificationScreen} />
@@ -366,10 +350,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedWorkoutSummary" component={WorkoutSummaryScreenMig} />
       <MStack.Screen name="MigratedWorkoutTemplateList" component={WorkoutTemplateListScreen} />
       <MStack.Screen name="MigratedYoutubePlayer" component={YoutubePlayerScreen} />
-      <MStack.Screen name="MigratedDeviceConnected" component={DeviceConnectedScreen} />
-      <MStack.Screen name="MigratedEmparejando" component={EmparejandoScreen} />
-      <MStack.Screen name="MigratedLinkDeviceChoice" component={LinkDeviceChoiceScreen} />
-      <MStack.Screen name="MigratedLinkDeviceList" component={LinkDeviceListScreen} />
       <MStack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
     </MStack.Navigator>
   );
