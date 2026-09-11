@@ -6,7 +6,6 @@ import { onboardingV2Api } from '../api/onboardingV2';
 import { setLogoutHandler } from '../api/client';
 import { getToken, setToken, removeToken } from '../helper/secureToken';
 import { ACTIVE_SESSION_STORAGE_KEY } from '../helper/workoutSessionBus';
-import { syncPushTokenWithBackend } from '../helper/pushNotifications';
 import logger from '../helper/logger';
 
 interface AuthState {
@@ -210,11 +209,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token = null;
       }
       const onboardingCompleted = await resolveOnboardingCompleted(user);
-      if (token) {
-        // Fire-and-forget: un fallo aqui (sin proyecto EAS, sin permisos,
-        // simulador) nunca debe bloquear el arranque de la app.
-        void syncPushTokenWithBackend();
-      }
       dispatch({ type: 'RESTORE_TOKEN', token, user, onboardingCompleted });
     } catch {
       dispatch({ type: 'RESTORE_TOKEN', token: null, user: null, onboardingCompleted: false });
@@ -232,7 +226,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(token);
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
     const onboardingCompleted = await resolveOnboardingCompleted(userData);
-    void syncPushTokenWithBackend();
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
   }, []);
 
@@ -243,7 +236,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setToken(token);
     await AsyncStorage.setItem('USER', JSON.stringify(userData));
     const onboardingCompleted = await resolveOnboardingCompleted(userData);
-    void syncPushTokenWithBackend();
     dispatch({ type: 'SIGN_IN', token, user: userData as any, onboardingCompleted });
   }, []);
 
