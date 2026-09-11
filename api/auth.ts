@@ -115,4 +115,10 @@ export const authApi = {
   // contexto al coach de por qué se fue el cliente.
   deleteAccount: (payload?: { reason?: string }) =>
     apiClient.post<ApiMessageResponse>('v1/delete-account', payload ?? {}),
+
+  // AÑADIDO 2026-09-11: registro del token de Expo Push (ver
+  // helper/pushNotifications.ts). Independiente de login/register para
+  // poder refrescarse a mitad de sesión si Expo rota el token.
+  updatePushToken: (expo_push_token: string) =>
+    apiClient.post<ApiMessageResponse>('update-push-token', { expo_push_token }),
 };
