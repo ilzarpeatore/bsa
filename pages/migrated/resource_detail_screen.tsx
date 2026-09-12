@@ -10,6 +10,7 @@ import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { RADIUS, SHADOW, SPACING } from './theme';
 import { resourcesApi, ResourceListItem } from '../../api/resources';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -54,30 +55,43 @@ const renderYouTubeEmbeds = (html: string): string => {
 // -- un recurso que use estas clases respeta claro/oscuro igual que el
 // resto del wrapper, a diferencia de un documento HTML completo con su
 // propio <style> fijo (ver docs/PENDIENTE_BACKEND_ADMIN.md).
+// Tokens del sistema de diseño (pages/migrated/theme.ts) en vez de valores
+// sueltos -- alinea el contenido de recursos con el resto de la app: mismo
+// teal de marca, misma escala de radios/espaciado (múltiplos de 4px) y la
+// misma sombra de tarjeta (SHADOW.card = 0 2px 8px rgba(0,0,0,.04)) que
+// usan las tarjetas nativas. Sin navbar/footer/sticky -- este wrapper solo
+// da estilo a los elementos del propio contenido (h1-h4, tablas, .box...),
+// nunca a chrome de página, que no tiene sentido dentro de un WebView
+// embebido en una pantalla que ya tiene su propio ScreenHeader.
 function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): string {
+  const cardShadow = `0 ${SHADOW.card.shadowOffset.height}px ${SHADOW.card.shadowRadius}px rgba(0,0,0,${SHADOW.card.shadowOpacity})`;
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { margin:0; padding:0; background-color:${C.surface}; color:${C.textPrimary}; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
-    img { max-width:100%; height:auto; border-radius:8px; margin:8px 0; }
-    p, li { font-size:15px; line-height:1.7; color:${C.textSecondary}; margin:8px 0; }
-    h1 { color:${C.textPrimary}; font-size:24px; margin:4px 0 6px; }
-    h2 { color:${C.textPrimary}; font-size:20px; margin:22px 0 10px; padding-bottom:8px; border-bottom:1px solid ${C.orange10}; }
-    h3 { color:${C.textPrimary}; font-size:16px; margin:16px 0 8px; }
-    h4 { color:${C.textPrimary}; margin:12px 0 8px; }
-    .kicker { color:${C.textSecondary}; font-size:13px; font-weight:700; margin-bottom:2px; }
-    .subtitle { color:${C.textSecondary}; font-size:14px; margin:0 0 16px; }
-    table { width:100%; border-collapse:collapse; margin:12px 0; }
-    th, td { border:1px solid ${C.border}; padding:8px; font-size:14px; text-align:left; }
-    th { background:${C.blue60}; color:#FFFFFF; }
-    blockquote { border-left:3px solid ${C.accentBlack}; padding-left:12px; margin:12px 0; color:${C.textSecondary}; }
-    a { color:${C.blue60}; }
-    iframe { border-radius:12px; }
-    .box { border-left:4px solid ${C.orange}; background:${C.orange10}; padding:12px 14px; border-radius:8px; margin:14px 0; }
-    .box p, .box li { color:${C.textPrimary}; margin:4px 0; }
-    .box .box-title { display:block; color:${C.orange60}; font-weight:700; margin-bottom:6px; }
+    body { margin:0; padding:0; background-color:${C.surface}; color:${C.textPrimary}; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif; }
+    #content { padding:${SPACING.lg}px ${SPACING.xl}px ${SPACING.xxl}px; }
+    img { max-width:100%; height:auto; border-radius:${RADIUS.xs}px; margin:${SPACING.sm}px 0; }
+    p, li { font-size:15px; line-height:1.7; color:${C.textSecondary}; margin:${SPACING.sm}px 0; }
+    h1 { color:${C.textPrimary}; font-size:24px; font-weight:700; line-height:1.3; margin:${SPACING.xs}px 0 ${SPACING.sm}px; }
+    h2 { color:${C.textPrimary}; font-size:20px; font-weight:700; margin:${SPACING.xxl}px 0 ${SPACING.md}px; padding-bottom:${SPACING.sm}px; border-bottom:1px solid ${C.orange10}; }
+    h3 { color:${C.textPrimary}; font-size:16px; font-weight:600; margin:${SPACING.lg}px 0 ${SPACING.sm}px; }
+    h4 { color:${C.textPrimary}; font-weight:600; margin:${SPACING.md}px 0 ${SPACING.sm}px; }
+    .kicker { color:${C.accentBlack}; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:${SPACING.xs}px; }
+    .subtitle { color:${C.textSecondary}; font-size:14px; margin:0 0 ${SPACING.xl}px; }
+    table { width:100%; border-collapse:collapse; margin:${SPACING.md}px 0; border-radius:${RADIUS.sm}px; overflow:hidden; }
+    th, td { border:1px solid ${C.border}; padding:${SPACING.sm}px; font-size:14px; text-align:left; }
+    th { background:${C.accentBlack}; color:${C.accentBlackForeground}; font-weight:700; }
+    blockquote { border-left:3px solid ${C.accentBlack}; padding-left:${SPACING.md}px; margin:${SPACING.md}px 0; color:${C.textSecondary}; }
+    a { color:${C.accentBlack}; }
+    iframe { border-radius:${RADIUS.sm}px; }
+    .box { border-left:4px solid ${C.orange}; background:${C.orange10}; padding:${SPACING.lg}px; border-radius:${RADIUS.lg}px; margin:${SPACING.lg}px 0; box-shadow:${cardShadow}; }
+    .box p, .box li { color:${C.textPrimary}; margin:${SPACING.xs}px 0; }
+    .box .box-title { display:block; color:${C.orange60}; font-weight:700; margin-bottom:${SPACING.sm}px; }
     .box-info { border-left-color:${C.blue}; background:${C.blue10}; }
     .box-info .box-title { color:${C.blue60}; }
     .box-success { border-left-color:${C.success}; background:${C.success10}; }
@@ -86,6 +100,23 @@ function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): stri
     .box-warning .box-title { color:${C.warning60}; }
     .box-danger { border-left-color:${C.destructive}; background:${C.destructive10}; }
     .box-danger .box-title { color:${C.destructive}; }
+
+    /* Acordeón nativo (<details>/<summary>) -- una sección por bloque de
+       contenido, mismo lenguaje visual que el resto de la app: tarjeta
+       redondeada + sombra de tarjeta, cabecera clicable con chevron en
+       píldora que rota 180° al abrir (mismo patrón documentado para FAQ /
+       contenido colapsable, adaptado a <details> nativo). */
+    .acc { background:${C.surface}; border:1px solid ${C.border}; border-radius:${RADIUS.lg}px; margin:${SPACING.md}px 0; overflow:hidden; box-shadow:${cardShadow}; }
+    .acc summary { display:flex; align-items:center; justify-content:space-between; gap:${SPACING.md}px; padding:${SPACING.lg}px; font-size:16px; font-weight:700; color:${C.textPrimary}; cursor:pointer; list-style:none; }
+    .acc summary::-webkit-details-marker { display:none; }
+    .acc .acc-title { flex:1; }
+    .acc .acc-chevron { position:relative; flex-shrink:0; width:28px; height:28px; border-radius:${RADIUS.pill}px; background:${C.orange10}; transition:transform 200ms ease; }
+    .acc .acc-chevron::before { content:''; position:absolute; top:50%; left:50%; width:7px; height:7px; border-right:2px solid ${C.accentBlack}; border-bottom:2px solid ${C.accentBlack}; transform:translate(-50%,-65%) rotate(45deg); }
+    .acc[open] .acc-chevron { transform:rotate(180deg); }
+    .acc-body { padding:0 ${SPACING.lg}px ${SPACING.lg}px; border-top:1px solid ${C.border}; padding-top:${SPACING.md}px; }
+    .acc-body > *:first-child { margin-top:0; }
+    .acc-body > *:last-child { margin-bottom:0; }
+    .acc-body h2 { display:none; } /* por si algún recurso viejo mezcla h2 dentro de un acordeón */
   </style>
 </head>
 <body>
