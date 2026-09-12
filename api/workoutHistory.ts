@@ -40,12 +40,26 @@ export interface CalendarMonthWorkout {
   assignment_id: number; // = program_day_assignment_id
   id: number; // = workout_template_id
   title: string | null;
+  // Motor de Auto-Regulación de Carga: true si algún ejercicio de este
+  // entrenamiento tiene una sugerencia de carga pendiente de aprobación o
+  // aplicada recientemente (ventana de 14 días en backend) -- el detalle
+  // real (peso/reps propuestos) viene en CalendarDayExercise.load_suggestion,
+  // pedido aparte en getMyCalendarDayDetail(). Siempre false para clientes free.
+  has_load_suggestion?: boolean;
 }
 
 export interface CalendarMonthDay {
   date: string;
   in_month: boolean;
   workouts: CalendarMonthWorkout[];
+}
+
+export interface LoadSuggestionDetail {
+  status: 'pendiente' | 'aplicado';
+  proposed_weight: number | null;
+  proposed_reps: number | null;
+  resolved_at: string | null;
+  rule_name: string | null;
 }
 
 export interface CalendarDayExercise {
@@ -60,6 +74,11 @@ export interface CalendarDayExercise {
   enabled_metrics: string[];
   last_performance: { sets: Record<string, any>[] } | null;
   sequence: number;
+  // Motor de Auto-Regulación de Carga: null si no hay ninguna sugerencia
+  // relevante para este ejercicio (caso normal). 'pendiente' = esperando
+  // aprobación del coach; 'aplicado' = el motor ya la aplicó o el coach la
+  // aprobó (dentro de una ventana de 14 días en backend, ver getDayDetail).
+  load_suggestion: LoadSuggestionDetail | null;
 }
 
 export interface CalendarDayBlock {
