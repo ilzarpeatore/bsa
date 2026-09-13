@@ -148,7 +148,6 @@ const ViewBodyPartScreen = React.lazy(() => import('@pages/migrated/view_body_pa
 const ViewEquipmentScreen = React.lazy(() => import('@pages/migrated/view_equipment_screen'));
 const WaterTrackerScreen = React.lazy(() => import('@pages/migrated/water_tracker_screen'));
 const WebViewScreen = React.lazy(() => import('@pages/migrated/web_view_screen'));
-const WorkoutDetailScreenMig = React.lazy(() => import('@pages/migrated/workout_detail_screen'));
 const WorkoutHistoryScreen = React.lazy(() => import('@pages/migrated/workout_history_screen'));
 const WorkoutPreviewScreen = React.lazy(() => import('@pages/migrated/workout_preview_screen'));
 const WorkoutSessionScreenMig = React.lazy(() => import('@pages/migrated/workout_session_screen'));
@@ -342,7 +341,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedViewEquipment" component={ViewEquipmentScreen} />
       <MStack.Screen name="MigratedWaterTracker" component={WaterTrackerScreen} />
       <MStack.Screen name="MigratedWebView" component={WebViewScreen} />
-      <MStack.Screen name="MigratedWorkoutDetail" component={WorkoutDetailScreenMig} />
       <MStack.Screen name="MigratedWorkoutHistory" component={WorkoutHistoryScreen} />
       <MStack.Screen name="MigratedWorkoutPreview" component={WorkoutPreviewScreen} />
       <MStack.Screen name="MigratedWorkoutSession" component={WorkoutSessionScreenMig} />

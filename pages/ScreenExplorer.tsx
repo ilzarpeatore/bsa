@@ -127,7 +127,6 @@ const ALL_SCREENS: ScreenItem[] = [
     // -- es decir, es un alias en vivo a Home Modern V2.
   },
   { name: 'Home Modern V2 (nueva cabecera)', route: 'MigratedHomeModernV2', category: 'Migrated - Dashboard', file: 'home_screen_modern_v2.tsx', gluestackMigrated: true },
-  { name: 'Workout Detail (migrated)', route: 'MigratedWorkoutDetail', category: 'Migrated - Workout', file: 'workout_detail_screen.tsx', gluestackMigrated: true },
   { name: 'Workout History', route: 'MigratedWorkoutHistory', category: 'Migrated - Workout', file: 'workout_history_screen.tsx', gluestackMigrated: true },
   { name: 'Session History Detail', route: 'MigratedSessionHistoryDetail', category: 'Migrated - Workout', file: 'session_history_detail_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Preview', route: 'MigratedWorkoutPreview', category: 'Migrated - Workout', file: 'workout_preview_screen.tsx', gluestackMigrated: true },
