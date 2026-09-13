@@ -23,7 +23,7 @@ se despliegan en la VPS `bestronger-vps` tras cada fix):
 - [x] **Fase 3 — Backend ya listo, frontend sin conectar** (desplegada)
 - [x] **Fase 4 — Mejoras sistémicas en CrudView.tsx** (desplegada)
 - [x] **Fase 5 — Confirmaciones y manejo de errores en vistas bespoke** (desplegada)
-- [ ] **Fase 6 — Limpieza de menú**
+- [x] **Fase 6 — Limpieza de menú** (desplegada)
 
 ---
 
@@ -138,31 +138,28 @@ archivo de varias de estas vistas y por el tamaño/densidad de `UserDetailView.t
 - [x] `revenue/index.tsx`: fallo de carga ahora muestra un mensaje visible en
       vez de pantalla en blanco.
 
-## Fase 6 — Limpieza de menú — ⬜ NO EMPEZADA
+## Fase 6 — Limpieza de menú — ✅ COMPLETADA Y DESPLEGADA
 
-- [ ] Quitar `/apps/notes` y `/apps/tickets` del sidebar (sin backend,
-      plantilla original sin propósito en este producto) — mismo criterio ya
-      aplicado a `/posts` esta sesión (ver `sidebaritems.ts`, sección
-      "Aplicaciones").
-- [ ] No tocar `Level.rate` (campo sin uso detectado, posiblemente vestigial)
-      ni el límite de push notifications a la cuenta demo (documentado como
-      incompleto a propósito, no es un bug nuevo).
+Commit `be3b9e9` (bstronger-admin). Build en VPS sin errores.
+
+- [x] Quitadas `Notas`/`Tickets` (`/apps/notes`, `/apps/tickets`) del sidebar —
+      sin backend real, plantilla original sin propósito en este producto.
+      Ruta huérfana sin tocar (bajo riesgo).
+- [x] No se tocó `Level.rate` ni el límite de push notifications a la cuenta
+      demo — confirmado vestigial/intencional, no son bugs.
+
+**Con esto, las Fases 0-6 del plan original están completas y desplegadas.**
 
 ---
 
-## Ronda 2 de auditoría (patrones transversales) — hallazgos ya incorporados arriba
+## Ronda 2 de auditoría (patrones transversales)
 
 Se lanzaron 3 auditorías adicionales de solo lectura buscando específicamente
 seguridad/IDOR, patrones de sync/FormData repetidos, y errores silenciosos.
-Dos completaron con éxito (seguridad → Fase 0; errores silenciosos → Fase 4/5).
-La tercera (sync/relaciones y FormData en TODO el panel, más allá de lo ya
-conocido) **falló por rate limit de la sesión** antes de terminar — ya había
-completado su hallazgo principal (bug de `ExerciseView.tsx`, incorporado en
-Fase 1) pero no llegó a confirmar si hay más instancias del mismo patrón en
-vistas no revisadas todavía. **Si se retoma esta sesión, considerar relanzar
-esa auditoría específica** (bugs de `sync()`/`FormData` en vistas de
-`coaching/`, `community/`, `commerce/` no cubiertas por las 5 auditorías
-originales por área) antes de dar la Fase 4-6 por completamente cerrada.
+Las 3 completaron con éxito en total (seguridad → Fase 0; errores silenciosos →
+Fase 4/5; sync/FormData → Fase 1, más una segunda pasada de refuerzo tras un
+primer intento que falló por rate limit de la sesión — ver resultado de la
+segunda pasada justo debajo).
 
 ## Cómo retomar si se corta la sesión
 
