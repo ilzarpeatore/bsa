@@ -32,6 +32,11 @@ interface CalendarWorkout {
   title?: string;
   assignmentId?: number;
   workoutTemplateId?: number;
+  // Motor de Auto-Regulación de Carga: true si el motor tiene una
+  // sugerencia de carga pendiente o recién aplicada para algún ejercicio
+  // de este entrenamiento (ver has_load_suggestion en getMyMonth) -- el
+  // detalle real (qué ejercicio, qué valor) se ve al abrir el entrenamiento.
+  hasLoadSuggestion?: boolean;
 }
 
 // Mismo fallback por palabra clave que usa MigratedSchedule (schedule_screen.tsx) —
@@ -450,6 +455,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           title: w.title,
           assignmentId: w.assignment_id,
           workoutTemplateId: w.id,
+          hasLoadSuggestion: !!w.has_load_suggestion,
         })),
       }));
       setMDays(mapped);
@@ -717,6 +723,17 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                 <HStack space="xs" style={{ marginTop: 4 }}>
                   <Icon name="arrow-forward-circle" size={13} color={C.orange} />
                   <Text style={styles.pendingMoveText}>Propuesto para {formatDayLabel(pendingMove.toDate)}</Text>
+                </HStack>
+              )}
+              {/* Motor de Auto-Regulación de Carga: badge visible directamente
+                  en la tarjeta del calendario -- el detalle real (qué
+                  ejercicio, qué carga) se ve al abrir el entrenamiento
+                  (WorkoutPreview lee load_suggestion por ejercicio). Solo
+                  tiene sentido en entrenamientos aún no completados. */}
+              {!completed && w.hasLoadSuggestion && (
+                <HStack space="xs" style={{ marginTop: 4 }}>
+                  <Icon name="trending-up" size={13} color={C.orange} />
+                  <Text style={styles.loadSuggestionBadgeText}>Ajuste de carga sugerido</Text>
                 </HStack>
               )}
             </VStack>
@@ -1467,6 +1484,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   workoutTitle: { flex: 1, fontSize: 15, fontFamily: FONT.bold, color: C.textPrimary },
   completedBadgeText: { fontFamily: FONT.semiBold, fontSize: 11.5, color: C.success60 },
   pendingMoveText: { fontFamily: FONT.semiBold, fontSize: 11.5, color: C.orange },
+  loadSuggestionBadgeText: { fontFamily: FONT.semiBold, fontSize: 11.5, color: C.orange },
   restDayText: { fontFamily: FONT.regular, fontSize: 13, color: C.textSecondary },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyText: { fontSize: 16, fontFamily: FONT.medium, color: C.textSecondary, textAlign: 'center' },

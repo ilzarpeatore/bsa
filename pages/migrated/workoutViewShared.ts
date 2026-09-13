@@ -1,5 +1,5 @@
 import { workoutTemplateApi, MetricCatalogItem } from '../../api/workoutTemplate';
-import { workoutHistoryApi } from '../../api/workoutHistory';
+import { workoutHistoryApi, LoadSuggestionDetail } from '../../api/workoutHistory';
 
 // Pantallas de Workout (Preview + Sesión en marcha) — lógica compartida
 // para normalizar los dos orígenes posibles de un "click en un workout"
@@ -33,6 +33,12 @@ export interface UnifiedExercise {
   coachNotes: string | null;
   lastPerformance: { sets: Record<string, any>[] } | null;
   sequence: number;
+  // Motor de Auto-Regulación de Carga: null salvo que el motor tenga una
+  // sugerencia pendiente/aplicada reciente para este ejercicio -- solo
+  // viene poblado cuando el workout llega por programDayAssignmentId (ver
+  // fetchUnifiedWorkout), un WorkoutTemplate suelto del catálogo no pasa
+  // por el motor de progresión.
+  loadSuggestion: LoadSuggestionDetail | null;
 }
 
 export interface UnifiedBlock {
@@ -92,6 +98,7 @@ export async function fetchUnifiedWorkout(params: WorkoutViewParams): Promise<Un
         coachNotes: e.coach_notes,
         lastPerformance: e.last_performance,
         sequence: e.sequence,
+        loadSuggestion: e.load_suggestion ?? null,
       })),
     }));
 
@@ -130,6 +137,7 @@ export async function fetchUnifiedWorkout(params: WorkoutViewParams): Promise<Un
         coachNotes: e.notes,
         lastPerformance: e.last_performance ?? null,
         sequence: e.sequence,
+        loadSuggestion: null,
       })),
     }));
 
