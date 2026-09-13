@@ -147,6 +147,8 @@ Contrato completo de cada endpoint (payloads, modelos, migraciones) en `Bckbs`: 
 
 ## Pagos — checkout externo (no es trabajo de este backend/admin, pero es el bloqueante real)
 
+**Actualización 2026-09-13**: el modelo de negocio real, confirmado con el usuario, es pago presencial (tarjeta o efectivo, directamente con el coach) -- el checkout de Stripe/PayPal descrito aquí se construyó pero **nunca se activó con credenciales reales**, ver la nota completa en `docs/PLAN_VENTAS_PROGRAMAS_Y_BLOG.md`. El texto original de esta sección queda como referencia técnica de lo que se construyó, no como descripción del modelo de negocio actual.
+
 La compra **dentro de la app se eliminó por completo** (cumplimiento de políticas de Apple/Google): el cliente paga en la web `bestronger.es`, la app es solo login + contenido ya desbloqueado. Todo el lado de este repo/backend/admin ya está construido y verificado en producción:
 
 - `GET my-plan` (solo lectura, ya sirve a "Mi plan" en la app).
