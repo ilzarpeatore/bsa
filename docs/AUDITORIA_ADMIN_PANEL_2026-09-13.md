@@ -21,7 +21,7 @@ se despliegan en la VPS `bestronger-vps` tras cada fix):
 - [x] **Fase 1 — Bugs de datos que se autodestruyen** (desplegada)
 - [x] **Fase 2 — Funcionalidad crítica rota o falsa** (desplegada)
 - [x] **Fase 3 — Backend ya listo, frontend sin conectar** (desplegada)
-- [ ] **Fase 4 — Mejoras sistémicas en CrudView.tsx**
+- [x] **Fase 4 — Mejoras sistémicas en CrudView.tsx** (desplegada)
 - [ ] **Fase 5 — Confirmaciones y manejo de errores en vistas bespoke**
 - [ ] **Fase 6 — Limpieza de menú**
 
@@ -98,21 +98,19 @@ tabla de `UnitConversionView`/`DefaultKeywordView` (solo en el formulario) —
 el backend no devuelve los nombres relacionados en el listado y no se tocó
 para no ampliar el alcance. Bajo impacto, cosmético.
 
-## Fase 4 — Mejoras sistémicas en CrudView.tsx — ⬜ NO EMPEZADA
+## Fase 4 — Mejoras sistémicas en CrudView.tsx — ✅ COMPLETADA Y DESPLEGADA
 
-Afecta a ~28 vistas que usan el componente compartido `src/views/CrudView.tsx`.
-Probar contra `SubAdminView`, `RolesView` (ya no lo usa, usar otra), `PackageView`,
-`DietView` antes de dar por bueno.
+Commit `499f52e` (bstronger-admin). Afecta a ~28 vistas que usan el componente
+compartido `src/views/CrudView.tsx`. Build en VPS (con `tsc`) sin errores; no
+se probó manualmente en navegador contra una vista real por falta de tiempo —
+si algo raro aparece en formularios de CrudView, mirar aquí primero.
 
-- [ ] Validación "required" es solo cosmética (`CrudView.tsx:378-380`) — no
-      bloquea el envío. Comprobar `fields.filter(f => f.required)` en
-      `handleSubmit` antes de llamar a la API.
-- [ ] Errores 422 de Laravel se muestran genéricos (`CrudView.tsx:190-191`) —
-      `err.data.errors` existe (`ApiError` en `api.ts`) pero nunca se lee, y
-      existe `FieldError` (`components/ui/field.tsx`) sin usar. Mapear cada
-      mensaje al campo correspondiente.
-- [ ] Botón "Eliminar" del diálogo de confirmación sin `disabled` durante la
-      petición (`CrudView.tsx:439`) — doble clic dispara dos `DELETE`.
+- [x] Validación "required" ahora bloquea el envío de verdad (`handleSubmit`
+      comprueba `field.required` antes de llamar a la API)
+- [x] Errores 422 de Laravel (`err.data.errors`) ahora se mapean por campo y
+      se muestran con `FieldError` (antes solo un toast genérico)
+- [x] Botón "Eliminar" del diálogo de confirmación con estado `deleting` +
+      `disabled` durante la petición
 
 ## Fase 5 — Confirmaciones y manejo de errores en vistas bespoke — ⬜ NO EMPEZADA
 
