@@ -1,4 +1,8 @@
-# Auditoría panel admin (bstronger-admin + Bckbs) — 2026-09-13
+# Auditoría panel admin (bstronger-admin + Bckbs) — 2026-09-13 — ✅ CERRADA
+
+**Estado final: todas las fases (0-6) completadas y desplegadas, más la ronda 2
+de auditoría de patrones transversales sin más hallazgos pendientes.** Este
+documento queda como registro histórico de lo hecho.
 
 Seguimiento de la auditoría completa pedida por el usuario ("dejar el panel cien
 por cien operativo") + segunda ronda de seguridad/patrones repetibles. Este
@@ -158,8 +162,18 @@ Se lanzaron 3 auditorías adicionales de solo lectura buscando específicamente
 seguridad/IDOR, patrones de sync/FormData repetidos, y errores silenciosos.
 Las 3 completaron con éxito en total (seguridad → Fase 0; errores silenciosos →
 Fase 4/5; sync/FormData → Fase 1, más una segunda pasada de refuerzo tras un
-primer intento que falló por rate limit de la sesión — ver resultado de la
-segunda pasada justo debajo).
+primer intento que falló por rate limit de la sesión).
+
+**Resultado de la segunda pasada (sync/FormData en el resto del panel)**:
+✅ sin hallazgos nuevos. Se revisaron exhaustivamente `coaching/`, `community/`,
+`commerce/`, `diet/`, `recipes/`, `users/`, `content/`, `assignments/` y
+`fitness/` (todo lo no tocado ya esta sesión) buscando (A) subidas de archivo en
+PUT que no pasen por `api.upload(...,'PUT')` y (B) relaciones many-to-many sin
+precargar al editar. Ningún caso nuevo de ninguno de los dos patrones — el resto
+del panel usa consistentemente altas/bajas individuales por endpoint dedicado, o
+`sync()` con precarga ya correcta (`ResourcesView.tsx`, revisado y confirmado
+bien resuelto). **Los tres bugs de patrón repetible de esta auditoría están
+efectivamente agotados en todo el panel.**
 
 ## Cómo retomar si se corta la sesión
 
