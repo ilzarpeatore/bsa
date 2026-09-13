@@ -22,7 +22,7 @@ se despliegan en la VPS `bestronger-vps` tras cada fix):
 - [x] **Fase 2 — Funcionalidad crítica rota o falsa** (desplegada)
 - [x] **Fase 3 — Backend ya listo, frontend sin conectar** (desplegada)
 - [x] **Fase 4 — Mejoras sistémicas en CrudView.tsx** (desplegada)
-- [ ] **Fase 5 — Confirmaciones y manejo de errores en vistas bespoke**
+- [x] **Fase 5 — Confirmaciones y manejo de errores en vistas bespoke** (desplegada)
 - [ ] **Fase 6 — Limpieza de menú**
 
 ---
@@ -112,31 +112,31 @@ si algo raro aparece en formularios de CrudView, mirar aquí primero.
 - [x] Botón "Eliminar" del diálogo de confirmación con estado `deleting` +
       `disabled` durante la petición
 
-## Fase 5 — Confirmaciones y manejo de errores en vistas bespoke — ⬜ NO EMPEZADA
+## Fase 5 — Confirmaciones y manejo de errores en vistas bespoke — ✅ COMPLETADA Y DESPLEGADA
 
-- [ ] `UserDetailView.tsx`: ~9 acciones de borrado de un clic sin confirmación
-      (notas, objetivos, limitaciones, fotos, métricas, tareas, quitar
-      entrenamiento, desasignar recurso). La más grave: **"Eliminar recurso
-      entero"** (línea ~1560) borra el recurso para TODOS los clientes que lo
-      tengan asignado, un solo clic desde la ficha de un cliente concreto.
-      Envolver en `AlertDialog` (patrón ya usado en `UsersView`/`TwoFactorView`/
-      `LoginDevicesView`).
-- [ ] `TrainingProgramsView.tsx:1314`: quitar cliente de programa sin
-      confirmación (la vista ya usa `confirm()` en otra acción, línea 719 —
-      mismo patrón).
-- [ ] `ClientTagsView.tsx`: desasignar etiqueta sin confirmación (inconsistente
-      con borrar la etiqueta global, que sí la tiene); botón "Asignar" sin
-      `disabled` durante el envío.
-- [ ] `SubscriptionView.tsx` / `transactions/index.tsx`: tope fijo de 100
-      registros sin paginación real ni aviso; exportación CSV solo exporta esos
-      100 sin avisar de que puede haber más.
-- [ ] `SubscriptionView.tsx`: `handleGrant`/`handleRevoke` descartan el error
-      real del backend (`catch { toast.error('mensaje fijo') }`) — capturar
-      `err` y mostrar `err.message`.
-- [ ] `BulkAssignView.tsx`: fallo parcial no identifica a quién falló —
-      acumular y mostrar nombres/IDs de los fallidos, no solo el conteo.
-- [ ] `revenue/index.tsx`: fallo de carga silencioso (pantalla en blanco) —
-      mostrar mensaje de error. Baja prioridad (solo lectura).
+Commit `f6ad187` (bstronger-admin). Build en VPS (con `tsc`) sin errores. Se usó
+`confirm()` nativo (no `AlertDialog`) por ser el patrón ya existente en el mismo
+archivo de varias de estas vistas y por el tamaño/densidad de `UserDetailView.tsx`
+(2000+ líneas, muy compacto) — más seguro que reestructurar cada
+`DropdownMenuItem` con un componente nuevo.
+
+- [x] `UserDetailView.tsx`: las 9 acciones de borrado de un clic ahora piden
+      confirmación. "Eliminar recurso entero" avisa explícitamente que afecta a
+      TODOS los clientes que lo tengan asignado, no solo a este.
+- [x] `TrainingProgramsView.tsx`: quitar cliente de programa ahora confirma.
+- [x] `ClientTagsView.tsx`: desasignar etiqueta ahora confirma; "Asignar" ahora
+      tiene estado de envío (`disabled` mientras está en curso).
+- [x] `SubscriptionView.tsx` / `transactions/index.tsx`: ahora avisan (toast)
+      si hay más registros en total de los 100 mostrados/exportados en CSV.
+      No se implementó paginación real completa (alcance mayor, se dejó el
+      aviso como mitigación suficiente por ahora).
+- [x] `SubscriptionView.tsx`: `handleGrant`/`handleRevoke` ahora muestran
+      `err.message` real del backend en vez de un texto fijo.
+- [x] `BulkAssignView.tsx`: fallo parcial ahora identifica por nombre a quién
+      falló, y deja seleccionados solo esos para reintentar sin duplicar a los
+      que ya funcionaron.
+- [x] `revenue/index.tsx`: fallo de carga ahora muestra un mensaje visible en
+      vez de pantalla en blanco.
 
 ## Fase 6 — Limpieza de menú — ⬜ NO EMPEZADA
 
