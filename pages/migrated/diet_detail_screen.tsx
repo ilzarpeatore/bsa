@@ -12,7 +12,6 @@ import {  Icon  } from '@components/ui/icon';
 import {  Spinner  } from '@components/ui/spinner';
 import {  HStack  } from '@components/ui/hstack';
 import {  VStack  } from '@components/ui/vstack';
-import {  Badge, BadgeText  } from '@components/ui/badge';
 import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
@@ -279,16 +278,14 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
           <Icon name="chevron-back" size={24} color={'#FFFFFF'} />
         </Pressable>
 
-        {/* Premium Badge */}
-        {dietState.isPremium === 1 && (
-          <Badge
-            action="warning"
-            className="rounded px-1.5 py-0.5"
-            style={{ position: 'absolute', left: 16, top: insets.top + 16 }}
-          >
-            <BadgeText className="text-[10px] font-gilroy-bold">PRO</BadgeText>
-          </Badge>
-        )}
+        {/* App Store rejection Guideline 2.1(b) (2026-09-12): un badge "PRO"
+            visible sin ninguna explicación de cómo se consigue -- junto con la
+            política de privacidad mencionando "suscripción" -- basta para que
+            un revisor pregunte por el modelo de negocio y contenido de pago
+            sin IAP. Se quita: el acceso real ya lo decide el backend
+            (is_accessible) y el contenido accesible se ve exactamente igual
+            que cualquier otro, sin distinción visual que sugiera un
+            desbloqueo dentro de la app. */}
 
         {/* Favourite Button */}
         <Pressable

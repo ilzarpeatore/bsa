@@ -232,12 +232,12 @@ export default function WorkoutDetailScreen(props: any) {
           <Icon name="chevron-back" size={24} color="#FFFFFF" />
         </Pressable>
 
-        {/* Premium Badge */}
-        {workoutDetail?.is_premium === 1 && (
-          <Box style={[styles.proBadge, { top: heroButtonTop }]}>
-            <Text style={styles.proText}>PRO</Text>
-          </Box>
-        )}
+        {/* App Store rejection Guideline 2.1(b) (2026-09-12): mismo criterio
+            que diet_detail_screen.tsx -- se quita el badge "PRO" para no
+            sugerir contenido desbloqueable dentro de la app sin IAP. Esta
+            pantalla en concreto no tiene ningún punto de entrada real en
+            producción (confirmado, ver docs/DEAD_SCREENS.md), pero se
+            corrige igual por si se reconecta en el futuro. */}
 
         {/* Favorite Button */}
         <Pressable
