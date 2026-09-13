@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FONT } from '../pages/migrated/theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -74,8 +74,6 @@ interface IntensityCheckSheetProps {
   onRegister: (value: string) => void;
   /** "#2 Set: 10 x 40 kg" -- contexto de la serie que se está valorando. */
   setLabel: string;
-  autoOpenEnabled: boolean;
-  onToggleAutoOpen: (enabled: boolean) => void;
 }
 
 export default function IntensityCheckSheet({
@@ -84,15 +82,12 @@ export default function IntensityCheckSheet({
   onClose,
   onRegister,
   setLabel,
-  autoOpenEnabled,
-  onToggleAutoOpen,
 }: IntensityCheckSheetProps) {
   const { colors: C } = useAppColorMode();
   const s = createStyles(C);
   const options = getOptions(metric, C);
   const copy = METRIC_COPY[metric];
   const [selected, setSelected] = useState<IntensityOption | null>(null);
-  const [showAutoOpenBanner, setShowAutoOpenBanner] = useState(true);
 
   // Reset al reabrir -- mismo criterio que ReadinessCheckSheet/PainReportSheet,
   // para no arrastrar la selección de la serie anterior (ni la de la otra
@@ -100,7 +95,6 @@ export default function IntensityCheckSheet({
   useEffect(() => {
     if (!visible) return;
     setSelected(null);
-    setShowAutoOpenBanner(true);
   }, [visible, metric]);
 
   const headline =
@@ -122,32 +116,6 @@ export default function IntensityCheckSheet({
   return (
     <SimpleBottomSheet visible={visible} onClose={onClose}>
       <View style={s.handle} />
-
-      {showAutoOpenBanner && (
-        <View style={s.autoOpenBanner}>
-          <View style={s.autoOpenHeaderRow}>
-            <Text style={s.autoOpenQuestion}>
-              ¿Debe continuar abriéndose esta consulta de intensidad automáticamente después de cada serie?
-            </Text>
-            <Pressable
-              onPress={() => setShowAutoOpenBanner(false)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={({ pressed }) => pressed && { opacity: 0.6 }}
-            >
-              <Ionicons name="close" size={18} color={C.textPrimary} />
-            </Pressable>
-          </View>
-          <View style={s.autoOpenToggleRow}>
-            <Text style={s.autoOpenToggleLabel}>{metric.toUpperCase()} (consulta automática)</Text>
-            <Switch
-              value={autoOpenEnabled}
-              onValueChange={onToggleAutoOpen}
-              trackColor={{ false: C.gray70, true: C.blue }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-        </View>
-      )}
 
       <View style={s.headerRow}>
         <Text style={s.title}>{copy.title}</Text>

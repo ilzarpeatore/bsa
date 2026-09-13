@@ -31,6 +31,7 @@ import {  Divider  } from '@components/ui/divider';
 import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { hapticLight, hapticSuccess } from '@helper/haptics';
+import { showToast } from '@helper/toast';
 import {
   startWorkoutLiveActivity,
   updateWorkoutLiveActivity,
@@ -112,14 +113,6 @@ function sortMetricKeys(keys: string[]): string[] {
 // componente para no reconstruirlos en cada fila del FlatList.
 const PICKER_RESULT_IMAGE_STYLE = { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 };
 const PICKER_RESULT_PLACEHOLDER_STYLE = { width: 44, height: 44, marginRight: 12 };
-// Preferencia "seguir abriendo la consulta de intensidad (RIR o RPE)
-// automáticamente después de cada serie" (IntensityCheckSheet, pedido
-// explícito 2026-08-26) -- persistida igual que el resto de flags simples
-// de la app (ver DIAGNOSTICS_STORAGE_KEY en helper/logger.ts), local a esta
-// pantalla porque solo se lee/escribe aquí. Una sola preferencia para
-// ambas métricas -- son el mismo "slot" intercambiable, no dos ajustes
-// independientes.
-const INTENSITY_AUTO_OPEN_STORAGE_KEY = 'intensity_check_auto_open';
 const PICKER_RESULT_TITLE_STYLE = { fontSize: 14, marginRight: 8 };
 const RESISTANCE_TRAINING_MET = 5.0;
 const FALLBACK_WEIGHT_KG = 70;
@@ -755,16 +748,6 @@ export default function WorkoutSessionScreen(props: Props) {
     rowIndex: number;
     metric: IntensityMetric;
   } | null>(null);
-  const [intensityAutoOpenEnabled, setIntensityAutoOpenEnabled] = useState(true);
-  useEffect(() => {
-    AsyncStorage.getItem(INTENSITY_AUTO_OPEN_STORAGE_KEY).then((v) => {
-      if (v != null) setIntensityAutoOpenEnabled(v === 'true');
-    });
-  }, []);
-  const toggleIntensityAutoOpen = (enabled: boolean) => {
-    setIntensityAutoOpenEnabled(enabled);
-    AsyncStorage.setItem(INTENSITY_AUTO_OPEN_STORAGE_KEY, enabled ? 'true' : 'false').catch(() => {});
-  };
   // RIR y RPE son la misma "columna de intensidad" vista desde 2 escalas
   // inversas -- pedido explícito 2026-08-26: "deben de ser reemplazables",
   // el cliente elige tocando la cabecera de la columna. Por ejercicio (no
@@ -772,12 +755,15 @@ export default function WorkoutSessionScreen(props: Props) {
   // usar una u otra. Sin entrada aquí -> se usa el default de
   // getIntensityMode (lo que ya traiga `enabledMetrics` de la plantilla).
   const [intensityModeOverride, setIntensityModeOverride] = useState<Record<number, IntensityMetric>>({});
-  const getIntensityMode = (ex: SessionExercise): IntensityMetric | null => {
+  const getIntensityMode = (ex: SessionExercise): IntensityMetric => {
     const override = intensityModeOverride[ex.exerciseId];
     if (override) return override;
     if (ex.enabledMetrics.includes('rir')) return 'rir';
     if (ex.enabledMetrics.includes('rpe')) return 'rpe';
-    return null;
+    // RIR/RPE es obligatorio (uno u otro) desde el backend -- todo ejercicio
+    // debería traer ya uno de los dos en enabledMetrics. Este fallback solo
+    // cubre una plantilla vieja en caché sin ninguno de los dos.
+    return 'rir';
   };
   const toggleIntensityMode = (exerciseId: number, current: IntensityMetric) => {
     setIntensityModeOverride((prev) => ({ ...prev, [exerciseId]: current === 'rir' ? 'rpe' : 'rir' }));
@@ -1268,6 +1254,32 @@ export default function WorkoutSessionScreen(props: Props) {
     currentFocusRef.current = { blockIdx, exIdx };
     const currentEx = blocks[blockIdx].exercises[exIdx];
     const wasCompleted = currentEx.rows[rowIndex].completed;
+
+    // RIR/RPE es obligatorio (uno u otro) al registrar una serie -- igual
+    // que reps/carga, no se puede marcar completada sin rellenar. Solo se
+    // exige al MARCAR (no al desmarcar), y solo para los campos que este
+    // ejercicio realmente tiene habilitados.
+    if (!wasCompleted) {
+      const targetValues = currentEx.rows[rowIndex].values;
+      const intensityMetric = getIntensityMode(currentEx);
+      const missing: string[] = [];
+      if (currentEx.enabledMetrics.includes('reps') && !targetValues.reps) missing.push('Reps');
+      if (currentEx.enabledMetrics.includes('carga') && !targetValues.carga) missing.push('Carga');
+      if (!targetValues[intensityMetric]) missing.push(intensityMetric.toUpperCase());
+
+      if (missing.length > 0) {
+        hapticLight();
+        showToast('Faltan datos para completar la serie', {
+          description: missing.join(', '),
+          variant: 'warning',
+        });
+        if (!targetValues[intensityMetric]) {
+          setIntensityCheckTarget({ blockIdx, exIdx, rowIndex, metric: intensityMetric });
+        }
+        return;
+      }
+    }
+
     const rows = [...currentEx.rows];
     rows[rowIndex] = { ...rows[rowIndex], completed: !wasCompleted };
     const ex = { ...currentEx, rows };
@@ -1295,13 +1307,9 @@ export default function WorkoutSessionScreen(props: Props) {
       const seconds = parseRestSeconds(rows[rowIndex].values.descanso);
       if (seconds != null) startRestCountdown(seconds);
     }
-    // IntensityCheckSheet (pedido explícito 2026-08-26): solo al MARCAR,
-    // solo si el ejercicio tiene RIR o RPE activo (getIntensityMode), y
-    // solo si el usuario no ha desactivado la apertura automática.
-    const intensityMetric = getIntensityMode(ex);
-    if (!wasCompleted && intensityMetric && intensityAutoOpenEnabled) {
-      setIntensityCheckTarget({ blockIdx, exIdx, rowIndex, metric: intensityMetric });
-    }
+    // El IntensityCheckSheet ya se fuerza a abrir en el guard de arriba
+    // cuando falta el dato (RIR/RPE obligatorio) -- si llegamos aquí es
+    // porque ya estaba relleno, no hace falta reabrirlo.
   };
 
   const addRow = (blockIdx: number, exIdx: number) => {
@@ -2408,8 +2416,6 @@ export default function WorkoutSessionScreen(props: Props) {
           const carga = row?.values.carga || '-';
           return `#${intensityCheckTarget.rowIndex + 1} Set: ${reps} x ${carga} kg`;
         })()}
-        autoOpenEnabled={intensityAutoOpenEnabled}
-        onToggleAutoOpen={toggleIntensityAutoOpen}
       />
     </SafeAreaView>
   );
