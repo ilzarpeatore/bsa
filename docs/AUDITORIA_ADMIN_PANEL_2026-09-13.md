@@ -20,7 +20,7 @@ se despliegan en la VPS `bestronger-vps` tras cada fix):
 - [x] **Fase 0 — Seguridad** (desplegada y verificada)
 - [x] **Fase 1 — Bugs de datos que se autodestruyen** (desplegada)
 - [x] **Fase 2 — Funcionalidad crítica rota o falsa** (desplegada)
-- [ ] **Fase 3 — Backend ya listo, frontend sin conectar** (en curso, ver detalle)
+- [x] **Fase 3 — Backend ya listo, frontend sin conectar** (desplegada)
 - [ ] **Fase 4 — Mejoras sistémicas en CrudView.tsx**
 - [ ] **Fase 5 — Confirmaciones y manejo de errores en vistas bespoke**
 - [ ] **Fase 6 — Limpieza de menú**
@@ -60,37 +60,43 @@ Commits `e55b17d` (bstronger-admin) + `e52565b` (Bckbs).
 - [x] `/pages/user-profile`: conectado a `GET /admin/me` / `POST /admin/update-profile` / `POST /admin/change-password` (ya existían sin usar); quitadas secciones sin campo real (dirección, redes sociales, cargo)
 - [x] `/reported-postings`: añadidas acciones restaurar/banear/eliminar (backend ya existía)
 
-## Fase 3 — Backend ya listo, frontend sin conectar — 🔶 EN CURSO
+## Fase 3 — Backend ya listo, frontend sin conectar — ✅ COMPLETADA Y DESPLEGADA
 
-**Escritos en el scratchpad pero TODAVÍA NO commiteados/desplegados** (verificar
-con `git status` en `bstronger-admin/` del scratchpad antes de repetir trabajo):
+Commits `af0af2b` (bstronger-admin) + `209feca` (Bckbs). Build en VPS (incluye
+`tsc`) sin errores.
 
 - [x] `RolesView.tsx`: reescrita como vista bespoke (antes CrudView con solo
       `name`) — ahora permite asignar permisos vía checkboxes, con diálogo de
       confirmación de borrado incluido
 - [x] `PermissionsView.tsx`: convertida a `CrudView` completo (crear/borrar)
 - [x] `RecipeView.tsx`: añadido input de imagen de portada (`recipe_image`),
-      `handleSubmit` cambiado a `FormData` + `api.upload` (ojo: booleans deben
-      mandarse como `'1'`/`'0'`, no `String(true)`, porque la regla `boolean` de
-      Laravel no acepta el string `"true"`)
+      `handleSubmit` cambiado a `FormData` + `api.upload`
 - [x] `DietView.tsx`: `categorydiet_id` número → select (`/admin/diet-categories`)
 - [x] `IngredientView.tsx`: `ingredient_category_id` número → select (`/admin/ingredient-categories`)
 - [x] `UnitConversionView.tsx`: `ingredient_id`/`measurement_unit_id` número → select (`/admin/ingredients`, `/admin/measurement-units`)
-- [ ] **`LanguageKeywordView.tsx`**: `language_id`/`keyword_id`/`screen_id` número →
-      select — PENDIENTE, es una vista bespoke (no usa CrudView), hay que
-      editar los 3 `<Input type='number'>` del diálogo (líneas ~154-166) a
-      selects cargando `/admin/languages`, `/admin/language-table-list` o el
-      endpoint real de keywords, y `/admin/screens`. Confirmar primero los
-      endpoints reales de opciones antes de escribir el fetch.
-- [ ] **`DefaultKeywordView.tsx`**: `screen_id` número → select — PENDIENTE,
-      mismo criterio, confirmar el endpoint real de `/admin/screens` primero.
-- [ ] **`EquipmentView.tsx`**: no expone `load_type` (plate/dumbbell/fixed,
-      campo añadido esta sesión para el motor de auto-regulación de carga) —
-      PENDIENTE, añadir un `type: 'select'` con esas 3 opciones fijas
-      (`options`, no `endpoint`, ya que son un enum fijo del backend).
+- [x] `LanguageKeywordView.tsx`: `language_id`/`keyword_id`/`screen_id` número →
+      select real (`/admin/languages`, `/admin/default-keywords`, `/admin/screens`).
+      **Bug adicional encontrado y arreglado de paso**: `LanguageKeywordController::index()`
+      hacía `with(['language','keyword','screen'])` pero el modelo
+      `LanguageWithKeyword` llama a esas relaciones `languagelist`/`defaultkeyword`
+      (no `language`/`keyword`) — `GET /admin/language-keywords` devolvía 500
+      siempre. Corregido el nombre de las relaciones; la tabla ahora también
+      resuelve los nombres reales (antes solo se arreglaba el formulario).
+- [x] `DefaultKeywordView.tsx`: `screen_id` número → select (`/admin/screens`,
+      `optionLabel: 'screenName'`) — ojo, este `screen_id` valida contra
+      `screens.id` (PK interno), NO contra `screens.screenId` (el campo string
+      que sí usa `LanguageWithKeyword.screen_id`) — son dos FKs distintas a la
+      misma tabla, inconsistencia ya existente en el esquema, no se tocó.
+- [x] `EquipmentView.tsx`: expone y permite editar `load_type`
+      (plate/dumbbell/fixed) — hacía falta añadir el campo también a
+      `EquipmentController::getValidationRules()` y a `EquipmentResource`
+      (ninguno de los dos lo tenía, aunque el modelo y la migración de esta
+      sesión ya lo soportaban).
 
-**Al terminar Fase 3**: commit + push `bstronger-admin`, `npm run build` en la
-VPS, marcar esta sección como ✅ completa.
+**Nota para Fase 4/5**: no se resolvieron los IDs en bruto de las _columnas_ de
+tabla de `UnitConversionView`/`DefaultKeywordView` (solo en el formulario) —
+el backend no devuelve los nombres relacionados en el listado y no se tocó
+para no ampliar el alcance. Bajo impacto, cosmético.
 
 ## Fase 4 — Mejoras sistémicas en CrudView.tsx — ⬜ NO EMPEZADA
 
