@@ -128,8 +128,26 @@ function onboardingCompletedKey(userId: number): string {
 const LEGACY_ONBOARDING_COMPLETED_KEY = 'ONBOARDING_COMPLETED';
 
 async function resolveOnboardingCompleted(user: { id?: number; onboarding_completed?: boolean } | null): Promise<boolean> {
-  if (user?.onboarding_completed !== undefined) return user.onboarding_completed;
-  if (!user?.id) return false;
+  // Bug real corregido (reportado 2026-09-14, mismo síntoma otra vez pero
+  // por una causa nueva: "tiene el onboarding completado pero cada vez que
+  // inicia sesión se lo manda a rellenar de nuevo", confirmado en DB para
+  // 2 cuentas -- onboarding_completed_at SÍ estaba puesto en el backend).
+  // Causa: el objeto `USER` cacheado en AsyncStorage se escribe una vez con
+  // `onboarding_completed: false` justo tras registrar (hydrateSession en
+  // onboarding_v2_screen.tsx, ANTES de terminar las 4 etapas) y nada lo
+  // reescribía después (ver fix en completeOnboarding, más abajo) -- así que
+  // ese `false` quedaba congelado en disco. Si aquí se confía en un `false`
+  // cacheado sin más, restoreToken() (cada apertura de la app, no solo el
+  // login explícito) manda al usuario de vuelta al onboarding para siempre,
+  // aunque el flag local de abajo o el backend YA digan que está completo --
+  // porque antes este `return` cortaba la función entera antes de
+  // comprobarlos. Un `true` explícito del backend SÍ sigue siendo fuente de
+  // verdad inmediata (es fresco, se pide en cada login/restore real). Un
+  // `false` explícito, en cambio, ya no corta aquí -- se trata igual que
+  // "no lo sé todavía" y cae al resto de comprobaciones (flag local, legacy,
+  // perfil real), que son más resistentes a un caché desactualizado.
+  if (user?.onboarding_completed === true) return true;
+  if (!user?.id) return user?.onboarding_completed ?? false;
   const local = await AsyncStorage.getItem(onboardingCompletedKey(user.id));
   if (local === 'true') return true;
   // Bug real corregido (reportado 2026-08-29, tras el fix de arriba: "cada
@@ -157,10 +175,18 @@ async function resolveOnboardingCompleted(user: { id?: number; onboarding_comple
   // completado" sobrevive a un reinstalar -- ni el nuevo por id ni el
   // viejo, porque los dos viven solo en AsyncStorage, y AsyncStorage se
   // borra por completo al desinstalar la app (comportamiento normal de
-  // iOS/Android, no un bug). El backend TAMPOCO tiene todavía un campo
-  // real de esto (`v1/onboarding/complete` sigue sin existir, ver
-  // api/onboardingV2.ts) -- así que hasta que exista, no hay ningún dato
-  // 100% fiable que sobreviva a un reinstalar.
+  // iOS/Android, no un bug). En ese momento (2026-08-29) el backend
+  // TAMPOCO tenía todavía un campo real de esto. CORRECCIÓN 2026-09-14:
+  // ya lo tiene -- `v1/onboarding/complete` existe de verdad (ver
+  // api/onboardingV2.ts y routes/api.php en el servidor) y marca
+  // `users.onboarding_completed_at`, que login()/userDetail() devuelven
+  // como `onboarding_completed`. Sigue sin sobrevivir a un reinstalar por
+  // sí solo dentro de ESTA función (aquí solo se llega tras un `false`/
+  // ausente en el objeto `user` de entrada), pero si el dispositivo puede
+  // volver a autenticarse (login explícito, no solo restoreToken), esa
+  // llamada real ya trae el valor correcto sin depender del resto de esta
+  // función. El respaldo de abajo (perfil real) sigue siendo útil para el
+  // caso restante: un `user` cacheado sin ese campo todavía.
   //
   // Respaldo real disponible HOY: la etapa 1 del onboarding (datos
   // personales: edad/altura/peso) SÍ usa un endpoint real que persiste de
@@ -169,12 +195,10 @@ async function resolveOnboardingCompleted(user: { id?: number; onboarding_comple
   // rellenos en el perfil de la cuenta, es que en algún dispositivo,
   // alguna vez, ya empezó (como mínimo) el onboarding de verdad. No es
   // 100% preciso (alguien pudo abandonar justo después de la etapa 1, sin
-  // terminar PAR-Q/entrenamiento/nutrición -- esas 3 etapas siguen sin
-  // ningún endpoint real donde comprobarlo), pero es la única señal que
-  // sobrevive a un reinstalar mientras el backend no tenga el campo real,
-  // y evita el síntoma exacto reportado. Se cachea localmente al
-  // encontrarlo para no repetir esta llamada en cada login futuro en el
-  // mismo dispositivo.
+  // terminar PAR-Q/entrenamiento/nutrición), pero es la única señal que
+  // sobrevive a un reinstalar sin necesitar un login explícito. Se cachea
+  // localmente al encontrarlo para no repetir esta llamada en cada login
+  // futuro en el mismo dispositivo.
   try {
     const res = await profileApi.getUserDetail(user.id);
     const profile = res.data?.data?.user_profile;
@@ -303,6 +327,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(async () => {
     if (state.user?.id) {
       await AsyncStorage.setItem(onboardingCompletedKey(state.user.id), 'true');
+      // Bug real corregido (reportado 2026-09-14, ver comentario grande en
+      // resolveOnboardingCompleted): esto marcaba el flag local y el estado
+      // en memoria, pero dejaba el objeto `USER` cacheado en AsyncStorage
+      // (la copia que lee restoreToken() en cada apertura de la app) con el
+      // `onboarding_completed: false` que traía desde el registro -- esa
+      // copia nunca se refrescaba, así que sobrevivía para siempre y volvía
+      // a mandar al onboarding en la siguiente apertura. Se actualiza aquí
+      // también, igual que updateUser() hace en el resto de la app.
+      const updatedUser = { ...state.user, onboarding_completed: true } as UserData;
+      await AsyncStorage.setItem('USER', JSON.stringify(updatedUser));
+      dispatch({ type: 'UPDATE_USER', user: updatedUser });
     }
     dispatch({ type: 'SET_ONBOARDING_COMPLETED' });
     // Best-effort, mismo criterio que el resto de onboardingV2Api: el

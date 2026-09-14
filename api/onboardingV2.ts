@@ -8,13 +8,17 @@ import { profileApi } from './profile';
 // Etapa 1 (datos personales) reutiliza el endpoint YA real `update-profile`
 // (age/height/weight/gender ya existen en `user_profiles` -- confirmado en
 // api/profile.ts). Las etapas 2-4 (PAR-Q, cuestionario de entrenamiento,
-// cuestionario de nutrición) llaman a endpoints `v1/onboarding/*` que TODAVÍA
-// NO EXISTEN en el backend -- están preparados aquí (tipos + payload) para
-// que quien implemente el backend solo tenga que crear las rutas/tablas
-// descritas en el MD. Hasta entonces estas llamadas devolverán 404, por lo
-// que el flujo de onboarding_v2_screen.tsx las trata como "best effort": si
-// fallan, no bloquean el avance del usuario (las respuestas siempre se
-// guardan localmente primero, ver ONBOARDING_ANSWERS_STORAGE_KEY).
+// cuestionario de nutrición) y el marcado de completado llaman a endpoints
+// `v1/onboarding/*` que, a pesar de lo que decía este comentario antes
+// (corregido 2026-09-14, tras confirmar en el servidor real -- ver
+// routes/api.php y app/Http/Controllers/API/OnboardingController.php --
+// que las 4 rutas SÍ existen y persisten de verdad, incl. `complete`
+// marcando `users.onboarding_completed_at`), ya están implementados en el
+// backend. El flujo de onboarding_v2_screen.tsx las sigue tratando como
+// "best effort" de todos modos (las respuestas se guardan localmente
+// primero, ver ONBOARDING_ANSWERS_STORAGE_KEY), lo cual sigue siendo
+// razonable como defensa ante un fallo de red puntual, pero ya no por
+// asumir que el endpoint no existe.
 
 export interface PersonalDataPayload {
   first_name: string;
@@ -90,23 +94,27 @@ export const onboardingV2Api = {
       },
     }),
 
-  // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Tabla par_q_answers").
+  // Real (confirmado 2026-09-14 en el servidor, ver comentario de arriba) --
+  // persiste en `par_q_answers`.
   submitParQ: (payload: ParQPayload) =>
     apiClient.post<ApiMessageResponse>('v1/onboarding/par-q', payload),
 
-  // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Tabla training_questionnaire_answers").
+  // Real (confirmado 2026-09-14) -- persiste en `training_questionnaire_answers`.
   submitTrainingQuestionnaire: (payload: TrainingQuestionnairePayload) =>
     apiClient.post<ApiMessageResponse>('v1/onboarding/training-questionnaire', payload),
 
-  // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Tabla nutrition_questionnaire_answers").
+  // Real (confirmado 2026-09-14) -- persiste en `nutrition_questionnaire_answers`.
   submitNutritionQuestionnaire: (payload: NutritionQuestionnairePayload) =>
     apiClient.post<ApiMessageResponse>('v1/onboarding/nutrition-questionnaire', payload),
 
-  // Pendiente de backend -- ver docs/ONBOARDING_V2.md ("Marcar onboarding
-  // completado server-side"). Marca el onboarding como terminado para el
-  // usuario autenticado (mismo mecanismo user_id vía token que el resto de
-  // esta API). AuthContext.completeOnboarding() la llama best-effort, igual
-  // que el resto de etapas -- hasta que exista, sigue funcionando solo con
-  // el flag local.
+  // Real (confirmado 2026-09-14, ver comentario de arriba): marca
+  // `users.onboarding_completed_at = now()` para el usuario autenticado
+  // (mismo mecanismo user_id vía token que el resto de esta API), y ese
+  // valor es justo lo que login()/userDetail() devuelven después como
+  // `onboarding_completed`. AuthContext.completeOnboarding() la sigue
+  // llamando best-effort (no bloquea el paso a Home si falla por red), pero
+  // ya no por asumir que el endpoint no existe -- el flag local y el objeto
+  // `USER` cacheado (ver fix 2026-09-14 en AuthContext.tsx) son ahora un
+  // respaldo para *fallos puntuales*, no la única fuente de verdad real.
   completeOnboarding: () => apiClient.post<ApiMessageResponse>('v1/onboarding/complete'),
 };
