@@ -61,10 +61,24 @@ interface BufferedLog {
 }
 let buffer: BufferedLog[] = [];
 
+// Redacta el header Authorization (el Bearer <token> de sesión que
+// api/client.ts adjunta a cada petición) en cualquier profundidad -- muchas
+// pantallas hacen `logger.error('...', e)` pasando el AxiosError capturado
+// tal cual, y AxiosError.toJSON() serializa `config` (con sus headers de
+// petición) dentro de ese objeto. Sin este replacer, activar "Habilitar
+// diagnósticos" y más tarde pulsar "Enviar registros al desarrollador"
+// (Share.share(), ver más abajo) filtraría el token de sesión completo --
+// que no expira y no tiene refresh token (ver helper/secureToken.ts) -- a
+// quien sea que el usuario comparta el registro.
+function redactSensitive(key: string, value: unknown): unknown {
+  if (/^authorization$/i.test(key)) return '[REDACTED]';
+  return value;
+}
+
 function formatArg(arg: unknown): string {
   if (typeof arg === 'string') return arg;
   try {
-    return JSON.stringify(arg);
+    return JSON.stringify(arg, redactSensitive);
   } catch {
     return String(arg);
   }

@@ -24,9 +24,12 @@ const sanitizeHtml = (html: string): string => {
   return html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, '')
-    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '')
-    .replace(/(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1=$2#$2');
+    // [\s\/] (not just \s) so a self-closing-style separator (`<img/onerror=..>`,
+    // no space before the attribute) doesn't skip the strip; the value alternation
+    // covers double-quoted, single-quoted AND unquoted (`onerror=alert(1)`) forms --
+    // the original only matched quoted values, which is a well-known filter bypass.
+    .replace(/[\s\/]on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, '')
+    .replace(/(href|src)\s*=\s*("javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]*)/gi, '$1="#"');
 };
 
 // Mismo patron probado en blog_detail_screen.tsx: altura dinamica via
