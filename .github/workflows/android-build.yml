@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Mismo mecanismo que ios-build.yml: la ejecucion via workflow_dispatch
       # siempre corre desde la rama por defecto, asi que el CLI empuja un
