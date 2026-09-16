@@ -141,8 +141,6 @@ const TermsAndConditionsScreen = React.lazy(
   () => import('@pages/migrated/terms_and_conditions_screen'),
 );
 const TipsScreen = React.lazy(() => import('@pages/migrated/tips_screen'));
-const VideoDetailScreen = React.lazy(() => import('@pages/migrated/video_detail_screen'));
-const VideoScreen = React.lazy(() => import('@pages/migrated/video_screen'));
 const ViewAllBlogScreen = React.lazy(() => import('@pages/migrated/view_all_blog_screen'));
 const ViewBodyPartScreen = React.lazy(() => import('@pages/migrated/view_body_part_screen'));
 const ViewEquipmentScreen = React.lazy(() => import('@pages/migrated/view_equipment_screen'));
@@ -334,8 +332,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedShoppingList" component={ShoppingListScreen} />
       <MStack.Screen name="MigratedTermsAndConditions" component={TermsAndConditionsScreen} />
       <MStack.Screen name="MigratedTips" component={TipsScreen} />
-      <MStack.Screen name="MigratedVideoDetail" component={VideoDetailScreen} />
-      <MStack.Screen name="MigratedVideo" component={VideoScreen} />
       <MStack.Screen name="MigratedViewAllBlog" component={ViewAllBlogScreen} />
       <MStack.Screen name="MigratedViewBodyPart" component={ViewBodyPartScreen} />
       <MStack.Screen name="MigratedViewEquipment" component={ViewEquipmentScreen} />
