@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # The dispatch always runs the workflow from the default branch, so the
       # sources come from a snapshot ref pushed by the CLI instead.
