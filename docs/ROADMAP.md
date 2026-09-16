@@ -28,10 +28,18 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 - Checkout Stripe/PayPal — **eliminado** por completo (decisión de negocio: pago 100% presencial)
 - Reporte de comentarios + bloqueo de usuario — `COMMUNITY_ENABLED = true`
 - Chat/FitBot — **decisión tomada** de dejarlo oculto tras el flag tal cual (es un bot IA privado 1-a-1, sin coach ni otros usuarios de por medio; sin plan de completar la integración de OpenAI por ahora) — cerrado, no es "pendiente"
+- Las 14 PRs de Dependabot que estaban abiertas — todas mergeadas a `master` (2026-09-16)
 
 ---
 
 ## Pendiente real, priorizado
+
+### Build / despliegue — te toca a ti, no es código nuevo
+
+| # | Qué | Bloqueado por |
+|---|---|---|
+| 0a | Relanzar el build de IPA — el build 102 (el último real) se quedó 16 commits atrás de `master` (capability de Push Notifications + 14 bumps de Dependabot), y en cuanto se mergeen la PR #25 de `bsa` y las de `Bckbs`/`bstronger-admin` (ver `docs/PENDIENTE_BACKEND_ADMIN.md`) se quedará aún más atrás — mejor esperar a que esas mergeen y lanzar un build que ya lo lleve todo, en vez de encadenar builds parciales. Checklist en `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`) | Mergear primero las PRs pendientes de backend/admin + la de `bsa` |
+| 0b | Publicar la ficha en Play Console + subir el primer AAB firmado — el pipeline ya está verificado (run `34273584804`, `docs/BUILD_AAB.md`), falta el paso humano de crear la ficha en Play Console y subir el artefacto | Acceso a Play Console (no verificable desde el repo si ya se hizo) |
 
 ### Rápido / alta prioridad (código, en este repo)
 
