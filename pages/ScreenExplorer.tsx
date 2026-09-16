@@ -133,6 +133,7 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Workout Feedback', route: 'MigratedWorkoutFeedback', category: 'Migrated - Workout', file: 'workout_feedback_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Summary (migrated)', route: 'MigratedWorkoutSummary', category: 'Migrated - Workout', file: 'workout_summary_screen.tsx', gluestackMigrated: true },
   { name: 'View Body Parts', route: 'MigratedViewBodyPart', category: 'Migrated - Exercise', file: 'view_body_part_screen.tsx', gluestackMigrated: true },
+  { name: 'View Equipment', route: 'MigratedViewEquipment', category: 'Migrated - Exercise', file: 'view_equipment_screen.tsx', gluestackMigrated: true },
   { name: 'Search', route: 'MigratedSearch', category: 'Migrated - Exercise', file: 'search_screen.tsx', gluestackMigrated: true },
   { name: 'Diet Detail', route: 'MigratedDietDetail', category: 'Migrated - Diet', file: 'diet_detail_screen.tsx', gluestackMigrated: true },
   { name: 'Favourite Recipe', route: 'MigratedFavouriteRecipe', category: 'Migrated - Diet', file: 'favourite_recipe_screen.tsx', gluestackMigrated: true },

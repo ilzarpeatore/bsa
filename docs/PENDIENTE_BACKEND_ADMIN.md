@@ -10,6 +10,32 @@ Compilado a partir de `docs/TAREAS.md` y `docs/ONBOARDING_V2.md` (estado a 2026-
 
 ---
 
+## Integración pendiente — onboarding: 3 campos nuevos + endpoint nuevo (2026-09-16 noche)
+
+Fuente: documento `INTEGRACION_APP_ONBOARDING_2026-09-16.md` (aportado por otra sesión que trabajó en `Bckbs`, rama `feature/onboarding-safety-and-preferences`, **sin fusionar a `main` todavía a la fecha de ese documento** — no dar por hecho que estos endpoints responden en `testapp.bestronger.es` hasta confirmar el merge). Los 3 endpoints ya tienen 13 tests de feature pasando contra un esquema MySQL real en esa rama (`tests/Feature/OnboardingSafetyAndPreferencesTest.php`). Nada de esto está implementado todavía en esta app.
+
+**Precondición ya cumplida por esta app** — `gender` ya se envía en minúsculas (`male`/`female`/`other`) desde `constants/onboardingV2Questions.ts` (verificado leyendo el código); el backend del PAR-Q+ compara `=== 'female'` exacto, así que la etapa 1 no necesita ningún cambio.
+
+1. **`POST v1/onboarding/par-q`** — 3 campos nuevos en el body (`api/onboardingV2.ts` ya tiene la interfaz del payload con los 7 campos actuales, hay que ampliarla):
+   - `parq_pregnant_or_possible` (boolean) — obligatorio **solo si `gender === 'female'`**; si se omite para un perfil mujer, el backend responde 422.
+   - `parq_menstrual_change_or_stress_fracture` (boolean) — mismo criterio (cribado básico de RED-S).
+   - `parq_eating_disorder_history` (boolean) — **siempre obligatoria, cualquier género**, nunca se omite.
+     Falta añadir las 3 preguntas a la etapa `par_q` de `constants/onboardingV2Questions.ts`, mostrando las 2 primeras solo cuando la respuesta de `gender` ya recogida en la etapa 1 es `'female'` — la screen genérica (`onboarding_v2_screen.tsx`) recorre el array secuencial y hoy no tiene lógica condicional por respuesta previa para ninguna pregunta, hay que añadirla.
+
+2. **`POST v1/onboarding/nutrition-questionnaire`** — 3 campos nuevos, todos obligatorios, sin condición de género:
+   - `cooking_minutes_per_meal` (integer, `0-180`)
+   - `cooking_skill_level` (`'beginner' | 'intermediate' | 'advanced'`)
+   - `cooks_for_others` (boolean)
+     Falta añadir las 3 preguntas a la etapa `nutrition` del mismo array + ampliar la interfaz del payload de nutrición en `api/onboardingV2.ts`.
+
+3. **`POST v1/onboarding/training-availability-update`** — endpoint **nuevo**, no existía antes, fuera del flujo de onboarding inicial. Pensado para una pantalla de ajustes/perfil donde el cliente cambie `training_days_per_week` (integer, `1-7`) y `session_duration_preference` (`"30"|"45"|"60"|"90"|"90_plus"`) sin repetir todo el cuestionario de disponibilidad de la etapa 3 (que exige todos sus campos como obligatorios). Precondición: el cliente debe haber completado ya la etapa 3 — si no, 422 con `"Todavía no has completado el cuestionario de entrenamiento del onboarding."`. Falta por completo en esta app: ni el método en `api/onboardingV2.ts` ni ninguna pantalla/entrada de menú en Ajustes que lo llame.
+
+**Nota de producto, no bloqueante**: clientes que ya completaron el onboarding antes del 2026-09-16 tienen estos 3 campos nuevos de par-q/nutrición a `NULL` en BD — sin backfill posible (no se puede saber retroactivamente), decisión de si se les vuelve a preguntar en la app queda pendiente, no bloquea el uso de los endpoints para onboardings nuevos.
+
+Detalle completo de request/response, redacción sugerida por campo y checklist de integración en el documento original (`INTEGRACION_APP_ONBOARDING_2026-09-16.md`, aportado, no versionado en este repo).
+
+---
+
 ## Prioridad alta — bloquea features ya visibles en la app
 
 ### ~~1. Onboarding v2~~ — ✅ RESUELTO (verificado 2026-09-16)
@@ -101,6 +127,16 @@ Esta sección completa (las 9 piezas que en algún momento estuvieron sin conect
 - **Marcar semana de descarga (`is_deload`)** — toggle real por semana en `TrainingProgramsView.tsx` (`handleToggleDeload`), con badge visual "Descarga" en el calendario del mesociclo.
 
 Contrato completo de cada endpoint sigue documentado en `Bckbs`: `docs/Motor_Autorregulacion_Analisis.md` y `docs/Handoff_Rondas1-6_Verificacion.md`, por si hace falta el detalle de payloads/migraciones.
+
+### Deuda de verificación (no es integración, es que el motor backend no se ha probado contra datos reales) — nota 2026-09-16 noche
+
+Lo de arriba (las 9 piezas) es sobre el ADMIN PANEL — eso sí está confirmado resuelto. Lo que aporta `Handoff_Rondas1-6_Verificacion.md` (documento de otra sesión sobre `Bckbs`, aportado, no versionado en este repo) es otra cosa: el estado de verificación del propio motor contra base de datos real, ronda a ronda del "Plan de Optimización" (`docs/Motor_Autorregulacion_Analisis.md` en `Bckbs`, 45 ítems en 16 rondas):
+
+- **Rondas 1-6 (ítems 1-22)** — únicas verificadas contra BD real (VPS, 2026-09-07). Se encontró y corrigió **1 bug real**: `ClientExerciseLogObserver` perdía silenciosamente el historial de PRs (`JSON_CONTAINS`) en ~20% de una muestra de 500 logs reales donde `carga` se guarda como número JSON puro, no string — commit `49d8d6e`. Fusionadas a `main` y desplegadas a la VPS.
+- **Rondas 7-16 (ítems 23-45)** — nivel de experiencia real, tonelaje, sustitución inteligente de ejercicio, feed de logros ampliado, refinamientos de reglas, síntesis N-de-M, fatiga acumulada de sesión, y `is_deload`/semana de descarga. Según el propio handoff, implementadas y fusionadas a `main` (commit `d7f7874` para Rondas 1-15; la Ronda 16/ítem 45 quedaba pendiente de confirmación de commit en ese documento) — pero **todo el desarrollo se hizo en un sandbox sin BD** (`Connection refused` en cada intento), verificado solo con `php -l`, nunca contra datos reales. La propia sesión de Rondas 8-10 encontró y corrigió 4 bugs de lógica por pura revisión de código antes de poder probar contra datos — señal de que el resto merece la misma pasada de verificación, no asumir que funciona solo porque pasó lint.
+- El toggle de `is_deload` en `TrainingProgramsView.tsx` (línea de arriba) implica que la Ronda 16 sí se terminó de commitear y desplegar en algún momento entre ese handoff y esta verificación (2026-09-16) — pero eso confirma la pieza de ADMIN, no que el comportamiento del motor (`detectOutliers()` con semana de descarga) se haya probado contra una sesión real.
+- Migraciones de estas rondas (`carga_ratio`, `carga_efectiva_reps`/`rir_delta_serie_top`, `increment_kg`, `min_condiciones_requeridas`, `is_deload`) sin confirmar si están aplicadas en la VPS real — cruzar con el item `0c` de `docs/ROADMAP.md` (deploy de `Bckbs` a la VPS pendiente, backend en `ef63261` vs. `main` real en `bc90d8c`).
+- Checklist detallado de verificación pendiente (11 puntos para Rondas 11-15 + 5 para Ronda 16, con pasos exactos por ítem) en el propio `Handoff_Rondas1-6_Verificacion.md` — no reproducido aquí por longitud, pedir el documento si se retoma esta verificación.
 
 ---
 
@@ -205,6 +241,22 @@ El cliente (esta app) ya se auditó a fondo y se corrigieron 6 problemas reales 
 - **Rate limiting** — `login`/`forget-password`/`social-mail-login`/`social-otp-login` bajo `throttle:6,1`, `register`/`check-invite-code` bajo `throttle:10,1` (comentario cita "Auditoría de seguridad 2026-08-26").
 - **IDOR** — revisado `HabitController`/`ClientHabitController` (hábitos), `PostingController` (posts/comentarios) y `BodyMetricController` (métricas): los 3 controladores client-facing verifican propiedad explícitamente (`where('client_id', auth()->id())` o equivalente `isOwner`/`isAdmin`), con comentarios propios citando fixes de auditorías previas (2026-09-13).
 - **Cerrar sesión en todos los dispositivos** — `POST logout-all-devices` (`UserController::logoutAllDevices`) ya existe.
+
+## Ronda 3 de auditoría de seguridad — checklist de otra sesión (2026-09-16 noche)
+
+Lista traída de otra sesión de Claude Code que auditó `bckbs`/`bstronger-admin` con foco en permisos/auth/dependencias. Se clasifica aquí qué requiere tu decisión/acceso y qué es ejecutable ya. **Corrección respecto a esa sesión**: esta sesión sí tiene acceso SSH al VPS (`bestronger-vps`, ver memoria) — los items 7 y 8 que aquella marcó como "no puedo hacerlo" sí son ejecutables desde aquí, solo que igualmente conviene tu confirmación antes de tocar el servidor de producción.
+
+| #   | Tarea                                                                                                                                                                                                              | Estado                                                                                                                                                                                                                             |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `ANTHROPIC_API_KEY` como secret en `bsa`/`Bckbs`/`bstronger-admin` (necesario para que el check `security-review`/`Claude Code Security Review` deje de fallar en cada PR, ver hallazgo de esta sesión 2026-09-16) | **Verificado: falta en los 3 repos** (`bstronger-admin` no tiene ningún secret configurado todavía). Solo tú puedes añadirlo — GitHub cifra secrets del lado del cliente, no hay API de lectura/escritura de valor disponible aquí |
+| 2   | Verificar nombres reales de permisos Spatie en `bckbs` contra lo asumido en `bstronger-admin`                                                                                                                      | Lectura de código, sin riesgo — ejecutable ahora mismo si se pide                                                                                                                                                                  |
+| 3   | Verificar dónde se asigna `user_type` (admin/sub_admin/coach) en todo `bckbs`                                                                                                                                      | Lectura de código, sin riesgo — límite real: no verificable contra datos de producción sin acceso a la BD real                                                                                                                     |
+| 4   | Expiración/refresh de token (Sanctum) en `bckbs`+`bsa`                                                                                                                                                             | **Requiere tu luz verde** — fuerza reautenticación a usuarios reales pasado N días, cambio de comportamiento de login                                                                                                              |
+| 5   | Migrar token del admin panel a cookie httpOnly (`bckbs`+`bstronger-admin`)                                                                                                                                         | **Requiere tu luz verde** — cambio de arquitectura de auth (CORS/CSRF)                                                                                                                                                             |
+| 6   | Subir `laravel/framework` (3 advisories abiertas)                                                                                                                                                                  | **Requiere tu luz verde** — salto de versión mayor, puede traer breaking changes; plan: subir + correr suite de tests + arreglar lo que rompa                                                                                      |
+| 7   | Confirmar que los scripts raíz de `bckbs` no son alcanzables por HTTP en el VPS                                                                                                                                    | Ejecutable desde aquí (SSH a `bestronger-vps`) — pendiente de que se pida                                                                                                                                                          |
+| 8   | Hardening del VPS                                                                                                                                                                                                  | Ejecutable desde aquí igual que el 7, pero es cambio de superficie de un servidor de producción — pedir confirmación explícita antes de tocar nada                                                                                 |
+| 9   | Pentest real contra el entorno                                                                                                                                                                                     | **No iniciar por iniciativa propia** — necesita autorización explícita y, idealmente, un staging separado de producción                                                                                                            |
 
 ## Auditoría de datos pendiente (no bloqueante)
 

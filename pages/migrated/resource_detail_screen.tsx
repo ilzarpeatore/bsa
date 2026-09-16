@@ -10,7 +10,6 @@ import { Spinner } from '@components/ui/spinner';
 import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
-import { RADIUS, SHADOW, SPACING } from './theme';
 import { resourcesApi, ResourceListItem } from '../../api/resources';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -46,77 +45,130 @@ const renderYouTubeEmbeds = (html: string): string => {
   );
 };
 
-// Antes una constante de módulo (WRAPPER_HTML) que capturaba `C` estático en
-// el momento de cargar el módulo -- convertido a función para que el HTML
-// generado use siempre los colores del tema actual (claro/oscuro).
-//
-// Clases .box/.box-info/.box-success/.box-warning/.box-danger (pedido
-// explícito 2026-08-30, para migrar las guías estáticas de GuideBlocks a
-// Recursos sin perder su lenguaje visual): mismos tokens de color que
-// HighlightBox en components/GuideBlocks.tsx (C.orange10/blue10/success10/
-// warning10/destructive10), recalculados en cada render con el tema actual
-// -- un recurso que use estas clases respeta claro/oscuro igual que el
-// resto del wrapper, a diferencia de un documento HTML completo con su
-// propio <style> fijo (ver docs/PENDIENTE_BACKEND_ADMIN.md).
-// Tokens del sistema de diseño (pages/migrated/theme.ts) en vez de valores
-// sueltos -- alinea el contenido de recursos con el resto de la app: mismo
-// teal de marca, misma escala de radios/espaciado (múltiplos de 4px) y la
-// misma sombra de tarjeta (SHADOW.card = 0 2px 8px rgba(0,0,0,.04)) que
-// usan las tarjetas nativas. Sin navbar/footer/sticky -- este wrapper solo
-// da estilo a los elementos del propio contenido (h1-h4, tablas, .box...),
-// nunca a chrome de página, que no tiene sentido dentro de un WebView
-// embebido en una pantalla que ya tiene su propio ScreenHeader.
-function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): string {
-  const cardShadow = `0 ${SHADOW.card.shadowOffset.height}px ${SHADOW.card.shadowRadius}px rgba(0,0,0,${SHADOW.card.shadowOpacity})`;
+// Paleta propia del contenido de Recursos (2026-09-12, pedido explícito:
+// "olvídate de respetar el diseño de la app, es muy plano" -- deja de usar
+// los tokens de pages/migrated/theme.ts a propósito). Lo único que se
+// mantiene del resto de la app es la sincronización claro/oscuro: `mode`
+// viene de useAppColorMode() (ya resuelve la preferencia auto/manual del
+// usuario), solo se usa para elegir qué paleta de las dos de abajo pintar.
+const MODERN_PALETTE = {
+  light: {
+    bg: '#FFFFFF',
+    surfaceCard: '#FFFFFF',
+    surfaceAlt: '#FAFAFC',
+    border: '#E7E8F0',
+    text: '#16181D',
+    textMuted: '#5B5F73',
+    accent: '#5B4FE9',
+    accentSoft: '#EEEBFF',
+    accentContrast: '#FFFFFF',
+    info: '#2E90E5',
+    infoSoft: '#EAF4FE',
+    success: '#149F73',
+    successSoft: '#E6F8F1',
+    warning: '#C2790A',
+    warningSoft: '#FCF1DE',
+    danger: '#E5484D',
+    dangerSoft: '#FDEAEA',
+  },
+  dark: {
+    bg: '#0D0E12',
+    surfaceCard: '#171922',
+    surfaceAlt: '#1C1F29',
+    border: '#282C38',
+    text: '#F1F2F6',
+    textMuted: '#9A9EB2',
+    accent: '#9B8CFF',
+    accentSoft: 'rgba(155,140,255,0.16)',
+    accentContrast: '#0D0E12',
+    info: '#63B7F2',
+    infoSoft: 'rgba(99,183,242,0.14)',
+    success: '#43D3A0',
+    successSoft: 'rgba(67,211,160,0.14)',
+    warning: '#E7B155',
+    warningSoft: 'rgba(231,177,85,0.14)',
+    danger: '#F1696D',
+    dangerSoft: 'rgba(241,105,109,0.14)',
+  },
+} as const;
+
+function buildWrapperHtml(mode: 'light' | 'dark'): string {
+  const p = MODERN_PALETTE[mode];
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { margin:0; padding:0; background-color:${C.surface}; color:${C.textPrimary}; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif; }
-    #content { padding:${SPACING.lg}px ${SPACING.xl}px ${SPACING.xxl}px; }
-    img { max-width:100%; height:auto; border-radius:${RADIUS.xs}px; margin:${SPACING.sm}px 0; }
-    p, li { font-size:15px; line-height:1.7; color:${C.textSecondary}; margin:${SPACING.sm}px 0; }
-    h1 { color:${C.textPrimary}; font-size:24px; font-weight:700; line-height:1.3; margin:${SPACING.xs}px 0 ${SPACING.sm}px; }
-    h2 { color:${C.textPrimary}; font-size:20px; font-weight:700; margin:${SPACING.xxl}px 0 ${SPACING.md}px; padding-bottom:${SPACING.sm}px; border-bottom:1px solid ${C.orange10}; }
-    h3 { color:${C.textPrimary}; font-size:16px; font-weight:600; margin:${SPACING.lg}px 0 ${SPACING.sm}px; }
-    h4 { color:${C.textPrimary}; font-weight:600; margin:${SPACING.md}px 0 ${SPACING.sm}px; }
-    .kicker { color:${C.accentBlack}; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:${SPACING.xs}px; }
-    .subtitle { color:${C.textSecondary}; font-size:14px; margin:0 0 ${SPACING.xl}px; }
-    table { width:100%; border-collapse:collapse; margin:${SPACING.md}px 0; border-radius:${RADIUS.sm}px; overflow:hidden; }
-    th, td { border:1px solid ${C.border}; padding:${SPACING.sm}px; font-size:14px; text-align:left; }
-    th { background:${C.accentBlack}; color:${C.accentBlackForeground}; font-weight:700; }
-    blockquote { border-left:3px solid ${C.accentBlack}; padding-left:${SPACING.md}px; margin:${SPACING.md}px 0; color:${C.textSecondary}; }
-    a { color:${C.accentBlack}; }
-    iframe { border-radius:${RADIUS.sm}px; }
-    .box { border-left:4px solid ${C.orange}; background:${C.orange10}; padding:${SPACING.lg}px; border-radius:${RADIUS.lg}px; margin:${SPACING.lg}px 0; box-shadow:${cardShadow}; }
-    .box p, .box li { color:${C.textPrimary}; margin:${SPACING.xs}px 0; }
-    .box .box-title { display:block; color:${C.orange60}; font-weight:700; margin-bottom:${SPACING.sm}px; }
-    .box-info { border-left-color:${C.blue}; background:${C.blue10}; }
-    .box-info .box-title { color:${C.blue60}; }
-    .box-success { border-left-color:${C.success}; background:${C.success10}; }
-    .box-success .box-title { color:${C.success60}; }
-    .box-warning { border-left-color:${C.warning}; background:${C.warning10}; }
-    .box-warning .box-title { color:${C.warning60}; }
-    .box-danger { border-left-color:${C.destructive}; background:${C.destructive10}; }
-    .box-danger .box-title { color:${C.destructive}; }
+    :root {
+      --bg:${p.bg}; --surface-card:${p.surfaceCard}; --surface-alt:${p.surfaceAlt}; --border:${p.border};
+      --text:${p.text}; --text-muted:${p.textMuted};
+      --accent:${p.accent}; --accent-soft:${p.accentSoft}; --accent-contrast:${p.accentContrast};
+      --info:${p.info}; --info-soft:${p.infoSoft};
+      --success:${p.success}; --success-soft:${p.successSoft};
+      --warning:${p.warning}; --warning-soft:${p.warningSoft};
+      --danger:${p.danger}; --danger-soft:${p.dangerSoft};
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; }
+    #content { padding:24px 20px 48px; }
 
-    /* Acordeón nativo (<details>/<summary>) -- una sección por bloque de
-       contenido, mismo lenguaje visual que el resto de la app: tarjeta
-       redondeada + sombra de tarjeta, cabecera clicable con chevron en
-       píldora que rota 180° al abrir (mismo patrón documentado para FAQ /
-       contenido colapsable, adaptado a <details> nativo). */
-    .acc { background:${C.surface}; border:1px solid ${C.border}; border-radius:${RADIUS.lg}px; margin:${SPACING.md}px 0; overflow:hidden; box-shadow:${cardShadow}; }
-    .acc summary { display:flex; align-items:center; justify-content:space-between; gap:${SPACING.md}px; padding:${SPACING.lg}px; font-size:16px; font-weight:700; color:${C.textPrimary}; cursor:pointer; list-style:none; }
+    .kicker { display:inline-flex; align-items:center; gap:7px; background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; padding:6px 12px 6px 10px; border-radius:999px; margin:0 0 14px; }
+    .kicker::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+
+    h1 { font-family:'Sora',-apple-system,sans-serif; color:var(--text); font-size:27px; font-weight:800; letter-spacing:-0.01em; line-height:1.2; margin:0 0 10px; }
+    .subtitle { color:var(--text-muted); font-size:15.5px; line-height:1.6; margin:0 0 24px; padding-bottom:22px; border-bottom:1px solid var(--border); }
+
+    h3 { font-family:'Sora',-apple-system,sans-serif; color:var(--text); font-size:17px; font-weight:700; letter-spacing:-0.005em; margin:22px 0 10px; }
+    h4 { color:var(--accent); font-size:13.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin:18px 0 8px; }
+
+    p, li { font-size:15.5px; line-height:1.75; color:var(--text-muted); margin:10px 0; }
+    strong { color:var(--text); font-weight:700; }
+    ul, ol { padding-left:20px; margin:10px 0; }
+    li { margin:6px 0; }
+    li::marker { color:var(--accent); font-weight:700; }
+    a { color:var(--accent); text-decoration:underline; text-underline-offset:2px; }
+
+    img { max-width:100%; height:auto; border-radius:16px; margin:14px 0; display:block; }
+    iframe { border-radius:16px; }
+
+    table { width:100%; border-collapse:separate; border-spacing:0; margin:16px 0; font-size:13.5px; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    thead th { background:var(--accent-soft); color:var(--text); font-weight:700; text-align:left; padding:10px 12px; }
+    td { padding:10px 12px; color:var(--text-muted); border-top:1px solid var(--border); }
+    tbody tr:nth-child(even) { background:var(--surface-alt); }
+    td strong { color:var(--text); }
+
+    blockquote { border-left:3px solid var(--accent); background:var(--accent-soft); padding:12px 16px; border-radius:0 12px 12px 0; margin:14px 0; color:var(--text); }
+
+    /* Callouts .box/.box-info/.box-success/.box-warning/.box-danger --
+       tarjeta con tinte + borde de acento a la izquierda, cada variante
+       redefine --box-color/--box-bg. Sin variante = tono de aviso (así
+       venían usándose ya en el contenido para "antes de hacer X..."). */
+    .box { --box-color:var(--warning); --box-bg:var(--warning-soft); background:var(--box-bg); border-left:4px solid var(--box-color); border-radius:4px 16px 16px 4px; padding:16px 18px; margin:18px 0; }
+    .box p, .box li { color:var(--text); }
+    .box .box-title { display:block; font-weight:800; font-size:14px; color:var(--box-color); margin-bottom:6px; }
+    .box-info { --box-color:var(--info); --box-bg:var(--info-soft); }
+    .box-success { --box-color:var(--success); --box-bg:var(--success-soft); }
+    .box-warning { --box-color:var(--warning); --box-bg:var(--warning-soft); }
+    .box-danger { --box-color:var(--danger); --box-bg:var(--danger-soft); }
+
+    /* Acordeón nativo (<details>/<summary>): tarjeta redondeada con sombra
+       suave y un icono "+" que gira a "-" al abrir (dos barras del icono,
+       la vertical se aplana a 0 -- pura CSS, sin JS de animación). */
+    .acc { background:var(--surface-card); border:1px solid var(--border); border-radius:18px; margin:14px 0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    .acc[open] { border-color:var(--accent-soft); }
+    .acc summary { display:flex; align-items:center; gap:14px; padding:17px 18px; font-family:'Sora',-apple-system,sans-serif; font-size:15.5px; font-weight:700; color:var(--text); cursor:pointer; list-style:none; }
+    .acc summary:active { background:var(--surface-alt); }
     .acc summary::-webkit-details-marker { display:none; }
-    .acc .acc-title { flex:1; }
-    .acc .acc-chevron { position:relative; flex-shrink:0; width:28px; height:28px; border-radius:${RADIUS.pill}px; background:${C.orange10}; transition:transform 200ms ease; }
-    .acc .acc-chevron::before { content:''; position:absolute; top:50%; left:50%; width:7px; height:7px; border-right:2px solid ${C.accentBlack}; border-bottom:2px solid ${C.accentBlack}; transform:translate(-50%,-65%) rotate(45deg); }
-    .acc[open] .acc-chevron { transform:rotate(180deg); }
-    .acc-body { padding:0 ${SPACING.lg}px ${SPACING.lg}px; border-top:1px solid ${C.border}; padding-top:${SPACING.md}px; }
+    .acc-title { flex:1; line-height:1.4; }
+    .acc-chevron { position:relative; flex-shrink:0; width:30px; height:30px; border-radius:50%; background:var(--accent-soft); }
+    .acc-chevron::before, .acc-chevron::after { content:''; position:absolute; top:50%; left:50%; background:var(--accent); border-radius:2px; transition:transform 220ms ease; }
+    .acc-chevron::before { width:12px; height:2px; transform:translate(-50%,-50%); }
+    .acc-chevron::after { width:2px; height:12px; transform:translate(-50%,-50%); }
+    .acc[open] .acc-chevron::after { transform:translate(-50%,-50%) scaleY(0); }
+    .acc-body { padding:0 18px 18px; }
     .acc-body > *:first-child { margin-top:0; }
     .acc-body > *:last-child { margin-bottom:0; }
     .acc-body h2 { display:none; } /* por si algún recurso viejo mezcla h2 dentro de un acordeón */
@@ -171,7 +223,7 @@ interface Props {
 }
 
 export default function ResourceDetailScreen(props: Props) {
-  const { colors: C } = useAppColorMode();
+  const { colors: C, mode } = useAppColorMode();
   const { navigation, route } = props;
   const resourceId: number | undefined = route?.params?.resourceId;
   const fallbackTitle: string | undefined = route?.params?.title;
@@ -255,7 +307,7 @@ export default function ResourceDetailScreen(props: Props) {
                   const sanitized = sanitizeHtml(resource.content);
                   return isFullDocument(sanitized)
                     ? injectResizeScript(renderYouTubeEmbeds(sanitized))
-                    : buildWrapperHtml(C).replace('__CONTENT__', renderYouTubeEmbeds(sanitized));
+                    : buildWrapperHtml(mode).replace('__CONTENT__', renderYouTubeEmbeds(sanitized));
                 })(),
               }}
               style={{ width: '100%', height: webViewHeight }}
