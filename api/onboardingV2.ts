@@ -39,6 +39,14 @@ export interface ParQPayload {
   parq_bone_joint_problem: boolean;
   parq_bp_or_heart_medication: boolean;
   parq_reason_not_to_exercise: boolean;
+  // 2026-09-16 (Bckbs PR #19): obligatorios en el backend SOLO si
+  // gender==='female' -- opcionales aquí porque para el resto de perfiles ni
+  // se muestran ni se envían (ver showIf en constants/onboardingV2Questions.ts
+  // y submitStage() en onboarding_v2_screen.tsx).
+  parq_pregnant_or_possible?: boolean;
+  parq_menstrual_change_or_stress_fracture?: boolean;
+  // A diferencia de las 2 anteriores, esta SÍ es obligatoria siempre, cualquier género.
+  parq_eating_disorder_history: boolean;
   parq_fitness_level: number; // 1-10
   parq_medical_history: string;
   parq_goals: string;
@@ -70,6 +78,22 @@ export interface NutritionQuestionnairePayload {
   favorite_fish: string;
   favorite_fruits_vegetables: string;
   favorite_combined_dishes: string;
+  // 3 campos nuevos (2026-09-16, Bckbs PR #19), obligatorios, sin condición
+  // de género -- disponibilidad real de cocina para el agente de nutrición.
+  cooking_minutes_per_meal: number; // 0-180
+  cooking_skill_level: 'beginner' | 'intermediate' | 'advanced';
+  cooks_for_others: boolean;
+}
+
+// Endpoint nuevo (2026-09-16, Bckbs PR #19), no forma parte del onboarding --
+// cambia SOLO disponibilidad de entrenamiento (días/semana + duración de
+// sesión) sin reenviar todo TrainingQuestionnairePayload, que exige todos sus
+// campos como obligatorios y por tanto no sirve para un simple "cambié de
+// horario". Requiere que el cliente ya haya completado la etapa 3 del
+// onboarding -- si no, el backend responde 422.
+export interface TrainingAvailabilityUpdatePayload {
+  training_days_per_week: number; // 1-7
+  session_duration_preference: '30' | '45' | '60' | '90' | '90_plus';
 }
 
 export const onboardingV2Api = {
@@ -117,4 +141,9 @@ export const onboardingV2Api = {
   // `USER` cacheado (ver fix 2026-09-14 en AuthContext.tsx) son ahora un
   // respaldo para *fallos puntuales*, no la única fuente de verdad real.
   completeOnboarding: () => apiClient.post<ApiMessageResponse>('v1/onboarding/complete'),
+
+  // Nuevo (2026-09-16, Bckbs PR #19, ver comentario del payload arriba) --
+  // pantalla de ajustes, fuera del flujo de onboarding.
+  updateTrainingAvailability: (payload: TrainingAvailabilityUpdatePayload) =>
+    apiClient.post<ApiMessageResponse>('v1/onboarding/training-availability-update', payload),
 };

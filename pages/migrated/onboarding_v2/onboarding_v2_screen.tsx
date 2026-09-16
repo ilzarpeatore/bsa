@@ -118,9 +118,18 @@ export default function OnboardingV2Screen({ navigation }: any) {
   // (reanudando un onboarding a medias tras un cierre/crash, el ÚNICO otro
   // motivo por el que esta pantalla se monta ya autenticado) no vuelve a
   // pedírsela.
+  // `showIf` (2026-09-16: preguntas de embarazo/RED-S, solo gender==='female')
+  // depende de `answers` completo -- la única pregunta que lo usa hoy se
+  // apoya en `gender`, respondida en la etapa 1, muy antes en el array, así
+  // que este recálculo nunca desplaza el índice de una pregunta ya mostrada
+  // hacia adelante (ver el comentario grande de showIf en
+  // types/onboardingV2.ts para el razonamiento completo).
   const questions = useMemo(
-    () => (state.isAuthenticated ? ONBOARDING_QUESTIONS.filter((q) => q.stage !== 'credentials') : ONBOARDING_QUESTIONS),
-    [state.isAuthenticated]
+    () =>
+      (state.isAuthenticated ? ONBOARDING_QUESTIONS.filter((q) => q.stage !== 'credentials') : ONBOARDING_QUESTIONS).filter(
+        (q) => q.showIf === undefined || q.showIf(answers)
+      ),
+    [state.isAuthenticated, answers]
   );
   const visibleStages = useMemo(
     () => (state.isAuthenticated ? ONBOARDING_STAGES.filter((s) => s.id !== 'credentials') : ONBOARDING_STAGES),
@@ -246,6 +255,12 @@ export default function OnboardingV2Screen({ navigation }: any) {
             });
           }
         } else if (stageId === 'par_q') {
+          // Las 2 preguntas condicionadas a mujer ni se muestran ni quedan en
+          // `answers` para male/other (showIf las excluye de `questions`) --
+          // el spread solo las incluye cuando sí hay respuesta real, para no
+          // enviar `false` de más a un perfil donde el backend las trata como
+          // opcionales-sin-dato, no como "respondió que no".
+          const isFemale = answers.gender === 'female';
           await onboardingV2Api.submitParQ({
             parq_heart_condition: answers.parq_heart_condition === 'yes',
             parq_chest_pain_activity: answers.parq_chest_pain_activity === 'yes',
@@ -254,6 +269,13 @@ export default function OnboardingV2Screen({ navigation }: any) {
             parq_bone_joint_problem: answers.parq_bone_joint_problem === 'yes',
             parq_bp_or_heart_medication: answers.parq_bp_or_heart_medication === 'yes',
             parq_reason_not_to_exercise: answers.parq_reason_not_to_exercise === 'yes',
+            ...(isFemale
+              ? {
+                  parq_pregnant_or_possible: answers.parq_pregnant_or_possible === 'yes',
+                  parq_menstrual_change_or_stress_fracture: answers.parq_menstrual_change_or_stress_fracture === 'yes',
+                }
+              : {}),
+            parq_eating_disorder_history: answers.parq_eating_disorder_history === 'yes',
             parq_fitness_level: Number(answers.parq_fitness_level) || 0,
             parq_medical_history: String(answers.parq_medical_history ?? ''),
             parq_goals: String(answers.parq_goals ?? ''),
@@ -288,6 +310,9 @@ export default function OnboardingV2Screen({ navigation }: any) {
             favorite_fish: String(answers.favorite_fish ?? ''),
             favorite_fruits_vegetables: String(answers.favorite_fruits_vegetables ?? ''),
             favorite_combined_dishes: String(answers.favorite_combined_dishes ?? ''),
+            cooking_minutes_per_meal: Number(answers.cooking_minutes_per_meal) || 0,
+            cooking_skill_level: answers.cooking_skill_level as 'beginner' | 'intermediate' | 'advanced',
+            cooks_for_others: answers.cooks_for_others === 'yes',
           });
         }
         return true;

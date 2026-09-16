@@ -135,6 +135,7 @@ const ShoppingListDetailScreen = React.lazy(
   () => import('@pages/migrated/shopping_list_detail_screen'),
 );
 const ShoppingListScreen = React.lazy(() => import('@pages/migrated/shopping_list_screen'));
+const TrainingAvailabilityScreen = React.lazy(() => import('@pages/migrated/training_availability_screen'));
 
 const ViewAllBlogScreen = React.lazy(() => import('@pages/migrated/view_all_blog_screen'));
 const ViewBodyPartScreen = React.lazy(() => import('@pages/migrated/view_body_part_screen'));
@@ -324,6 +325,7 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedSessionHistoryDetail" component={SessionHistoryDetailScreen} />
       <MStack.Screen name="MigratedShoppingListDetail" component={ShoppingListDetailScreen} />
       <MStack.Screen name="MigratedShoppingList" component={ShoppingListScreen} />
+      <MStack.Screen name="MigratedTrainingAvailability" component={TrainingAvailabilityScreen} />
       <MStack.Screen name="MigratedViewAllBlog" component={ViewAllBlogScreen} />
       <MStack.Screen name="MigratedViewBodyPart" component={ViewBodyPartScreen} />
       <MStack.Screen name="MigratedViewEquipment" component={ViewEquipmentScreen} />

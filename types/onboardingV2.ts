@@ -52,6 +52,12 @@ interface OnboardingQuestionBase {
   title: string;
   subtitle?: string;
   required?: boolean; // por defecto true
+  // Visibilidad condicionada a una respuesta previa (2026-09-16: preguntas de
+  // embarazo/RED-S del PAR-Q+, solo para gender==='female'). Sin esto, la
+  // pregunta siempre se muestra. Se evalúa contra el mismo objeto `answers`
+  // que ya recorre la pantalla -- ver el filtro de `questions` en
+  // onboarding_v2_screen.tsx.
+  showIf?: (answers: OnboardingAnswers) => boolean;
 }
 
 export interface NameQuestion extends OnboardingQuestionBase {

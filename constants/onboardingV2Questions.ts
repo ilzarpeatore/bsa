@@ -156,6 +156,45 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
       { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
+  // 3 preguntas nuevas (2026-09-16, Bckbs PR #19 -- ver
+  // docs/PENDIENTE_BACKEND_ADMIN.md): cribado de seguridad que faltaba en el
+  // PAR-Q+ original. Las 2 primeras solo aplican a un perfil de mujer
+  // (`showIf`, evaluado contra la respuesta ya dada a `gender` en la etapa
+  // 1) -- el backend las exige obligatorias solo en ese caso y las ignora
+  // para el resto, así que ni se muestran ni se envían para male/other. La
+  // de trastorno alimentario es la única de las 3 que SIEMPRE se muestra.
+  {
+    id: 'parq_pregnant_or_possible',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿Estás embarazada o existe la posibilidad de que lo estés?',
+    showIf: (answers) => answers.gender === 'female',
+    options: [
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
+    ],
+  },
+  {
+    id: 'parq_menstrual_change_or_stress_fracture',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿Has perdido la menstruación de forma inesperada, o has tenido una fractura por estrés?',
+    showIf: (answers) => answers.gender === 'female',
+    options: [
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
+    ],
+  },
+  {
+    id: 'parq_eating_disorder_history',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿Tienes o has tenido un trastorno de la conducta alimentaria?',
+    options: [
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
+    ],
+  },
   {
     id: 'parq_fitness_level',
     stage: 'par_q',
@@ -406,6 +445,43 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'textarea',
     title: '¿Cuáles son tus comidas combinadas favoritas?',
     required: false,
+  },
+
+  // 3 preguntas nuevas (2026-09-16, Bckbs PR #19): disponibilidad real de
+  // cocina, que el agente de nutrición necesita y el cuestionario original
+  // nunca pedía -- ver docs/PENDIENTE_BACKEND_ADMIN.md.
+  {
+    id: 'cooking_minutes_per_meal',
+    stage: 'nutrition_questionnaire',
+    type: 'number_wheel',
+    title: '¿Cuánto tiempo tienes normalmente para cocinar cada comida?',
+    subtitle: 'El tiempo real que sueles tener, no un ideal',
+    min: 0,
+    max: 180,
+    step: 5,
+    defaultValue: 20,
+    suffix: 'minutos',
+  },
+  {
+    id: 'cooking_skill_level',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: '¿Cómo te definirías cocinando?',
+    options: [
+      { value: 'beginner', label: 'Principiante', icon: '🥄', emoji: true },
+      { value: 'intermediate', label: 'Intermedio', icon: '🍳', emoji: true },
+      { value: 'advanced', label: 'Avanzado', icon: '👨‍🍳', emoji: true },
+    ],
+  },
+  {
+    id: 'cooks_for_others',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: '¿Cocinas también para otras personas (pareja, familia)?',
+    options: [
+      { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+      { value: 'no', label: 'No', icon: '❌', emoji: true },
+    ],
   },
 
   // ---------- Etapa 5: Crear cuenta ----------
