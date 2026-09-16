@@ -4,22 +4,15 @@ Compilado a partir de `docs/TAREAS.md` y `docs/ONBOARDING_V2.md` (estado a 2026-
 
 **Actualización 2026-09-10 — este documento está desactualizado, verificar en vivo antes de asumir nada de aquí.** Una auditoría contra las App Store Review Guidelines señaló varios endpoints de este documento como "no implementados todavía" (calendario, feedback, borrado de cuenta, onboarding). Se comprobó cada uno en vivo contra `https://testapp.bestronger.es` (backend real de producción, ver `api/client.ts`) con una petición sin token — una ruta que de verdad no existe responde `404 not_found`; una ruta registrada que solo le falta el token responde `401 unauthenticated`. Los 8 endpoints marcados como pendientes en este documento (`POST v1/onboarding/par-q`, `training-questionnaire`, `nutrition-questionnaire`, `complete`, `POST v1/my-calendar-move-assignments`, `POST v1/app-feedback`, `POST v1/delete-account`) devuelven **401, no 404** — es decir, **ya están registrados en el backend**. No se ha podido verificar desde esta sesión (sin token de usuario real) si la lógica de negocio detrás de cada uno es correcta, solo que la ruta existe y no es un placeholder ausente. Antes de reenviar a revisión, probar cada botón afectado con una cuenta real en TestFlight en vez de asumir que sigue roto por lo que dice el resto de este documento.
 
+**Actualización 2026-09-16 — items 1, 3, 5 y 6 confirmados 100% resueltos, ya no son "pendiente".** Verificado leyendo el código real de `Bckbs` (no solo el código de estado HTTP): los 4 controladores (`OnboardingController::parq/trainingQuestionnaire/nutritionQuestionnaire/complete`, `ClientCalendarController::moveAssignments`, `UserController::deleteUserAccount`, `AppFeedbackController::store`) están implementados de verdad, con validación completa y lógica de negocio real (no placeholders) — y las 3 decisiones de producto que quedaban abiertas en este documento ya se resolvieron: PAR-Q de riesgo marca `flagged_for_review` en el usuario; borrado de cuenta es inmediato y total (sin periodo de gracia, ver `docs/BORRADO_CUENTA_BACKEND.md`); el admin panel de onboarding (`admin-onboarding-list/detail`) y de app-feedback (`admin-app-feedback-list/detail/update` + `AppFeedbackView.tsx` en `bstronger-admin`, con filtro por tipo/sección/estado) también existen y están cableados. Item 2 (workout demo auto-asignado) e item 4 (imagen por recurso) siguen sin resolver, ver más abajo.
+
 ---
 
 ## Prioridad alta — bloquea features ya visibles en la app
 
-### 1. Onboarding v2 — 3 cuestionarios (PAR-Q, entrenamiento, nutrición) + estado de completado
+### ~~1. Onboarding v2~~ — ✅ RESUELTO (verificado 2026-09-16)
 
-Las 36 preguntas ya están construidas y en producción (etapas del `onboarding_v2_screen.tsx`); el cliente ya las envía. Falta:
-
-- **3 endpoints + 3 tablas** — contrato completo (preguntas, JSON de request/response, SQL) ya en `docs/ONBOARDING_V2.md`:
-  - `POST v1/onboarding/par-q` → tabla `par_q_answers`
-  - `POST v1/onboarding/training-questionnaire` → tabla `training_questionnaire_answers`
-  - `POST v1/onboarding/nutrition-questionnaire` → tabla `nutrition_questionnaire_answers`
-- **`POST v1/onboarding/complete`** + columna `users.onboarding_completed_at` + devolver `onboarding_completed: boolean` en `UserData` (login/register/update-profile). Sin esto, un usuario que ya completó el onboarding lo vuelve a ver entero si reinstala la app o entra desde otro dispositivo (hoy ese estado solo vive en `AsyncStorage` local). El cliente ya prioriza este campo en cuanto exista (`AuthContext.tsx::resolveOnboardingCompleted()`).
-  - **Parche cliente-side mientras tanto (2026-08-29)**: `resolveOnboardingCompleted()` usa como respaldo si el perfil ya tiene edad/altura/peso rellenos (`user_profile`, guardados de verdad vía `update-profile` en la etapa 1) — si existen, da el onboarding por completado. Evita el síntoma reportado ("reinstalo la app y me vuelve a pedir el onboarding aunque ya lo hice") sin depender de este endpoint, pero es una aproximación: no distingue a alguien que completó solo la etapa 1 y abandonó antes de PAR-Q/entrenamiento/nutrición. Implementar `onboarding_completed` de verdad en el backend sustituye este parche sin tocar nada más en el cliente.
-- **Admin panel**: no existe ningún sitio para ver, por cliente, si completó el onboarding ni sus respuestas a los 3 cuestionarios — falta una pantalla/pestaña nueva en la ficha del cliente.
-- **Decisión de producto pendiente**: si una respuesta de riesgo cardíaco en el PAR-Q (`parq_heart_condition`/`parq_chest_pain_activity`/`parq_chest_pain_rest_last_month`/`parq_dizziness_balance` = true) debe marcar el perfil para que el coach lo revise antes de asignar un plan.
+Los 3 endpoints + `complete` existen y funcionan de verdad en `Bckbs::OnboardingController`, con las tablas `par_q_answers`/`training_questionnaire_answers`/`nutrition_questionnaire_answers` y `users.onboarding_completed_at` ya expuesto como `onboarding_completed` en login/register/update-profile (`UserController.php`, `UserDetailResource.php`). El parche cliente-side de `resolveOnboardingCompleted()` puede retirarse cuando se confirme en dispositivo real que el campo del backend llega bien (no se ha tocado el cliente en esta verificación, solo se confirmó que el backend ya no depende de la aproximación). Admin panel: `admin-onboarding-list`/`admin-onboarding-detail` ya existen (`Bckbs::Admin\OnboardingController`). Decisión de riesgo cardíaco: resuelta — `parq()` marca `flagged_for_review`/`flagged_for_review_at` en el usuario cuando hay riesgo.
 
 ### 2. Workout demo auto-asignado a usuarios nuevos
 
@@ -28,11 +21,9 @@ Pedido para que el tutorial guiado ("Registra tu primera serie") funcione desde 
 - Sembrar un `WorkoutTemplate` "demo" (con sus `WorkoutTemplateExercise`) una vez en la base de datos — configurando `reps`/`descanso`/`rir`/`rpe` en su primer ejercicio para que el tutorial explique las 4 métricas.
 - Al completarse el registro, si el usuario no tiene ningún `ProgramDayAssignment` real todavía, crear una asignación de ese demo para "hoy" — mismo mecanismo que ya usa el calendario real, sin tabla nueva.
 
-### 3. Reorganizar semana en el calendario — endpoint que falta
+### ~~3. Reorganizar semana en el calendario~~ — ✅ RESUELTO (verificado 2026-09-16)
 
-`my_program_calendar_screen.tsx` ya llama a `workoutHistoryApi.moveCalendarAssignments()` (cambio directo, sin aprobación del coach, pedido explícito por el usuario), pero el endpoint no existe todavía:
-
-- `POST v1/my-calendar-move-assignments` — payload `{ moves: [{ assignment_id, to_date }] }`, valida que cada `assignment_id` pertenezca al cliente autenticado y que `to_date` caiga dentro de la misma semana ISO, actualiza `ProgramDayAssignment.date` directamente. Hasta que exista, "Guardar cambios" falla con "No se pudo guardar".
+`POST v1/my-calendar-move-assignments` existe en `Bckbs::ClientCalendarController::moveAssignments()`, con transacción, verificación de propiedad (`resolveOwnedAssignment`) y validación de que el destino cae en la misma semana ISO — implementación completa, no un stub.
 
 ### 4. Recursos — imagen por recurso (`image_url`)
 
@@ -40,34 +31,15 @@ Pedido para que el tutorial guiado ("Registra tu primera serie") funcione desde 
 - UI de admin para subir/asignar la imagen al crear/editar un recurso.
 - En cuanto exista, `resourceImageSource()` la usa automáticamente y la app deja de pedir fotos de LoremFlickr — no hace falta tocar más el cliente.
 
-### 5. "Solicitar función" / "Informar de error" — formulario real, falta el endpoint (2026-08-24)
+### ~~5. "Solicitar función" / "Informar de error"~~ — ✅ RESUELTO (verificado 2026-09-16)
 
-`app_feedback_screen.tsx` (Ajustes → Recursos) ya es un formulario completo y funcional en el cliente — título, descripción, sección relacionada (Entrenamiento/Nutrición/Hábitos/Métricas/Otro), y adjunta el buffer de diagnóstico local si "Habilitar diagnósticos" está activo (`helper/logger.ts::getDiagnosticsReportText()`). Llama a `appFeedbackApi.submit()` (`api/appFeedback.ts`) contra `POST v1/app-feedback`, que todavía no existe — hasta que exista, enviar el formulario falla con el mismo `Alert` de error que cualquier otro formulario de la app cuando el backend responde mal (no es un bug, es el endpoint que falta).
-
-Mismo mecanismo ya usado por la herramienta temporal `ScreenReviewFab`/"Revisar pantalla" (`api/screenReview.ts` → `v1/screen-review-mark`, que sí existe en el backend y sí se ve desde el admin panel) — aplicado aquí a feedback de producto en vez de a la revisión de las 200+ pantallas migradas.
-
-- **`POST v1/app-feedback`** — payload:
-  ```json
-  {
-    "type": "feature_request | bug_report",
-    "title": "string, máx 100 caracteres",
-    "description": "string",
-    "section": "workout | nutrition | habits | metrics | other",
-    "section_other": "string opcional, solo si section = other",
-    "diagnostics_log": "string opcional, texto plano multilinea",
-    "app_version": "string opcional, ej. 1.2.0",
-    "platform": "ios | android"
-  }
-  ```
-  Guardar también `user_id` (del token autenticado) y `created_at`. Respuesta: `{ data: { id, ...mismos campos, created_at } }` (el cliente hoy no lee el body de la respuesta, pero conviene devolverlo por consistencia con el resto de la API).
-- **Tabla sugerida** `app_feedback`: `id`, `user_id` (FK `users`), `type` (enum), `title`, `description` (text), `section` (enum), `section_other` (nullable), `diagnostics_log` (nullable, text/longtext), `app_version` (nullable), `platform` (nullable), `status` (enum: `open`/`reviewed`/`closed`, default `open` — para que el admin pueda marcarlos como gestionados), `created_at`, `updated_at`.
-- **Admin panel**: pantalla nueva (listado + filtro por `type`/`section`/`status`, detalle con el `diagnostics_log` completo) — no existe todavía ningún sitio para verlos, que es justo el problema que este endpoint resuelve para el administrador.
+`POST v1/app-feedback` existe en `Bckbs::AppFeedbackController::store()`, con la validación exacta del contrato original. Admin panel también resuelto: `admin-app-feedback-list`/`detail`/`update` (`Bckbs::Admin\AppFeedbackController`) + `AppFeedbackView.tsx` en `bstronger-admin` (listado con filtro por tipo/sección/estado, cambio de estado con confirmación).
 
 ---
 
-### 6. Borrado de cuenta — bloqueante real para publicar en las tiendas (2026-08-28)
+### ~~6. Borrado de cuenta~~ — ✅ RESUELTO (verificado 2026-09-16)
 
-Apple (guideline 5.1.1v) y Google Play exigen que la app permita eliminar la cuenta desde dentro, sin depender de email/soporte. El cliente ya está listo: botón "Eliminar cuenta" en `edit_profile_screen.tsx` (doble confirmación) → `authApi.deleteAccount()` → `POST v1/delete-account`, que todavía no existe en el backend. Contrato completo, estrategia de borrado recomendada (soft-delete + purga diferida) y qué tablas tocar, ya documentado en detalle en `docs/BORRADO_CUENTA_BACKEND.md` — hay una decisión de producto pendiente ahí (borrado inmediato total vs. soft-delete con periodo de gracia) que hay que confirmar antes de implementar.
+`POST v1/delete-account` existe en `Bckbs::UserController::deleteUserAccount()`. Decisión de producto ya tomada: borrado inmediato y total (sin periodo de gracia), con guard explícito para que un coach con clientes activos o un admin no pueda autoborrarse por esta vía, y revocación de todos los tokens al momento.
 
 ## Prioridad media
 
