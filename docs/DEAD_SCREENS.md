@@ -2,6 +2,8 @@
 
 **Reescrito por completo el 2026-09-16 (item 20 del roadmap).** El inventario anterior era del 04-08-2026 y llevaba meses desactualizado (190 pantallas registradas entonces; solo **87** hoy — la mayoría de las "muertas" de aquella foto ya se borraron en sesiones intermedias: 27 el 2026-08-18, más otras sueltas el 13/23/26-08 y el 16-09). Este documento sustituye al anterior entero, no lo complementa — no hay ninguna nota de "excepción" que preservar, las pantallas que mencionaban ya no existen.
 
+**Actualización 2026-09-16 (más tarde) — las 5 pantallas muertas identificadas abajo, borradas.** Usuario confirmó explícitamente borrar las 5 (incluidas las 3 sin motivo conocido, sin retomarlas) — ver items 22-24 de `docs/ROADMAP.md`. Sección "Las 5 pantallas muertas" se deja como referencia histórica de qué se borró y por qué; el estado actual es que **las 87 pantallas restantes son todas alcanzables**.
+
 ## Metodología
 
 1. Extraídos los 87 nombres de pantalla únicos registrados en `App.tsx` (`<Stack.Screen>`/`<Tab.Screen>`/`<MStack.Screen>`, cualquier `name=`).
@@ -9,9 +11,9 @@
 3. Identificados los puntos de entrada reales (no necesitan referencia entrante): `WelcomeAuth`/`MigratedOnboardingV2`/`Home` (según estado de auth, `App.tsx` línea ~361), `InicioTab` (`initialRouteName` del Tab.Navigator), y las 4 pestañas de la barra inferior (`InicioTab`/`PlanDiarioTab`/`NutritionTab`/`HabitsTab`, alcanzables genéricamente vía `navigation.navigate(route.name)` en `NavigationTab.tsx`, no por nombre literal cada una).
 4. **`pages/ScreenExplorer.tsx` (herramienta de desarrollo) se excluye del análisis** — navega dinámicamente a prácticamente cualquier ruta registrada, así que "alcanzable desde ScreenExplorer" no es lo mismo que "alcanzable desde el flujo real de un usuario". Mismo criterio que el documento anterior.
 
-## Resultado: 82 de 87 alcanzables, 5 muertas de verdad
+## Resultado (en el momento de la auditoría): 82 de 87 alcanzables, 5 muertas de verdad
 
-### Las 5 pantallas muertas
+### Las 5 pantallas muertas (borradas el 2026-09-16)
 
 | Pantalla | Archivo | Por qué está muerta |
 | --- | --- | --- |
@@ -27,10 +29,12 @@ Ninguna de las 5 navega a su vez a otra pantalla que no sea ya alcanzable por ot
 
 El resto — no se listan una a una aquí por ser la mayoría (todas las pantallas de auth, onboarding, home, calendario/workouts, nutrición, hábitos, comunidad, estadísticas, perfil, recursos, tienda de recetas, etc.). Si hace falta confirmar una pantalla concreta, buscar su nombre con `grep -rn "'NOMBRE'" pages/ components/ --include="*.tsx"` (o `"NOMBRE"` con comillas dobles, ambos estilos se usan en el repo) — si aparece fuera de `App.tsx`/`ScreenExplorer.tsx`, es alcanzable.
 
-## Qué hacer con las 5
+## Qué se hizo con las 5
 
-No se borran en esta pasada (esta tarea era "auditar", no "borrar" — decisión de borrado real es del usuario, mismo criterio que el documento anterior con las pantallas que si se acabaron borrando). Recomendación:
+Usuario confirmó borrar las 5 (2026-09-16, más tarde el mismo día que esta auditoría) — incluidas las 3 sin motivo conocido, sin retomarlas:
 
-- `ExerciseInfo`: seguro quitar el registro duplicado, cero riesgo (el componente sigue vivo vía `MigratedExerciseInfo`).
-- `MigratedTermsAndConditions`: candidata a borrar de verdad — ya no tiene ningún punto de entrada por diseño, y sustituirla por la web real fue una decisión ya tomada, no un vacío accidental.
-- `MigratedChewie`/`MigratedTips`/`MigratedViewEquipment`: verificar con el usuario si tiene sentido retomarlas antes de tocar nada (mismo criterio del documento original: "no borrar, el usuario las desarrollará más adelante" salvo que se confirme lo contrario).
+- `ExerciseInfo`: registro duplicado quitado de `App.tsx` (el componente sigue vivo vía `MigratedExerciseInfo`, cero riesgo confirmado).
+- `MigratedTermsAndConditions`: registro y `pages/migrated/terms_and_conditions_screen.tsx` borrados.
+- `MigratedChewie`, `MigratedTips`, `MigratedViewEquipment`: registro y sus 3 archivos (`chewie_screen.tsx`, `tips_screen.tsx`, `view_equipment_screen.tsx`) borrados.
+
+Las 4 entradas correspondientes también se quitaron de `pages/ScreenExplorer.tsx` (herramienta de desarrollo) para no dejar rutas muertas en su listado. `npx tsc --noEmit` limpio tras el borrado, sin referencias colgantes.

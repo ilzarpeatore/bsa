@@ -64,7 +64,6 @@ const ChangePwdScreen = React.lazy(() => import('@pages/migrated/change_pwd_scre
 const ChattingScreen = React.lazy(() => import('@pages/migrated/chatting_screen'));
 const CheckInsListScreen = React.lazy(() => import('@pages/migrated/checkins_list_screen'));
 const CheckInFillScreen = React.lazy(() => import('@pages/migrated/checkin_fill_screen'));
-const ChewieScreen = React.lazy(() => import('@pages/migrated/chewie_screen'));
 const CommunityScreen = React.lazy(() => import('@pages/migrated/community_screen'));
 
 const DietDetailScreen = React.lazy(() => import('@pages/migrated/diet_detail_screen'));
@@ -137,13 +136,8 @@ const ShoppingListDetailScreen = React.lazy(
 );
 const ShoppingListScreen = React.lazy(() => import('@pages/migrated/shopping_list_screen'));
 
-const TermsAndConditionsScreen = React.lazy(
-  () => import('@pages/migrated/terms_and_conditions_screen'),
-);
-const TipsScreen = React.lazy(() => import('@pages/migrated/tips_screen'));
 const ViewAllBlogScreen = React.lazy(() => import('@pages/migrated/view_all_blog_screen'));
 const ViewBodyPartScreen = React.lazy(() => import('@pages/migrated/view_body_part_screen'));
-const ViewEquipmentScreen = React.lazy(() => import('@pages/migrated/view_equipment_screen'));
 const WaterTrackerScreen = React.lazy(() => import('@pages/migrated/water_tracker_screen'));
 const WebViewScreen = React.lazy(() => import('@pages/migrated/web_view_screen'));
 const WorkoutHistoryScreen = React.lazy(() => import('@pages/migrated/workout_history_screen'));
@@ -264,7 +258,6 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedHabits" component={HabitsListScreen} />
       <MStack.Screen name="MigratedHabitDetail" component={HabitDetailScreen} />
       <MStack.Screen name="MigratedHabitAdd" component={HabitAddScreen} />
-      <MStack.Screen name="MigratedChewie" component={ChewieScreen} />
       <MStack.Screen name="MigratedCommunity" component={CommunityScreen} />
       <MStack.Screen name="MigratedDietDetail" component={DietDetailScreen as any} />
       <MStack.Screen name="MigratedAssignedMeals" component={AssignedMealsScreen} />
@@ -330,11 +323,8 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedSessionHistoryDetail" component={SessionHistoryDetailScreen} />
       <MStack.Screen name="MigratedShoppingListDetail" component={ShoppingListDetailScreen} />
       <MStack.Screen name="MigratedShoppingList" component={ShoppingListScreen} />
-      <MStack.Screen name="MigratedTermsAndConditions" component={TermsAndConditionsScreen} />
-      <MStack.Screen name="MigratedTips" component={TipsScreen} />
       <MStack.Screen name="MigratedViewAllBlog" component={ViewAllBlogScreen} />
       <MStack.Screen name="MigratedViewBodyPart" component={ViewBodyPartScreen} />
-      <MStack.Screen name="MigratedViewEquipment" component={ViewEquipmentScreen} />
       <MStack.Screen name="MigratedWaterTracker" component={WaterTrackerScreen} />
       <MStack.Screen name="MigratedWebView" component={WebViewScreen} />
       <MStack.Screen name="MigratedWorkoutHistory" component={WorkoutHistoryScreen} />
@@ -391,9 +381,6 @@ function RootNavigator() {
         ) : (
           <>
             <Stack.Screen name="Home" component={Homenavigator} />
-
-            {/* Exercise */}
-            <Stack.Screen name="ExerciseInfo" component={ExerciseInfoScreen} />
 
             {/* Diet */}
             <Stack.Screen name="DietDashboard" component={DietDashboard} />
