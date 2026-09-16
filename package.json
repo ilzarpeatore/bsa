@@ -88,7 +88,7 @@
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "29.5.14",
     "@types/node": "^26.1.1",
-    "babel-plugin-module-resolver": "^5.0.0",
+    "babel-plugin-module-resolver": "^5.0.3",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.1",
     "husky": "^9.1.7",
