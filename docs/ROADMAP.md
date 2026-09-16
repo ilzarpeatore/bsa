@@ -30,6 +30,7 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 - Las 14 PRs de Dependabot que estaban abiertas — todas mergeadas a `master` (2026-09-16)
 - `MigratedRecipeTagList` ya lee `recipe_tags.group` cuando existe, con fallback a la heurística de texto solo para tags sin categorizar (2026-09-16)
 - Los 2 TODOs reales de `about_app_screen.tsx` — resueltos borrando el bucle muerto (`aboutPages`/`loadAppSettings()` nunca se completaron; los 4 botones reales de la pantalla son independientes de eso) (2026-09-16)
+- `GET readiness-scores-latest` — `combined_score`/`band`/`acwr` reales para el hero de Home (Recovery prioriza el dato real, Strain ya no es placeholder fijo cuando hay `acwr`) — código en `bsa` + `Bckbs` [PR #18](https://github.com/ilzarpeatore/Bckbs/pull/18), pendiente de mergear/desplegar (2026-09-16)
 
 ---
 
@@ -41,12 +42,6 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 |---|---|---|
 | 0a | Relanzar el build de IPA — el build 102 (el último real) se quedó 16 commits atrás de `master` (capability de Push Notifications + 14 bumps de Dependabot), y en cuanto se mergeen la PR #25 de `bsa` y las de `Bckbs`/`bstronger-admin` (ver `docs/PENDIENTE_BACKEND_ADMIN.md`) se quedará aún más atrás — mejor esperar a que esas mergeen y lanzar un build que ya lo lleve todo, en vez de encadenar builds parciales. Checklist en `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`) | Mergear primero las PRs pendientes de backend/admin + la de `bsa` |
 | 0b | Publicar la ficha en Play Console + subir el primer AAB firmado — el pipeline ya está verificado (run `34273584804`, `docs/BUILD_AAB.md`), falta el paso humano de crear la ficha en Play Console y subir el artefacto | Acceso a Play Console (no verificable desde el repo si ya se hizo) |
-
-### Rápido / alta prioridad (código, en este repo)
-
-| # | Qué | Dónde | Complejidad | Duración est. |
-|---|---|---|---|---|
-| 1 | `GET` readiness real (`combined_score`/`band`/`acwr` de la tabla `readiness_scores`) para sustituir la aproximación `computeRecoveryScore()` del hero de Home y activar "Strain" — **no confundir con el endpoint admin, ese ya existe** | `Bckbs` (endpoint) + `bsa` (swap trivial una vez exista) | M | 2 días |
 
 ### Datos que solo tú puedes dar (sin código real que escribir)
 

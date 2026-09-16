@@ -82,7 +82,7 @@ import { pickWorkoutFallbackImage } from './workoutViewShared';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 import { checkinsApi, checkinTypeLabel, CheckInAssignment } from '../../api/checkins';
 import { habitsApi, Habit } from '../../api/habits';
-import { readinessApi, ReadinessValues, ReadinessTodayResponse } from '../../api/readiness';
+import { readinessApi, ReadinessValues, ReadinessTodayResponse, ReadinessScoreLatest } from '../../api/readiness';
 import ReadinessCheckSheet from '@components/ReadinessCheckSheet';
 import MuscleBodyMap from '@components/MuscleBodyMap';
 import { habitIoniconFor } from '../../constants/habitIcons';
@@ -186,17 +186,30 @@ function localDateKey(d: Date): string {
 // Recovery del hero -- estimación 100% cliente a partir del chequeo
 // subjetivo diario que el cliente ya rellena (daily_readiness_checks, mismo
 // dato que consume workout_preview_screen.tsx). NO es el `combined_score`
-// real que calcula `ReadinessCalculationService` en el backend (ese cruza
-// esto con HRV/sueño objetivo de wearable vía `readiness_scores`, y hoy no
-// hay endpoint que lo exponga al cliente) -- es una media simple de las 4
-// respuestas normalizadas a 0-100, pensada como aproximación honesta
-// mientras no exista ese endpoint, no como sustituto exacto del score real.
+// real que calcula `ReadinessCalculationService` en el backend -- ES el
+// fallback para cuando `readinessScoresLatest.has_data` es false (usuario
+// free-tier, o el job diario `readiness:calculate` aún no ha corrido para
+// hoy), ver `recoveryScore` más abajo: la fuente real (item 1 del roadmap,
+// GET readiness-scores-latest) tiene prioridad en cuanto hay datos.
 function computeRecoveryScore(v: ReadinessValues): number {
   const sleep = ((v.sleep_quality - 1) / 4) * 100; // 1-5, mayor = mejor
   const energy = ((v.energy_level - 1) / 4) * 100; // 1-5, mayor = mejor
   const soreness = ((10 - v.soreness_level) / 9) * 100; // 1-10, invertido (mayor = peor)
   const stress = ((5 - v.stress_level) / 4) * 100; // 1-5, invertido (mayor = peor)
   return Math.round((sleep + energy + soreness + stress) / 4);
+}
+
+// Strain del hero -- normaliza el ACWR real (0.8-1.3 = banda óptima, 100
+// puntos) a 0-100 para el anillo. Réplica exacta de
+// ReadinessCalculationService::normalizeAcwr() en Bckbs (mismo criterio:
+// penalización más agresiva por encima de 1.3 que por debajo de 0.8, ACWR
+// alto es la señal de riesgo de lesión real) -- se mantiene aquí en vez de
+// pedir ya normalizado porque el backend expone el acwr crudo (permite
+// mostrar el número real si algún día se quiere, no solo el 0-100).
+function normalizeAcwr(acwr: number): number {
+  if (acwr >= 0.8 && acwr <= 1.3) return 100;
+  if (acwr < 0.8) return Math.max(0, 100 - (0.8 - acwr) * 100);
+  return Math.max(0, 100 - (acwr - 1.3) * 150);
 }
 
 // Fondo real del hero (sustituye al LinearGradient plano) -- 3 fotos fijas
@@ -449,6 +462,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // formulario opcional (ReadinessCheckSheet) al tocar el anillo cuando
   // todavía no hay chequeo de hoy.
   const [readinessToday, setReadinessToday] = useState<ReadinessTodayResponse['data'] | null>(null);
+  // Combined_score/band/acwr REALES (item 1 del roadmap, 2026-09-16) --
+  // fuente preferida para el anillo Recovery y única fuente para Strain
+  // (computeRecoveryScore es solo el fallback cuando esto no tiene datos
+  // todavía, ver recoveryScore/strainScore más abajo).
+  const [readinessScoresLatest, setReadinessScoresLatest] = useState<ReadinessScoreLatest | null>(null);
   const [showReadinessSheet, setShowReadinessSheet] = useState(false);
 
   const styles = useMemo(
@@ -917,6 +935,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         phraseRes,
         completedRes,
         readinessRes,
+        readinessScoresRes,
         muscleVolumeRes,
         personalRecordsRes,
       ] = await Promise.allSettled([
@@ -931,6 +950,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         motivationalPhraseApi.getPhrase(),
         workoutHistoryApi.getMyCompletedSessions(),
         readinessApi.getToday(),
+        readinessApi.getLatest(),
         muscleVolumeApi.getMy(7),
         exerciseStatsApi.getMyPersonalRecords(),
       ]);
@@ -1045,6 +1065,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
 
       if (readinessRes.status === 'fulfilled') {
         setReadinessToday(readinessRes.value.data.data);
+      }
+
+      if (readinessScoresRes.status === 'fulfilled') {
+        setReadinessScoresLatest(readinessScoresRes.value.data.data);
       }
 
       if (muscleVolumeRes.status === 'fulfilled') {
@@ -1269,9 +1293,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const activityKcal = stepsKcal + workoutKcal;
   const activityGoalKcal = steps?.goal ? Math.round(steps.goal * KCAL_PER_STEP) : 0;
 
-  // Recovery del anillo del hero -- null mientras no se resuelve la petición
-  // (evita parpadeo del CTA), número real una vez que hay chequeo de hoy.
-  const recoveryScore = readinessToday?.today ? computeRecoveryScore(readinessToday.today) : null;
+  // Recovery del anillo del hero -- prioriza el combined_score real
+  // (readinessScoresLatest, item 1 del roadmap) en cuanto hay datos; si no
+  // (free-tier, o el job diario aún no calculó nada), cae a la estimación
+  // subjetiva de siempre (computeRecoveryScore). null mientras no se
+  // resuelve ninguna de las dos peticiones (evita parpadeo del CTA).
+  const recoveryScore =
+    readinessScoresLatest?.has_data && readinessScoresLatest.combined_score != null
+      ? Math.round(readinessScoresLatest.combined_score)
+      : readinessToday?.today
+        ? computeRecoveryScore(readinessToday.today)
+        : null;
   const recoveryColor =
     recoveryScore == null
       ? '#FFFFFF'
@@ -1281,6 +1313,24 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           ? C.warning
           : C.destructive;
   const readinessCtaVisible = readinessToday != null && !readinessToday.submitted_today;
+
+  // Strain del anillo del hero -- solo tiene fuente cuando
+  // readinessScoresLatest trae un acwr real (motor de progresión con
+  // historial suficiente); sin backend de aproximación subjetiva para esto
+  // como sí existe para Recovery, se queda en placeholder "-%" hasta
+  // entonces (mismo criterio que ya tenía este anillo).
+  const strainScore =
+    readinessScoresLatest?.has_data && readinessScoresLatest.acwr != null
+      ? Math.round(normalizeAcwr(readinessScoresLatest.acwr))
+      : null;
+  const strainColor =
+    strainScore == null
+      ? '#FFFFFF'
+      : strainScore >= 70
+        ? C.success
+        : strainScore >= 40
+          ? C.warning
+          : C.destructive;
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
@@ -1386,15 +1436,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               encima (pedido explícito 2026-08-27: quitar el efecto glass que
               había sobre la foto). */}
 
-          {/* Anillos Recovery/Strain. Strain sigue en placeholder "-%" -- sin
-              fuente de datos real todavía (necesitaría el ACWR que ya
-              calcula el backend en `readiness_scores`, no expuesto al
-              cliente aún). Recovery ya no es placeholder: si el cliente
-              rellenó su chequeo diario hoy, se muestra la estimación real
-              (computeRecoveryScore); si no, el anillo es un CTA tocable que
-              abre ReadinessCheckSheet (opción 3 del hueco Recovery/Strain
-              del hero). Mientras `readinessToday` no resuelve, se mantiene
-              el placeholder de siempre para no parpadear un CTA de más. */}
+          {/* Anillos Recovery/Strain (item 1 del roadmap, 2026-09-16): ambos
+              usan readinessScoresLatest.combined_score/acwr en cuanto hay
+              datos reales (paid-tier + job diario ya corrido). Strain sigue
+              en placeholder "-%" solo mientras no hay acwr (no tiene
+              fallback subjetivo como Recovery, no hay forma honesta de
+              aproximarlo sin historial de carga real). Recovery cae a la
+              estimación subjetiva (computeRecoveryScore) cuando no hay
+              datos reales pero sí chequeo diario; si tampoco hay eso, el
+              anillo es un CTA tocable que abre ReadinessCheckSheet.
+              Mientras ninguna petición resuelve, se mantiene el placeholder
+              de siempre para no parpadear un CTA de más. */}
           <Pressable
             disabled={!readinessCtaVisible}
             onPress={() => setShowReadinessSheet(true)}
@@ -1420,7 +1472,9 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 />
               </AnimatedRing>
               <VStack style={[styles.ringSide, { alignItems: 'flex-end' as const }]}>
-                <Text style={styles.ringValue}>-%</Text>
+                <Text style={[styles.ringValue, strainScore != null && { color: strainColor }]}>
+                  {strainScore != null ? `${strainScore}%` : '-%'}
+                </Text>
                 <Text style={styles.ringLabel}>STRAIN</Text>
               </VStack>
             </HStack>
