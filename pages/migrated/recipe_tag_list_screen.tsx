@@ -23,6 +23,7 @@ interface RecipeTag {
   id: number;
   title: string;
   recipeTagImage?: string;
+  group?: string | null;
 }
 
 interface TagCategory {
@@ -32,14 +33,17 @@ interface TagCategory {
   tags: RecipeTag[];
 }
 
-// La lista de tags viene plana del backend (recipetag-list) sin ningún campo
-// de agrupación (solo id/title/slug/imagen) — "esta screen es una locura"
-// venía de eso: 40-60 chips sueltos en un único wrap. Para organizarla por
-// secciones sin depender de un campo que la API no expone, clasificamos cada
-// tag por palabras clave en su título y agrupamos lo que no encaja en
-// "Otros". Es una heurística, no un contrato con el backend -- ver
-// docs/PENDIENTE_BACKEND_ADMIN.md para la propuesta real de un campo de
-// grupo en `recipe_tags` que sustituya esto por datos reales.
+// El backend ya expone recipe_tags.group (2026-09-16, ver
+// docs/PENDIENTE_BACKEND_ADMIN.md) -- classifyTag() lo usa primero cuando el
+// admin ya lo ha rellenado para ese tag (GROUP_KEY_BY_BACKEND_VALUE). Para
+// los tags que el admin todavía no ha categorizado (group=null, previsible
+// mientras se migra el catálogo existente), sigue el fallback original: "esta
+// screen es una locura" venía de que la lista llegaba plana (40-60 chips
+// sueltos en un único wrap) sin ningún campo de agrupación, así que se
+// clasificaba por palabras clave en el título y se agrupaba lo que no
+// encajaba en "Otros". Es una heurística, no un contrato con el backend --
+// en cuanto el admin categorice un tag, este código deja de adivinar por
+// texto para ese tag en concreto sin que haga falta tocar nada aquí.
 //
 // Taxonomía rediseñada (pedido explícito, 2026-08-24: "organiza todas las
 // categorías" -- duración, países, tipo de dieta, recetas de comunidades de
@@ -113,6 +117,21 @@ const CATEGORY_DEFS: { key: string; label: string; icon: string; keywords: RegEx
 ];
 const OTHER_CATEGORY = { key: 'other', label: 'Otros', icon: 'pricetag-outline' };
 
+// Valores reales de recipe_tags.group (snake_case, ver migración
+// 2026_08_30_110003_add_group_to_recipe_tags_table.php) -> key de
+// CATEGORY_DEFS (camelCase, ya existente en este archivo).
+const GROUP_KEY_BY_BACKEND_VALUE: Record<string, string> = {
+  duration: 'duration',
+  fat_loss: 'fatLoss',
+  muscle_gain: 'muscleGain',
+  performance: 'performance',
+  spain_regional: 'spainRegional',
+  country: 'country',
+  diet: 'diet',
+  meal_type: 'mealType',
+  other: OTHER_CATEGORY.key,
+};
+
 function normalize(str: string): string {
   return str
     .normalize('NFD')
@@ -121,6 +140,10 @@ function normalize(str: string): string {
 }
 
 function classifyTag(tag: RecipeTag): string {
+  if (tag.group) {
+    const key = GROUP_KEY_BY_BACKEND_VALUE[tag.group];
+    if (key) return key;
+  }
   const normalized = normalize(tag.title);
   for (const def of CATEGORY_DEFS) {
     if (def.keywords.test(normalized)) return def.key;
@@ -165,6 +188,7 @@ export default function RecipeTagListScreen(props: any) {
             id: t.id,
             title: t.title,
             recipeTagImage: t.recipe_tag_image ?? undefined,
+            group: t.group,
           }))
         );
         page++;

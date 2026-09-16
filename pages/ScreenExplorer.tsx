@@ -155,8 +155,6 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Blog Detail', route: 'MigratedBlogDetail', category: 'Migrated - Content', file: 'blog_detail_screen.tsx', gluestackMigrated: true },
   { name: 'View All Blog', route: 'MigratedViewAllBlog', category: 'Migrated - Content', file: 'view_all_blog_screen.tsx', gluestackMigrated: true },
   { name: 'Tips', route: 'MigratedTips', category: 'Migrated - Content', file: 'tips_screen.tsx', gluestackMigrated: true },
-  { name: 'Video Screen', route: 'MigratedVideo', category: 'Migrated - Content', file: 'video_screen.tsx', gluestackMigrated: true },
-  { name: 'Video Detail', route: 'MigratedVideoDetail', category: 'Migrated - Content', file: 'video_detail_screen.tsx', gluestackMigrated: true },
   { name: 'YouTube Player', route: 'MigratedYoutubePlayer', category: 'Migrated - Content', file: 'youtube_player_screen.tsx', gluestackMigrated: true },
   { name: 'Chewie Player', route: 'MigratedChewie', category: 'Migrated - Content', file: 'chewie_screen.tsx', gluestackMigrated: true },
   { name: 'Web View', route: 'MigratedWebView', category: 'Migrated - Content', file: 'web_view_screen.tsx', gluestackMigrated: true },

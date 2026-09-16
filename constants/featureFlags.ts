@@ -13,18 +13,17 @@
 export const CHAT_ENABLED = false;
 
 // Comunidad (MigratedCommunity, publicaciones/comentarios entre usuarios
-// reales) -- mismo motivo que CHAT_ENABLED, auditoría Guideline 1.2
-// (2026-09-10): tiene reporte de publicaciones (api/posts.ts, report()) pero
-// NO tiene reporte de comentarios, ni ningún mecanismo para bloquear a un
-// usuario abusivo (grep exhaustivo de blockUser/bloquear sin resultados en
-// todo el repo), y docs/PENDIENTE_BACKEND_ADMIN.md confirma que tampoco hay
-// panel de administración para revisar lo reportado. Los 3 puntos de
-// entrada (components/NavigationTab.tsx "+", profile_screen.tsx,
-// home_screen_modern_v2.tsx menú "Más") comprueban este flag -- las
-// pantallas y su ruta en App.tsx NO se quitan, igual que CHAT_ENABLED.
-// Reactivar cuando exista bloqueo de usuarios + reporte de comentarios +
-// forma real de que un admin/coach actúe sobre lo reportado.
-export const COMMUNITY_ENABLED = false;
+// reales) -- reactivada 2026-09-16 (item 11 del roadmap): ya existe reporte
+// de comentarios (post_details_screen.tsx, long-press en un comentario ->
+// api/posts.ts::reportComment(), backend en Bckbs PR #17) y bloqueo de
+// usuario (other_user_profile_screen.tsx, botón "..." del header ->
+// api/userBlock.ts, oculta contenido en ambas direcciones e impide
+// comentar/dar like sobre contenido bloqueado). Panel admin real para
+// revisar lo reportado: "Publicaciones reportadas" (ya existía) +
+// "Comentarios reportados" (bstronger-admin PR #17), ambas con acción de
+// borrado. Antes de este cambio ya existía reporte de publicaciones
+// (api/posts.ts, report()) con su propio panel.
+export const COMMUNITY_ENABLED = true;
 
 // Activity Tracker (MigratedActivityTracker) y Water Tracker
 // (MigratedWaterTracker) -- rechazo real Guideline 2.2 (2026-09-10): los

@@ -101,6 +101,9 @@ export const postsApi = {
   report: (postId: number, reason: string) =>
     apiClient.post<ApiMessageResponse>('report-on-posting', { posting_id: postId, reason }),
 
+  reportComment: (commentId: number, reason: string) =>
+    apiClient.post<ApiMessageResponse>('report-on-comment', { comment_id: commentId, reason }),
+
   getBookmarks: (page: number = 1) =>
     apiClient.get<PostListResponse>(`my-bookmark-post-list?page=${page}`),
 

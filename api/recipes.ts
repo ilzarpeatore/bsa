@@ -82,6 +82,11 @@ export interface RecipeTag {
   title: string;
   slug: string;
   status: string;
+  // Grupo real asignado desde el admin (duration/fat_loss/muscle_gain/
+  // performance/spain_regional/country/diet/meal_type/other), nullable
+  // mientras el admin no lo haya rellenado para ese tag -- ver
+  // recipe_tag_list_screen.tsx::classifyTag() para el fallback.
+  group: string | null;
   recipe_tag_image: string | null;
 }
 
