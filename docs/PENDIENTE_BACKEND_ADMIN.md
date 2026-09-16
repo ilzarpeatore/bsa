@@ -10,29 +10,21 @@ Compilado a partir de `docs/TAREAS.md` y `docs/ONBOARDING_V2.md` (estado a 2026-
 
 ---
 
-## Integración pendiente — onboarding: 3 campos nuevos + endpoint nuevo (2026-09-16 noche)
+## ~~Integración onboarding: 3 campos nuevos + endpoint nuevo~~ — ✅ CLIENTE RESUELTO (2026-09-16 noche, commit `6c8dd0d`)
 
-Fuente: documento `INTEGRACION_APP_ONBOARDING_2026-09-16.md` (aportado por otra sesión que trabajó en `Bckbs`, rama `feature/onboarding-safety-and-preferences`, **sin fusionar a `main` todavía a la fecha de ese documento** — no dar por hecho que estos endpoints responden en `testapp.bestronger.es` hasta confirmar el merge). Los 3 endpoints ya tienen 13 tests de feature pasando contra un esquema MySQL real en esa rama (`tests/Feature/OnboardingSafetyAndPreferencesTest.php`). Nada de esto está implementado todavía en esta app.
+Fuente original: documento `INTEGRACION_APP_ONBOARDING_2026-09-16.md` (aportado por otra sesión que trabajó en `Bckbs`, rama `feature/onboarding-safety-and-preferences`). Los 3 endpoints tienen 13 tests de feature en verde contra un esquema MySQL real (`tests/Feature/OnboardingSafetyAndPreferencesTest.php`).
 
-**Precondición ya cumplida por esta app** — `gender` ya se envía en minúsculas (`male`/`female`/`other`) desde `constants/onboardingV2Questions.ts` (verificado leyendo el código); el backend del PAR-Q+ compara `=== 'female'` exacto, así que la etapa 1 no necesita ningún cambio.
+**Cliente (esta app) ya implementado**:
 
-1. **`POST v1/onboarding/par-q`** — 3 campos nuevos en el body (`api/onboardingV2.ts` ya tiene la interfaz del payload con los 7 campos actuales, hay que ampliarla):
-   - `parq_pregnant_or_possible` (boolean) — obligatorio **solo si `gender === 'female'`**; si se omite para un perfil mujer, el backend responde 422.
-   - `parq_menstrual_change_or_stress_fracture` (boolean) — mismo criterio (cribado básico de RED-S).
-   - `parq_eating_disorder_history` (boolean) — **siempre obligatoria, cualquier género**, nunca se omite.
-     Falta añadir las 3 preguntas a la etapa `par_q` de `constants/onboardingV2Questions.ts`, mostrando las 2 primeras solo cuando la respuesta de `gender` ya recogida en la etapa 1 es `'female'` — la screen genérica (`onboarding_v2_screen.tsx`) recorre el array secuencial y hoy no tiene lógica condicional por respuesta previa para ninguna pregunta, hay que añadirla.
+1. **`POST v1/onboarding/par-q`** — `constants/onboardingV2Questions.ts` gana las 3 preguntas nuevas; `parq_pregnant_or_possible`/`parq_menstrual_change_or_stress_fracture` usan el campo `showIf` nuevo del tipo `OnboardingQuestion` (`types/onboardingV2.ts`) para mostrarse/enviarse solo si la respuesta ya dada a `gender` en la etapa 1 es `'female'`; `parq_eating_disorder_history` siempre. `api/onboardingV2.ts` (`ParQPayload`) y `submitStage()` en `onboarding_v2_screen.tsx` ya envían los 3.
+2. **`POST v1/onboarding/nutrition-questionnaire`** — las 3 preguntas de disponibilidad de cocina añadidas a la etapa `nutrition_questionnaire`, payload ampliado y enviado.
+3. **`POST v1/onboarding/training-availability-update`** — pantalla nueva `pages/migrated/training_availability_screen.tsx` (`MigratedTrainingAvailability`, menú Perfil > Preferencias > "Disponibilidad de entrenamiento"). Decisión de diseño: el backend no expone ningún GET para leer la disponibilidad actual, así que la pantalla **no preselecciona ningún valor por defecto** — el botón "Guardar" se queda deshabilitado hasta que el cliente elige explícitamente días y duración, para no arriesgarse a sobreescribir con un valor que no es el real.
 
-2. **`POST v1/onboarding/nutrition-questionnaire`** — 3 campos nuevos, todos obligatorios, sin condición de género:
-   - `cooking_minutes_per_meal` (integer, `0-180`)
-   - `cooking_skill_level` (`'beginner' | 'intermediate' | 'advanced'`)
-   - `cooks_for_others` (boolean)
-     Falta añadir las 3 preguntas a la etapa `nutrition` del mismo array + ampliar la interfaz del payload de nutrición en `api/onboardingV2.ts`.
+`npx tsc --noEmit` limpio.
 
-3. **`POST v1/onboarding/training-availability-update`** — endpoint **nuevo**, no existía antes, fuera del flujo de onboarding inicial. Pensado para una pantalla de ajustes/perfil donde el cliente cambie `training_days_per_week` (integer, `1-7`) y `session_duration_preference` (`"30"|"45"|"60"|"90"|"90_plus"`) sin repetir todo el cuestionario de disponibilidad de la etapa 3 (que exige todos sus campos como obligatorios). Precondición: el cliente debe haber completado ya la etapa 3 — si no, 422 con `"Todavía no has completado el cuestionario de entrenamiento del onboarding."`. Falta por completo en esta app: ni el método en `api/onboardingV2.ts` ni ninguna pantalla/entrada de menú en Ajustes que lo llame.
+**Backend — sigue siendo lo único que falta para que esto funcione en producción**: [`Bckbs` PR #19](https://github.com/ilzarpeatore/Bckbs/pull/19) creado (sin conflictos con `main`, comparado por API — los 2 commits de diferencia en `main` tocan `readiness-scores-latest`, sin solapar archivos) pero **sin fusionar** — pendiente de tu confirmación explícita antes de tocar el backend de producción. Después de fusionar, falta el deploy a la VPS (`git pull`, ver item `0c` de `docs/ROADMAP.md`).
 
-**Nota de producto, no bloqueante**: clientes que ya completaron el onboarding antes del 2026-09-16 tienen estos 3 campos nuevos de par-q/nutrición a `NULL` en BD — sin backfill posible (no se puede saber retroactivamente), decisión de si se les vuelve a preguntar en la app queda pendiente, no bloquea el uso de los endpoints para onboardings nuevos.
-
-Detalle completo de request/response, redacción sugerida por campo y checklist de integración en el documento original (`INTEGRACION_APP_ONBOARDING_2026-09-16.md`, aportado, no versionado en este repo).
+**Nota de producto, no bloqueante**: clientes que ya completaron el onboarding antes del 2026-09-16 tienen estos 3 campos nuevos de par-q/nutrición a `NULL` en BD — sin backfill posible, decisión de si se les vuelve a preguntar en la app queda pendiente.
 
 ---
 
