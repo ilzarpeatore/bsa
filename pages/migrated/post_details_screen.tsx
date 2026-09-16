@@ -12,6 +12,8 @@ import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { postsApi, PostComment } from '../../api/posts';
+import { userBlockApi } from '../../api/userBlock';
+import { useAuth } from '@store/AuthContext';
 import logger from '@helper/logger';
 import { showToast } from '@helper/toast';
 
@@ -37,6 +39,7 @@ interface PostData {
 
 export default function PostDetailsScreen(props: any) {
   const { colors: C } = useAppColorMode();
+  const { user: authUser } = useAuth();
   const postData: PostData | undefined = props.route?.params?.postData;
   const isFromLink: boolean = props.route?.params?.isFromLink ?? false;
 
@@ -146,6 +149,70 @@ export default function PostDetailsScreen(props: any) {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Reportar publicación', style: 'destructive', onPress: showReportReasons },
     ]);
+  };
+
+  const submitReportComment = async (commentId: number, reason: string) => {
+    try {
+      await postsApi.reportComment(commentId, reason);
+      showToast('Gracias', { description: 'Hemos recibido tu reporte y lo revisaremos.', variant: 'success' });
+    } catch (e) {
+      logger.error('Error reporting comment', e);
+      showToast('Error', { description: 'No se pudo enviar el reporte.', variant: 'error' });
+    }
+  };
+
+  const showReportCommentReasons = (commentId: number) => {
+    Alert.alert('Motivo del reporte', undefined, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Spam', onPress: () => submitReportComment(commentId, 'spam') },
+      { text: 'Contenido inapropiado', onPress: () => submitReportComment(commentId, 'inappropriate_content') },
+      { text: 'Acoso o bullying', onPress: () => submitReportComment(commentId, 'harassment') },
+      { text: 'Otro', onPress: () => submitReportComment(commentId, 'other') },
+    ]);
+  };
+
+  const blockCommentAuthor = async (authorId: number, authorName: string) => {
+    try {
+      await userBlockApi.block(authorId);
+      showToast('Usuario bloqueado', {
+        description: `Ya no verás publicaciones ni comentarios de ${authorName}.`,
+        variant: 'success',
+      });
+      await loadComments();
+    } catch (e) {
+      logger.error('Error blocking user', e);
+      showToast('Error', { description: 'No se pudo bloquear al usuario.', variant: 'error' });
+    }
+  };
+
+  const showCommentOptions = (comment: PostComment) => {
+    const isOwnComment = !!authUser && comment.user_id === authUser.id;
+    const authorName = `${comment.users?.first_name ?? ''} ${comment.users?.last_name ?? ''}`.trim() || 'este usuario';
+
+    const options: any[] = [{ text: 'Cancelar', style: 'cancel' }];
+    if (!isOwnComment) {
+      options.push({
+        text: 'Reportar comentario',
+        style: 'destructive',
+        onPress: () => showReportCommentReasons(comment.id),
+      });
+      options.push({
+        text: `Bloquear a ${authorName}`,
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert(
+            `¿Bloquear a ${authorName}?`,
+            'No verás sus publicaciones ni comentarios, y no podrá interactuar con los tuyos.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Bloquear', style: 'destructive', onPress: () => blockCommentAuthor(comment.user_id, authorName) },
+            ],
+          ),
+      });
+    }
+    if (options.length > 1) {
+      Alert.alert('Comentario', undefined, options);
+    }
   };
 
   const submitComment = async () => {
@@ -292,7 +359,12 @@ export default function PostDetailsScreen(props: any) {
               <Spinner size="small" color={C.orange} style={{ marginVertical: 16 }} />
             ) : comments.length > 0 ? (
               comments.map((c) => (
-                <Box key={c.id} className="flex-row items-start" style={{ marginBottom: 14 }}>
+                <Pressable
+                  key={c.id}
+                  onLongPress={() => showCommentOptions(c)}
+                  className="flex-row items-start"
+                  style={{ marginBottom: 14 }}
+                >
                   <Box className="w-9 h-9 rounded-pill bg-secondary items-center justify-center">
                     {c.users?.profile_image ? (
                       <Image
@@ -316,7 +388,7 @@ export default function PostDetailsScreen(props: any) {
                       </Text>
                     ) : null}
                   </Box>
-                </Box>
+                </Pressable>
               ))
             ) : (
               <Text muted size="xs" className="text-center" style={{ paddingVertical: 12 }}>

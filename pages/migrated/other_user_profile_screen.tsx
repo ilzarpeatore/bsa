@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {  ScrollView, ActivityIndicator, useWindowDimensions  } from 'react-native';
+import {  ScrollView, ActivityIndicator, useWindowDimensions, Alert  } from 'react-native';
 import {  Image  } from 'expo-image';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Box  } from '@components/ui/box';
@@ -13,6 +13,8 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  postsApi  } from '../../api/posts';
 import {  profileApi, UserSocialStats  } from '../../api/profile';
+import { userBlockApi } from '../../api/userBlock';
+import { showToast } from '@helper/toast';
 import logger from '@helper/logger';
 import {  RADIUS  } from './theme';
 
@@ -49,12 +51,65 @@ export default function OtherUserProfileScreen(props: any) {
   const pageRef = useRef(1);
   const numPageRef = useRef(1);
   const [stats, setStats] = useState<UserSocialStats | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     getPostList(1);
     getStats();
+    checkIfBlocked();
   }, [userDetails.id]);
+
+  const checkIfBlocked = useCallback(async () => {
+    if (!userDetails.id) return;
+    try {
+      const res = await userBlockApi.getMyBlockedUsers();
+      setIsBlocked((res.data.data ?? []).some((u) => u.id === userDetails.id));
+    } catch (e) {
+      logger.error('Error checking blocked users', e);
+    }
+  }, [userDetails.id]);
+
+  const toggleBlockUser = async () => {
+    if (!userDetails.id) return;
+    const name = `${firstName} ${lastName}`.trim() || 'este usuario';
+    if (isBlocked) {
+      try {
+        await userBlockApi.unblock(userDetails.id);
+        setIsBlocked(false);
+        showToast('Usuario desbloqueado', { description: `Ya puedes ver el contenido de ${name} de nuevo.`, variant: 'success' });
+      } catch (e) {
+        logger.error('Error unblocking user', e);
+        showToast('Error', { description: 'No se pudo desbloquear al usuario.', variant: 'error' });
+      }
+      return;
+    }
+
+    Alert.alert(`¿Bloquear a ${name}?`, 'No verás sus publicaciones ni comentarios, y no podrá interactuar con los tuyos.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Bloquear',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await userBlockApi.block(userDetails.id!);
+            setIsBlocked(true);
+            showToast('Usuario bloqueado', { description: `Ya no verás publicaciones ni comentarios de ${name}.`, variant: 'success' });
+          } catch (e) {
+            logger.error('Error blocking user', e);
+            showToast('Error', { description: 'No se pudo bloquear al usuario.', variant: 'error' });
+          }
+        },
+      },
+    ]);
+  };
+
+  const showProfileOptions = () => {
+    Alert.alert('Perfil', undefined, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: isBlocked ? 'Desbloquear usuario' : 'Bloquear usuario', style: 'destructive', onPress: toggleBlockUser },
+    ]);
+  };
 
   const getStats = useCallback(async () => {
     if (!userDetails.id) return;
@@ -222,7 +277,15 @@ export default function OtherUserProfileScreen(props: any) {
         style={{ height: windowHeight * 0.3, backgroundColor: C.brand5 }}
       />
       <ScrollView ref={scrollRef} className="flex-1">
-        <ScreenHeader title="Perfil" onBack={() => props.navigation?.goBack()} />
+        <ScreenHeader
+          title="Perfil"
+          onBack={() => props.navigation?.goBack()}
+          rightAction={
+            <Pressable onPress={showProfileOptions} className="p-2">
+              <Icon name="ellipsis-horizontal" size={22} className="text-foreground" />
+            </Pressable>
+          }
+        />
         <Box
           className="bg-card rounded-lg items-center"
           style={{ marginTop: windowHeight * 0.15, paddingTop: 60, paddingBottom: 24 }}>
