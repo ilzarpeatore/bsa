@@ -31,6 +31,7 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 - `MigratedRecipeTagList` ya lee `recipe_tags.group` cuando existe, con fallback a la heurística de texto solo para tags sin categorizar (2026-09-16)
 - Los 2 TODOs reales de `about_app_screen.tsx` — resueltos borrando el bucle muerto (`aboutPages`/`loadAppSettings()` nunca se completaron; los 4 botones reales de la pantalla son independientes de eso) (2026-09-16)
 - `GET readiness-scores-latest` — `combined_score`/`band`/`acwr` reales para el hero de Home (Recovery prioriza el dato real, Strain ya no es placeholder fijo cuando hay `acwr`) — código en `bsa` + `Bckbs` [PR #18](https://github.com/ilzarpeatore/Bckbs/pull/18), pendiente de mergear/desplegar (2026-09-16)
+- Auditoría de alcanzabilidad de `DEAD_SCREENS.md` rehecha por completo — de 190 pantallas registradas (04-08-2026, ya no correcto) a 87 reales hoy, de las que solo 5 están muertas de verdad (documento reescrito entero, ver items 22-24 abajo para qué hacer con esas 5) (2026-09-16)
 
 ---
 
@@ -86,9 +87,13 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 
 ### Deuda técnica transversal
 
+Nueva, surgida de la auditoría de `DEAD_SCREENS.md` (ver "Ya resuelto"):
+
 | # | Qué | Complejidad | Duración est. |
 |---|---|---|---|
-| 20 | Rehacer la auditoría de alcanzabilidad de `DEAD_SCREENS.md` — el recuento de 190/70/120 es del 04-08-2026 y ya no es correcto (confirmado 2026-09-16: al menos una entrada, `MigratedAboutApp`, es un falso positivo — sí es alcanzable) | M | 2-3 días |
+| 22 | Decidir con el usuario qué hacer con las 3 pantallas muertas sin motivo conocido (`MigratedChewie`, `MigratedTips`, `MigratedViewEquipment`) — retomar o borrar | S (consultar) | — |
+| 23 | Borrar el registro duplicado `ExerciseInfo` en `App.tsx` (apunta al mismo componente que `MigratedExerciseInfo`, cero riesgo) | S | <1 día |
+| 24 | Borrar `MigratedTermsAndConditions` de verdad (huérfana a propósito desde que se sustituyó por la web real, ya no tiene ningún punto de entrada) | S | <1 día |
 
 ---
 
