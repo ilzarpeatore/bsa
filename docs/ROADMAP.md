@@ -21,7 +21,6 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 - Recordatorios locales (resuelto 100% client-side, sin backend)
 - OTP (eliminado)
 - Pantallas de vídeo (eliminadas)
-- `recipe_tags.group` en backend (falta solo que el cliente lo consuma, ver pendientes)
 - Moderación de publicaciones (persistencia del reporte + panel admin + permiso de borrado ampliado)
 - Motor de Auto-Regulación de Carga — **las 9 piezas** de integración en el admin panel (sustituciones de ejercicio, feed de logros, readiness admin, reglas de progresión, sugerencias pendientes, planes semanales adaptativos, excepciones de coach, override de experiencia, toggle de semana de descarga)
 - Seguridad backend: saneado de 5xx, rate limiting en auth, IDOR en posts/hábitos/métricas, logout en todos los dispositivos
@@ -29,6 +28,8 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 - Reporte de comentarios + bloqueo de usuario — `COMMUNITY_ENABLED = true`
 - Chat/FitBot — **decisión tomada** de dejarlo oculto tras el flag tal cual (es un bot IA privado 1-a-1, sin coach ni otros usuarios de por medio; sin plan de completar la integración de OpenAI por ahora) — cerrado, no es "pendiente"
 - Las 14 PRs de Dependabot que estaban abiertas — todas mergeadas a `master` (2026-09-16)
+- `MigratedRecipeTagList` ya lee `recipe_tags.group` cuando existe, con fallback a la heurística de texto solo para tags sin categorizar (2026-09-16)
+- Los 2 TODOs reales de `about_app_screen.tsx` — resueltos borrando el bucle muerto (`aboutPages`/`loadAppSettings()` nunca se completaron; los 4 botones reales de la pantalla son independientes de eso) (2026-09-16)
 
 ---
 
@@ -46,8 +47,6 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 | # | Qué | Dónde | Complejidad | Duración est. |
 |---|---|---|---|---|
 | 1 | `GET` readiness real (`combined_score`/`band`/`acwr` de la tabla `readiness_scores`) para sustituir la aproximación `computeRecoveryScore()` del hero de Home y activar "Strain" — **no confundir con el endpoint admin, ese ya existe** | `Bckbs` (endpoint) + `bsa` (swap trivial una vez exista) | M | 2 días |
-| 2 | `MigratedRecipeTagList` debe leer `recipe_tags.group` (ya existe en backend) en vez de su heurística de texto (`CATEGORY_DEFS`) | `bsa` | S | <1 día |
-| 3 | 2 TODOs reales en `about_app_screen.tsx` (línea 37: `loadAppSettings()` nunca llama a la API real, la lista de páginas siempre sale vacía; línea 91: tocar una página no navega a ningún sitio) — pantalla sí es alcanzable (`profile_screen.tsx` → "Acerca de"), no es código muerto | `bsa` (+ `Bckbs` si `getAppSettingApi()` necesita algo nuevo, a confirmar) | S | <1 día |
 
 ### Datos que solo tú puedes dar (sin código real que escribir)
 
@@ -95,7 +94,6 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 | # | Qué | Complejidad | Duración est. |
 |---|---|---|---|
 | 20 | Rehacer la auditoría de alcanzabilidad de `DEAD_SCREENS.md` — el recuento de 190/70/120 es del 04-08-2026 y ya no es correcto (confirmado 2026-09-16: al menos una entrada, `MigratedAboutApp`, es un falso positivo — sí es alcanzable) | M | 2-3 días |
-| 21 | Los 2 TODOs reales de `about_app_screen.tsx` — ver item 3 arriba, ya contado ahí, no duplicar esfuerzo |
 
 ---
 

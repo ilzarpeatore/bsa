@@ -68,13 +68,11 @@ El motor de readiness de Fase 4 (`app/Services/ReadinessCalculationService.php`,
 
 **Por qué importa ahora mismo:** el hero de Home (`home_screen_modern_v2.tsx`) tiene dos anillos "Recovery"/"Strain" que hasta 2026-08-24 eran placeholder fijo ("-%"). Recovery ya se rellenó con una estimación 100% cliente (`computeRecoveryScore()`, media del cuestionario subjetivo diario, ver `docs/TAREAS.md` sesión 2026-08-24) mientras este endpoint no exista — pero es una aproximación deliberadamente más pobre que el `combined_score` real (no incorpora HRV/sueño objetivo). Strain sigue sin ningún dato, ni siquiera aproximado, porque ACWR necesita historial de carga de entrenamiento que hoy solo vive calculado en el backend. En cuanto este endpoint exista, sustituir `computeRecoveryScore()` por el dato real y conectar Strain al `acwr`.
 
-### 11. Categorización real de `recipe_tags` — backend ✅ resuelto (verificado 2026-09-16), falta que el cliente lo use
+### ~~11. Categorización real de `recipe_tags`~~ — ✅ RESUELTO por completo (backend 2026-09-16, cliente 2026-09-16)
 
-`recipe_tags.group` ya existe (migración `2026_08_30_110003_add_group_to_recipe_tags_table.php`, string libre, `$fillable`) — exactamente la solución "más simple" que proponía este item. **`recipe_category` sigue sin el mismo campo** (verificado, `$fillable` de `RecipeCategory` solo tiene `title`/`slug`/`status`) — si se aborda esto en el admin, seguir aplicando el mismo patrón ahí también.
+`recipe_tags.group` ya existe (migración `2026_08_30_110003_add_group_to_recipe_tags_table.php`, string libre, `$fillable`, devuelto por `RecipeTagResource`) — exactamente la solución "más simple" que proponía este item. `MigratedRecipeTagList` (`pages/migrated/recipe_tag_list_screen.tsx::classifyTag()`) ya lo usa primero cuando el admin lo ha rellenado para un tag (`GROUP_KEY_BY_BACKEND_VALUE`), y cae a la heurística de texto original (`CATEGORY_DEFS`) solo para los tags que el admin todavía no ha categorizado — sin heurística "a ciegas" para el catálogo ya etiquetado, y sin romper nada mientras se migra el resto.
 
-Lo que queda es 100% cliente: `MigratedRecipeTagList` (`pages/migrated/recipe_tag_list_screen.tsx`) todavía agrupa con la heurística de texto (`CATEGORY_DEFS`) en vez de leer `group` de la respuesta de `recipetag-list` — sustituir eso ya no depende de nadie más.
-
-Motivo original (por si se retoma): `MigratedRecipeTagList` llegó a tener 40-60 chips sueltos en un único wrap, ilegible, de ahí la heurística de agrupar por palabras clave del título en vez de esperar al backend.
+**`recipe_category` sigue sin el mismo campo** (verificado, `$fillable` de `RecipeCategory` solo tiene `title`/`slug`/`status`) — si se aborda esto en el admin, aplicar el mismo patrón ahí también.
 
 ### ~~12. Moderación de publicaciones~~ — ✅ RESUELTO por completo (verificado 2026-09-16)
 

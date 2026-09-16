@@ -1,15 +1,12 @@
 # Inventario de TODOs en `pages/migrated`
 
-**Actualizado 2026-09-16 — el recuento de 17 (2026-08-XX) ya no es correcto.** Verificado contra el código real: 3 de los 5 archivos que tenían TODOs ya no existen (`assign_screen.tsx`, `chatting_image_screen.tsx`, `water_reminders_screen.tsx` — borrados o sustituidos en sesiones posteriores), y otros 3 (`add_post_screen.tsx`, `add_shopping_list_screen.tsx`, `bookmark_screen.tsx`) ya no tienen ningún TODO real (sus features se completaron sin que nadie actualizara este inventario). Quedan **2** TODOs reales, ambos en el mismo archivo.
+**Actualizado 2026-09-16 — el recuento de 17 (2026-08-XX) ya no es correcto.** Verificado contra el código real: 3 de los 5 archivos que tenían TODOs ya no existen (`assign_screen.tsx`, `chatting_image_screen.tsx`, `water_reminders_screen.tsx` — borrados o sustituidos en sesiones posteriores), y otros 3 (`add_post_screen.tsx`, `add_shopping_list_screen.tsx`, `bookmark_screen.tsx`) ya no tienen ningún TODO real (sus features se completaron sin que nadie actualizara este inventario).
 
-Total: 2 items
+**Actualización 2026-09-16 (más tarde) — los 2 últimos también resueltos.** Total: **0 items.**
 
-| Archivo                               | Línea | TODO                                                                                 |
-| -------------------------------------- | ----- | -------------------------------------------------------------------------------------- |
-| `pages/migrated/about_app_screen.tsx` | 37    | `// TODO: Replace with actual API call`                                                |
-| `pages/migrated/about_app_screen.tsx` | 91    | `// TODO: navigation.navigate('InAppWebPage', { url: page.url, title: page.title })`   |
+Los 2 TODOs de `about_app_screen.tsx` (línea 37 `// TODO: Replace with actual API call`, línea 91 `// TODO: navigation.navigate('InAppWebPage', ...)`) resultaron ser un bucle muerto: `aboutPages`/`loadAppSettings()` nunca llegaron a implementarse en ninguna sesión desde que se creó la pantalla, así que ese `.map()` nunca renderizaba nada — "Política de privacidad", "Términos", "Sobre nosotros" y "Licencias de terceros" (los 4 botones reales de la pantalla) son completamente independientes de ese bucle y siempre funcionaron. En vez de completar una feature que nadie pidió, se borró el andamiaje muerto (`aboutPages`, `loadingRef`, `loadAppSettings()`, el `.map()`) — resuelve los 2 TODOs sin añadir código nuevo.
 
-`MigratedAboutApp` **sí es alcanzable** hoy (`profile_screen.tsx` → "Acerca de", contradice a `DEAD_SCREENS.md` que la lista como sin enlace entrante — otra prueba de que ese inventario también está desactualizado). `loadAppSettings()` nunca rellena `aboutPages` de verdad (el `TODO` de la línea 37 sigue comentado, sin llamada real a `getAppSettingApi()`), así que la pantalla siempre muestra la lista vacía; y tocar cualquier página de esa lista (línea 91) no navega a ningún sitio. Bajo impacto (pantalla secundaria, "Privacy Policy"/"Terms" ya tienen su propio botón fuera de este bucle, ver `docs/TAREAS.md` sesión 2026-08-28/29 punto 10), pero es un TODO real, no ruido.
+`MigratedAboutApp` **sí es alcanzable** (`profile_screen.tsx` → "Acerca de"), contradice a `DEAD_SCREENS.md` que la lista como sin enlace entrante — otra prueba de que ese inventario también está desactualizado, ver la nota ahí.
 
 ## Otras coincidencias de "TODO" en `pages/migrated` (descartadas, no son marcadores de código)
 
