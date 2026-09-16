@@ -30,8 +30,10 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 - Las 14 PRs de Dependabot que estaban abiertas — todas mergeadas a `master` (2026-09-16)
 - `MigratedRecipeTagList` ya lee `recipe_tags.group` cuando existe, con fallback a la heurística de texto solo para tags sin categorizar (2026-09-16)
 - Los 2 TODOs reales de `about_app_screen.tsx` — resueltos borrando el bucle muerto (`aboutPages`/`loadAppSettings()` nunca se completaron; los 4 botones reales de la pantalla son independientes de eso) (2026-09-16)
-- `GET readiness-scores-latest` — `combined_score`/`band`/`acwr` reales para el hero de Home (Recovery prioriza el dato real, Strain ya no es placeholder fijo cuando hay `acwr`) — código en `bsa` + `Bckbs` [PR #18](https://github.com/ilzarpeatore/Bckbs/pull/18), pendiente de mergear/desplegar (2026-09-16)
-- Auditoría de alcanzabilidad de `DEAD_SCREENS.md` rehecha por completo — de 190 pantallas registradas (04-08-2026, ya no correcto) a 87 reales hoy, de las que solo 5 están muertas de verdad (documento reescrito entero, ver items 22-24 abajo para qué hacer con esas 5) (2026-09-16)
+- `GET readiness-scores-latest` — `combined_score`/`band`/`acwr` reales para el hero de Home (Recovery prioriza el dato real, Strain ya no es placeholder fijo cuando hay `acwr`) — código en `bsa` + `Bckbs` [PR #18](https://github.com/ilzarpeatore/Bckbs/pull/18), **mergeada** a `main` (2026-09-16)
+- PR #25 de `bsa` mergeada a `master` (2026-09-16) — incluye todo lo de este documento hasta ese punto (fixes de Android, limpieza de docs, moderación de comunidad, `recipe_tags.group`, `readiness-scores-latest` en cliente)
+- Auditoría de alcanzabilidad de `DEAD_SCREENS.md` rehecha por completo — de 190 pantallas registradas (04-08-2026, ya no correcto) a 87 reales hoy, de las que solo 5 estaban muertas de verdad (documento reescrito entero) (2026-09-16)
+- Las 5 pantallas muertas encontradas en esa auditoría — `ExerciseInfo` (registro duplicado), `MigratedChewie`, `MigratedTermsAndConditions`, `MigratedTips`, `MigratedViewEquipment` — **borradas** (registro en `App.tsx`/`ScreenExplorer.tsx` + los 4 archivos de componente; `MigratedExerciseInfo` sigue vivo). Usuario confirmó explícitamente borrar las 3 sin motivo conocido en vez de retomarlas. `npx tsc --noEmit` limpio tras el borrado (2026-09-16)
 
 ---
 
@@ -41,7 +43,7 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 
 | # | Qué | Bloqueado por |
 |---|---|---|
-| 0a | Relanzar el build de IPA — el build 102 (el último real) se quedó 16 commits atrás de `master` (capability de Push Notifications + 14 bumps de Dependabot), y en cuanto se mergeen la PR #25 de `bsa` y las de `Bckbs`/`bstronger-admin` (ver `docs/PENDIENTE_BACKEND_ADMIN.md`) se quedará aún más atrás — mejor esperar a que esas mergeen y lanzar un build que ya lo lleve todo, en vez de encadenar builds parciales. Checklist en `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`) | Mergear primero las PRs pendientes de backend/admin + la de `bsa` |
+| 0a | Relanzar el build de IPA — el build 102 (el último real) se quedó muy atrás de `master` (capability de Push Notifications, 14 bumps de Dependabot, PR #25 completa: fixes de Android, moderación de comunidad, limpieza de pantallas muertas). PR #25 de `bsa` y todas las de `Bckbs`/`bstronger-admin` ya están mergeadas — nada bloquea lanzar el build ya. Checklist en `docs/BUILD_IPA.md` (`ios_path: "ios"`, `configuration: "Release"`) | Nada — listo para lanzar |
 | 0b | Publicar la ficha en Play Console + subir el primer AAB firmado — el pipeline ya está verificado (run `34273584804`, `docs/BUILD_AAB.md`), falta el paso humano de crear la ficha en Play Console y subir el artefacto | Acceso a Play Console (no verificable desde el repo si ya se hizo) |
 
 ### Datos que solo tú puedes dar (sin código real que escribir)
@@ -84,16 +86,6 @@ Todo esto apareció alguna vez como "pendiente" en algún documento de este repo
 | 17 | Integración Strava (OAuth2 + webhooks + `strava_connections`) | L |
 | 18 | HealthKit/Health Connect — **ya no es "reactivar", es construir desde cero**: el código (`helper/health.ts`, entitlements, pantallas de emparejamiento) se eliminó por completo el 2026-09-10, no solo se ocultó tras un flag | L, condicionado a Apple Developer Program de pago ($99/año) |
 | 19 | Web (`webbs`): catálogo `/programas` + checkout — solo si el modelo de negocio pasa a venta online (hoy es 100% presencial) | L |
-
-### Deuda técnica transversal
-
-Nueva, surgida de la auditoría de `DEAD_SCREENS.md` (ver "Ya resuelto"):
-
-| # | Qué | Complejidad | Duración est. |
-|---|---|---|---|
-| 22 | Decidir con el usuario qué hacer con las 3 pantallas muertas sin motivo conocido (`MigratedChewie`, `MigratedTips`, `MigratedViewEquipment`) — retomar o borrar | S (consultar) | — |
-| 23 | Borrar el registro duplicado `ExerciseInfo` en `App.tsx` (apunta al mismo componente que `MigratedExerciseInfo`, cero riesgo) | S | <1 día |
-| 24 | Borrar `MigratedTermsAndConditions` de verdad (huérfana a propósito desde que se sustituyó por la web real, ya no tiene ningún punto de entrada) | S | <1 día |
 
 ---
 
