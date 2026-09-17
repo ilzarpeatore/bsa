@@ -85,6 +85,7 @@ const NotificationScreen = React.lazy(() => import('@pages/migrated/notification
 const NotificationSettingsScreen = React.lazy(
   () => import('@pages/migrated/notification_settings_screen'),
 );
+const OnboardingDataScreen = React.lazy(() => import('@pages/migrated/onboarding_data_screen'));
 const OnboardingV2Screen = React.lazy(
   () => import('@pages/migrated/onboarding_v2/onboarding_v2_screen'),
 );
@@ -276,6 +277,7 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
           ajuste de permiso de notificaciones push, pedido explícito con
           captura de referencia (Bevel). */}
       <MStack.Screen name="MigratedNotificationSettings" component={NotificationSettingsScreen} />
+      <MStack.Screen name="MigratedOnboardingData" component={OnboardingDataScreen} />
       <MStack.Screen name="MigratedOtherUserProfile" component={OtherUserProfileScreen} />
       <MStack.Screen name="MigratedPlan" component={PlanScreen} />
       <MStack.Screen name="MigratedPostDetails" component={PostDetailsScreen} />

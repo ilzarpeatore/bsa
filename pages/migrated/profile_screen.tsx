@@ -51,6 +51,11 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
       label: 'Cuenta',
       items: [
         { icon: 'person-outline', title: 'Editar perfil', subtitle: 'Nombre, foto, peso, altura y más', route: 'MigratedEditProfile', iconColor: C.textPrimary, iconBg: C.brand10 },
+        // Nuevo (2026-09-18, pedido explícito): edición de todo lo demás del
+        // onboarding (PAR-Q, cuestionario de entrenamiento, de nutrición) --
+        // antes quedaba fijo para siempre tras completarlo una vez. Ver
+        // pages/migrated/onboarding_data_screen.tsx.
+        { icon: 'list-outline', title: 'Mis respuestas del onboarding', subtitle: 'Cribado médico, entrenamiento y nutrición', route: 'MigratedOnboardingData', iconColor: C.success60, iconBg: C.success10 },
         { icon: 'key-outline', title: 'Cambiar contraseña', route: 'MigratedChangePwd', visible: !isSocial, iconColor: C.warning60, iconBg: C.warning10 },
       ],
     },

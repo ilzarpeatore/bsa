@@ -96,7 +96,23 @@ export interface TrainingAvailabilityUpdatePayload {
   session_duration_preference: '30' | '45' | '60' | '90' | '90_plus';
 }
 
+export interface MyOnboardingAnswers {
+  par_q: (ParQPayload & { id: number; user_id: number }) | null;
+  training_questionnaire: (TrainingQuestionnairePayload & { id: number; user_id: number }) | null;
+  nutrition_questionnaire: (NutritionQuestionnairePayload & { id: number; user_id: number }) | null;
+}
+
+export interface MyOnboardingAnswersResponse {
+  data: MyOnboardingAnswers;
+}
+
 export const onboardingV2Api = {
+  // Nuevo (2026-09-18) -- lectura de las propias respuestas de onboarding,
+  // para la pantalla de edición en Cuenta (pages/migrated/onboarding_data_screen.tsx).
+  // Cada clave puede venir `null` si esa etapa nunca se completó (ver el caso
+  // real de Osas Ehigiator/Alberto Martín, docs del incidente 2026-09-18).
+  getMyAnswers: () => apiClient.get<MyOnboardingAnswersResponse>('v1/onboarding/my-answers'),
+
   // Real hoy: mismo endpoint que ProfileSetupFormScreen/EditProfile.
   // `username`/`email` son obligatorios en UserRequest::rules() aunque esta
   // pantalla no los pida -- sin ambos el guardado devuelve 422 aunque el
