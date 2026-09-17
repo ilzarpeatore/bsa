@@ -2057,8 +2057,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Pressable
                 style={styles.blogCard}
                 onPress={() => navigation?.navigate('MigratedResourcesList')}>
-                <Box style={[styles.blogImage, styles.seeAllImage]}>
-                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+                <Box style={styles.blogImage}>
+                  <ExpoImage
+                    source={require('../../assets/resources-see-all-bg.jpg')}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
+                  <Box style={[StyleSheet.absoluteFill, styles.seeAllImageOverlay]}>
+                    <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+                  </Box>
                 </Box>
                 <Box style={styles.blogContent}>
                   <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
