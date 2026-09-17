@@ -133,7 +133,13 @@ const FIGMA_H = 812;
 // un poco de opacidad o blur a la imagen para que no se vea tanto" -- 0.4
 // seguía dejando la foto demasiado presente/brillante en reposo, sobre todo
 // detrás de los anillos Recovery/Strain.
-const HOME_BG_MIN_OPACITY = 0.55;
+// MIN subido de 0.55 a 0.75 (pedido explícito con capturas, 2026-09-17): en
+// reposo la foto/vídeo seguía viéndose demasiado clara ("Tono A") nada más
+// entrar, sobre todo detrás de las tarjetas Agua/Actividad/Volumen muscular
+// -- 0.55 quedaba lejos del tono oscuro ("Tono B") con el que se pedía
+// arrancar ya desde el principio. El oscurecido progresivo con el scroll
+// (hasta HOME_BG_MAX_OPACITY) sigue igual, solo arranca más alto.
+const HOME_BG_MIN_OPACITY = 0.75;
 const HOME_BG_MAX_OPACITY = 0.9;
 
 // Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
