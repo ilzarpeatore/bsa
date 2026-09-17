@@ -235,7 +235,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       const onboardingCompleted = await resolveOnboardingCompleted(user);
       dispatch({ type: 'RESTORE_TOKEN', token, user, onboardingCompleted });
-      if (token) void registerPushTokenAsync();
+      if (token) {
+        void registerPushTokenAsync();
+        // Bug real reportado 2026-09-17: una cuenta pasada a 1:1
+        // (is_personal_client) desde el admin panel DESPUÉS del último login
+        // en el dispositivo seguía viendo el catálogo genérico de Workouts en
+        // Home -- el objeto `USER` cacheado en AsyncStorage solo se refresca
+        // en login()/register()/hydrateSession() explícitos, nunca al
+        // reabrir la app (restoreToken corre en cada arranque). Se refresca
+        // aquí en segundo plano -- no bloquea el arranque, ya se despachó
+        // RESTORE_TOKEN con el caché -- para que cambios hechos desde el
+        // admin panel (is_personal_client, access_tier, etc.) lleguen sin
+        // necesitar cerrar sesión y volver a entrar.
+        if (user?.id) {
+          profileApi
+            .getUserDetail(user.id)
+            .then((res) => {
+              const fresh = res.data?.data;
+              if (!fresh) return;
+              AsyncStorage.setItem('USER', JSON.stringify(fresh));
+              dispatch({ type: 'UPDATE_USER', user: fresh });
+            })
+            .catch((e) => logger.error('restoreToken: no se pudo refrescar el perfil', e));
+        }
+      }
     } catch {
       dispatch({ type: 'RESTORE_TOKEN', token: null, user: null, onboardingCompleted: false });
     }
