@@ -220,7 +220,17 @@ export default function OnboardingV2Screen({ navigation }: any) {
     // junto a hydrateSession en store/AuthContext.tsx), así que state.user
     // sigue siendo el anónimo de antes (null) y no sirve como fuente de
     // username/email para el endpoint de personal_data.
+    // Fix 2026-09-18 (mismo incidente que el comentario del catch, más
+    // abajo): antes de este fix, un solo fallo de red en un intento tumbaba
+    // la etapa entera para siempre en el registro diferido (el bucle de
+    // handleContinue no reintentaba nada). Ahora cada etapa se reintenta
+    // hasta 3 veces con una pequeña espera entre intentos -- reduce mucho la
+    // probabilidad de perder par_q/nutrition por un fallo puntual, aunque no
+    // lo elimina del todo (por eso el backend también valida en `complete`,
+    // ver AuthContext.completeOnboarding).
     async (stageId: string, overrideUser?: { username: string; email: string }): Promise<boolean> => {
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
         if (stageId === 'personal_data') {
           const name = answers.name as { first_name: string; last_name: string } | undefined;
@@ -317,16 +327,32 @@ export default function OnboardingV2Screen({ navigation }: any) {
         }
         return true;
       } catch (e) {
-        // Best-effort: etapas 2-4 aún no tienen endpoint real (ver
-        // docs/ONBOARDING_V2.md), y ni siquiera la etapa 1 debe bloquear el
-        // alta de un usuario por un fallo de red puntual -- las respuestas
-        // ya quedaron a salvo en AsyncStorage. El valor de retorno (false)
-        // sí se usa -- ver handleContinue: si la ÚLTIMA etapa falla, no se
-        // borra el checkpoint de AsyncStorage, para no perder la única copia
-        // de unas respuestas que nunca llegaron a guardarse en el backend.
-        logger.error(`[onboarding_v2] fallo al enviar etapa ${stageId}`, e);
+        // Reportado 2026-09-18 (bug real, MUY grave: Osas Ehigiator y
+        // Alberto Martín quedaron con onboarding_completed_at puesto en el
+        // backend pero sin par_q_answers ni nutrition_questionnaire_answers
+        // -- este catch trataba CUALQUIER fallo como best-effort/ignorable
+        // ("ni siquiera la etapa 1 debe bloquear el alta por un fallo de red
+        // puntual"), y el bucle de registro en handleContinue no comprobaba
+        // el resultado, así que la etapa se perdía en silencio para
+        // siempre). Las respuestas siguen a salvo en AsyncStorage pase lo
+        // que pase, pero ya no se rinde al primer fallo -- reintenta antes.
+        if (attempt < MAX_ATTEMPTS) {
+          logger.error(`[onboarding_v2] fallo al enviar etapa ${stageId} (intento ${attempt}/${MAX_ATTEMPTS}), reintentando`, e);
+          await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+          continue;
+        }
+        // El valor de retorno (false) sí se usa -- ver handleContinue: si la
+        // ÚLTIMA etapa falla, no se borra el checkpoint de AsyncStorage, para
+        // no perder la única copia de unas respuestas que nunca llegaron a
+        // guardarse en el backend. Y aunque el registro deferido no comprueba
+        // este resultado, el backend ya no deja completar el onboarding si
+        // faltan etapas (ver OnboardingController::complete() en Bckbs) --
+        // el usuario volverá a este flujo la próxima vez que abra la app.
+        logger.error(`[onboarding_v2] fallo al enviar etapa ${stageId} tras ${MAX_ATTEMPTS} intentos, se deja pendiente`, e);
         return false;
       }
+      }
+      return false;
     },
     [answers, heightUnit, weightUnit, state.user, updateUser]
   );

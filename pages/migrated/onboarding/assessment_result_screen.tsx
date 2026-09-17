@@ -8,6 +8,7 @@ import {  Icon  } from '@components/ui/icon';
 import AnimatedRing from '@components/AnimatedRing';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAuth  } from '@store/AuthContext';
+import { showToast } from '@helper/toast';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { FONT, RADIUS } from '../theme';
 // Screen mostrada justo al terminar las 36 preguntas del onboarding
@@ -136,8 +137,23 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
   // ser un paso intermedio innecesario (pedido explícito) -- su única
   // lógica real (marcar el onboarding como completado y entrar a Home) pasa
   // a hacerse directamente aquí, en el botón final de esta pantalla.
+  // Fix 2026-09-18 (ver comentario grande en AuthContext.completeOnboarding):
+  // si el backend rechaza el completado por faltar alguna etapa (par_q o
+  // nutrición no llegaron a guardarse por un fallo de red puntual durante el
+  // registro), no se puede seguir a Home como si nada -- se manda de vuelta
+  // al onboarding, que restaura las respuestas ya dadas y deja rellenar lo
+  // que falta, en vez de dejar al usuario "completado" con datos de
+  // seguridad (PAR-Q) sin recoger.
   const finishOnboarding = async () => {
-    await completeOnboarding();
+    const ok = await completeOnboarding();
+    if (!ok) {
+      showToast('No se pudo completar tu registro', {
+        description: 'Parece que falta alguna respuesta por guardar. Vamos a revisarlo.',
+        variant: 'error',
+      });
+      navigation.replace('MigratedOnboardingV2');
+      return;
+    }
     navigation.replace('Home');
   };
 

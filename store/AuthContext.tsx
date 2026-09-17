@@ -79,7 +79,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (user: UserData) => void;
   restoreToken: () => Promise<void>;
-  completeOnboarding: () => Promise<void>;
+  /** true si el backend confirmó las 4 etapas y marcó onboarding_completed_at; false si rechazó por faltar alguna (ver comentario junto a su implementación). */
+  completeOnboarding: () => Promise<boolean>;
   /** Ver comentario junto a su implementación -- paso final del registro diferido al final del onboarding. */
   hydrateSession: (userData: LoginResponse['data'], onboardingCompletedNow: boolean) => Promise<void>;
   /** Derivado de state.user?.access_tier !== 'free' — evita repetir la comparación en cada pantalla nueva. */
@@ -324,7 +325,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UPDATE_USER', user });
   }, []);
 
-  const completeOnboarding = useCallback(async () => {
+  // Bug real corregido (reportado 2026-09-18: dos altas nuevas -- Osas
+  // Ehigiator, Alberto Martín -- quedaron con onboarding_completed_at puesto
+  // en el backend pero SIN par_q_answers ni nutrition_questionnaire_answers,
+  // porque este método marcaba el flag local ANTES de llamar al backend y
+  // trataba el fallo como best-effort/ignorable -- el comentario decía "el
+  // endpoint todavía no existe", ya desactualizado, el endpoint es real desde
+  // 2026-09-14). Ahora el backend manda: OnboardingController::complete() en
+  // Bckbs (fix 2026-09-18) devuelve 422 si falta alguna de las 3 tablas de
+  // onboarding, así que si esta llamada falla, NO se marca nada como
+  // completo ni en AsyncStorage ni en memoria -- el usuario sigue con
+  // onboarding_completed=false y la próxima vez que entre a la app,
+  // RootNavigator lo manda de vuelta a MigratedOnboardingV2, que restaura sus
+  // respuestas ya dadas desde answersStorageKey() y le deja rellenar lo que
+  // faltó (ver el flujo de "reanudación" en onboarding_v2_screen.tsx).
+  const completeOnboarding = useCallback(async (): Promise<boolean> => {
+    try {
+      await onboardingV2Api.completeOnboarding();
+    } catch (e) {
+      logger.error('completeOnboarding: el backend rechazó marcar el onboarding como completo', e);
+      return false;
+    }
     if (state.user?.id) {
       await AsyncStorage.setItem(onboardingCompletedKey(state.user.id), 'true');
       // Bug real corregido (reportado 2026-09-14, ver comentario grande en
@@ -340,14 +361,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'UPDATE_USER', user: updatedUser });
     }
     dispatch({ type: 'SET_ONBOARDING_COMPLETED' });
-    // Best-effort, mismo criterio que el resto de onboardingV2Api: el
-    // endpoint todavía no existe en el backend, así que esto falla con 404
-    // hoy -- no debe bloquear el paso a Home, el flag local ya se guardó.
-    try {
-      await onboardingV2Api.completeOnboarding();
-    } catch (e) {
-      logger.error('completeOnboarding: no se pudo marcar en el backend', e);
-    }
+    return true;
   }, [state.user]);
 
   useEffect(() => {
