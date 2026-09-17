@@ -133,7 +133,13 @@ const FIGMA_H = 812;
 // un poco de opacidad o blur a la imagen para que no se vea tanto" -- 0.4
 // seguía dejando la foto demasiado presente/brillante en reposo, sobre todo
 // detrás de los anillos Recovery/Strain.
-const HOME_BG_MIN_OPACITY = 0.55;
+// MIN subido de 0.55 a 0.75 (pedido explícito con capturas, 2026-09-17): en
+// reposo la foto/vídeo seguía viéndose demasiado clara ("Tono A") nada más
+// entrar, sobre todo detrás de las tarjetas Agua/Actividad/Volumen muscular
+// -- 0.55 quedaba lejos del tono oscuro ("Tono B") con el que se pedía
+// arrancar ya desde el principio. El oscurecido progresivo con el scroll
+// (hasta HOME_BG_MAX_OPACITY) sigue igual, solo arranca más alto.
+const HOME_BG_MIN_OPACITY = 0.75;
 const HOME_BG_MAX_OPACITY = 0.9;
 
 // Segunda capa -- ver homeBgSolidAnimatedStyle y homeBgSolidLayer más abajo.
@@ -224,6 +230,15 @@ const HERO_IMAGES = {
   night: require('../../assets/hero-night.png'),
 };
 const HERO_DAY_VIDEO = require('../../assets/hero-day.mp4');
+
+// Fondo de la tarjeta "Ver todos los recursos" (sección Recursos, pedido
+// explícito 2026-09-17, con imagen de referencia) -- sustituye el fondo de
+// color liso (seeAllImage/C.orange) solo en esta tarjeta, no en las
+// equivalentes de Workouts/Blog más abajo, que no se pidió tocar.
+const RESOURCES_SEE_ALL_BG = require('../../assets/resources-see-all-bg.jpg');
+// Mismo tratamiento para "Ver todas las publicaciones" (sección Blog, pedido
+// explícito 2026-09-17, imagen de referencia distinta a la de Recursos).
+const BLOG_SEE_ALL_BG = require('../../assets/blog-see-all-bg.jpg');
 
 type HeroMood = keyof typeof HERO_IMAGES | 'day';
 
@@ -787,6 +802,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           backgroundColor: C.orange,
           alignItems: 'center' as const,
           justifyContent: 'center' as const,
+        },
+        // Overlay oscuro sobre RESOURCES_SEE_ALL_BG -- la ilustración es clara
+        // (mint/blanco) y el icono de flecha va en blanco, sin esto se pierde
+        // el contraste que sí tenía sobre el fondo de color liso.
+        seeAllImageOverlay: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: 'rgba(0,0,0,0.18)',
         },
         // Banner de la Guía de autogestión -- a diferencia de blogCard, el
         // texto va superpuesto sobre la propia foto (no debajo, en una tarjeta
@@ -2083,6 +2105,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 style={styles.blogCard}
                 onPress={() => navigation?.navigate('MigratedResourcesList')}>
                 <Box style={[styles.blogImage, styles.seeAllImage]}>
+                  <ExpoImage
+                    source={RESOURCES_SEE_ALL_BG}
+                    style={StyleSheet.absoluteFillObject}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                  <Box style={styles.seeAllImageOverlay} />
                   <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
                 </Box>
                 <Box style={styles.blogContent}>
@@ -2247,6 +2277,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               style={styles.blogCard}
               onPress={() => navigation?.navigate('MigratedViewAllBlog')}>
               <Box style={[styles.blogImage, styles.seeAllImage]}>
+                <ExpoImage
+                  source={BLOG_SEE_ALL_BG}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Box style={styles.seeAllImageOverlay} />
                 <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
               </Box>
               <Box style={styles.blogContent}>
