@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'alberto';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Alberto Marín</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .back-button { display: inline-block; margin-bottom: 30px; padding: 10px 20px; background: rgba(196, 120, 120, 0.15); border: 1px solid rgba(196, 120, 120, 0.3); border-radius: 6px; color: #c47878; text-decoration: none; font-size: 13px; font-weight: 600; text-transform: uppercase; transition: all 0.3s; }
+        .back-button:hover { background: rgba(196, 120, 120, 0.25); }
+        .header-section { text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #c47878; }
+        .header-logo { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 24px; color: #ede8e2; margin-bottom: 15px; }
+        .header-logo span { color: #c47878; }
+        .header-title { font-family: 'DM Serif Display', serif; font-size: 42px; font-style: italic; color: #ede8e2; margin: 0 0 10px 0; }
+        .header-title span { color: #c47878; }
+        .header-subtitle { font-size: 14px; color: #c8bfb5; margin: 0; }
+        .toc-container { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin: 30px 0; }
+        .toc-title { font-size: 16px; font-weight: 600; color: #c47878; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.1em; }
+        .toc-list { list-style: none; padding: 0; margin: 0; }
+        .toc-list li { margin-bottom: 12px; }
+        .toc-list a { color: #c8bfb5; text-decoration: none; font-size: 14px; transition: color 0.3s; }
+        .toc-list a:hover { color: #c47878; }
+        .meal-section { margin: 50px 0; padding-top: 30px; border-top: 2px solid rgba(200, 191, 181, 0.1); }
+        .meal-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-style: italic; color: #c47878; margin-bottom: 30px; }
+        .recipe-card { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin-bottom: 25px; }
+        .recipe-name { font-size: 20px; font-weight: 600; color: #ede8e2; margin: 0 0 15px 0; }
+        .recipe-macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; background: rgba(196, 120, 120, 0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .macro-item { text-align: center; }
+        .macro-label { font-size: 11px; color: #c8bfb5; text-transform: uppercase; margin-bottom: 5px; }
+        .macro-value { font-size: 18px; font-weight: 700; color: #c47878; }
+        .section-subtitle { font-size: 14px; font-weight: 600; color: #c47878; text-transform: uppercase; margin-bottom: 12px; border-left: 3px solid #c47878; padding-left: 10px; }
+        .recipe-ingredients ul, .recipe-steps ol { margin: 0; padding-left: 20px; }
+        .recipe-ingredients li, .recipe-steps li { font-size: 13px; color: #c8bfb5; margin-bottom: 8px; line-height: 1.6; }
+        .back-to-toc { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(200, 191, 181, 0.1); }
+        .back-to-toc a { color: #c47878; text-decoration: none; font-size: 12px; text-transform: uppercase; }
+        .back-to-toc a:hover { text-decoration: underline; }
+        .info-box { background: rgba(196, 120, 120, 0.08); border-left: 3px solid #c47878; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 13px; color: #c8bfb5; }
+        .halal-badge { display: inline-block; background: rgba(76, 175, 80, 0.2); border: 1px solid rgba(76, 175, 80, 0.5); color: #4caf50; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+        .print-button { display: inline-block; margin-left: 10px; padding: 10px 20px; background: rgba(196, 120, 120, 0.15); border: 1px solid rgba(196, 120, 120, 0.3); border-radius: 6px; color: #c47878; text-decoration: none; font-size: 13px; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: all 0.3s; }
+        .print-button:hover { background: rgba(196, 120, 120, 0.25); }
+        .nav-buttons { margin-bottom: 30px; display: flex; gap: 10px; align-items: center; }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 900px; margin: 0 auto; padding: 40px 20px;">
+        <div class="nav-buttons">
+            <a href="cliente-alberto-menu-v2.html" class="back-button">← Volver al Menú</a>
+            <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
+        </div>
+        
+        <div class="header-section">
+            <div class="header-logo">Be <span>Stronger</span></div>
+            <h1 class="header-title">Recetario de <span>Alberto Marín</span></h1>
+            <p class="header-subtitle">Recetas personalizadas para 2,100 kcal/día | Pérdida de grasa</p>
+            
+        </div>
+
+        <div class="info-box">
+            <strong>📌 Estructura Personalizada:</strong> Recetas diseñadas para tu objetivo de pérdida de grasa (2,100 kcal/día) con macros optimizadas (160g proteína, 70g grasas, 262g carbos).
+        </div>
+        
+        <div class="toc-container">
+            <div class="toc-title">📑 Índice de Recetas</div>
+            <ul class="toc-list">
+                <li><a href="#desayuno">🌅 Desayunos (5 opciones)</a></li>
+                <li><a href="#almuerzo">☀️ Almuerzos (7 opciones)</a></li>
+                <li><a href="#cena">🌙 Cenas (7 opciones)</a></li>
+                <li><a href="#snacks">🍌 Snacks (5 opciones)</a></li>
+            </ul>
+        </div>
+
+        <!-- DESAYUNOS -->
+        <div class="meal-section" id="desayuno">
+            <h2 class="meal-title">🌅 Desayunos</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Desayunos proteicos para comenzar el día con energía.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Tortilla de Claras con Pavo y Tostadas</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">35g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">42g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">450</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>6 claras de huevo</li><li>100g pechuga de pavo</li><li>2 rebanadas pan integral</li><li>5ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Bate las claras</li><li>Calienta sartén con aceite</li><li>Vierte claras y cocina 4-5 min</li><li>Añade pavo en el centro</li><li>Dobla y sirve con tostadas</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Tostadas con Jamón Serrano</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">22g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">58g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">18g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">520</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>2 tostadas pan integral</li><li>3 lonchas jamón serrano</li><li>1 cda aceite oliva</li><li>1 naranja</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Tuesta el pan integral</li><li>Rocía con aceite oliva</li><li>Coloca jamón serrano</li><li>Acompaña con naranja fresca.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Gachas de Avena con Frutos Rojos y Proteína</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">32g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">420</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>50g avena cruda</li><li>30g proteína en polvo (vainilla o neutra)</li><li>100g frutos rojos (frescos o congelados)</li><li>250ml leche desnatada o bebida vegetal</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Calienta la leche en un cazo.</li><li>Añade la avena y cocina a fuego medio-bajo, removiendo, hasta que espese (5-7 minutos).</li><li>Retira del fuego, incorpora la proteína en polvo y mezcla bien.</li><li>Sirve en un bol y añade los frutos rojos por encima.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Yogur Griego con Semillas de Chía y Fruta</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">28g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">45g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">400</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g yogur griego natural 0% M.G.</li><li>15g semillas de chía</li><li>100g frutos del bosque (frescos o congelados)</li><li>10g miel o sirope de agave (opcional)</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>En un bol, mezcla el yogur griego con las semillas de chía y la miel (si usas).</li><li>Deja reposar en la nevera durante al menos 15 minutos (o toda la noche) para que las semillas de chía se hidraten.</li><li>Sirve con los frutos del bosque por encima.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Batido de Proteína con Espinacas y Frutos Rojos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">30g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">40g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">370</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>30g proteína en polvo</li><li>200ml leche desnatada o bebida vegetal</li><li>50g espinacas frescas</li><li>100g frutos rojos congelados</li><li>5g semillas de lino (opcional)</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Combina todos los ingredientes en una licuadora.</li><li>Bate hasta obtener una mezcla suave y homogénea.</li><li>Sirve inmediatamente.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- ALMUERZOS -->
+        <div class="meal-section" id="almuerzo">
+            <h2 class="meal-title">☀️ Almuerzos</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Comidas principales con alto contenido proteico.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Pollo a la Plancha con Arroz Integral y Espárragos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">60g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">95g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">950</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g pechuga pollo</li><li>150g arroz integral</li><li>150g espárragos</li><li>15ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina arroz (30-40 min)</li><li>Calienta sartén</li><li>Cocina pollo 7-8 min por lado</li><li>Saltea espárragos</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Pechuga de Pollo con Batata y Espinacas</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">58g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">92g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">28g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">980</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>280g pechuga de pollo</li><li>200g batata</li><li>150g espinacas</li><li>15ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Hierve batata (15 min)</li><li>Calienta sartén</li><li>Cocina pechuga de pollo 6-7 min por lado</li><li>Saltea espinacas</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Ternera con Puré de Patata y Judías Verdes</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">62g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">88g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">26g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">990</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g ternera</li><li>180g puré patata</li><li>150g judías verdes</li><li>15ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Hierve patatas (15-20 min)</li><li>Calienta sartén</li><li>Cocina ternera 5-6 min por lado</li><li>Cuece judías al vapor</li><li>Prepara puré con aceite</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Pechuga de Pollo con Arroz Blanco y Espárragos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">58g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">95g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">22g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">950</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g pechuga de pollo</li><li>150g arroz blanco</li><li>150g espárragos</li><li>10ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina arroz blanco</li><li>Calienta sartén</li><li>Cocina pollo 4-5 min por lado</li><li>Saltea espárragos</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Pavo con Boniato y Zanahorias</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">60g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">92g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">24g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">970</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g pechuga pavo</li><li>180g boniato</li><li>120g zanahorias</li><li>15ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Hierve boniato (15 min)</li><li>Calienta sartén</li><li>Cocina pavo 6-7 min por lado</li><li>Cuece zanahorias</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">6. Dorada al Horno con Patata y Judías Verdes</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">46g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">68g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">620</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>150g dorada</li><li>150g patata cocida</li><li>150g judías verdes</li><li>1 cda aceite oliva</li><li>Sal, pimienta, limón</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Precalienta horno a 180°C</li><li>Coloca dorada en bandeja</li><li>Rocía con aceite y limón</li><li>Hornea 12-15 min</li><li>Sirve con patata y judías verdes</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">7. Pechuga Rellena de Queso</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">62g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">11g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">620</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>150g pechuga pollo</li><li>30g queso bajo grasa</li><li>120g arroz</li><li>Champiñones</li><li>1 cda aceite</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Abre la pechuga por la mitad</li><li>Rellena con queso</li><li>Cierra con palillos</li><li>Cocina en sartén 12-15 min</li><li>Sirve con arroz y champiñones</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- CENAS -->
+        <div class="meal-section" id="cena">
+            <h2 class="meal-title">🌙 Cenas</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Cenas proteicas para recuperación nocturna.</p>
+
+            <div class="recipe-card">
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Fajitas de Pollo con Pimientos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">40g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">52g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">490</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>120g pechuga pollo</li><li>2 tortillas integrales</li><li>Pimiento rojo y amarillo</li><li>Lechuga</li><li>1 cda aceite</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Calienta aceite en sartén</li><li>Cocina pechuga cortada en tiras</li><li>Saltea pimientos</li><li>Calienta tortillas</li><li>Rellena y sirve con lechuga</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Merluza a la Sal</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">42g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">490</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g merluza</li><li>150g boniato</li><li>Espárragos</li><li>1 cda aceite oliva</li><li>Sal gruesa</li><li>Limón</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <ol>
+                        <li>Cubre merluza con sal gruesa</li><li>Hornea a 180°C durante 12 min</li><li>Retira sal cuidadosamente</li><li>Sirve con boniato y espárragos</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Pechuga de Pollo con Arroz Blanco y Espárragos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">58g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">95g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">22g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">950</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g pechuga de pollo</li><li>150g arroz blanco</li><li>150g espárragos</li><li>10ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina arroz blanco</li><li>Calienta sartén</li><li>Cocina pollo 7-8 min por lado</li><li>Saltea espárragos</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Pechuga de Pollo con Arroz Integral y Espinacas</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">56g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">88g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">26g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">960</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>260g pechuga de pollo</li><li>140g arroz integral</li><li>150g espinacas</li><li>14ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina arroz integral</li><li>Calienta sartén</li><li>Cocina pechuga de pollo 6-7 min por lado</li><li>Saltea espinacas</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Ternera Magra con Puré de Patata</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">60g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">85g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">950</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g ternera magra</li><li>180g puré patata</li><li>100g verduras</li><li>15ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Hierve patatas (15-20 min)</li><li>Calienta sartén</li><li>Cocina ternera 5-6 min por lado</li><li>Prepara puré</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">6. Merluza a la Sal con Boniato</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">54g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">92g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">21g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">930</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>300g merluza</li><li>200g boniato</li><li>100g verduras</li><li>10ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Precalienta horno 180°C</li><li>Coloca merluza</li><li>Añade boniato cortado</li><li>Rocía con aceite</li><li>Hornea 20-25 min</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">7. Ensalada de Lentejas con Pollo y Aguacate</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">45g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">60g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">650</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>150g lentejas cocidas</li><li>150g pechuga de pollo</li><li>50g aguacate</li><li>100g mezcla de lechugas</li><li>10ml aceite de oliva</li><li>Vinagre de manzana</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina las lentejas según las instrucciones del paquete.</li><li>Cocina la pechuga de pollo a la plancha y córtala en tiras.</li><li>Mezcla las lentejas, el pollo, el aguacate en cubos y la mezcla de lechugas.</li><li>Aliña con aceite de oliva y vinagre de manzana.</li>
+                    </ol>
+                </div>
+            </div>
+            </div>
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- SNACKS -->
+        <div class="meal-section" id="snacks">
+            <h2 class="meal-title">🍌 Snacks</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Opciones de snacks saludables y nutritivos.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Yogur Griego con Frutos Rojos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">20g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">5g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">225</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>150g yogur griego natural 0% M.G.</li><li>100g frutos rojos (frescos o congelados)</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Mezcla el yogur griego con los frutos rojos.</li><li>Disfruta.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Manzana con Crema de Almendras</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">18g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">280</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>1 manzana mediana</li><li>25g crema de almendras natural</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Lava y corta la manzana en gajos.</li><li>Unta cada gajo con crema de almendras.</li><li>Disfruta como un snack saludable.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Mix de Frutos Secos (sin cacahuetes) y Fruta Deshidratada</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">30g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">20g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">350</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>30g mix de frutos secos (almendras, nueces, avellanas)</li><li>20g fruta deshidratada (pasas, arándanos)</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Mezcla los frutos secos y la fruta deshidratada.</li><li>Disfruta como un snack energético.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Hummus con Bastones de Zanahoria y Pepino</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">35g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">15g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">320</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>100g hummus</li><li>1 zanahoria grande</li><li>1/2 pepino</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Corta la zanahoria y el pepino en bastones.</li><li>Sirve con el hummus.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Tostada Integral con Aguacate y Huevo Cocido</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">15g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">20g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">350</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>1 rebanada de pan integral</li><li>1/2 aguacate</li><li>1 huevo cocido</li><li>Sal y pimienta al gusto</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Tuesta el pan integral.</li><li>Machaca el aguacate y extiéndelo sobre la tostada.</li><li>Corta el huevo cocido en rodajas y colócalo encima.</li><li>Sazona con sal y pimienta.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+         <div class="info-box" style="margin-top: 50px;">
+            <strong>💡 Nota Importante:</strong> Este recetario es una guía. Puedes ajustar las cantidades según tu apetito y necesidades, siempre manteniendo el equilibrio de macros. ¡Disfruta de tus comidas!
+        </div>
+        <div class="nav-buttons" style="margin-top: 50px; justify-content: center;">
+            <a href="cliente-alberto-menu-v2.html" class="back-button">← Volver al Menú</a>
+            <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
+        </div>
+    </div>
+</body>
+</html>

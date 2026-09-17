@@ -1,0 +1,2510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'betanzos';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Betanzos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden !important;
+            width: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #2e1f1f;
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            font-style: italic;
+            margin-bottom: 10px;
+            color: #ede8e2;
+        }
+
+        .logo span {
+            color: #c47878;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #c8bfb5;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #c47878;
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav-menu {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            background: rgba(196, 120, 120, 0.15);
+            border: 1px solid rgba(196, 120, 120, 0.3);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        /* Print Button */
+        .print-button {
+            display: inline-block;
+            padding: 10px 25px;
+            background: #c47878;
+            color: #ede8e2;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 30px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .print-button:hover {
+            background: #ede8e2;
+            color: #2e1f1f;
+        }
+
+        /* Introduction */
+        .intro-section {
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+
+        .intro-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ede8e2;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .intro-text {
+            font-size: 13px;
+            color: #c8bfb5;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .intro-highlight {
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        /* Recipe Index */
+        .recipe-index {
+            margin-bottom: 50px;
+        }
+
+        .index-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .index-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .index-table thead {
+            background: rgba(196, 120, 120, 0.2);
+        }
+
+        .index-table th {
+            padding: 12px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ede8e2;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .index-table td {
+            padding: 12px;
+            font-size: 12px;
+            color: #c8bfb5;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .index-table tbody tr:nth-child(even) {
+            background: rgba(196, 120, 120, 0.05);
+        }
+
+        /* Recipe Block */
+        .recipe-block {
+            margin-bottom: 50px;
+        }
+
+        .block-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .recipe {
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #c47878;
+        }
+
+        .recipe-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .recipe-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ede8e2;
+        }
+
+        .recipe-context {
+            font-size: 11px;
+            color: #c47878;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .recipe-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #c8bfb5;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.2);
+        }
+
+        .recipe-meta-item {
+            display: flex;
+            gap: 5px;
+        }
+
+        .recipe-meta-label {
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        /* Macros Table */
+        .macros-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: rgba(196, 120, 120, 0.08);
+        }
+
+        .macros-table thead {
+            background: rgba(196, 120, 120, 0.15);
+        }
+
+        .macros-table th {
+            padding: 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ede8e2;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .macros-table td {
+            padding: 10px;
+            font-size: 12px;
+            color: #c8bfb5;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.15);
+        }
+
+        .macros-table tbody tr:nth-child(even) {
+            background: rgba(196, 120, 120, 0.04);
+        }
+
+        .macro-label {
+            font-weight: 600;
+            color: #c47878;
+            min-width: 80px;
+        }
+
+        .macro-value {
+            font-weight: 600;
+            color: #ede8e2;
+        }
+
+        /* Preparation */
+        .preparation {
+            margin-bottom: 15px;
+        }
+
+        .preparation-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ede8e2;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+
+        .preparation-steps {
+            list-style: none;
+        }
+
+        .preparation-steps li {
+            font-size: 12px;
+            color: #c8bfb5;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .preparation-steps li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-weight: bold;
+        }
+
+        /* Tip Box */
+        .tip-box {
+            background: rgba(124, 179, 66, 0.1);
+            border-left: 4px solid #7cb342;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .tip-box strong {
+            color: #7cb342;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+            font-size: 10px;
+            color: #c8bfb5;
+            margin-top: auto;
+        }
+
+        .footer p {
+            margin-bottom: 5px;
+        }
+
+        @media print {
+            .print-button, .nav-menu {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px 15px;
+            }
+
+            .recipe-header {
+                flex-direction: column;
+            }
+
+            .recipe-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="content">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">Be <span>Stronger</span></div>
+                <div class="tagline">Recetario Proteico Personalizado</div>
+                <div class="title">Betanzos — 26 años</div>
+                <div class="subtitle">Objetivo: Hipertrofia · Mínimo 140g proteína/día</div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav-menu">
+                <a href="cliente-betanzos-menu.html" class="nav-link">← Volver al Menú</a>
+                <a href="mesociclo-betanzos-6-completo.html" class="nav-link">📋 Mesociclo 6</a>
+                <a href="nutricion-betanzos-6.html" class="nav-link">🍽️ Plan Nutricional</a>
+            </div>
+
+            <!-- Print Button -->
+            <button class="print-button" onclick="window.print()">🖨️ Imprimir / Descargar PDF</button>
+
+            <!-- Introduction -->
+            <div class="intro-section">
+                <div class="intro-title">Introducción</div>
+                <div class="intro-text">
+                    Este recetario está diseñado específicamente para Betanzos y respeta al 100% sus preferencias y restricciones alimentarias. Todas las recetas utilizan ingredientes de supermercado normal, tienen tiempos de preparación realistas y están adaptadas a su horario nocturno de pub.
+                </div>
+                <div class="intro-text">
+                    <span class="intro-highlight">Alimentos excluidos:</span> Judías verdes y verduras en general (excepto integradas en mínima cantidad cuando son inevitables en la receta base).
+                </div>
+                <div class="intro-text">
+                    <span class="intro-highlight">Alergia:</span> Alérgico a frutas. Ninguna receta contiene fruta en ningún formato — ni fresca, ni en salsa, ni como guarnición.
+                </div>
+                <div class="intro-text">
+                    <span class="intro-highlight">Proteínas favoritas:</span> Ternera y pollo como carnes principales. Merluza como pescado. Huevos para cenas rápidas.
+                </div>
+                <div class="intro-text">
+                    <span class="intro-highlight">Comidas base:</span> Arroz con pollo y canelones de carne como platos de referencia. El recetario parte de estas bases y amplia el repertorio.
+                </div>
+            </div>
+
+            <!-- Recipe Index -->
+            <div class="recipe-index">
+                <div class="index-title">Índice de Recetas</div>
+                <table class="index-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Receta</th>
+                            <th>Categoría</th>
+                            <th>Tiempo</th>
+                            <th>Kcal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Tostadas con huevos, pavo y queso</td>
+                            <td>Desayuno · Días de entrenamiento</td>
+                            <td>8 min</td>
+                            <td>520</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Batido denso de avena y proteína</td>
+                            <td>Desayuno · Días de pub largo</td>
+                            <td>5 min</td>
+                            <td>480</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Tortilla francesa con jamón York</td>
+                            <td>Desayuno · Días de descanso</td>
+                            <td>7 min</td>
+                            <td>340</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>Tostadas express con atún</td>
+                            <td>Desayuno · Muy rápido</td>
+                            <td>4 min</td>
+                            <td>380</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>Huevos revueltos con queso fundido</td>
+                            <td>Desayuno · Fin de semana</td>
+                            <td>10 min</td>
+                            <td>450</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>Sándwich de pavo con queso</td>
+                            <td>Desayuno · Rápido</td>
+                            <td>3 min</td>
+                            <td>400</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>Batido de proteína con pan tostado</td>
+                            <td>Desayuno · Máximo calórico</td>
+                            <td>5 min</td>
+                            <td>550</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>Arroz con pollo clásico</td>
+                            <td>Comida · Días de entrenamiento</td>
+                            <td>30 min</td>
+                            <td>680</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>Pasta con ternera y salsa</td>
+                            <td>Comida · Días de entrenamiento</td>
+                            <td>20 min</td>
+                            <td>650</td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>Canelones de carne caseros</td>
+                            <td>Comida · Fin de semana</td>
+                            <td>45 min</td>
+                            <td>720</td>
+                        </tr>
+                        <tr>
+                            <td>11</td>
+                            <td>Patatas con ternera en salsa</td>
+                            <td>Comida · Días de descanso</td>
+                            <td>35 min</td>
+                            <td>580</td>
+                        </tr>
+                        <tr>
+                            <td>12</td>
+                            <td>Merluza al horno con patatas</td>
+                            <td>Comida · Ligera</td>
+                            <td>30 min</td>
+                            <td>490</td>
+                        </tr>
+                        <tr>
+                            <td>13</td>
+                            <td>Arroz con merluza y caldo</td>
+                            <td>Comida · Días de entrenamiento</td>
+                            <td>25 min</td>
+                            <td>540</td>
+                        </tr>
+                        <tr>
+                            <td>14</td>
+                            <td>Pasta con pollo al ajillo</td>
+                            <td>Comida · Rápida</td>
+                            <td>20 min</td>
+                            <td>620</td>
+                        </tr>
+                        <tr>
+                            <td>15</td>
+                            <td>Tortilla de patata con jamón</td>
+                            <td>Cena · Clásica</td>
+                            <td>15 min</td>
+                            <td>480</td>
+                        </tr>
+                        <tr>
+                            <td>16</td>
+                            <td>Merluza a la plancha con arroz</td>
+                            <td>Cena · Post-entrenamiento rápida</td>
+                            <td>12 min</td>
+                            <td>430</td>
+                        </tr>
+                        <tr>
+                            <td>17</td>
+                            <td>Huevos fritos con jamón York</td>
+                            <td>Cena · Ultra rápida</td>
+                            <td>8 min</td>
+                            <td>380</td>
+                        </tr>
+                        <tr>
+                            <td>18</td>
+                            <td>Ternera a la plancha con pan</td>
+                            <td>Cena · Pub / sin cocinar</td>
+                            <td>5 min</td>
+                            <td>420</td>
+                        </tr>
+                        <tr>
+                            <td>19</td>
+                            <td>Pechuga de pollo con patata cocida</td>
+                            <td>Cena · Ligera</td>
+                            <td>20 min</td>
+                            <td>400</td>
+                        </tr>
+                        <tr>
+                            <td>20</td>
+                            <td>Sándwich de ternera con queso</td>
+                            <td>Cena · Rápida</td>
+                            <td>3 min</td>
+                            <td>450</td>
+                        </tr>
+                        <tr>
+                            <td>21</td>
+                            <td>Arroz con ternera picada</td>
+                            <td>Cena · Completa</td>
+                            <td>25 min</td>
+                            <td>510</td>
+                        </tr>
+                        <tr>
+                            <td>22</td>
+                            <td>Snack pre-gym: Requesón y almendras</td>
+                            <td>Merienda · Pre-gym</td>
+                            <td>2 min</td>
+                            <td>310</td>
+                        </tr>
+                        <tr>
+                            <td>23</td>
+                            <td>Snack de pub: Atún con tostadas</td>
+                            <td>Merienda · Pre-pub / nocturno</td>
+                            <td>3 min</td>
+                            <td>290</td>
+                        </tr>
+                        <tr>
+                            <td>24</td>
+                            <td>Cierre del día: Natillas + almendras</td>
+                            <td>Merienda · Post-pub / noche</td>
+                            <td>1 min</td>
+                            <td>260</td>
+                        </tr>
+                        <tr>
+                            <td>25</td>
+                            <td>Bocata proteico de pavo y queso</td>
+                            <td>Merienda · Emergencia</td>
+                            <td>2 min</td>
+                            <td>370</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- DESAYUNOS -->
+            <div class="recipe-block">
+                <div class="block-title">Bloque 1 — Desayunos</div>
+
+                <!-- Recipe 1 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">1. Tostadas con huevos, pavo y queso</div>
+                            <div class="recipe-context">Desayuno · Días de entrenamiento · Alto en proteína</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">520 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 8 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 42g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 38g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 18g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">42g</td>
+                                <td>3 uds</td>
+                                <td>Huevos grandes</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+8g</td>
+                                <td>3 lonchas</td>
+                                <td>Pavo en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">38g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde tostado</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Grasas</td>
+                                <td class="macro-value">18g</td>
+                                <td>2 lonchas</td>
+                                <td>Queso en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una sartén a fuego medio-alto con un chorro de aceite de oliva.</li>
+                            <li>Bate los 3 huevos con sal y pimienta. Vierte en la sartén y remueve hasta que queden jugosos (no secos).</li>
+                            <li>Tuesta el pan en la tostadora.</li>
+                            <li>Coloca las lonchas de pavo sobre las tostadas y añade los huevos con queso encima.</li>
+                            <li>Acompaña con el batido de proteína mezclado con leche entera.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Si añades el batido con leche entera sumas otros 30g de proteína y 150 kcal extra. Este desayuno completo te da más de 70g de proteína de golpe.
+                    </div>
+                </div>
+
+                <!-- Recipe 2 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">2. Batido denso de avena y proteína</div>
+                            <div class="recipe-context">Desayuno · Días de pub largo · Máximo calórico</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">480 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 5 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 38g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 52g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 10g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">38g</td>
+                                <td>1 scoop (30g)</td>
+                                <td>Proteína en polvo (vainilla o chocolate)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">52g</td>
+                                <td>40g</td>
+                                <td>Avena en copos finos</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>300ml</td>
+                                <td>Leche entera</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>20g</td>
+                                <td>Almendras molidas o enteras</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Cacao puro (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Echa la leche entera fría directamente en el vaso batidor o shaker.</li>
+                            <li>Añade el scoop de proteína, la avena y las almendras.</li>
+                            <li>Bate o agita 30 segundos hasta que no queden grumos.</li>
+                            <li>Si quieres más sabor añade una cucharada de cacao puro sin azúcar.</li>
+                            <li>Bébelo en los 15-20 minutos siguientes para que la avena no absorba demasiado líquido.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Este batido deja de ser un suplemento y pasa a ser un desayuno completo. Úsalo los días que sabes que el pub va a cerrar tarde y probablemente no cenes bien.
+                    </div>
+                </div>
+
+                <!-- Recipe 3 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">3. Tortilla francesa con jamón York</div>
+                            <div class="recipe-context">Desayuno · Días de descanso · Moderado</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">340 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 7 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 28g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 18g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 16g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">28g</td>
+                                <td>3 uds</td>
+                                <td>Huevos grandes</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+6g</td>
+                                <td>3 lonchas</td>
+                                <td>Jamón York</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">18g</td>
+                                <td>1 rebanada</td>
+                                <td>Pan de molde</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Bate los huevos con sal en un bol.</li>
+                            <li>Calienta la sartén a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Vierte los huevos batidos. Cuando los bordes empiecen a cuajar, dobla la tortilla por la mitad.</li>
+                            <li>Coloca el jamón York dentro antes de doblarla si quieres que se caliente.</li>
+                            <li>Sirve con una rebanada de pan tostado al lado.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> En días de descanso no necesitas tantas calorías. Esta tortilla te da proteína sólida sin disparar los carbos. Si tienes hambre añade una loncha más de jamón, no más pan.
+                    </div>
+                </div>
+
+                <!-- Recipe 4 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">4. Tostadas express con atún</div>
+                            <div class="recipe-context">Desayuno · Días con prisa · Ultra rápido</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">380 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 4 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 32g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 35g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 12g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">32g</td>
+                                <td>1 lata</td>
+                                <td>Atún en agua (escurrido)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">35g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde tostado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mayonesa (opcional)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Abre la lata de atún y escúrrela bien.</li>
+                            <li>Tuesta el pan.</li>
+                            <li>Mezcla el atún con una cucharada de mayonesa (opcional) y sal.</li>
+                            <li>Extiende sobre las tostadas.</li>
+                            <li>Acompaña con un batido de proteína.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Cuando llegas tarde del pub y no tienes tiempo. Esto es proteína pura, sin cocinar. Guarda latas de atún en la despensa para emergencias.
+                    </div>
+                </div>
+
+                <!-- Recipe 5 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">5. Huevos revueltos con queso fundido</div>
+                            <div class="recipe-context">Desayuno · Fin de semana · Completo</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">450 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 10 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 35g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 28g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 22g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">35g</td>
+                                <td>4 uds</td>
+                                <td>Huevos grandes</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Grasas</td>
+                                <td class="macro-value">+8g</td>
+                                <td>2 lonchas</td>
+                                <td>Queso en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">28g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde tostado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Bate los 4 huevos con sal y pimienta en un bol.</li>
+                            <li>Calienta la sartén a fuego medio-bajo con un chorro de aceite.</li>
+                            <li>Vierte los huevos y remueve constantemente para que queden cremosos.</li>
+                            <li>Cuando casi estén listos, añade el queso en lonchas para que se funda con el calor residual.</li>
+                            <li>Sirve con el pan tostado al lado.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Los huevos revueltos cremosos son más apetecibles que la tortilla. El queso fundido añade sabor y grasa sin sumar apenas peso.
+                    </div>
+                </div>
+
+                <!-- Recipe 6 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">6. Sándwich de pavo con queso</div>
+                            <div class="recipe-context">Desayuno · Rápido · Portátil</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">400 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 3 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 30g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 35g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 14g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">30g</td>
+                                <td>5 lonchas</td>
+                                <td>Pavo en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+6g</td>
+                                <td>2 lonchas</td>
+                                <td>Queso en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">35g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mayonesa (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Coloca las lonchas de pavo sobre una rebanada de pan.</li>
+                            <li>Añade el queso encima.</li>
+                            <li>Si quieres, extiende una cucharada de mayonesa en la otra rebanada.</li>
+                            <li>Cierra el sándwich y listo.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Puedes prepararlo la noche anterior y llevarlo en una bolsa. Proteína portátil para cuando no tienes tiempo de cocinar.
+                    </div>
+                </div>
+
+                <!-- Recipe 7 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">7. Batido de proteína con pan tostado</div>
+                            <div class="recipe-context">Desayuno · Máximo calórico · Ganancia de peso</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">550 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 5 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 40g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 58g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 16g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">40g</td>
+                                <td>1 scoop (30g)</td>
+                                <td>Proteína en polvo</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+8g</td>
+                                <td>300ml</td>
+                                <td>Leche entera</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">58g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde tostado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mermelada o miel (opcional)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mantequilla</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Prepara el batido con la leche entera, el scoop de proteína y bate bien.</li>
+                            <li>Tuesta el pan.</li>
+                            <li>Unta las tostadas con mantequilla y, si quieres, un poco de mermelada.</li>
+                            <li>Come las tostadas acompañadas del batido.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Este es tu desayuno "ganancia de peso". Úsalo cuando necesites sumar calorías extra y no tengas problema con los carbos. 550 kcal + 40g de proteína es un desayuno de campeón.
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMIDAS -->
+            <div class="recipe-block">
+                <div class="block-title">Bloque 2 — Comidas</div>
+
+                <!-- Recipe 8 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">8. Arroz con pollo clásico</div>
+                            <div class="recipe-context">Comida · Días de entrenamiento · Base del programa</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">680 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 30 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 45g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 68g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 12g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">45g</td>
+                                <td>400g</td>
+                                <td>Pechuga de pollo (fresco o congelado)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">68g</td>
+                                <td>200g</td>
+                                <td>Arroz blanco (crudo, pesado antes de cocinar)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>500ml</td>
+                                <td>Caldo de pollo (o agua + pastilla)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una sartén o cazuela a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Corta el pollo en trozos medianos y dóralo en la sartén hasta que coja color (3-4 minutos por lado).</li>
+                            <li>Retira el pollo y reserva.</li>
+                            <li>En la misma sartén, vierte el arroz crudo y remueve durante 2 minutos para que se tueste ligeramente.</li>
+                            <li>Vierte el caldo caliente (o agua) sobre el arroz.</li>
+                            <li>Devuelve el pollo a la sartén y mezcla bien.</li>
+                            <li>Baja el fuego a medio-bajo, cubre con una tapa y deja cocinar 18-20 minutos hasta que el arroz absorba el líquido.</li>
+                            <li>Apaga el fuego, deja reposar 2 minutos y sirve.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Este es tu plato de referencia. Puedes hacer 2-3 porciones el domingo y congelarlas. Descongela y calienta en el microondas cuando lo necesites. Proteína + carbos + sabroso = la base de tu ganancia de peso.
+                    </div>
+                </div>
+
+                <!-- Recipe 9 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">9. Pasta con ternera y salsa</div>
+                            <div class="recipe-context">Comida · Días de entrenamiento · Variación</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">650 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 20 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 42g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 65g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 14g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">42g</td>
+                                <td>350g</td>
+                                <td>Ternera picada (o en trozos pequeños)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">65g</td>
+                                <td>180g</td>
+                                <td>Pasta (cruda)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 lata (400g)</td>
+                                <td>Tomate triturado o salsa de tomate</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, ajo (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Hierve agua en una olla grande con sal. Cuando rompa a hervir, añade la pasta y cocina según las instrucciones del paquete (típicamente 10-12 minutos).</li>
+                            <li>Mientras, calienta una sartén a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Añade la ternera picada y dórala hasta que esté hecha (5-7 minutos), removiendo de vez en cuando.</li>
+                            <li>Vierte la lata de tomate triturado sobre la ternera.</li>
+                            <li>Baja el fuego a medio y deja que hierva suavemente durante 5-8 minutos para que los sabores se mezclen.</li>
+                            <li>Escurre la pasta cuando esté al dente.</li>
+                            <li>Mezcla la pasta con la salsa de ternera y sirve.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> La ternera picada es más rápida que el pollo y tiene más sabor. Si quieres más proteína, aumenta a 400g de ternera. Si quieres menos calorías, reduce la pasta a 150g.
+                    </div>
+                </div>
+
+                <!-- Recipe 10 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">10. Canelones de carne caseros</div>
+                            <div class="recipe-context">Comida · Fin de semana · Comida favorita</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">720 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 45 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 48g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 62g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 18g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">48g</td>
+                                <td>400g</td>
+                                <td>Ternera picada</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">62g</td>
+                                <td>1 caja</td>
+                                <td>Canelones (típicamente 12 unidades)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 lata (400g)</td>
+                                <td>Tomate triturado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>200ml</td>
+                                <td>Leche entera</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>2 cda</td>
+                                <td>Harina</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mantequilla</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>100g</td>
+                                <td>Queso rallado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, ajo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una sartén a fuego medio-alto con un chorro de aceite. Dora la ternera picada hasta que esté hecha (5-7 minutos).</li>
+                            <li>Vierte la lata de tomate triturado sobre la ternera. Baja el fuego y deja que hierva suavemente durante 5 minutos. Reserva.</li>
+                            <li>Prepara la salsa bechamel: calienta la mantequilla en una cazuela a fuego medio. Añade la harina y remueve constantemente durante 1-2 minutos.</li>
+                            <li>Vierte la leche poco a poco mientras remueves para evitar grumos. Cocina hasta que espese (3-5 minutos).</li>
+                            <li>Rellena los canelones con la mezcla de ternera. Colócalos en una bandeja de horno.</li>
+                            <li>Vierte la salsa de tomate sobre los canelones. Luego vierte la bechamel encima.</li>
+                            <li>Espolvorea el queso rallado por encima.</li>
+                            <li>Hornea a 180°C durante 20-25 minutos hasta que el queso esté dorado.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Los canelones son tu comida favorita. Prepara 2-3 bandejas el fin de semana y congela. Descongela y calienta en el horno cuando lo necesites. Proteína + carbos + sabor = perfecto para la ganancia de peso.
+                    </div>
+                </div>
+
+                <!-- Recipe 11 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">11. Patatas con ternera en salsa</div>
+                            <div class="recipe-context">Comida · Días de descanso · Ligera</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">580 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 35 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 40g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 55g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 14g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">40g</td>
+                                <td>350g</td>
+                                <td>Ternera en trozos pequeños</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">55g</td>
+                                <td>400g</td>
+                                <td>Patatas (cortadas en dados)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>250ml</td>
+                                <td>Caldo de carne (o agua + pastilla)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, ajo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una cazuela a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Dora los trozos de ternera hasta que cojean color (3-4 minutos).</li>
+                            <li>Añade las patatas cortadas en dados.</li>
+                            <li>Vierte el caldo de carne sobre la ternera y las patatas.</li>
+                            <li>Baja el fuego a medio-bajo, cubre con una tapa y deja cocinar 25-30 minutos hasta que las patatas estén tiernas.</li>
+                            <li>Sirve caliente.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> En días de descanso esta comida es perfecta. Menos calorías que el arroz con pollo pero sigue siendo sabrosa y proteica. Las patatas son más saciantes que el arroz.
+                    </div>
+                </div>
+
+                <!-- Recipe 12 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">12. Merluza al horno con patatas</div>
+                            <div class="recipe-context">Comida · Ligera · Pescado</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">490 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 30 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 42g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 48g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 8g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">42g</td>
+                                <td>400g</td>
+                                <td>Filetes de merluza</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">48g</td>
+                                <td>350g</td>
+                                <td>Patatas (cortadas en dados o rodajas)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, limón (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Precalienta el horno a 200°C.</li>
+                            <li>Coloca las patatas cortadas en una bandeja de horno. Rocía con un poco de aceite, sal y pimienta.</li>
+                            <li>Hornea las patatas durante 15 minutos.</li>
+                            <li>Coloca los filetes de merluza sobre las patatas. Rocía con un poco más de aceite, sal y pimienta.</li>
+                            <li>Hornea todo junto durante otros 12-15 minutos hasta que la merluza esté hecha (se deshace fácilmente con un tenedor).</li>
+                            <li>Sirve caliente.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> La merluza es tu pescado favorito y es muy magra (poca grasa). Perfecto para días en los que quieres proteína pura sin muchas calorías. Las patatas al horno son más saludables que fritas.
+                    </div>
+                </div>
+
+                <!-- Recipe 13 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">13. Arroz con merluza y caldo</div>
+                            <div class="recipe-context">Comida · Días de entrenamiento · Pescado</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">540 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 25 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 40g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 62g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 8g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">40g</td>
+                                <td>350g</td>
+                                <td>Filetes de merluza (cortados en trozos)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">62g</td>
+                                <td>180g</td>
+                                <td>Arroz blanco (crudo)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>450ml</td>
+                                <td>Caldo de pescado (o agua + pastilla)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una cazuela a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Vierte el arroz crudo y remueve durante 2 minutos para que se tueste ligeramente.</li>
+                            <li>Vierte el caldo caliente sobre el arroz.</li>
+                            <li>Coloca los trozos de merluza sobre el arroz.</li>
+                            <li>Baja el fuego a medio-bajo, cubre con una tapa y deja cocinar 18-20 minutos hasta que el arroz absorba el líquido.</li>
+                            <li>Apaga el fuego, deja reposar 2 minutos y sirve.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Arroz + merluza es una combinación clásica. Proteína magra + carbos = perfecto para días de entrenamiento. Menos calorías que el arroz con pollo pero igual de sabroso.
+                    </div>
+                </div>
+
+                <!-- Recipe 14 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">14. Pasta con pollo al ajillo</div>
+                            <div class="recipe-context">Comida · Rápida · Variación</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">620 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 20 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 44g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 64g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 12g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">44g</td>
+                                <td>380g</td>
+                                <td>Pechuga de pollo (cortada en tiras)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">64g</td>
+                                <td>180g</td>
+                                <td>Pasta (cruda)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>3 dientes</td>
+                                <td>Ajo (picado)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>2 cdas</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, perejil (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Hierve agua en una olla grande con sal. Cuando rompa a hervir, añade la pasta y cocina según las instrucciones (típicamente 10-12 minutos).</li>
+                            <li>Mientras, calienta una sartén a fuego medio-alto con 2 cucharadas de aceite.</li>
+                            <li>Añade el ajo picado y deja que se dore ligeramente (30 segundos).</li>
+                            <li>Añade las tiras de pollo y dóralo hasta que esté hecho (5-7 minutos).</li>
+                            <li>Escurre la pasta cuando esté al dente.</li>
+                            <li>Mezcla la pasta con el pollo al ajillo y sirve.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> El pollo al ajillo es rápido y sabroso. El ajo le da mucho sabor sin añadir apenas calorías. Perfecto cuando tienes poco tiempo.
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENAS -->
+            <div class="recipe-block">
+                <div class="block-title">Bloque 3 — Cenas</div>
+
+                <!-- Recipe 15 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">15. Tortilla de patata con jamón</div>
+                            <div class="recipe-context">Cena · Clásica · Completa</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">480 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 15 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 32g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 42g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 16g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">32g</td>
+                                <td>4 uds</td>
+                                <td>Huevos grandes</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+6g</td>
+                                <td>3 lonchas</td>
+                                <td>Jamón York</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">42g</td>
+                                <td>300g</td>
+                                <td>Patatas (peladas y cortadas en dados)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>2 cdas</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una sartén a fuego medio-alto con una cucharada de aceite.</li>
+                            <li>Añade los dados de patata y deja que se doren durante 8-10 minutos, removiendo de vez en cuando. Las patatas deben quedar tiernas por dentro y crujientes por fuera.</li>
+                            <li>Bate los huevos con sal en un bol.</li>
+                            <li>Cuando las patatas estén listas, vierte los huevos batidos sobre ellas.</li>
+                            <li>Coloca las lonchas de jamón York sobre los huevos.</li>
+                            <li>Deja que los huevos se cuajen (3-4 minutos). Cuando los bordes empiecen a cuajar, dobla la tortilla por la mitad con una espátula.</li>
+                            <li>Sirve caliente.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> La tortilla de patata es una cena clásica española. Proteína + carbos + sabrosa. Puedes prepararla la noche anterior y comerla fría si llegas tarde del pub.
+                    </div>
+                </div>
+
+                <!-- Recipe 16 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">16. Merluza a la plancha con arroz</div>
+                            <div class="recipe-context">Cena · Post-entrenamiento rápida · Ligera</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">430 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 12 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 38g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 42g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 6g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">38g</td>
+                                <td>350g</td>
+                                <td>Filetes de merluza</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">42g</td>
+                                <td>150g</td>
+                                <td>Arroz blanco (cocido)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, limón (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Si el arroz no está ya cocido, hierve agua con sal. Cuando rompa a hervir, añade el arroz y cocina según las instrucciones (típicamente 15-18 minutos).</li>
+                            <li>Calienta una sartén o plancha a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Coloca los filetes de merluza en la sartén y dóralo 3-4 minutos por cada lado hasta que esté hecho.</li>
+                            <li>Sirve la merluza acompañada del arroz cocido.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Esta es tu cena post-entrenamiento rápida. Proteína magra + carbos para recuperación. Si tienes arroz cocido del día anterior, esto se prepara en 5 minutos.
+                    </div>
+                </div>
+
+                <!-- Recipe 17 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">17. Huevos fritos con jamón York</div>
+                            <div class="recipe-context">Cena · Ultra rápida · Menos de 10 min</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">380 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 8 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 28g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 18g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 18g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">28g</td>
+                                <td>3 uds</td>
+                                <td>Huevos grandes</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+6g</td>
+                                <td>3 lonchas</td>
+                                <td>Jamón York</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">18g</td>
+                                <td>1 rebanada</td>
+                                <td>Pan de molde tostado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una sartén a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Casca los huevos directamente en la sartén.</li>
+                            <li>Coloca las lonchas de jamón York alrededor de los huevos.</li>
+                            <li>Deja que los huevos se frían hasta que las claras estén cuajadas pero la yema siga líquida (3-4 minutos).</li>
+                            <li>Tuesta el pan mientras se cocinan los huevos.</li>
+                            <li>Sirve los huevos con el jamón y el pan tostado.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Cuando llegas muy tarde del pub y no tienes ni 10 minutos. Esto es proteína pura, sin complicaciones. Los huevos fritos son más rápidos que revueltos.
+                    </div>
+                </div>
+
+                <!-- Recipe 18 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">18. Ternera a la plancha con pan</div>
+                            <div class="recipe-context">Cena · Pub / sin cocinar · Mínimo esfuerzo</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">420 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 5 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 38g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 28g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 10g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">38g</td>
+                                <td>200g</td>
+                                <td>Filete de ternera (comprado ya hecho en el supermercado)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">28g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva (o mantequilla)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una sartén o plancha a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Coloca el filete de ternera en la sartén y dóralo 2-3 minutos por cada lado (según el grosor).</li>
+                            <li>Tuesta el pan mientras se cocina la ternera.</li>
+                            <li>Sirve el filete con el pan tostado al lado.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Cuando estás en el pub o no tienes ganas de cocinar. Compra un filete de ternera ya hecho en el supermercado. Esto es proteína pura en 5 minutos.
+                    </div>
+                </div>
+
+                <!-- Recipe 19 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">19. Pechuga de pollo con patata cocida</div>
+                            <div class="recipe-context">Cena · Ligera · Saludable</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">400 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 20 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 40g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 35g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 6g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">40g</td>
+                                <td>350g</td>
+                                <td>Pechuga de pollo</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">35g</td>
+                                <td>250g</td>
+                                <td>Patatas (cocidas)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, ajo (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Hierve las patatas en agua con sal durante 15-20 minutos hasta que estén tiernas.</li>
+                            <li>Mientras, calienta una sartén a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Coloca la pechuga de pollo en la sartén y dórala 5-7 minutos por cada lado hasta que esté hecha.</li>
+                            <li>Escurre las patatas cuando estén listas.</li>
+                            <li>Sirve la pechuga acompañada de las patatas cocidas.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Cena ligera pero completa. Proteína magra + carbos sin grasa. Perfecta para noches en las que quieres dormir bien sin sentir el estómago pesado.
+                    </div>
+                </div>
+
+                <!-- Recipe 20 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">20. Sándwich de ternera con queso</div>
+                            <div class="recipe-context">Cena · Rápida · Portátil</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">450 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 3 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 35g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 38g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 14g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">35g</td>
+                                <td>5 lonchas</td>
+                                <td>Ternera en lonchas (comprada)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+6g</td>
+                                <td>2 lonchas</td>
+                                <td>Queso en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">38g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mayonesa (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Coloca las lonchas de ternera sobre una rebanada de pan.</li>
+                            <li>Añade el queso encima.</li>
+                            <li>Si quieres, extiende una cucharada de mayonesa en la otra rebanada.</li>
+                            <li>Cierra el sándwich y listo.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Sándwich proteico. Puedes prepararlo la noche anterior y llevarlo en una bolsa. Proteína + carbos en 3 minutos.
+                    </div>
+                </div>
+
+                <!-- Recipe 21 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">21. Arroz con ternera picada</div>
+                            <div class="recipe-context">Cena · Completa · Sabrosa</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">510 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 25 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 38g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 52g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 10g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">38g</td>
+                                <td>300g</td>
+                                <td>Ternera picada</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">52g</td>
+                                <td>150g</td>
+                                <td>Arroz blanco (crudo)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>300ml</td>
+                                <td>Caldo de carne (o agua + pastilla)</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Aceite de oliva</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal, pimienta, ajo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Calienta una cazuela a fuego medio-alto con un chorro de aceite.</li>
+                            <li>Añade la ternera picada y dórala hasta que esté hecha (5-7 minutos), removiendo de vez en cuando.</li>
+                            <li>Vierte el arroz crudo en la cazuela y remueve durante 2 minutos para que se tueste ligeramente.</li>
+                            <li>Vierte el caldo caliente sobre el arroz y la ternera.</li>
+                            <li>Baja el fuego a medio-bajo, cubre con una tapa y deja cocinar 18-20 minutos hasta que el arroz absorba el líquido.</li>
+                            <li>Apaga el fuego, deja reposar 2 minutos y sirve.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Arroz con ternera es sabroso y rápido. La ternera picada se cocina más rápido que los trozos. Perfecto para cenas completas.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SNACKS/MERIENDAS -->
+            <div class="recipe-block">
+                <div class="block-title">Bloque 4 — Snacks & Meriendas</div>
+
+                <!-- Recipe 22 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">22. Snack pre-gym: Requesón y almendras</div>
+                            <div class="recipe-context">Merienda · Pre-gym · Rápido</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">310 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 2 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 28g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 12g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 14g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">28g</td>
+                                <td>200g</td>
+                                <td>Requesón o queso cottage</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Grasas</td>
+                                <td class="macro-value">14g</td>
+                                <td>30g</td>
+                                <td>Almendras (puñado)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Coloca el requesón en un bol.</li>
+                            <li>Añade las almendras al lado.</li>
+                            <li>Come directamente.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Snack pre-gym perfecto. Proteína + grasas saludables sin carbos. Te da energía sin sentir el estómago pesado en el entrenamiento.
+                    </div>
+                </div>
+
+                <!-- Recipe 23 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">23. Snack de pub: Atún con tostadas</div>
+                            <div class="recipe-context">Merienda · Pre-pub / nocturno · Proteína</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">290 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 3 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 30g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 28g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 4g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">30g</td>
+                                <td>1 lata</td>
+                                <td>Atún en agua (escurrido)</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">28g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde tostado</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>Al gusto</td>
+                                <td>Sal y pimienta</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Abre la lata de atún y escúrrela bien.</li>
+                            <li>Tuesta el pan.</li>
+                            <li>Extiende el atún sobre las tostadas.</li>
+                            <li>Añade sal y pimienta al gusto.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Este es tu snack pre-pub. Proteína + carbos antes de salir. Así llegas al pub sin hambre y no acabas comiendo comida basura.
+                    </div>
+                </div>
+
+                <!-- Recipe 24 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">24. Cierre del día: Natillas + almendras</div>
+                            <div class="recipe-context">Merienda · Post-pub / noche · Cierre</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">260 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 1 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 20g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 18g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 10g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">20g</td>
+                                <td>1 vaso (125g)</td>
+                                <td>Natillas proteicas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Grasas</td>
+                                <td class="macro-value">10g</td>
+                                <td>20g</td>
+                                <td>Almendras</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Abre el vaso de natillas proteicas.</li>
+                            <li>Coloca las almendras en un bol pequeño.</li>
+                            <li>Come las natillas acompañadas de las almendras.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Este es tu cierre del día. Llegas a casa a las 3-4am, comes esto y te vas a dormir. Proteína + carbos para cerrar el día sin déficit calórico.
+                    </div>
+                </div>
+
+                <!-- Recipe 25 -->
+                <div class="recipe">
+                    <div class="recipe-header">
+                        <div>
+                            <div class="recipe-title">25. Bocata proteico de pavo y queso</div>
+                            <div class="recipe-context">Merienda · Emergencia · Portátil</div>
+                        </div>
+                        <div style="text-align: right; font-size: 18px; font-weight: 600; color: #c47878;">370 kcal</div>
+                    </div>
+                    <div class="recipe-meta">
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">⏱️ Tiempo:</span> 2 min</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🥚 Proteína:</span> 32g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🌾 Carbos:</span> 32g</div>
+                        <div class="recipe-meta-item"><span class="recipe-meta-label">🧈 Grasas:</span> 12g</div>
+                    </div>
+
+                    <table class="macros-table">
+                        <thead>
+                            <tr>
+                                <th>Macros</th>
+                                <th>Valor</th>
+                                <th>Cantidad</th>
+                                <th>Ingrediente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">32g</td>
+                                <td>5 lonchas</td>
+                                <td>Pavo en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Proteína</td>
+                                <td class="macro-value">+6g</td>
+                                <td>2 lonchas</td>
+                                <td>Queso en lonchas</td>
+                            </tr>
+                            <tr>
+                                <td class="macro-label">Carbos</td>
+                                <td class="macro-value">32g</td>
+                                <td>2 rebanadas</td>
+                                <td>Pan de molde</td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>1 cda</td>
+                                <td>Mayonesa (opcional)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="preparation">
+                        <div class="preparation-title">Preparación</div>
+                        <ol class="preparation-steps">
+                            <li>Coloca las lonchas de pavo sobre una rebanada de pan.</li>
+                            <li>Añade el queso encima.</li>
+                            <li>Si quieres, extiende una cucharada de mayonesa en la otra rebanada.</li>
+                            <li>Cierra el sándwich y listo.</li>
+                        </ol>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Snack de emergencia. Cuando no tienes nada preparado y necesitas proteína rápido. Puedes prepararlo la noche anterior y llevarlo en una bolsa.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Be Stronger</strong> | Rehab & Performance online coaching</p>
+            <p>contacto@bestronger.es | +34 643 99 10 86</p>
+            <p>⚠️ Documento confidencial de Be Stronger</p>
+        </div>
+    </div>
+
+    <script>
+        // Check if user has valid session from menu
+        window.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = sessionStorage.getItem('betanzos-logged-in');
+            if (!isLoggedIn) {
+                // If no session, redirect to menu
+                window.location.href = 'cliente-betanzos-menu.html';
+            }
+        });
+    </script>
+</body>
+</html>

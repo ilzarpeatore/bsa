@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'template';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guideline de Entrenamiento - Be Stronger</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        /* Guideline-specific overrides */
+        .guideline-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .guideline-header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .guideline-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 42px;
+            font-style: italic;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .guideline-title span {
+            color: #c47878;
+        }
+
+        .guideline-subtitle {
+            font-size: 14px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 15px;
+        }
+
+        .client-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: #c47878;
+            margin-top: 15px;
+        }
+
+        .guideline-section {
+            margin-bottom: 40px;
+        }
+
+        .guideline-section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-left: 4px solid #c47878;
+            padding-left: 15px;
+        }
+
+        .guideline-subsection-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .guideline-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #c8bfb5;
+            margin-bottom: 12px;
+        }
+
+        .guideline-list {
+            list-style: none;
+            margin: 12px 0;
+            padding-left: 0;
+        }
+
+        .guideline-list li {
+            font-size: 14px;
+            color: #c8bfb5;
+            margin-bottom: 8px;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .guideline-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-weight: bold;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .info-item {
+            background: rgba(196, 120, 120, 0.08);
+            border: 1px solid rgba(196, 120, 120, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        .highlight-box {
+            background: rgba(196, 120, 120, 0.1);
+            border-left: 4px solid #c47878;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .highlight-box strong {
+            color: #ede8e2;
+        }
+
+        .alert-box {
+            background: rgba(220, 100, 100, 0.1);
+            border-left: 4px solid #ff6b6b;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .alert-box strong {
+            color: #ff9999;
+        }
+
+        .success-box {
+            background: rgba(37, 211, 102, 0.08);
+            border-left: 4px solid #25d366;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .success-box strong {
+            color: #4ade80;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        .guideline-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(196, 120, 120, 0.04);
+            border: 1px solid rgba(196, 120, 120, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .guideline-table th {
+            background: rgba(196, 120, 120, 0.15);
+            color: #ede8e2;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.2);
+        }
+
+        .guideline-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(196, 120, 120, 0.1);
+            font-size: 13px;
+            color: #c8bfb5;
+        }
+
+        .guideline-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .guideline-table tr:hover {
+            background: rgba(196, 120, 120, 0.06);
+        }
+
+        .progression-table td:first-child {
+            color: #c47878;
+            font-weight: 600;
+        }
+
+        .guideline-footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(196, 120, 120, 0.2);
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: #c8bfb5;
+            margin: 5px 0;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #c47878;
+            color: #ede8e2;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .back-button:hover {
+            background: #d48888;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .guideline-container {
+                padding: 20px 15px;
+            }
+
+            .guideline-title {
+                font-size: 32px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .guideline-table {
+                font-size: 12px;
+            }
+
+            .guideline-table th,
+            .guideline-table td {
+                padding: 8px;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body style="background: #2e1f1f; color: #c8bfb5;">
+    <div class="guideline-container">
+        <!-- Back Button -->
+        <button class="back-button" onclick="window.history.back()">← Volver a Recursos</button>
+        <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
+
+        <!-- Header -->
+        <div class="guideline-header">
+            <div class="guideline-title">Be <span>Stronger</span></div>
+            <div class="guideline-subtitle">Guideline de Entrenamiento Personalizado</div>
+            <div class="client-name">[NOMBRE_CLIENTE]</div>
+        </div>
+
+        <!-- Section 1: Client Profile -->
+        <div class="guideline-section">
+            <div class="guideline-section-title">1. Perfil del Cliente</div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Edad</div>
+                    <div class="info-value">[EDAD] años</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Sexo</div>
+                    <div class="info-value">[SEXO]</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Peso</div>
+                    <div class="info-value">[PESO] kg</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Altura</div>
+                    <div class="info-value">[ALTURA] cm</div>
+                </div>
+            </div>
+
+            <div class="guideline-subsection-title">Contexto General</div>
+            <p class="guideline-text">
+                [CONTEXTO_GENERAL]
+            </p>
+
+            <div class="guideline-subsection-title">Disponibilidad</div>
+            <ul class="guideline-list">
+                <li><strong>Días de entrenamiento por semana:</strong> [DIAS_SEMANA]</li>
+                <li><strong>Duración de sesiones:</strong> [DURACION_SESION]</li>
+                <li><strong>Equipamiento disponible:</strong> [EQUIPAMIENTO]</li>
+            </ul>
+        </div>
+
+        <!-- Section 2: Main Objective -->
+        <div class="guideline-section">
+            <div class="guideline-section-title">2. Objetivo Principal</div>
+            
+            <div class="highlight-box">
+                <strong>Objetivo:</strong> [OBJETIVO_PRINCIPAL]
+            </div>
+
+            <div class="guideline-subsection-title">Desglose del Objetivo</div>
+            <ul class="guideline-list">
+                <li>[OBJETIVO_DETALLE_1]</li>
+                <li>[OBJETIVO_DETALLE_2]</li>
+                <li>[OBJETIVO_DETALLE_3]</li>
+            </ul>
+
+            <div class="guideline-subsection-title">Timeline Esperado</div>
+            <p class="guideline-text">
+                Se espera ver resultados iniciales en <strong>[TIMELINE_INICIAL]</strong>. Resultados significativos en <strong>[TIMELINE_SIGNIFICATIVO]</strong>.
+            </p>
+        </div>
+
+        <!-- Section 3: Training Experience -->
+        <div class="guideline-section">
+            <div class="guideline-section-title">3. Experiencia de Entrenamiento</div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Años Entrenando</div>
+                    <div class="info-value">[ANOS_ENTRENAMIENTO]</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Nivel Actual</div>
+                    <div class="info-value">[NIVEL_ACTUAL]</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Experiencia Previa</div>
+                    <div class="info-value">[EXPERIENCIA_PREVIA]</div>
+                </div>
+            </div>
+
+            <div class="guideline-subsection-title">Historial de Entrenamiento</div>
+            <p class="guideline-text">
+                [HISTORIAL_ENTRENAMIENTO]
+            </p>
+
+            <div class="guideline-subsection-title">Fortalezas Actuales</div>
+            <ul class="guideline-list">
+                <li>[FORTALEZA_1]</li>
+                <li>[FORTALEZA_2]</li>
+                <li>[FORTALEZA_3]</li>
+            </ul>
+
+            <div class="guideline-subsection-title">Áreas de Mejora</div>
+            <ul class="guideline-list">
+                <li>[MEJORA_1]</li>
+                <li>[MEJORA_2]</li>
+                <li>[MEJORA_3]</li>
+            </ul>
+        </div>
+
+        <!-- Section 4: Special Considerations -->
+        <div class="guideline-section">
+            <div class="guideline-section-title">4. Consideraciones Especiales</div>
+            
+            <div class="guideline-subsection-title">Historial de Lesiones</div>
+            <p class="guideline-text">
+                [HISTORIAL_LESIONES]
+            </p>
+
+            <div class="guideline-subsection-title">Limitaciones Actuales</div>
+            <ul class="guideline-list">
+                <li>[LIMITACION_1]</li>
+                <li>[LIMITACION_2]</li>
+                <li>[LIMITACION_3]</li>
+            </ul>
+
+            <div class="guideline-subsection-title">Adaptaciones Necesarias</div>
+            <ul class="guideline-list">
+                <li>[ADAPTACION_1]</li>
+                <li>[ADAPTACION_2]</li>
+                <li>[ADAPTACION_3]</li>
+            </ul>
+
+            <div class="guideline-subsection-title">Contexto Especial</div>
+            <p class="guideline-text">
+                [CONTEXTO_ESPECIAL]
+            </p>
+        </div>
+
+        <!-- Section 5: Progression and Periodization -->
+        <div class="guideline-section">
+            <div class="guideline-section-title">5. Progresión y Periodización</div>
+            
+            <div class="guideline-subsection-title">Sistema de Mesociclos (4 semanas)</div>
+            <p class="guideline-text">
+                Tu programa se estructura en ciclos de 4 semanas, cada uno con un objetivo específico:
+            </p>
+
+            <div class="table-wrapper">
+                <table class="guideline-table progression-table">
+                    <thead>
+                        <tr>
+                            <th>Semana</th>
+                            <th>Objetivo</th>
+                            <th>Reps</th>
+                            <th>RIR</th>
+                            <th>Técnica</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>S1</td>
+                            <td>Base</td>
+                            <td>10-12</td>
+                            <td>3-4</td>
+                            <td>Estándar</td>
+                        </tr>
+                        <tr>
+                            <td>S2</td>
+                            <td>Acumulación</td>
+                            <td>8-10</td>
+                            <td>2-3</td>
+                            <td>Estándar</td>
+                        </tr>
+                        <tr>
+                            <td>S3</td>
+                            <td>Pico Intensidad</td>
+                            <td>6-8</td>
+                            <td>1-2</td>
+                            <td>[TECNICA_ESPECIAL]</td>
+                        </tr>
+                        <tr>
+                            <td>S4</td>
+                            <td>Deload Activo</td>
+                            <td>10-12</td>
+                            <td>4-5</td>
+                            <td>Estándar</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guideline-subsection-title">Progresión de Cargas</div>
+            <ul class="guideline-list">
+                <li><strong>Incremento Base:</strong> +5% cada semana (S1 → S2 → S3)</li>
+                <li><strong>Ajuste Mínimo:</strong> Si +5% < 2kg, añadir 1-2 reps dentro del rango</li>
+                <li><strong>Redondeo:</strong> Múltiplo de 2.5kg más cercano</li>
+                <li><strong>Deload (S4):</strong> Misma carga que S1, RIR 4-5</li>
+            </ul>
+
+            <div class="guideline-subsection-title">Volumen por Semana</div>
+            <ul class="guideline-list">
+                <li><strong>S1:</strong> MEV + 1 serie</li>
+                <li><strong>S2:</strong> S1 + 1 serie</li>
+                <li><strong>S3:</strong> Igual S2</li>
+                <li><strong>S4:</strong> MEV (Minimum Effective Volume)</li>
+            </ul>
+
+            <div class="success-box">
+                <strong>💡 Nota Importante:</strong> La progresión no siempre es lineal. Si sientes fatiga acumulada, podemos ajustar cargas o volumen. La consistencia es más importante que la perfección.
+            </div>
+        </div>
+
+        <!-- Section 6: Critical Alerts -->
+        <div class="guideline-section">
+            <div class="guideline-section-title">6. Alertas y Consideraciones Críticas</div>
+            
+            <div class="alert-box">
+                <strong>⚠️ Puntos Clave a Recordar:</strong><br>
+                • La técnica SIEMPRE antes que la carga<br>
+                • Reporta molestias inmediatamente<br>
+                • Registra cada sesión con precisión<br>
+                • Comunica cambios en tu contexto (viajes, estrés, sueño)<br>
+                • No improvises ejercicios sin consultar
+            </div>
+
+            <div class="guideline-subsection-title">Señales de Alerta</div>
+            <ul class="guideline-list">
+                <li><strong>Dolor agudo:</strong> Detén el ejercicio inmediatamente</li>
+                <li><strong>Molestias persistentes:</strong> Reporta en &lt;24h</li>
+                <li><strong>Fatiga extrema:</strong> Posible overtraining, comunícalo</li>
+                <li><strong>Falta de progreso 2+ semanas:</strong> Revisamos juntos</li>
+            </ul>
+
+            <div class="guideline-subsection-title">Comunicación Obligatoria</div>
+            <p class="guideline-text">
+                Debes comunicarme <strong>ANTES</strong> de:
+            </p>
+            <ul class="guideline-list">
+                <li>Cambiar ejercicios por tu cuenta</li>
+                <li>Modificar cargas significativamente</li>
+                <li>Saltarte sesiones por más de 3 días</li>
+                <li>Hacer entrenamientos adicionales no programados</li>
+            </ul>
+
+            <div class="highlight-box">
+                <strong>✓ Recuerda:</strong> Somos un equipo. Tu éxito es mi éxito. Comunícate siempre que tengas dudas.
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="guideline-footer">
+            <div class="footer-text">Be Stronger | Rehab & Performance online coaching</div>
+            <div class="footer-text">contacto@bestronger.es | +34 643 99 10 86</div>
+            <div class="footer-text" style="font-size: 11px; margin-top: 10px; color: #c8bfb5;">⚠️ Documento confidencial de Be Stronger</div>
+        </div>
+
+        <!-- Back Button at Bottom -->
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="back-button" onclick="window.history.back()">← Volver a Recursos</button>
+        <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
+        </div>
+    </div>
+</body>
+</html>

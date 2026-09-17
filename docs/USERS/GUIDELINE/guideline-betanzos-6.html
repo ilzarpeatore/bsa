@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'betanzos';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BE STRONGER - Guideline de Entrenamiento Betanzos</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #2e1f1f;
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            width: 100%;
+            background: #2e1f1f;
+            padding: 40px 20px;
+            border-bottom: 2px solid #c47878;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            margin-bottom: 10px;
+            color: #ede8e2;
+        }
+
+        .logo span {
+            color: #c47878;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #c8bfb5;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #c47878;
+            letter-spacing: 0.1em;
+            font-weight: 500;
+        }
+
+        .content {
+            flex: 1;
+            width: 100%;
+            padding: 40px 20px;
+            background: #2e1f1f;
+        }
+
+        .content-wrapper {
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 30px;
+            padding-left: 15px;
+            border-left: 4px solid #c47878;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .card {
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .card table {
+            width: 100%;
+            min-width: 100%;
+        }
+
+        .card {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196, 120, 120, 0.08) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .card-text {
+            font-size: 14px;
+            color: #c8bfb5;
+            line-height: 1.8;
+        }
+
+        .alert-box {
+            background: rgba(196, 120, 120, 0.1);
+            border-left: 4px solid #c47878;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .alert-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #c47878;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .alert-text {
+            font-size: 14px;
+            color: #c8bfb5;
+            line-height: 1.7;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .list-item {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .list-item::before {
+            content: '✦';
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-size: 12px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #c47878;
+            color: #ede8e2;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border: 2px solid #c47878;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin: 15px 0;
+        }
+
+        .btn:hover {
+            background: transparent;
+            color: #c47878;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .header-nav {
+            display: flex;
+            justify-content: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .header-nav a {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .header-nav a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        .nav-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-links a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        .footer {
+            width: 100%;
+            background: #2e1f1f;
+            padding: 30px 20px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+            text-align: center;
+            font-size: 11px;
+            color: #c8bfb5;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 15px 0;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .table-wrapper::after {
+            content: '← Desliza izquierda a derecha →';
+            display: none;
+            text-align: center;
+            font-size: 12px;
+            color: #c47878;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .table-wrapper::after {
+                display: block;
+            }
+            .table-wrapper {
+                margin-bottom: 35px;
+            }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            min-width: 90%;
+        }
+
+        th {
+            background: rgba(196, 120, 120, 0.15);
+            color: #c47878;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.08);
+            color: #c8bfb5;
+            font-size: 13px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 15px;
+            }
+            .logo {
+                font-size: 24px;
+            }
+            .content {
+                padding: 30px 15px;
+            }
+            .section-title {
+                font-size: 16px;
+            }
+            .card {
+                padding: 20px;
+            }
+            .table-wrapper {
+                margin-left: -15px;
+                margin-right: -15px;
+                border-radius: 0;
+            }
+            table {
+                border-radius: 0;
+            }
+            th, td {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="tagline">Asesoría Personal Online</div>
+            <div class="page-title">Guideline de Entrenamiento · Betanzos — 6 meses</div>
+            <div class="header-nav">
+                <a href="cliente-betanzos-menu.html">← Volver al Menú</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="section">
+                    <h2 class="section-title">1. Perfil del Cliente</h2>
+                    <div class="two-col">
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="card-title">Datos Personales</div>
+                                <table>
+                                    <tr><td><strong>Nombre:</strong></td><td>Betanzos</td></tr>
+                                    <tr><td><strong>Edad:</strong></td><td>26 años</td></tr>
+                                    <tr><td><strong>Ocupación:</strong></td><td>Autónomo</td></tr>
+                                    <tr><td><strong>Horario laboral:</strong></td><td>Flexible</td></tr>
+                                    <tr><td><strong>Sueño:</strong></td><td>~8 horas</td></tr>
+                                    <tr><td><strong>Estrés:</strong></td><td>5/10</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="card-title">Condición Física Actual</div>
+                                <table>
+                                    <tr><td><strong>Peso:</strong></td><td>75 kg</td></tr>
+                                    <tr><td><strong>% Grasa:</strong></td><td>14%</td></tr>
+                                    <tr><td><strong>Masa muscular:</strong></td><td>64.5 kg</td></tr>
+                                    <tr><td><strong>Años entrenando:</strong></td><td>8 años</td></tr>
+                                    <tr><td><strong>Nivel técnico:</strong></td><td>7/10</td></tr>
+                                    <tr><td><strong>Lesiones previas:</strong></td><td>Ninguna</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Observaciones del Entrenador</div>
+                            <div class="card-text">Betanzos muestra excelente adherencia al entrenamiento y buena técnica de ejecución. Ha progresado consistentemente en los últimos 6 meses con ganancias notables en fuerza y composición corporal. Su mentalidad es muy orientada al detalle y busca optimizar cada aspecto del plan.</div>
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">⚠️ Punto Crítico Identificado</div>
+                        <div class="alert-text">Betanzos ha alcanzado un nivel de entrenamiento avanzado. El siguiente paso es optimizar la recuperación y la nutrición para maximizar ganancias. La consistencia en hábitos es su mayor fortaleza.</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">2. Objetivo y Expectativas Realistas</h2>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Objetivo SMART</div>
+                            <div class="card-text">Ganar 3-4 kg de masa muscular neta (de 64.5 a 67-68 kg de masa magra) en 6 meses, manteniendo el porcentaje graso entre 13-15%, mediante periodización avanzada con énfasis en fuerza relativa, técnica de precisión y recuperación optimizada.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Expectativas Realistas</div>
+                            <div class="card-text">
+                                <div class="list-item"><strong>Ganancias musculares:</strong> Con 8 años de entrenamiento, esperar 0.5-0.8 kg/mes en condiciones óptimas.</div>
+                                <div class="list-item"><strong>Fuerza:</strong> Progresión de 5-10% en ejercicios principales cada mesociclo es realista.</div>
+                                <div class="list-item"><strong>Composición corporal:</strong> Recomposición lenta pero consistente.</div>
+                                <div class="list-item"><strong>Recuperación:</strong> A este nivel, la recuperación es tan importante como el entrenamiento.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Indicadores de Progreso (KPIs)</div>
+                            <div class="table-wrapper"><table>
+                                <thead><tr><th>KPI</th><th>Actual</th><th>Objetivo</th><th>Plazo</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Peso corporal</td><td>75 kg</td><td>77-78 kg</td><td>6 meses</td></tr>
+                                    <tr><td>% Grasa</td><td>14%</td><td>13-14%</td><td>6 meses</td></tr>
+                                    <tr><td>Masa muscular</td><td>64.5 kg</td><td>67-68 kg</td><td>6 meses</td></tr>
+                                    <tr><td>Sentadilla</td><td>Registrar S1</td><td>+10% carga</td><td>Mes 6</td></tr>
+                                    <tr><td>Press banca</td><td>Registrar S1</td><td>+8% carga</td><td>Mes 6</td></tr>
+                                </tbody>
+                            </table></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">3. Metodología Aplicada</h2>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Sistema de Entrenamiento</div>
+                            <div class="card-text">Se aplica la metodología estructural de Be Stronger basada en mesociclos mensuales con progresión intra-ciclo de 4 semanas, sistema de doble intensidad (Top Set + Back-off Sets) y técnicas de intensidad rotativas adaptadas al nivel avanzado de Betanzos.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Técnicas Especiales — Rotación Mensual</div>
+                            <div class="table-wrapper"><table>
+                                <thead><tr><th>Mes</th><th>Técnica</th><th>Aplicación</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Mes 1</td><td>Rest-pause</td><td>S3 en 1 ejercicio por sesión. Ideal para bíceps y tríceps.</td></tr>
+                                    <tr><td>Mes 2</td><td>Drop set</td><td>S3, reducción del 20-25%. Ideal para deltoides y pecho.</td></tr>
+                                    <tr><td>Mes 3</td><td>Myo-reps</td><td>Serie de activación + mini-series. Ideal para espalda e isquios.</td></tr>
+                                    <tr><td>Mes 4-6</td><td>Series descendentes</td><td>Reducción progresiva de carga en 3-4 escalones.</td></tr>
+                                </tbody>
+                            </table></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">4. Estructura del Plan de Entrenamiento</h2>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Sincronización con Mesociclo</div>
+                            <div class="card-text">La estructura detallada del plan de entrenamiento está sincronizada con el Mesociclo correspondiente a cada mes. Para ver los detalles operativos de esta semana:</div>
+                            <a href="mesociclo-betanzos-6-completo.html" class="btn">📋 Ver Detalles de la Programación</a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Parámetros Generales de Entrenamiento</div>
+                            <div class="table-wrapper"><table>
+                                <tr><td><strong>Duración de sesión:</strong></td><td>50-70 minutos</td></tr>
+                                <tr><td><strong>Calentamiento:</strong></td><td>5-8 min: movilidad + 1-2 series de activación</td></tr>
+                                <tr><td><strong>Descanso Top Sets:</strong></td><td>2.5-3 minutos</td></tr>
+                                <tr><td><strong>Descanso Back-off:</strong></td><td>1.5-2 minutos</td></tr>
+                                <tr><td><strong>Descanso Accesorios:</strong></td><td>60-90 segundos</td></tr>
+                                <tr><td><strong>Registro obligatorio:</strong></td><td>Peso, reps, RIR real tras cada serie en HubFit</td></tr>
+                            </table></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">5. Progresiones — Carga e Intensidad</h2>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Modelo de Progresión Intra-Mesociclo (4 Semanas)</div>
+                            <div class="table-wrapper"><table>
+                                <thead><tr><th>Semana</th><th>Reps</th><th>RIR</th><th>Carga</th><th>Volumen</th><th>Técnica</th></tr></thead>
+                                <tbody>
+                                    <tr><td><strong>S1 – Base</strong></td><td>10-12</td><td>3-4</td><td>Referencia</td><td>MEV +1</td><td>—</td></tr>
+                                    <tr><td><strong>S2 – Acum.</strong></td><td>8-10</td><td>2-3</td><td>+5% vs S1</td><td>S1 +1</td><td>—</td></tr>
+                                    <tr><td><strong>S3 – Pico</strong></td><td>6-8</td><td>1-2</td><td>+5% vs S2</td><td>= S2</td><td>Especial</td></tr>
+                                    <tr><td><strong>S4 – Deload</strong></td><td>10-12</td><td>4-5</td><td>= S1</td><td>MEV</td><td>—</td></tr>
+                                </tbody>
+                            </table></div>
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">⚠️ Señales de Ajuste Obligatorio</div>
+                        <div class="alert-text">Rendimiento en descenso 2 semanas seguidas, sueño alterado, motivación muy baja. Si aparecen 2+ señales → aplicar deload anticipado.</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">6. Bloque de Hábitos Prioritarios</h2>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Hábito 1: Proteína Mínima Diaria — 160g</div>
+                            <div class="card-text"><strong>Por qué importa:</strong> Con 75 kg de peso, Betanzos necesita 2.1-2.2 g/kg de proteína diaria (160g mínimo).<br><strong>Cómo implementarlo:</strong> 3 comidas principales (40g cada una) + 1-2 snacks proteicos (20-30g cada uno).</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Hábito 2: Superávit Calórico Controlado</div>
+                            <div class="card-text"><strong>Por qué importa:</strong> Necesitas un pequeño superávit calórico (200-300 kcal/día) para ganar masa muscular.<br><strong>Cómo implementarlo:</strong> Añadir 1-2 snacks calóricos extra. Monitorizar peso semanal: objetivo 0.25-0.5 kg/semana.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Hábito 3: Sueño Consistente — 8 Horas</div>
+                            <div class="card-text"><strong>Por qué importa:</strong> El sueño es donde ocurre la recuperación muscular y la síntesis proteica.<br><strong>Cómo implementarlo:</strong> Hora fija de acostarse y levantarse. Sin pantallas 30 min antes de dormir. Temperatura fresca (16-18°C).</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Hábito 4: Registro en HubFit</div>
+                            <div class="card-text"><strong>Por qué importa:</strong> El registro preciso de peso, reps y RIR es la base para la progresión inteligente.<br><strong>Cómo implementarlo:</strong> Registrar INMEDIATAMENTE después de cada serie. Ser honesto con RIR.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Hábito 5: Movilidad y Prevención</div>
+                            <div class="card-text"><strong>Por qué importa:</strong> A nivel avanzado, la prevención de lesiones es crítica.<br><strong>Cómo implementarlo:</strong> 10 min de movilidad dinámica antes del entrenamiento. 5 min de estiramientos después.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">7. Hoja de Ruta — Fases del Plan (6 Meses)</h2>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Fase 1: Adaptación (Mes 1)</div>
+                            <div class="card-text"><strong>Objetivo:</strong> Establecer línea base, adaptar el cuerpo al sistema.<br><strong>Técnica especial:</strong> Rest-pause<br><strong>Volumen:</strong> MEV → MAV</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Fase 2: Acumulación (Meses 2-3)</div>
+                            <div class="card-text"><strong>Objetivo:</strong> Acumular volumen, maximizar hipertrofia.<br><strong>Técnicas especiales:</strong> Drop sets (M2) + Myo-reps (M3)<br><strong>Volumen:</strong> MAV → MRV</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-title">Fase 3: Intensificación (Meses 4-6)</div>
+                            <div class="card-text"><strong>Objetivo:</strong> Optimizar fuerza relativa, consolidar ganancias.<br><strong>Técnica especial:</strong> Series descendentes<br><strong>Volumen:</strong> MRV → MAV (mantenimiento)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">8. Alertas y Consideraciones Especiales</h2>
+                    <div class="alert-box">
+                        <div class="alert-title">🚨 Factor Bloqueante: Nutrición</div>
+                        <div class="alert-text">Sin un superávit calórico consistente, no habrá ganancia muscular. Monitoriza peso semanal y ajusta calorías si no progresa.</div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">🚨 Factor Bloqueante: Sueño</div>
+                        <div class="alert-text">Menos de 7 horas consistentes comprometerá recuperación y síntesis proteica. Esto es no negociable.</div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">💡 Recomendación Proactiva: Deload Preventivo</div>
+                        <div class="alert-text">Cada 4 semanas (S4), aplicar deload activo. Esto es recuperación estratégica que maximiza adaptaciones.</div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">💡 Recomendación Proactiva: Registro de Datos</div>
+                        <div class="alert-text">El registro en HubFit es la base de toda la periodización. Sin datos precisos, no hay ajustes inteligentes.</div>
+                    </div>
+                </div>
+
+                <div class="nav-links">
+                    <a href="cliente-betanzos-menu.html">← Volver al Menú</a>
+                    <a href="mesociclo-betanzos-6-completo.html">Mesociclo →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 Be Stronger - Asesoría Personal Online</p>
+            <p>Guideline personalizado para Betanzos | Válido hasta Diciembre 2026</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'alberto-marin';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guideline - Alberto Marín Girón</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #c47878;
+            --bg-dark: #2e1f1f;
+            --bg-card: rgba(200, 191, 181, 0.04);
+            --text-primary: #ede8e2;
+            --text-secondary: #c8bfb5;
+            --border: rgba(200, 191, 181, 0.10);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(196, 120, 120, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .tagline {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .client-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(196, 120, 120, 0.15);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background: rgba(196, 120, 120, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px 20px;
+            max-width: 100%;
+        }
+
+        .content-wrapper {
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 24px;
+            font-style: italic;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .alert-box {
+            background: rgba(196, 120, 120, 0.08);
+            border: 1px solid rgba(196, 120, 120, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .alert-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .card-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .habit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .habit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .habit-number {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .habit-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .habit-reason {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .habit-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .phase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .phase-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .phase-header {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .phase-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .footer {
+            padding: 40px 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .nav-button-footer {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(196, 120, 120, 0.15);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button-footer:hover {
+            background: rgba(196, 120, 120, 0.25);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 15px;
+            }
+            .logo {
+                font-size: 24px;
+            }
+            .content {
+                padding: 30px 15px;
+            }
+            .section-title {
+                font-size: 20px;
+            }
+            .habit-grid {
+                grid-template-columns: 1fr;
+            }
+            .phase-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="tagline">Asesoría Personal Online</div>
+            <div class="client-name">Guideline de Entrenamiento - Alberto Marín Girón</div>
+        </div>
+
+        <div class="nav-top">
+            <a href="cliente-alberto-marin-menu.html" class="nav-button">← Volver al Menú</a>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="alert-box">
+                    <div class="alert-title">👋 Bienvenido, Alberto</div>
+                    <div class="alert-text">
+                        Este guideline ha sido diseñado específicamente para ti, considerando tu experiencia en entrenamiento, tu condición de pubalgia, tu trastorno de ansiedad generalizada (TAG), y tu situación como futbolista. La consistencia y la adaptabilidad serán clave para tu éxito en estos 12 semanas.
+                    </div>
+                </div>
+
+                <!-- PERFIL -->
+                <div class="section">
+                    <h2 class="section-title">📋 Tu Perfil</h2>
+                    <div class="card">
+                        <div class="card-title">Datos Personales</div>
+                        <div class="card-text">
+                            <strong>Edad:</strong> 20 años | <strong>Experiencia:</strong> Menos de 1 año en gimnasio | <strong>Ocupación:</strong> Estudiante universitario + futbolista
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Objetivo Principal</div>
+                        <div class="card-text">
+                            Recomposición corporal: reducir grasa corporal mientras ganas músculo. Este cambio dependerá de entrenamiento consistente, nutrición estructurada, y recuperación adecuada.
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Situación Actual</div>
+                        <div class="card-text">
+                            Temporada de fútbol terminada. Curso académico terminado. Tienes disponibilidad total para entrenar. Algunos días habrá partidos amistosos, pero sin entrenamientos de fútbol programados.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OBJETIVO -->
+                <div class="section">
+                    <h2 class="section-title">🎯 Objetivo y Metodología</h2>
+                    <div class="card">
+                        <div class="card-title">¿Por qué recomposición corporal?</div>
+                        <div class="card-text">
+                            A los 20 años, con menos de 1 año de experiencia, tu cuerpo está en un estado óptimo para ganar músculo mientras pierdes grasa simultáneamente. Esto es lo que llamamos "recomposición". No es lo mismo que "perder peso": es cambiar la composición corporal. Tu peso puede mantenerse o incluso aumentar ligeramente, pero verás cambios visuales significativos.
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Pilares de tu Plan</div>
+                        <div class="card-text">
+                            <strong>1. Entrenamiento de fuerza:</strong> 3-4 sesiones/semana en gimnasio, enfocadas en técnica y progresión progresiva. <br>
+                            <strong>2. Nutrición estructurada:</strong> 2,100-2,180 kcal/día con proteína en cada comida. <br>
+                            <strong>3. Recuperación activa:</strong> Sueño 7-8h, hidratación 2-2.5L, movimiento diario. <br>
+                            <strong>4. Gestión del estrés:</strong> El entrenamiento es un aliado para tu TAG, pero la exigencia excesiva puede convertirse en un estresor.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HÁBITOS -->
+                <div class="section">
+                    <h2 class="section-title">✅ 5 Hábitos Fundamentales</h2>
+                    <div class="habit-grid">
+                        <div class="habit-card">
+                            <div class="habit-number">1</div>
+                            <div class="habit-title">Planificación Dominical</div>
+                            <div class="habit-reason">Por qué importa</div>
+                            <div class="habit-text">Tu mayor riesgo no es el sobreentrenamiento, sino el abandono por colapso de agenda. Planificar cada domingo te permite anticipar conflictos académicos y deportivos.</div>
+                        </div>
+                        <div class="habit-card">
+                            <div class="habit-number">2</div>
+                            <div class="habit-title">Sueño 7-8 Horas</div>
+                            <div class="habit-reason">Por qué importa</div>
+                            <div class="habit-text">Crítico para recuperación muscular y regulación del TAG. El sueño es donde ocurre el crecimiento muscular. Si tienes dificultad para dormir, comunícalo inmediatamente.</div>
+                        </div>
+                        <div class="habit-card">
+                            <div class="habit-number">3</div>
+                            <div class="habit-title">Proteína en Cada Comida</div>
+                            <div class="habit-reason">Por qué importa</div>
+                            <div class="habit-text">Ya comes bien en general, pero sin estructura de macros. El cambio físico que buscas depende directamente de ingesta proteica suficiente. Sin proteína, el entrenamiento no se transforma en músculo.</div>
+                        </div>
+                        <div class="habit-card">
+                            <div class="habit-number">4</div>
+                            <div class="habit-title">Hidratación 2-2.5L Agua</div>
+                            <div class="habit-reason">Por qué importa</div>
+                            <div class="habit-text">Futbolista con entrenamientos intensos + entorno académico estresante = riesgo alto de deshidratación crónica leve. Esto afecta rendimiento, recuperación de pubalgia, y salud cognitiva.</div>
+                        </div>
+                        <div class="habit-card">
+                            <div class="habit-number">5</div>
+                            <div class="habit-title">Movimiento Diario</div>
+                            <div class="habit-reason">Por qué importa</div>
+                            <div class="habit-text">El ejercicio es uno de los mejores reguladores del sistema nervioso para el TAG. Los días que no puedas ir al gimnasio: una caminata de 20-30 minutos ya cuenta. No todo o nada.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ESTRUCTURA DE ENTRENAMIENTO -->
+                <div class="section">
+                    <h2 class="section-title">💪 Estructura de Entrenamiento</h2>
+                    <div class="card">
+                        <div class="card-title">Semana Típica</div>
+                        <div class="card-text">
+                            <strong>Lunes:</strong> Fútbol (19-21h) <br>
+                            <strong>Martes:</strong> Sesión de Gimnasio <br>
+                            <strong>Miércoles:</strong> Fútbol (19-21h) <br>
+                            <strong>Jueves:</strong> Sesión de Gimnasio <br>
+                            <strong>Viernes:</strong> Fútbol (19-21h) <br>
+                            <strong>Sábado:</strong> Gimnasio o Descanso <br>
+                            <strong>Domingo:</strong> Partido 12:00 + Recuperación
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Protocolo de Pubalgia</div>
+                        <div class="card-text">
+                            La pubalgia está mejorando pero sin seguimiento fisioterapéutico activo. Cualquier dolor de más de 4/10 durante o después del entrenamiento debe parar inmediatamente los ejercicios de tren inferior y ser comunicado al entrenador. Se recomienda encarecidamente retomar 2-3 sesiones de fisioterapia para establecer una pauta de progresión segura.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FASES -->
+                <div class="section">
+                    <h2 class="section-title">📅 Plan de 12 Semanas</h2>
+                    <div class="phase-grid">
+                        <div class="phase-card">
+                            <div class="phase-header">FASE 1: Semanas 1-4</div>
+                            <div class="phase-text">
+                                <strong>Adaptación + Establecer Hábitos</strong><br><br>
+                                Objetivo: crear rutina, no destruir el cuerpo. Técnica como prioridad. Volumen bajo-moderado (2-3 sesiones/semana). Rangos 10-12 reps con RIR alto (3-4). Rest-pause solo en S3.
+                            </div>
+                        </div>
+                        <div class="phase-card">
+                            <div class="phase-header">FASE 2: Semanas 5-8</div>
+                            <div class="phase-text">
+                                <strong>Acumulación + Incremento de Carga</strong><br><br>
+                                Si adherencia buena (2+ sesiones/semana), incrementar volumen. Drop Set en segundo mesociclo. Seguimiento de pubalgia: si está controlada, introducir trabajo de tren inferior con más carga.
+                            </div>
+                        </div>
+                        <div class="phase-card">
+                            <div class="phase-header">FASE 3: Semanas 9-12</div>
+                            <div class="phase-text">
+                                <strong>Intensificación + Pico de Rendimiento</strong><br><br>
+                                Myo-reps en tercer mesociclo. Reducción volumen, aumento intensidad. Cargas máximas. Fotografías de progreso y medidas. Evaluación de rendimiento deportivo.
+                            </div>
+                        </div>
+                        <div class="phase-card">
+                            <div class="phase-header">FASE 4: Semana 13+</div>
+                            <div class="phase-text">
+                                <strong>Descarga + Reevaluación Completa</strong><br><br>
+                                Deload activo: 60% carga, 50% volumen. Reevaluación de KPIs. Revisión de hábitos consolidados. Diseño del siguiente trimestre.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALERTAS CRÍTICAS -->
+                <div class="section">
+                    <h2 class="section-title">⚠️ Alertas Críticas</h2>
+                    <div class="alert-box">
+                        <div class="alert-title">⚠️ PUBALGIA — Gestión Prioritaria</div>
+                        <div class="alert-text">
+                            La pubalgia está mejorando pero sin seguimiento fisioterapéutico activo. Cualquier dolor de más de 4/10 durante o después del entrenamiento debe parar inmediatamente los ejercicios de tren inferior y ser comunicado al entrenador. Se recomienda encarecidamente retomar al menos 2-3 sesiones de fisioterapia para establecer una pauta de progresión segura y confirmar que la carga propuesta es adecuada.
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">⚠️ TAG — Ansiedad Generalizada</div>
+                        <div class="alert-text">
+                            El entrenamiento es un aliado para el TAG, pero la exigencia excesiva puede convertirse en un estresor más. Si llegas a un período de alta ansiedad o crisis, la sesión del día puede sustituirse por una caminata o movilidad suave. Nunca generar culpa por no completar un entrenamiento. El entrenador debe conocer los estados emocionales para ajustar la carga cuando sea necesario.
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">⚠️ GESTIÓN DEL TIEMPO — Riesgo de Abandono</div>
+                        <div class="alert-text">
+                            El mayor riesgo no es el sobreentrenamiento sino el abandono por colapso de agenda. La semana que no puedas completar ninguna sesión de gimnasio, el protocolo de emergencia es: 1 sesión de core en casa de 20 min + mantener el hábito de proteína. Mantener la racha de movimiento, aunque sea mínima, es más importante que la perfección de una semana.
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">⚠️ TÉCNICA — Prioridad en Fase 1</div>
+                        <div class="alert-text">
+                            Con menos de 1 año de entrenamiento y técnica media, los primeros 4 semanas deben usarse para asentar la mecánica de los ejercicios básicos. Subir carga con mala técnica en un futbolista con pubalgia es un riesgo real. Si hay duda sobre la ejecución de un ejercicio, grabar un vídeo y enviarlo al entrenador antes de añadir carga.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESUMEN -->
+                <div class="section">
+                    <h2 class="section-title">📌 Resumen Ejecutivo</h2>
+                    <div class="card">
+                        <div class="card-title">Tu Éxito Depende De</div>
+                        <div class="card-text">
+                            <strong>1. Consistencia:</strong> 2-3 sesiones de gimnasio/semana, sin excepciones. <br>
+                            <strong>2. Nutrición:</strong> 2,100-2,180 kcal/día con proteína en cada comida. <br>
+                            <strong>3. Recuperación:</strong> Sueño 7-8h, hidratación 2-2.5L, movimiento diario. <br>
+                            <strong>4. Comunicación:</strong> Reporta dolor, estrés alto, o dificultades inmediatamente. <br>
+                            <strong>5. Adaptabilidad:</strong> Si algo no funciona, ajustamos. El plan es flexible, tú no.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="cliente-alberto-marin-menu.html" class="nav-button-footer">← Volver al Menú</a>
+        </div>
+    </div>
+</body>
+</html>

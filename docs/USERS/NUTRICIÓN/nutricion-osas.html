@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'osas';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Nutricional - Osas</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .nutrition-card {
+            background: rgba(200, 191, 181, 0.03);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .macro-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .macro-box {
+            background: rgba(196, 120, 120, 0.1);
+            border: 1px solid rgba(196, 120, 120, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .macro-label {
+            font-size: 11px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+        
+        .macro-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #c47878;
+        }
+        
+        .meal-structure {
+            background: rgba(200, 191, 181, 0.03);
+            border-left: 3px solid #c47878;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .meal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        
+        .meal-details {
+            font-size: 13px;
+            color: #c8bfb5;
+            line-height: 1.8;
+        }
+        
+        .recommendation-box {
+            background: rgba(196, 120, 120, 0.08);
+            border: 1px solid rgba(196, 120, 120, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 13px;
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 900px; margin: 0 auto; padding: 40px 20px;">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #c47878;">
+            <div style="font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px; color: #ede8e2; margin-bottom: 10px;">
+                Be <span style="color: #c47878;">Stronger</span>
+            </div>
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 42px; font-style: italic; color: #ede8e2; margin: 0; margin-bottom: 10px;">
+                Plan Nutricional de <span style="color: #c47878;">Osas</span>
+            </h1>
+            <p style="font-size: 14px; color: #c8bfb5; margin: 0;">
+                Ganancia muscular + Pérdida de grasa
+            </p>
+        </div>
+
+        <!-- Resumen Ejecutivo -->
+        <div class="nutrition-card">
+            <h2 style="font-size: 20px; font-weight: 600; color: #ede8e2; margin-top: 0;">📊 Resumen Ejecutivo</h2>
+            
+            <div style="background: rgba(196, 120, 120, 0.1); padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <p style="font-size: 13px; color: #c8bfb5; margin: 0; line-height: 1.8;">
+                    <strong>Objetivo:</strong> Ganancia muscular con pérdida de grasa simultánea (recomposición corporal)<br>
+                    <strong>Edad:</strong> 26 años | <strong>Peso:</strong> 150 kg | <strong>% Grasa:</strong> 25%<br>
+                    <strong>Masa Magra:</strong> 112.5 kg | <strong>TMB:</strong> 1431 kcal<br>
+                    <strong>Estrategia:</strong> Superávit calórico moderado (400 kcal) para maximizar ganancia muscular mientras se mantiene baja grasa
+                </p>
+            </div>
+
+            <h3 style="font-size: 16px; font-weight: 600; color: #c47878; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.08em;">Distribución Calórica Diaria</h3>
+            
+            <div class="macro-grid">
+                <div class="macro-box">
+                    <div class="macro-label">Calorías Totales</div>
+                    <div class="macro-value">2201</div>
+                    <div style="font-size: 11px; color: #c8bfb5; margin-top: 5px;">kcal/día</div>
+                </div>
+                <div class="macro-box">
+                    <div class="macro-label">Proteína</div>
+                    <div class="macro-value">248</div>
+                    <div style="font-size: 11px; color: #c8bfb5; margin-top: 5px;">g (45%)</div>
+                </div>
+                <div class="macro-box">
+                    <div class="macro-label">Grasas</div>
+                    <div class="macro-value">150</div>
+                    <div style="font-size: 11px; color: #c8bfb5; margin-top: 5px;">g (61%)</div>
+                </div>
+                <div class="macro-box">
+                    <div class="macro-label">Carbohidratos</div>
+                    <div class="macro-value">125</div>
+                    <div style="font-size: 11px; color: #c8bfb5; margin-top: 5px;">g (23%)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estructura de Comidas -->
+        <div class="nutrition-card">
+            <h2 style="font-size: 20px; font-weight: 600; color: #ede8e2; margin-top: 0;">🍽️ Estructura de Comidas (2 comidas/día)</h2>
+            
+            <div class="meal-structure">
+                <div class="meal-title">🌅 Comida 1 (12:00 - 13:00)</div>
+                <div class="meal-details">
+                    <strong>Calorías:</strong> 1,100 kcal<br>
+                    <strong>Proteína:</strong> 124g | <strong>Grasas:</strong> 75g | <strong>Carbos:</strong> 63g<br>
+                    <strong>Estructura:</strong> Proteína principal + Carbohidratos + Grasas saludables<br>
+                    <strong>Ejemplo:</strong> 250g Pollo a la plancha + 200g Puré de patata + 50g Brócoli + 15ml Aceite de oliva
+                </div>
+            </div>
+
+            <div class="meal-structure">
+                <div class="meal-title">🌙 Comida 2 (19:00 - 20:00)</div>
+                <div class="meal-details">
+                    <strong>Calorías:</strong> 1,100 kcal<br>
+                    <strong>Proteína:</strong> 124g | <strong>Grasas:</strong> 75g | <strong>Carbos:</strong> 62g<br>
+                    <strong>Estructura:</strong> Proteína principal + Carbohidratos + Grasas saludables<br>
+                    <strong>Ejemplo:</strong> 250g Salmón a la plancha + 200g Arroz integral + 100g Banana + 15ml Aceite de oliva
+                </div>
+            </div>
+
+            <div class="recommendation-box">
+                <strong>⚠️ Nota importante:</strong> Aunque realizas 2 comidas principales, es recomendable añadir 1-2 snacks proteicos entre comidas para distribuir mejor la proteína y mantener energía constante (ej: batido de proteína, yogur griego, frutos secos).
+            </div>
+        </div>
+
+        <!-- Recomendaciones Especiales -->
+        <div class="nutrition-card">
+            <h2 style="font-size: 20px; font-weight: 600; color: #ede8e2; margin-top: 0;">💡 Recomendaciones Especiales</h2>
+            
+            <div class="recommendation-box">
+                <strong>✓ Hidratación:</strong> Mínimo 3-4 litros de agua diarios. Aumenta según actividad física.
+            </div>
+            
+            <div class="recommendation-box">
+                <strong>✓ Proteína:</strong> Distribuida en ambas comidas (124g cada una). Prioriza pollo y salmón como indicaste.
+            </div>
+            
+            <div class="recommendation-box">
+                <strong>✓ Carbohidratos:</strong> Enfocados en alimentos complejos (arroz integral, puré de patata, banana). Timing: alrededor de entrenamientos.
+            </div>
+            
+            <div class="recommendation-box">
+                <strong>✓ Grasas:</strong> Aceite de oliva, salmón (omega-3), frutos secos. Esenciales para producción hormonal.
+            </div>
+            
+            <div class="recommendation-box">
+                <strong>✓ Verduras:</strong> Brócoli como indicaste. Añade variedad: espinacas, zanahorias, calabacín. Mínimo 200g/día.
+            </div>
+            
+            <div class="recommendation-box">
+                <strong>✓ Suplementación (Opcional):</strong> Proteína en polvo (post-entreno), Creatina (5g/día), Multivitamínico.
+            </div>
+        </div>
+
+        <!-- Seguimiento y Ajustes -->
+        <div class="nutrition-card">
+            <h2 style="font-size: 20px; font-weight: 600; color: #ede8e2; margin-top: 0;">📈 Seguimiento y Ajustes</h2>
+            
+            <div style="font-size: 13px; color: #c8bfb5; line-height: 1.8;">
+                <p><strong>Semana 1-2:</strong> Adaptación. Monitorea peso y energía.</p>
+                <p><strong>Semana 3-4:</strong> Si peso sube >1kg/semana → reduce 100-150 kcal. Si no cambia → mantén.</p>
+                <p><strong>Cada 2 semanas:</strong> Toma foto de progreso y pesa en condiciones similares (mañana, sin ropa, después de ir al baño).</p>
+                <p><strong>Ajustes:</strong> Si no ves progreso en 4 semanas, aumenta proteína o reduce grasas ligeramente.</p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div style="display: flex; gap: 15px; margin-top: 50px; padding-top: 30px; border-top: 1px solid rgba(200, 191, 181, 0.1); flex-wrap: wrap;">
+            <a href="cliente-osas-menu.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(196, 120, 120, 0.1); color: #c47878; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.3s ease; border: 1px solid rgba(196, 120, 120, 0.3);">← Volver al Menú</a>
+            <a href="recetario-osas.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(196, 120, 120, 0.1); color: #c47878; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.3s ease; border: 1px solid rgba(196, 120, 120, 0.3);">Ver Recetario →</a>
+        </div>
+    </div>
+
+    <script>
+        const clienteId = 'osas';
+        const isLoggedIn = localStorage.getItem(`${clienteId}_logged_in`);
+        if (!isLoggedIn) {
+            window.location.href = `login-${clienteId}.html`;
+        }
+    </script>
+</body>
+</html>

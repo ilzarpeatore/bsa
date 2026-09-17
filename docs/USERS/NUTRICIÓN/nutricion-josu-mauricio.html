@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'josu-mauricio';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Nutricional - Josu Mauricio</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .nutrition-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .nutrition-header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .nutrition-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 42px;
+            font-style: italic;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .nutrition-title span {
+            color: #c47878;
+        }
+
+        .client-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: #c47878;
+            margin-top: 15px;
+        }
+
+        .nutrition-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-left: 4px solid #c47878;
+            padding-left: 15px;
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+
+        .nutrition-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #c8bfb5;
+            margin-bottom: 12px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .summary-card {
+            background: rgba(196, 120, 120, 0.08);
+            border: 1px solid rgba(196, 120, 120, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        .macros-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(200, 191, 181, 0.03);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .macros-table th {
+            background: rgba(196, 120, 120, 0.1);
+            color: #ede8e2;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .macros-table td {
+            padding: 12px;
+            color: #c8bfb5;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.05);
+        }
+
+        .macros-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meal-card {
+            background: rgba(200, 191, 181, 0.03);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .meal-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 10px;
+        }
+
+        .meal-time {
+            font-size: 12px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .meal-content {
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .meal-macros {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .meal-macro {
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .meal-macro-label {
+            color: #c8bfb5;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .meal-macro-value {
+            color: #c47878;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .highlight-box {
+            background: rgba(196, 120, 120, 0.1);
+            border-left: 4px solid #c47878;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .highlight-box strong {
+            color: #ede8e2;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 15px 0;
+        }
+
+        .tips-list li {
+            font-size: 14px;
+            color: #c8bfb5;
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .tips-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-weight: bold;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .nav-buttons a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-buttons a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        @media (max-width: 768px) {
+            .nutrition-container {
+                padding: 20px 15px;
+            }
+
+            .nutrition-title {
+                font-size: 32px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .meal-macros {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .nav-buttons a {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="nutrition-container">
+        <!-- Header -->
+        <div class="nutrition-header">
+            <div style="font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px; color: #ede8e2; margin-bottom: 5px;">
+                Be <span style="color: #c47878;">Stronger</span>
+            </div>
+            <div style="font-size: 12px; color: #c8bfb5; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 20px;">
+                Asesoría Personal Online
+            </div>
+            <div class="nutrition-title">Plan <span>Nutricional</span></div>
+            <div class="client-name">Josu Mauricio</div>
+        </div>
+
+        <!-- Section 1: Executive Summary -->
+        <div class="nutrition-section">
+            <div class="section-title">1. Resumen Ejecutivo</div>
+            
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">TDEE</div>
+                    <div class="summary-value">2,651 kcal</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Objetivo</div>
+                    <div class="summary-value">Ganancia Muscular</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Meta Diaria</div>
+                    <div class="summary-value">3,051 kcal</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Superávit</div>
+                    <div class="summary-value">+400 kcal</div>
+                </div>
+            </div>
+
+            <div class="highlight-box">
+                <p><strong>Contexto Personal:</strong> Hombre de 25 años, 172 cm, 80 kg con 25% de grasa corporal. Objetivo: Ganancia muscular controlada manteniendo funcionalidad y capacidad atlética. Preferencia por comidas simples y básicas. Incluir más fruta en la dieta.</p>
+            </div>
+        </div>
+
+        <!-- Section 2: Anthropometric Data -->
+        <div class="nutrition-section">
+            <div class="section-title">2. Datos Antropométricos</div>
+            
+            <table class="macros-table">
+                <thead>
+                    <tr>
+                        <th>Parámetro</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Edad</td>
+                        <td>25 años</td>
+                    </tr>
+                    <tr>
+                        <td>Sexo</td>
+                        <td>Hombre</td>
+                    </tr>
+                    <tr>
+                        <td>Altura</td>
+                        <td>172 cm</td>
+                    </tr>
+                    <tr>
+                        <td>Peso Actual</td>
+                        <td>80 kg</td>
+                    </tr>
+                    <tr>
+                        <td>% Grasa Corporal</td>
+                        <td>25%</td>
+                    </tr>
+                    <tr>
+                        <td>Masa Magra</td>
+                        <td>60 kg</td>
+                    </tr>
+                    <tr>
+                        <td>TMB (Mifflin-St Jeor)</td>
+                        <td>1,755 kcal</td>
+                    </tr>
+                    <tr>
+                        <td>GET (Factor 1.375)</td>
+                        <td>2,410 kcal</td>
+                    </tr>
+                    <tr>
+                        <td>GET + TEF (10%)</td>
+                        <td>2,651 kcal</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 3: Macronutrient Distribution -->
+        <div class="nutrition-section">
+            <div class="section-title">3. Distribución de Macronutrientes</div>
+            
+            <div class="subsection-title">Macros Diarios (Objetivo: 3,051 kcal)</div>
+            <table class="macros-table">
+                <thead>
+                    <tr>
+                        <th>Macronutriente</th>
+                        <th>Gramos</th>
+                        <th>Kcal</th>
+                        <th>% Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Proteína</strong></td>
+                        <td><strong>132g</strong></td>
+                        <td><strong>528 kcal</strong></td>
+                        <td><strong>17.3%</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Grasas</strong></td>
+                        <td><strong>80g</strong></td>
+                        <td><strong>720 kcal</strong></td>
+                        <td><strong>23.6%</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Carbohidratos</strong></td>
+                        <td><strong>451g</strong></td>
+                        <td><strong>1,804 kcal</strong></td>
+                        <td><strong>59.1%</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="highlight-box">
+                <p><strong>Notas sobre macros:</strong> Proteína de 1.65 g/kg para optimizar síntesis proteica. Grasas mínimas de 1 g/kg para salud hormonal. Carbohidratos para energía y rendimiento en entrenamiento.</p>
+            </div>
+        </div>
+
+        <!-- Section 4: Meal Plan -->
+        <div class="nutrition-section">
+            <div class="section-title">4. Plan de Comidas (Ejemplo de 5 Comidas)</div>
+            
+            <div class="meal-card">
+                <div class="meal-name">Desayuno</div>
+                <div class="meal-time">07:00 - 08:00</div>
+                <div class="meal-content">
+                    3 huevos duros + 2 rebanadas de pan integral + 1 vaso de zumo natural (naranja o piña)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">18g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">12g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">45g</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meal-card">
+                <div class="meal-name">Media Mañana</div>
+                <div class="meal-time">10:30 - 11:00</div>
+                <div class="meal-content">
+                    Plátano + puñado de almendras (30g) + yogur griego natural
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">15g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">10g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">40g</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meal-card">
+                <div class="meal-name">Comida</div>
+                <div class="meal-time">13:00 - 14:00</div>
+                <div class="meal-content">
+                    Pechuga de pollo a la plancha (200g) + arroz integral (200g cocido) + ensalada casera (lechuga, tomate, pepino, zanahoria, cebolla)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">42g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">8g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">120g</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meal-card">
+                <div class="meal-name">Merienda</div>
+                <div class="meal-time">16:30 - 17:00</div>
+                <div class="meal-content">
+                    Fruta (fresas, kiwi, sandía o naranja) + queso fresco (100g)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">20g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">15g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">30g</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meal-card">
+                <div class="meal-name">Cena</div>
+                <div class="meal-time">20:00 - 21:00</div>
+                <div class="meal-content">
+                    Carne de vacuno (200g) o pavo (200g) + pasta integral (150g cocida) + calabacín en puré (150g)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">37g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">35g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">216g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Preferences & Restrictions -->
+        <div class="nutrition-section">
+            <div class="section-title">5. Preferencias y Restricciones</div>
+            
+            <div class="subsection-title">Alimentos Favoritos (Incluir)</div>
+            <ul class="tips-list">
+                <li>Carnes: Pollo, vacuno, pavo (cerdo ocasionalmente)</li>
+                <li>Pescados: Merluza, atún (según disponibilidad)</li>
+                <li>Carbohidratos: Arroz, pasta, pan integral</li>
+                <li>Frutas: Plátano, kiwi, naranja, sandía, fresas</li>
+                <li>Verduras: Calabacín (en puré), lechuga, tomate, pepino, zanahoria, cebolla</li>
+                <li>Comidas combinadas: Arroz con pollo, hamburguesas, pasta con carne</li>
+            </ul>
+
+            <div class="subsection-title">Alimentos a Evitar o Limitar</div>
+            <ul class="tips-list">
+                <li>Pimiento (no le gusta)</li>
+                <li>Pescados variados (solo merluza y atún)</li>
+                <li>Cerdo (consumo ocasional)</li>
+                <li>Comidas de restaurante (excepto ocasionalmente)</li>
+            </ul>
+
+            <div class="highlight-box">
+                <p><strong>Importante:</strong> Aumentar consumo de fruta (especialmente en verano). Llevar tupers preparados en casa para evitar comer fuera. El cliente se compromete a seguir el plan si se toma en serio la nutrición.</p>
+            </div>
+        </div>
+
+        <!-- Section 6: Implementation Tips -->
+        <div class="nutrition-section">
+            <div class="section-title">6. Recomendaciones Prácticas</div>
+            
+            <ul class="tips-list">
+                <li>Preparar comidas en casa: Cocina arroz, pollo y verduras los domingos para toda la semana</li>
+                <li>Llevar tupers: Desayuno, comida y merienda preparados para evitar comer fuera</li>
+                <li>Hidratación: Mínimo 2-3 litros de agua diaria</li>
+                <li>Fruta diaria: Incluir al menos 2-3 piezas de fruta (especialmente en verano)</li>
+                <li>Flexibilidad: 1-2 comidas libres por semana para mantener adherencia</li>
+                <li>Suplementación: Proteína en polvo (whey) para facilitar alcanzar macros</li>
+                <li>Monitoreo: Pesar 2-3 veces por semana a la misma hora (mañana, sin ropa)</li>
+            </ul>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <a href="cliente-josu-mauricio-menu-v2.html">← Volver al Menú</a>
+            <a href="recetario-josu-mauricio-personalizado.html">Ir a Recetario →</a>
+            <a href="javascript:window.print()">Imprimir</a>
+        </div>
+    </div>
+</body>
+</html>

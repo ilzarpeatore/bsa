@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'hamza-dris';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Nutricional - Hamza Dris</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #c47878;
+            --bg-dark: #2e1f1f;
+            --bg-card: rgba(200, 191, 181, 0.04);
+            --text-primary: #ede8e2;
+            --text-secondary: #c8bfb5;
+            --text-muted: #c8bfb5;
+            --border: rgba(200, 191, 181, 0.10);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(196, 120, 120, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .tagline {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .client-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(196, 120, 120, 0.15);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-button:hover {
+            background: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px 20px;
+        }
+
+        .content-wrapper {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            font-style: italic;
+            margin-bottom: 30px;
+            color: var(--text-primary);
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .alert-box {
+            background: rgba(196, 120, 120, 0.08);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .alert-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .card-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        table {
+            width: 90%;
+            border-collapse: collapse;
+            margin: 20px auto;
+            background: rgba(200, 191, 181, 0.02);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background: rgba(196, 120, 120, 0.15);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.05);
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meal-option {
+            background: rgba(196, 120, 120, 0.05);
+            border-left: 3px solid var(--primary);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        .meal-name {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .meal-macros {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .meal-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .schedule-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .schedule-card-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 15px;
+        }
+
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.05);
+            font-size: 13px;
+        }
+
+        .schedule-item:last-child {
+            border-bottom: none;
+        }
+
+        .schedule-time {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .schedule-meal {
+            color: var(--text-secondary);
+        }
+
+        .nav-bottom {
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px 15px;
+            }
+
+            .section-title {
+                font-size: 22px;
+            }
+
+            table {
+                width: 100%;
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .schedule-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="tagline">Plan Nutricional Personalizado</div>
+            <div class="client-name">Hamza Dris - Pérdida de Grasa</div>
+        </div>
+
+        <div class="nav-top">
+            <a href="cliente-hamza-menu.html" class="nav-button">← Volver al Menú</a>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <!-- Resumen Ejecutivo -->
+                <div class="section">
+                    <h2 class="section-title">Resumen Ejecutivo</h2>
+                    <div class="alert-box">
+                        <div class="alert-title">📊 Tu Plan Personalizado</div>
+                        <div class="alert-text">
+                            Tu plan nutricional está diseñado específicamente para <strong>pérdida de grasa con preservación de masa muscular</strong> considerando tus horarios rotativos como enfermero. El objetivo es crear un déficit calórico sostenible (-500 kcal/día) que te permita perder aproximadamente 0.5 kg de grasa por semana durante los próximos 3 meses, reduciendo tu porcentaje de grasa de 30.2% a ~25%.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🎯 Tus Números</div>
+                        <table>
+                            <tr>
+                                <th>Métrica</th>
+                                <th>Valor</th>
+                            </tr>
+                            <tr>
+                                <td>Gasto Energético Total (GET)</td>
+                                <td><strong>3,298 kcal/día</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Calorías Objetivo</td>
+                                <td><strong>2,800 kcal/día</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Déficit Calórico</td>
+                                <td><strong>-500 kcal/día</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Pérdida Estimada</td>
+                                <td><strong>0.5 kg/semana</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Proteína Diaria</td>
+                                <td><strong>240g/día</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Grasas Diarias</td>
+                                <td><strong>87g/día</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Carbohidratos Diarios</td>
+                                <td><strong>245g/día</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Distribución de Macronutrientes -->
+                <div class="section">
+                    <h2 class="section-title">Distribución de Macronutrientes</h2>
+                    <div class="card">
+                        <div class="card-title">💪 Proteína (240g/día - 34%)</div>
+                        <div class="card-content">
+                            La proteína es tu prioridad máxima. Con 240g diarios (2.2g/kg), aseguramos la preservación de masa muscular durante la pérdida de grasa. Distribuye proteína en todas tus comidas: desayuno, comida, merienda y cena. Usa proteína en polvo si es necesario para alcanzar tus objetivos, especialmente en guardias nocturnas.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🥑 Grasas (87g/día - 28%)</div>
+                        <div class="card-content">
+                            Las grasas son esenciales para la salud hormonal y la saciedad. Prioriza grasas saludables: aceite de oliva, aguacate, frutos secos, pescados grasos (salmón, atún). Distribuye las grasas principalmente en comida y cena para mayor saciedad durante el día.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🍚 Carbohidratos (245g/día - 35%)</div>
+                        <div class="card-content">
+                            Los carbohidratos son tu fuente de energía. Concentra la mayoría en el desayuno (pre-entreno) y post-entreno. Elige carbohidratos complejos: arroz integral, avena, patatas, legumbres. En guardias nocturnas, reduce carbohidratos y aumenta proteína + grasas para mantener saciedad sin interferir el sueño.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estructura de Comidas -->
+                <div class="section">
+                    <h2 class="section-title">Estructura de Comidas</h2>
+                    <div class="alert-box">
+                        <div class="alert-title">⏰ Consideraciones de Horarios Rotativos</div>
+                        <div class="alert-text">
+                            Tu plan se adapta a dos escenarios: <strong>Turno de Día</strong> (comidas regulares) y <strong>Guardia Nocturna</strong> (comidas ligeras, no elaboradas). La flexibilidad es clave. Si un día no puedes seguir exactamente el plan, no importa: lo importante es mantener el déficit calórico semanal y la ingesta de proteína.
+                        </div>
+                    </div>
+
+                    <div class="schedule-grid">
+                        <div class="schedule-card">
+                            <div class="schedule-card-title">📅 Turno de Día (Normal)</div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">07:00</span>
+                                <span class="schedule-meal">Desayuno (600 kcal)</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">13:00</span>
+                                <span class="schedule-meal">Comida (900 kcal)</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">17:00</span>
+                                <span class="schedule-meal">Merienda (400 kcal)</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">20:00</span>
+                                <span class="schedule-meal">Cena (900 kcal)</span>
+                            </div>
+                            <div style="text-align: center; margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+                                Total: 2,800 kcal
+                            </div>
+                        </div>
+
+                        <div class="schedule-card">
+                            <div class="schedule-card-title">🌙 Guardia Nocturna (22:00-08:00)</div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">07:00</span>
+                                <span class="schedule-meal">Desayuno (600 kcal)</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">13:00</span>
+                                <span class="schedule-meal">Comida (900 kcal)</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">18:00</span>
+                                <span class="schedule-meal">Merienda (400 kcal)</span>
+                            </div>
+                            <div class="schedule-item">
+                                <span class="schedule-time">22:00-08:00</span>
+                                <span class="schedule-meal">Guardia (900 kcal)</span>
+                            </div>
+                            <div style="text-align: center; margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+                                Total: 2,800 kcal
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🍽️ Desayuno (600 kcal) - PRE-ENTRENO OBLIGATORIO</div>
+                        <div class="card-content">
+                            El desayuno es tu comida más importante. Debe incluir proteína + carbohidratos complejos + grasas. Come esto <strong>30-60 minutos antes de entrenar</strong> para tener energía óptima.
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 1: Avena con Proteína</div>
+                            <div class="meal-macros">P: 45g | G: 20g | C: 70g</div>
+                            <div class="meal-description">50g avena + 50g proteína en polvo + 200ml leche desnatada + 1 plátano + 10g miel</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 2: Huevos con Pan</div>
+                            <div class="meal-macros">P: 40g | G: 22g | C: 65g</div>
+                            <div class="meal-description">3 huevos (2 claras + 1 yema) + 2 rebanadas pan integral + 1 tomate + 10ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 3: Yogur Griego</div>
+                            <div class="meal-macros">P: 42g | G: 18g | C: 72g</div>
+                            <div class="meal-description">200g yogur griego + 50g granola casera + 100g fresas + 30g almendras</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 4: Tortitas Proteicas</div>
+                            <div class="meal-macros">P: 48g | G: 16g | C: 68g</div>
+                            <div class="meal-description">2 tortitas (harina + huevo + proteína en polvo) + 30g mantequilla cacahuete + 1 plátano</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 5: Sándwich Proteico</div>
+                            <div class="meal-macros">P: 46g | G: 19g | C: 70g</div>
+                            <div class="meal-description">2 rebanadas pan integral + 150g pechuga pollo + lechuga + tomate + 10ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 6: Batido Completo</div>
+                            <div class="meal-macros">P: 44g | G: 21g | C: 71g</div>
+                            <div class="meal-description">50g proteína en polvo + 200ml leche entera + 1 plátano + 30g mantequilla cacahuete + 50g avena</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 7: Tostadas Halal</div>
+                            <div class="meal-macros">P: 43g | G: 20g | C: 69g</div>
+                            <div class="meal-description">2 tostadas integrales + 150g pechuga pavo + 1/2 aguacate + tomate + 5ml aceite oliva</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🍖 Comida (900 kcal) - COMIDA PRINCIPAL</div>
+                        <div class="card-content">
+                            La comida es tu mayor ingesta calórica. Debe incluir proteína de calidad + carbohidratos complejos + verduras + grasas saludables. Esta es tu comida más elaborada, perfecta para días sin guardia.
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 1: Arroz con Pollo</div>
+                            <div class="meal-macros">P: 65g | G: 28g | C: 95g</div>
+                            <div class="meal-description">250g pechuga pollo a la plancha + 200g arroz integral cocido + 150g brócoli + 15ml aceite oliva + especias</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 2: Salmón con Patata</div>
+                            <div class="meal-macros">P: 62g | G: 32g | C: 92g</div>
+                            <div class="meal-description">250g salmón al horno + 300g patata cocida + 150g espárragos + 10ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 3: Ternera con Verduras</div>
+                            <div class="meal-macros">P: 68g | G: 26g | C: 96g</div>
+                            <div class="meal-description">250g ternera magra + 200g puré patata + 200g calabaza asada + 15ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 4: Atún con Pasta</div>
+                            <div class="meal-macros">P: 64g | G: 27g | C: 98g</div>
+                            <div class="meal-description">250g atún fresco + 200g pasta integral cocida + 150g pimiento + tomate cherry + 12ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 5: Pavo con Legumbres</div>
+                            <div class="meal-macros">P: 66g | G: 25g | C: 100g</div>
+                            <div class="meal-description">250g pechuga pavo + 150g lentejas cocidas + 150g zanahoria + 150g pepino + 12ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 6: Corazones de Pollo</div>
+                            <div class="meal-macros">P: 70g | G: 24g | C: 94g</div>
+                            <div class="meal-description">300g corazones pollo a la plancha + 200g arroz blanco + 150g calabacín + 10ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 7: Bacalao con Boniato</div>
+                            <div class="meal-macros">P: 63g | G: 29g | C: 97g</div>
+                            <div class="meal-description">250g bacalao al horno + 300g boniato cocido + 150g brócoli + 15ml aceite oliva</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🥤 Merienda (400 kcal) - SNACK PROTEICO</div>
+                        <div class="card-content">
+                            La merienda es tu oportunidad para aumentar proteína y mantener energía hasta la cena. Elige opciones que te sacie sin ser demasiado pesadas.
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 1: Batido Proteico</div>
+                            <div class="meal-macros">P: 40g | G: 12g | C: 35g</div>
+                            <div class="meal-description">50g proteína en polvo + 200ml leche desnatada + 1 plátano pequeño</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 2: Yogur con Frutos Secos</div>
+                            <div class="meal-macros">P: 35g | G: 14g | C: 38g</div>
+                            <div class="meal-description">200g yogur griego + 30g almendras + 100g arándanos</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 3: Pechuga con Pan</div>
+                            <div class="meal-macros">P: 42g | G: 10g | C: 40g</div>
+                            <div class="meal-description">150g pechuga pollo + 1 rebanada pan integral + lechuga + tomate</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 4: Queso Fresco</div>
+                            <div class="meal-macros">P: 38g | G: 13g | C: 36g</div>
+                            <div class="meal-description">200g queso fresco desnatado + 1 manzana + 20g almendras</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 5: Atún con Galletas</div>
+                            <div class="meal-macros">P: 40g | G: 11g | C: 39g</div>
+                            <div class="meal-description">120g atún en lata + 6 galletas integrales + 1 naranja</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 6: Huevo Cocido</div>
+                            <div class="meal-macros">P: 36g | G: 15g | C: 37g</div>
+                            <div class="meal-description">3 huevos cocidos + 1 rebanada pan integral + 1 plátano</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 7: Pavo con Frutas</div>
+                            <div class="meal-macros">P: 41g | G: 9g | C: 41g</div>
+                            <div class="meal-description">150g pechuga pavo + 200g fresas + 30g nueces</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🌙 Cena (900 kcal) - PROTEÍNA + GRASAS</div>
+                        <div class="card-content">
+                            La cena debe ser proteica pero moderada en carbohidratos para no interferir el sueño. Prioriza proteína + grasas saludables + verduras. En guardias nocturnas, come comidas ligeras y no elaboradas.
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 1: Salmón con Verduras</div>
+                            <div class="meal-macros">P: 62g | G: 35g | C: 45g</div>
+                            <div class="meal-description">250g salmón al horno + 200g brócoli + 100g patata cocida + 15ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 2: Pechuga con Aguacate</div>
+                            <div class="meal-macros">P: 65g | G: 32g | C: 48g</div>
+                            <div class="meal-description">250g pechuga pollo + 1 aguacate + 150g espárragos + 10ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 3: Ternera con Ensalada</div>
+                            <div class="meal-macros">P: 68g | G: 30g | C: 50g</div>
+                            <div class="meal-description">250g ternera magra + 300g ensalada mixta + 100g patata + 15ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 4: Atún con Arroz</div>
+                            <div class="meal-macros">P: 60g | G: 33g | C: 52g</div>
+                            <div class="meal-description">250g atún fresco + 150g arroz integral + 150g calabacín + 15ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 5: Pavo con Boniato</div>
+                            <div class="meal-macros">P: 63g | G: 31g | C: 54g</div>
+                            <div class="meal-description">250g pechuga pavo + 200g boniato + 150g brócoli + 12ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 6: Bacalao con Verduras</div>
+                            <div class="meal-macros">P: 61g | G: 34g | C: 49g</div>
+                            <div class="meal-description">250g bacalao al horno + 200g pimiento + 100g patata + 150g calabaza + 15ml aceite oliva</div>
+                        </div>
+                        <div class="meal-option">
+                            <div class="meal-name">Opción 7: Corazones Pollo (Guardia)</div>
+                            <div class="meal-macros">P: 70g | G: 28g | C: 35g</div>
+                            <div class="meal-description">300g corazones pollo a la plancha + 150g ensalada + 50g pan integral (comida ligera para guardia)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recomendaciones Especiales -->
+                <div class="section">
+                    <h2 class="section-title">Recomendaciones Especiales</h2>
+
+                    <div class="card">
+                        <div class="card-title">🏥 En Guardias Nocturnas</div>
+                        <div class="card-content">
+                            Durante las guardias, come comidas ligeras y no elaboradas. Prioriza proteína + grasas para mantener saciedad. Ejemplos: yogur griego + frutos secos, pechuga pollo fría, queso fresco, atún en lata, huevos cocidos. Evita carbohidratos pesados que interfieran tu sueño después de la guardia.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">💪 Pre y Post-Entreno</div>
+                        <div class="card-content">
+                            <strong>Pre-entreno (30-60 min antes):</strong> Come tu desayuno con carbohidratos + proteína. <strong>Post-entreno (0-30 min después):</strong> Proteína en polvo + carbohidratos simples (plátano, dátiles) para recuperación óptima. Esto acelera la síntesis proteica y repone glucógeno.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🚫 Restricciones Halal</div>
+                        <div class="card-content">
+                            Tu plan es 100% Halal. Todas las carnes son pollo, pavo, ternera, cordero, pescados y mariscos. <strong>Sin cerdo ni derivados</strong>. Si compras carnes procesadas, verifica que sean certificadas Halal. Los corazones de pollo que solicitaste están incluidos como opción de proteína.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🎉 Celebraciones y Cumpleaños</div>
+                        <div class="card-content">
+                            En cumpleaños, celebraciones y agradecimientos de pacientes, está permitido comer algo diferente. <strong>No es un fracaso.</strong> Disfruta sin culpa, pero intenta mantener el déficit calórico semanal. Si comes un bolllo extra un día, compensa los otros días. La consistencia a largo plazo es más importante que la perfección diaria.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">💧 Hidratación y Suplementación</div>
+                        <div class="card-content">
+                            <strong>Agua:</strong> Bebe 3-4 litros/día. <strong>Proteína en polvo:</strong> Usa si es necesario para alcanzar 240g diarios. <strong>Multivitamínico:</strong> Considera uno diario para cubrir micronutrientes en déficit calórico. <strong>Cafeína:</strong> Café/té está permitido, pero evita después de las 18:00 para no afectar el sueño.
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📊 Monitoreo de Progreso</div>
+                        <div class="card-content">
+                            <strong>Pesaje:</strong> Una vez por semana, mismo día y hora (mañana, después de baño). <strong>Fotos:</strong> Toma fotos cada 2 semanas (frente, lado, espalda) para ver cambios visuales. <strong>Medidas:</strong> Mide cintura cada 2 semanas. <strong>Energía:</strong> Si te sientes muy cansado, aumenta carbohidratos en 50g. La consistencia es más importante que la perfección.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notas Finales -->
+                <div class="section">
+                    <div class="alert-box">
+                        <div class="alert-title">✅ Claves del Éxito</div>
+                        <div class="alert-text">
+                            <strong>1. Consistencia:</strong> Sigue el plan 80-90% del tiempo. <strong>2. Proteína:</strong> Prioriza 240g diarios en todas las comidas. <strong>3. Flexibilidad:</strong> Adapta el plan a tus horarios rotativos. <strong>4. Paciencia:</strong> Los resultados toman tiempo. Espera 3-4 semanas para ver cambios significativos. <strong>5. Sueño:</strong> Duerme 8 horas para recuperación óptima. <strong>6. Agua:</strong> Mantente hidratado todo el día. <strong>7. Entrenamiento:</strong> Combina este plan con tu Guideline de entrenamiento para máximos resultados.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-bottom">
+            <a href="cliente-hamza-menu.html" class="nav-button">← Volver al Menú</a>
+        </div>
+    </div>
+</body>
+</html>

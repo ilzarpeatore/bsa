@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'andres-personalizado';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Andrés Cesaro</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        body { margin: 0; padding: 0; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        .back-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(196, 120, 120, 0.1); color: #c47878; border: 1px solid #c47878; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; text-decoration: none; margin-bottom: 30px; transition: all 0.3s ease; }
+        .back-button:hover { background: #c47878; color: #ede8e2; }
+        .print-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; background: #c47878; color: #ede8e2; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; margin-left: 10px; transition: all 0.3s ease; }
+        .print-button:hover { background: #b06868; }
+        .header { text-align: center; margin-bottom: 50px; padding-bottom: 30px; border-bottom: 2px solid #c47878; }
+        .logo { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 24px; color: #ede8e2; margin-bottom: 15px; }
+        .logo span { color: #c47878; }
+        .title { font-family: 'DM Serif Display', serif; font-size: 42px; font-style: italic; color: #ede8e2; margin: 0 0 10px 0; }
+        .title span { color: #c47878; }
+        .subtitle { font-size: 14px; color: #c8bfb5; margin: 0; }
+        .placeholder-box { background: rgba(196, 120, 120, 0.1); border: 2px solid rgba(196, 120, 120, 0.3); border-radius: 12px; padding: 40px; text-align: center; margin: 40px 0; }
+        .placeholder-icon { font-size: 60px; margin-bottom: 20px; }
+        .placeholder-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-style: italic; color: #ede8e2; margin-bottom: 15px; }
+        .placeholder-text { font-size: 16px; color: #c8bfb5; line-height: 1.8; margin-bottom: 20px; }
+        .placeholder-highlight { background: rgba(196, 120, 120, 0.2); border-left: 4px solid #c47878; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left; }
+        .placeholder-highlight strong { color: #ede8e2; }
+        .info-section { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin: 30px 0; }
+        .info-title { font-size: 16px; font-weight: 600; color: #c47878; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.1em; }
+        .info-text { font-size: 14px; color: #c8bfb5; line-height: 1.8; }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="cliente-andres-menu-v2.html" class="back-button">← Volver al Menú</a>
+        <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
+
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <h1 class="title">Recetario de <span>Andrés Cesaro</span></h1>
+            <p class="subtitle">Recetas personalizadas para tu objetivo</p>
+        </div>
+
+        <div class="placeholder-box">
+            <div class="placeholder-icon">📋</div>
+            <div class="placeholder-title">Recetario en Preparación</div>
+            <div class="placeholder-text">
+                Tu recetario personalizado estará listo cuando regreses a España.
+            </div>
+            <div class="placeholder-highlight">
+                <strong>⏰ Estado Actual:</strong> Tu recetario detallado se preparará con tus preferencias personales y objetivos específicos una vez que vuelvas a España. Mientras tanto, puedes consultar las guías nutricionales generales en la Biblioteca de Recursos.
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-title">📌 Próximos Pasos</div>
+            <div class="info-text">
+                <p>Una vez que regreses a España, recibirás:</p>
+                <ul style="margin: 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 10px;">✓ Recetario personalizado con 35+ recetas</li>
+                    <li style="margin-bottom: 10px;">✓ Macronutrientes calculados para tu objetivo</li>
+                    <li style="margin-bottom: 10px;">✓ Opciones de desayuno, almuerzo, cena y snacks</li>
+                    <li>✓ Guía de preparación y tips nutricionales</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-title">❓ ¿Preguntas?</div>
+            <div class="info-text">
+                Si tienes dudas sobre nutrición o necesitas orientación mientras esperas tu recetario personalizado, contacta a través de HubFit. Responderé dentro de 48 horas.
+            </div>
+        </div>
+
+        <a href="cliente-andres-menu-v2.html" class="back-button" style="margin-top: 40px;">← Volver al Menú</a>
+    </div>
+</body>
+</html>

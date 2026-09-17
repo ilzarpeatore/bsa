@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'hamza-dris';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BE STRONGER - Recetario Hamza Dris</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #2e1f1f;
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            width: 100%;
+            background: #2e1f1f;
+            padding: 40px 20px;
+            border-bottom: 2px solid #c47878;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            margin-bottom: 10px;
+            color: #ede8e2;
+        }
+
+        .logo span {
+            color: #c47878;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #c8bfb5;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-size: 18px;
+            color: #c47878;
+            letter-spacing: 0.1em;
+            font-weight: 500;
+        }
+
+        .header-nav {
+            display: flex;
+            justify-content: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .header-nav a {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .header-nav a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        .content {
+            flex: 1;
+            width: 100%;
+            padding: 40px 20px;
+            background: #2e1f1f;
+        }
+
+        .content-wrapper {
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 30px;
+            padding-left: 15px;
+            border-left: 4px solid #c47878;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .recipe-card {
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .recipe-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 15px;
+        }
+
+        .recipe-meta {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        .meta-label {
+            font-size: 11px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 5px;
+        }
+
+        .recipe-section {
+            margin-bottom: 15px;
+        }
+
+        .recipe-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #c47878;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .recipe-content {
+            font-size: 13px;
+            color: #c8bfb5;
+            line-height: 1.7;
+        }
+
+        .ingredient-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ingredient-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .ingredient-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #c47878;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .nav-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-links a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        .footer {
+            width: 100%;
+            background: #2e1f1f;
+            padding: 30px 20px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+            text-align: center;
+            font-size: 11px;
+            color: #c8bfb5;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 15px;
+            }
+            .logo {
+                font-size: 24px;
+            }
+            .content {
+                padding: 30px 15px;
+            }
+            .section-title {
+                font-size: 16px;
+            }
+            .recipe-card {
+                padding: 20px;
+            }
+            .recipe-meta {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="tagline">Asesoría Personal Online</div>
+            <div class="page-title">Recetario · Hamza Dris — 3 meses</div>
+            <div class="header-nav">
+                <a href="cliente-hamza-menu.html">← Volver al Menú</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="section">
+                    <h2 class="section-title">Desayunos Pre-Gym (650 kcal, 45g proteína)</h2>
+                    
+                    <div class="recipe-card">
+                        <div class="recipe-title">🥐 Café con Tostadas y Queso</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">650 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">45g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">75g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">20g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Café con leche (200ml)</li>
+                                <li>Pan integral (3 rebanadas)</li>
+                                <li>Queso fresco (50g)</li>
+                                <li>Tomate (1 mediano)</li>
+                                <li>Plátano (1)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Tuesta el pan integral. Unta con un poco de aceite de oliva. Coloca el queso fresco y rodajas de tomate. Acompaña con café con leche y un plátano. Perfecto para 1-2 horas antes de entrenar.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🥣 Avena con Crema de Cacahuete</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">650 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">45g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">75g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">20g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Avena (50g)</li>
+                                <li>Leche (200ml)</li>
+                                <li>Crema de cacahuete (30g)</li>
+                                <li>Manzana (1 mediana)</li>
+                                <li>Miel (10g)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Hierve la leche. Añade la avena y cocina 5 minutos. Sirve en un bol. Añade crema de cacahuete, rodajas de manzana y un toque de miel. Excelente para energía sostenida.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🍳 Huevos con Pan Integral</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">650 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">45g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">75g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">20g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Huevos (3)</li>
+                                <li>Pan integral (2 rebanadas)</li>
+                                <li>Tomate (1 mediano)</li>
+                                <li>Aceite de oliva (10ml)</li>
+                                <li>Café con leche (200ml)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Calienta aceite en una sartén. Fríe los huevos (puedes hacer tortilla o huevos revueltos). Acompaña con pan integral tostado y rodajas de tomate. Sirve con café con leche. Muy proteico y saciante.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Comidas Post-Entreno (850 kcal, 55g proteína)</h2>
+                    
+                    <div class="recipe-card">
+                        <div class="recipe-title">🍗 Pechuga de Pollo con Arroz y Verduras</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">850 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">55g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">100g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">25g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Pechuga de pollo (200g)</li>
+                                <li>Arroz blanco (150g cocido)</li>
+                                <li>Calabaza (100g)</li>
+                                <li>Pimientos (100g)</li>
+                                <li>Aceite de oliva (15ml)</li>
+                                <li>Sal y especias</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Calienta aceite en una sartén. Cocina la pechuga de pollo hasta que esté dorada (8-10 minutos por lado). Cuece el arroz según instrucciones. Sofríe la calabaza y pimientos. Sirve todo junto. Perfecto post-entreno: proteína + carbohidratos de rápida absorción.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🍝 Atún con Macarrones</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">850 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">55g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">100g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">25g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Atún en conserva (150g)</li>
+                                <li>Macarrones (150g cocidos)</li>
+                                <li>Salsa de tomate casera (100g)</li>
+                                <li>Queso rallado (30g)</li>
+                                <li>Aceite de oliva (15ml)</li>
+                                <li>Ajo y orégano</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Cuece los macarrones según instrucciones. En una sartén, calienta aceite y sofríe ajo. Añade la salsa de tomate y el atún desmenuzado. Mezcla con los macarrones. Sirve con queso rallado. Rápido, fácil y muy nutritivo.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🥔 Puré de Patatas con Corazones de Pollo</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">850 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">55g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">100g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">25g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Corazones de pollo (200g)</li>
+                                <li>Patatas (250g)</li>
+                                <li>Judías verdes (100g)</li>
+                                <li>Aceite de oliva (15ml)</li>
+                                <li>Caldo de pollo (100ml)</li>
+                                <li>Sal y pimienta</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Cuece las patatas hasta que estén blandas. Haz puré con un poco de caldo. En una sartén, cocina los corazones de pollo con aceite hasta que estén dorados. Sofríe las judías verdes. Sirve el puré con los corazones y judías encima. Delicioso y muy proteico.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Meriendas (450 kcal, 30g proteína)</h2>
+                    
+                    <div class="recipe-card">
+                        <div class="recipe-title">🥤 Batido de Proteína con Plátano</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">450 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">30g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">55g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">12g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Proteína en polvo (30g, Halal certificado)</li>
+                                <li>Leche (200ml)</li>
+                                <li>Plátano (1)</li>
+                                <li>Almendras (50g)</li>
+                                <li>Hielo (opcional)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Vierte la leche en una batidora. Añade la proteína en polvo, el plátano troceado y las almendras. Bate hasta obtener una consistencia homogénea. Añade hielo si lo deseas. Rápido, fácil y muy nutritivo.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🍯 Yogur con Granola y Fresas</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">450 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">30g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">55g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">12g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Yogur natural (200g)</li>
+                                <li>Granola (50g)</li>
+                                <li>Fresas (100g)</li>
+                                <li>Miel (10g)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Vierte el yogur en un bol. Añade la granola. Coloca las fresas troceadas encima. Rocía con un poco de miel. Mezcla y disfruta. Perfecto como merienda saciante y deliciosa.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🥪 Sándwich de Pechuga</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">450 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">30g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">55g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">12g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Pan integral (2 rebanadas)</li>
+                                <li>Pechuga de pollo (100g)</li>
+                                <li>Tomate (1 mediano)</li>
+                                <li>Lechuga (50g)</li>
+                                <li>Aguacate (50g)</li>
+                                <li>Mostaza (opcional)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Tuesta el pan integral. Coloca la pechuga de pollo, tomate, lechuga y aguacate. Añade mostaza si lo deseas. Cierra el sándwich y disfruta. Perfecto para merienda rápida y nutritiva.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Cenas (650 kcal, 45g proteína)</h2>
+                    
+                    <div class="recipe-card">
+                        <div class="recipe-title">🐟 Salmón con Arroz y Brócoli</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">650 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">45g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">90g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">18g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Salmón (150g)</li>
+                                <li>Arroz (150g cocido)</li>
+                                <li>Brócoli (150g)</li>
+                                <li>Aceite de oliva (10ml)</li>
+                                <li>Limón (opcional)</li>
+                                <li>Sal y pimienta</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Calienta aceite en una sartén. Cocina el salmón 6-8 minutos por lado. Cuece el brócoli al vapor. Prepara el arroz. Sirve todo junto. Excelente fuente de Omega-3 y proteína de calidad.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🦃 Pavo con Patatas y Verduras</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">650 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">45g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">90g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">18g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Pavo (200g)</li>
+                                <li>Patatas cocidas (200g)</li>
+                                <li>Zanahorias (100g)</li>
+                                <li>Cebolla (50g)</li>
+                                <li>Aceite de oliva (10ml)</li>
+                                <li>Caldo de pollo (100ml)</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Calienta aceite en una cazuela. Sofríe la cebolla. Añade el pavo troceado y cocina hasta que esté dorado. Añade las zanahorias y patatas. Vierte el caldo. Cocina a fuego lento 15-20 minutos. Delicioso y reconfortante.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recipe-card">
+                        <div class="recipe-title">🥩 Ternera con Puré de Patatas</div>
+                        <div class="recipe-meta">
+                            <div class="meta-item">
+                                <div class="meta-value">650 kcal</div>
+                                <div class="meta-label">Calorías</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">45g</div>
+                                <div class="meta-label">Proteína</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">90g</div>
+                                <div class="meta-label">Carbohidratos</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-value">18g</div>
+                                <div class="meta-label">Grasas</div>
+                            </div>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Ingredientes</div>
+                            <ul class="ingredient-list">
+                                <li>Ternera picada (200g)</li>
+                                <li>Patatas (250g)</li>
+                                <li>Espárragos (100g)</li>
+                                <li>Aceite de oliva (10ml)</li>
+                                <li>Caldo de carne (100ml)</li>
+                                <li>Sal y pimienta</li>
+                            </ul>
+                        </div>
+                        <div class="recipe-section">
+                            <div class="recipe-section-title">Preparación</div>
+                            <div class="recipe-content">
+                                Cuece las patatas hasta que estén blandas. Haz puré con un poco de caldo. En una sartén, cocina la ternera picada con aceite hasta que esté dorada. Sofríe los espárragos. Sirve el puré con la ternera y espárragos. Muy proteico y saciante.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-links">
+                    <a href="cliente-hamza-menu.html">← Volver al Menú</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <p>© 2026 Be Stronger - Asesoría Personal Online</p>
+            <p>Recetario personalizado para Hamza Dris | Válido hasta Junio 2026</p>
+        </div>
+    </div>
+</body>
+</html>

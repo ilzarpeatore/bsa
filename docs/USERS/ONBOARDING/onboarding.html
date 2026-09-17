@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'cliente';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Be Stronger - Guía de Onboarding</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #2e1f1f;
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: #2e1f1f;
+            border-bottom: 2px solid #c47878;
+            padding: 40px 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            flex: 1;
+            text-align: left;
+        }
+
+        .header-center {
+            flex: 2;
+            text-align: center;
+        }
+
+        .header-right {
+            flex: 1;
+            text-align: right;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(196, 120, 120, 0.2);
+            color: #c47878;
+            border: 1px solid #c47878;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            color: #ede8e2;
+            margin-bottom: 8px;
+        }
+
+        .logo span {
+            color: #c47878;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #c47878;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .content-wrapper {
+            width: 100%;
+            padding: 0 20px;
+            max-width: 100%;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 0;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            padding: 30px 0;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-left: 4px solid #c47878;
+            padding-left: 15px;
+        }
+
+        .card {
+            background: rgba(200, 191, 181, 0.04);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .text-content {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #c8bfb5;
+            margin-bottom: 15px;
+        }
+
+        .highlight {
+            background: rgba(196, 120, 120, 0.1);
+            border-left: 3px solid #c47878;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .highlight strong {
+            color: #ede8e2;
+        }
+
+        .terms-list {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .terms-list li {
+            margin-bottom: 12px;
+            padding-left: 25px;
+            position: relative;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #c8bfb5;
+        }
+
+        .terms-list li::before {
+            content: '✦';
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-size: 12px;
+        }
+
+        .terms-list strong {
+            color: #ede8e2;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 2px solid #c47878;
+            margin-top: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-left, .footer-right {
+            flex: 1;
+        }
+
+        .footer-center {
+            flex: 2;
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 13px;
+            color: #c8bfb5;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .header-left, .header-center, .header-right {
+                flex: 1;
+                text-align: center;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .footer-left, .footer-center, .footer-right {
+                text-align: center;
+            }
+
+            .logo {
+                font-size: 28px;
+            }
+
+            .title {
+                font-size: 20px;
+            }
+
+            .section-title {
+                font-size: 16px;
+            }
+
+            .text-content {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <a href="javascript:history.back()" class="back-button">← Volver</a>
+        </div>
+        <div class="header-center">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="subtitle">Rehab & Performance Online Coaching</div>
+            <div class="title">Guía de Onboarding</div>
+        </div>
+        <div class="header-right"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-wrapper">
+        <div class="container">
+            <!-- Bienvenida -->
+            <div class="section">
+                <div class="section-title">🎯 Bienvenida</div>
+                <div class="card">
+                    <div class="text-content">
+                        Nos complace tenerte como parte de la comunidad Be Stronger. Esta guía te ayudará a aprovechar al máximo tu programa de coaching personalizado.
+                    </div>
+                    <div class="highlight">
+                        <strong>Objetivo:</strong> Transformar tu cuerpo, mejorar tu rendimiento y establecer hábitos saludables que perduren en el tiempo.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acceso a Recursos -->
+            <div class="section">
+                <div class="section-title">📚 Acceso a Tus Recursos</div>
+                <div class="card">
+                    <div class="subsection-title">Documentos Personalizados</div>
+                    <ul class="terms-list">
+                        <li><strong>Guideline de Entrenamiento:</strong> Tu plan personalizado con estructura, progresión y consideraciones especiales.</li>
+                        <li><strong>Plan Nutricional:</strong> Macros personalizadas y estructura de comidas diseñada para ti.</li>
+                        <li><strong>Recetario:</strong> Recetas deliciosas con macros exactas y instrucciones paso a paso.</li>
+                        <li><strong>Contrato de Asesoría:</strong> Términos, responsabilidades y expectativas del programa.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Cómo Usar el Guideline -->
+            <div class="section">
+                <div class="section-title">🏋️ Cómo Usar Tu Guideline</div>
+                <div class="card">
+                    <div class="subsection-title">Estructura del Programa</div>
+                    <div class="text-content">
+                        Tu guideline contiene:
+                    </div>
+                    <ul class="terms-list">
+                        <li><strong>Perfil:</strong> Resumen de tu condición actual y objetivos.</li>
+                        <li><strong>Objetivo:</strong> Detalles específicos de lo que queremos lograr.</li>
+                        <li><strong>Metodología:</strong> Principios y enfoques que utilizamos.</li>
+                        <li><strong>Estructura:</strong> Distribución de entrenamientos y descansos.</li>
+                        <li><strong>Progresiones:</strong> Cómo avanzarás en el programa.</li>
+                        <li><strong>Hábitos:</strong> Comportamientos clave para el éxito.</li>
+                        <li><strong>Roadmap:</strong> Timeline del programa completo.</li>
+                        <li><strong>Alertas:</strong> Consideraciones importantes y restricciones.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Nutrición -->
+            <div class="section">
+                <div class="section-title">🍽️ Tu Plan Nutricional</div>
+                <div class="card">
+                    <div class="subsection-title">Cómo Seguir tu Plan</div>
+                    <ul class="terms-list">
+                        <li><strong>Macros:</strong> Proteína, carbohidratos y grasas están calculados específicamente para ti.</li>
+                        <li><strong>Estructura de Comidas:</strong> Número y distribución de comidas durante el día.</li>
+                        <li><strong>Flexibilidad:</strong> El plan es una guía; ajusta según tu disponibilidad.</li>
+                        <li><strong>Recetario:</strong> Usa las recetas como referencia para crear tus propias comidas.</li>
+                    </ul>
+                    <div class="highlight">
+                        <strong>Consejo:</strong> La consistencia es más importante que la perfección. Intenta seguir el plan 80% del tiempo.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seguimiento -->
+            <div class="section">
+                <div class="section-title">📊 Seguimiento y Progreso</div>
+                <div class="card">
+                    <div class="subsection-title">Métricas Importantes</div>
+                    <ul class="terms-list">
+                        <li><strong>Peso:</strong> Mídete 1-2 veces por semana, preferiblemente a la misma hora.</li>
+                        <li><strong>Fotos:</strong> Toma fotos cada 2-4 semanas (frente, lado, espalda).</li>
+                        <li><strong>Medidas:</strong> Mide cintura, cadera, pecho y muslos mensualmente.</li>
+                        <li><strong>Rendimiento:</strong> Registra pesos y repeticiones en tus entrenamientos.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Comunicación -->
+            <div class="section">
+                <div class="section-title">💬 Comunicación y Soporte</div>
+                <div class="card">
+                    <div class="subsection-title">Cómo Contactarme</div>
+                    <div class="text-content">
+                        Si tienes preguntas, dudas o necesitas ajustar algo en tu plan:
+                    </div>
+                    <ul class="terms-list">
+                        <li>Contacta directamente a través del correo proporcionado.</li>
+                        <li>Sé específico en tus preguntas para respuestas más precisas.</li>
+                        <li>Comparte fotos, videos o medidas cuando sea relevante.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Compromisos -->
+            <div class="section">
+                <div class="section-title">✅ Tus Compromisos</div>
+                <div class="card">
+                    <ul class="terms-list">
+                        <li><strong>Consistencia:</strong> Sigue el plan de entrenamiento y nutrición.</li>
+                        <li><strong>Honestidad:</strong> Reporta tu progreso real, no lo que crees que quiero escuchar.</li>
+                        <li><strong>Comunicación:</strong> Avísame de cambios, lesiones o dificultades.</li>
+                        <li><strong>Paciencia:</strong> Los resultados toman tiempo. Confía en el proceso.</li>
+                        <li><strong>Disciplina:</strong> Algunos días será difícil. Hazlo de todas formas.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Próximos Pasos -->
+            <div class="section">
+                <div class="section-title">🚀 Próximos Pasos</div>
+                <div class="card">
+                    <div class="subsection-title">Comienza Hoy</div>
+                    <ol style="margin-left: 20px; color: #c8bfb5;">
+                        <li style="margin-bottom: 10px;">Lee completamente tu Guideline de Entrenamiento.</li>
+                        <li style="margin-bottom: 10px;">Revisa tu Plan Nutricional y entiende tus macros.</li>
+                        <li style="margin-bottom: 10px;">Explora el Recetario y elige tus recetas favoritas.</li>
+                        <li style="margin-bottom: 10px;">Toma fotos y medidas iniciales (baseline).</li>
+                        <li style="margin-bottom: 10px;">Comienza tu primer entrenamiento.</li>
+                        <li>Mantén la consistencia y reporta tu progreso.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Motivación Final -->
+            <div class="section">
+                <div class="card" style="background: rgba(196, 120, 120, 0.15); border-color: rgba(196, 120, 120, 0.4);">
+                    <div class="text-content" style="text-align: center; font-size: 16px; color: #ede8e2; font-weight: 600;">
+                        "El éxito no es un destino, es un viaje. Cada día que sigas tu plan, te acercas más a tu mejor versión."
+                    </div>
+                    <div class="text-content" style="text-align: center; color: #c47878; margin-top: 15px;">
+                        — Be Stronger Team
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-left">
+            <a href="javascript:history.back()" class="back-button">← Volver</a>
+        </div>
+        <div class="footer-center">
+            <div class="footer-text">© 2026 Be Stronger. Todos los derechos reservados.</div>
+        </div>
+        <div class="footer-right"></div>
+    </div>
+</body>
+</html>

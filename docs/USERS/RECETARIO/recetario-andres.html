@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'andres';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Andrés Cesaro Rodríguez</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .toc-container { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin: 30px 0; }
+        .toc-title { font-size: 18px; font-weight: 600; color: #c47878; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.1em; }
+        .toc-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .toc-list li { margin: 0; }
+        .toc-list a { display: block; padding: 12px 15px; background: rgba(196, 120, 120, 0.1); color: #c47878; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; transition: all 0.3s ease; border: 1px solid rgba(196, 120, 120, 0.2); }
+        .toc-list a:hover { background: #c47878; color: #ede8e2; }
+        .meal-section { margin: 50px 0; padding-top: 30px; border-top: 2px solid rgba(200, 191, 181, 0.1); }
+        .meal-section:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+        .meal-title { font-family: "DM Serif Display", serif; font-size: 32px; font-style: italic; color: #c47878; margin-bottom: 30px; text-transform: capitalize; }
+        .recipe-card { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin-bottom: 25px; scroll-margin-top: 100px; }
+        .recipe-name { font-size: 20px; font-weight: 600; color: #ede8e2; margin: 0; }
+        .recipe-macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; background: rgba(196, 120, 120, 0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .macro-item { text-align: center; }
+        .macro-label { font-size: 11px; color: #c8bfb5; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+        .macro-value { font-size: 18px; font-weight: 700; color: #c47878; }
+        .recipe-ingredients { margin: 20px 0; }
+        .section-subtitle { font-size: 14px; font-weight: 600; color: #c47878; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; border-left: 3px solid #c47878; padding-left: 10px; }
+        .recipe-ingredients ul { list-style: none; padding: 0; margin: 0; }
+        .recipe-ingredients li { font-size: 13px; color: #c8bfb5; margin-bottom: 8px; padding-left: 20px; position: relative; }
+        .recipe-ingredients li:before { content: "•"; position: absolute; left: 5px; color: #c47878; }
+        .recipe-steps { margin: 20px 0; }
+        .recipe-steps ol { margin: 0; padding-left: 20px; }
+        .recipe-steps li { font-size: 13px; color: #c8bfb5; margin-bottom: 10px; line-height: 1.6; }
+        .back-to-toc { display: inline-block; margin-top: 15px; padding: 8px 12px; background: rgba(196, 120, 120, 0.1); color: #c47878; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.3s ease; border: 1px solid rgba(196, 120, 120, 0.2); }
+        .back-to-toc:hover { background: #c47878; color: #ede8e2; }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 900px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #c47878;">
+            <div style="font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px; color: #ede8e2; margin-bottom: 10px;">
+                Be <span style="color: #c47878;">Stronger</span>
+            </div>
+            <div style="font-size: 12px; color: #c8bfb5; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 20px;">
+                Recetario Personalizado
+            </div>
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 42px; font-style: italic; color: #ede8e2; margin: 0; margin-bottom: 10px;">
+                Recetario de <span style="color: #c47878;">Andrés Cesaro Rodríguez</span>
+            </h1>
+            <p style="font-size: 14px; color: #c8bfb5; margin: 0;">
+                20 recetas personalizadas para tu plan nutricional
+            </p>
+        </div>
+        <div class="toc-container">
+            <div class="toc-title">📑 Índice de Recetas</div>
+            <ul class="toc-list">
+                <li><a href="#snack">🥤 Snack (20)</a></li>
+            </ul>
+        </div>
+        <div class="meal-section" id="snack">
+            <h2 class="meal-title">🥤 Snack</h2>
+            <div class="recipe-card" id="rec_183">
+                <h3 class="recipe-name">Receta 1</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_184">
+                <h3 class="recipe-name">Receta 2</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_185">
+                <h3 class="recipe-name">Receta 3</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_186">
+                <h3 class="recipe-name">Receta 4</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_187">
+                <h3 class="recipe-name">Receta 5</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_188">
+                <h3 class="recipe-name">Receta 6</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_189">
+                <h3 class="recipe-name">Receta 7</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_190">
+                <h3 class="recipe-name">Receta 8</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_191">
+                <h3 class="recipe-name">Receta 9</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_192">
+                <h3 class="recipe-name">Receta 10</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_193">
+                <h3 class="recipe-name">Receta 11</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_194">
+                <h3 class="recipe-name">Receta 12</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_195">
+                <h3 class="recipe-name">Receta 13</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_196">
+                <h3 class="recipe-name">Receta 14</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_197">
+                <h3 class="recipe-name">Receta 15</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_198">
+                <h3 class="recipe-name">Receta 16</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_199">
+                <h3 class="recipe-name">Receta 17</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_200">
+                <h3 class="recipe-name">Receta 18</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_201">
+                <h3 class="recipe-name">Receta 19</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+            <div class="recipe-card" id="rec_202">
+                <h3 class="recipe-name">Receta 20</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">0g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">0 kcal</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>Ingredientes - al gusto unidad</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Preparar según instrucciones</li>
+                    </ol>
+                </div>
+                <a href="#snack" class="back-to-toc">↑ Volver al índice</a>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; margin-top: 50px; padding-top: 30px; border-top: 1px solid rgba(200, 191, 181, 0.1); flex-wrap: wrap;">
+            <a href="cliente-andres-menu.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(196, 120, 120, 0.1); color: #c47878; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.3s ease; border: 1px solid rgba(196, 120, 120, 0.3);">← Volver al Menú</a>
+            <a href="nutricion-andres.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(196, 120, 120, 0.1); color: #c47878; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; transition: all 0.3s ease; border: 1px solid rgba(196, 120, 120, 0.3);">Ver Plan Nutricional →</a>
+        </div>
+    </div>
+    <script>
+        const clienteId = 'andres';
+        const isLoggedIn = localStorage.getItem(`${clienteId}_logged_in`);
+        if (!isLoggedIn) { window.location.href = `login-${clienteId}.html`; }
+    </script>
+</body>
+</html>

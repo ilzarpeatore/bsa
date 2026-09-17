@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'hamza-dris';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Hamza Dris</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #c47878;
+            --bg-dark: #2e1f1f;
+            --bg-card: rgba(200, 191, 181, 0.04);
+            --text-primary: #ede8e2;
+            --text-secondary: #c8bfb5;
+            --text-muted: #c8bfb5;
+            --border: rgba(200, 191, 181, 0.10);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(196, 120, 120, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .tagline {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .client-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(196, 120, 120, 0.15);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-button:hover {
+            background: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px 20px;
+        }
+
+        .content-wrapper {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            font-style: italic;
+            margin-bottom: 30px;
+            color: var(--text-primary);
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .alert-box {
+            background: rgba(196, 120, 120, 0.08);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .alert-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .recipe-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .recipe-card:hover {
+            border-color: var(--primary);
+            background: rgba(196, 120, 120, 0.05);
+        }
+
+        .recipe-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .recipe-macros {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .macro {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .macro-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .macro-value {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .recipe-ingredients {
+            margin-bottom: 15px;
+        }
+
+        .ingredients-title {
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ingredient {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .ingredient::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+
+        .recipe-instructions {
+            margin-bottom: 15px;
+        }
+
+        .instructions-title {
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .instruction {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .instruction::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .recipe-tips {
+            background: rgba(196, 120, 120, 0.05);
+            border-left: 3px solid var(--primary);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .nav-bottom {
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .meal-type-intro {
+            background: rgba(196, 120, 120, 0.08);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px 15px;
+            }
+
+            .section-title {
+                font-size: 22px;
+            }
+
+            .recipe-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .recipe-macros {
+                flex-wrap: wrap;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="tagline">Recetario Personalizado</div>
+            <div class="client-name">Hamza Dris - 7 Opciones por Comida</div>
+        </div>
+
+        <div class="nav-top">
+            <a href="cliente-hamza-menu.html" class="nav-button">← Volver al Menú</a>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <!-- Introducción -->
+                <div class="section">
+                    <h2 class="section-title">Recetario Halal - 100% Sin Cerdo</h2>
+                    <div class="alert-box">
+                        <div class="alert-title">🍽️ Cómo Usar Este Recetario</div>
+                        <div class="alert-text">
+                            Este recetario contiene 7 opciones para cada tipo de comida: desayuno, snack, comida, merienda y cena. Todas las recetas son <strong>100% Halal</strong>, sin cerdo ni derivados. Puedes rotar entre opciones para evitar aburrimiento y mantener consistencia. Cada receta incluye ingredientes, instrucciones, macronutrientes y tips de preparación. Los tiempos de preparación varían: algunas son rápidas (5-10 min) para guardias nocturnas, otras más elaboradas (20-30 min) para días con más tiempo.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INDICE DE RECETAS -->
+                <div class="section">
+                    <h2 class="section-title">📑 Indice de Recetas</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                        <!-- DESAYUNO -->
+                        <div style="background: rgba(196, 120, 120, 0.08); padding: 20px; border-radius: 12px; border: 1px solid rgba(196, 120, 120, 0.15);">
+                            <div style="font-weight: 600; color: #c47878; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Desayuno (600 kcal)</div>
+                            <div style="font-size: 13px; line-height: 1.8; color: #c8bfb5;">
+                                1. Avena con Proteina y Platano<br>
+                                2. Huevos con Tostadas Integrales<br>
+                                3. Yogur Griego con Granola<br>
+                                4. Tortitas de Proteina<br>
+                                5. Sandwich de Pechuga<br>
+                                6. Batido de Proteina<br>
+                                7. Tostadas Integrales con Queso
+                            </div>
+                        </div>
+
+                        <!-- SNACK -->
+                        <div style="background: rgba(196, 120, 120, 0.08); padding: 20px; border-radius: 12px; border: 1px solid rgba(196, 120, 120, 0.15);">
+                            <div style="font-weight: 600; color: #c47878; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Snack (400 kcal)</div>
+                            <div style="font-size: 13px; line-height: 1.8; color: #c8bfb5;">
+                                1. Batido Simple de Proteina<br>
+                                2. Yogur + Frutos Secos<br>
+                                3. Pechuga de Pollo + Pan<br>
+                                4. Queso Fresco + Frutas<br>
+                                5. Atun en Lata + Galletas<br>
+                                6. Huevos Cocidos<br>
+                                7. Pavo + Frutas
+                            </div>
+                        </div>
+
+                        <!-- COMIDA -->
+                        <div style="background: rgba(196, 120, 120, 0.08); padding: 20px; border-radius: 12px; border: 1px solid rgba(196, 120, 120, 0.15);">
+                            <div style="font-weight: 600; color: #c47878; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Comida (900 kcal)</div>
+                            <div style="font-size: 13px; line-height: 1.8; color: #c8bfb5;">
+                                1. Arroz Integral + Pollo<br>
+                                2. Salmon + Patata Cocida<br>
+                                3. Ternera + Verduras<br>
+                                4. Atun + Pasta Integral<br>
+                                5. Pavo + Legumbres<br>
+                                6. Corazones de Pollo + Arroz<br>
+                                7. Bacalao + Boniato
+                            </div>
+                        </div>
+
+                        <!-- MERIENDA -->
+                        <div style="background: rgba(196, 120, 120, 0.08); padding: 20px; border-radius: 12px; border: 1px solid rgba(196, 120, 120, 0.15);">
+                            <div style="font-weight: 600; color: #c47878; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Merienda (400 kcal)</div>
+                            <div style="font-size: 13px; line-height: 1.8; color: #c8bfb5;">
+                                (Similar a Snack)<br><br>
+                                Opciones rapidas para despues del entrenamiento o entre comidas principales.
+                            </div>
+                        </div>
+
+                        <!-- CENA -->
+                        <div style="background: rgba(196, 120, 120, 0.08); padding: 20px; border-radius: 12px; border: 1px solid rgba(196, 120, 120, 0.15);">
+                            <div style="font-weight: 600; color: #c47878; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Cena (900 kcal)</div>
+                            <div style="font-size: 13px; line-height: 1.8; color: #c8bfb5;">
+                                1. Salmon + Verduras<br>
+                                2. Pechuga + Aguacate<br>
+                                3. Ternera + Ensalada<br>
+                                4. Atun + Arroz Integral<br>
+                                5. Pavo + Boniato<br>
+                                6. Bacalao + Verduras<br>
+                                7. Corazones Pollo (Guardia)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DESAYUNO -->
+                <div class="section">
+                    <h2 class="section-title">🌅 Desayuno (600 kcal) - Pre-Entreno</h2>
+                    <div class="meal-type-intro">
+                        El desayuno es tu comida más importante. Debe incluir proteína + carbohidratos complejos + grasas. Come esto 30-60 minutos antes de entrenar para tener energía óptima. Todas las opciones rondan 600 kcal y 45g de proteína.
+                    </div>
+
+                    <div class="recipe-grid">
+                        <!-- Receta 1 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">1. Avena con Proteína y Plátano</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">45g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">20g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">70g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">50g avena integral</div>
+                                <div class="ingredient">50g proteína en polvo (vainilla o chocolate)</div>
+                                <div class="ingredient">200ml leche desnatada</div>
+                                <div class="ingredient">1 plátano mediano</div>
+                                <div class="ingredient">10g miel</div>
+                                <div class="ingredient">Canela al gusto</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Mezcla avena con leche en un bol</div>
+                                <div class="instruction" data-step="2. ">Añade proteína en polvo y revuelve bien</div>
+                                <div class="instruction" data-step="3. ">Deja reposar 5 minutos</div>
+                                <div class="instruction" data-step="4. ">Corta el plátano y añádelo</div>
+                                <div class="instruction" data-step="5. ">Vierte miel y espolvorea canela</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Prepara la noche anterior para comer en 2 minutos por la mañana. Puedes comerla fría o calentarla en microondas.
+                            </div>
+                        </div>
+
+                        <!-- Receta 2 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">2. Huevos con Pan Integral</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">40g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">22g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">65g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">3 huevos (2 claras + 1 yema)</div>
+                                <div class="ingredient">2 rebanadas pan integral</div>
+                                <div class="ingredient">1 tomate mediano</div>
+                                <div class="ingredient">10ml aceite de oliva</div>
+                                <div class="ingredient">Sal, pimienta, orégano</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén con aceite de oliva</div>
+                                <div class="instruction" data-step="2. ">Bate los huevos con sal y pimienta</div>
+                                <div class="instruction" data-step="3. ">Vierte en la sartén y revuelve hasta cocinar</div>
+                                <div class="instruction" data-step="4. ">Tuesta el pan integral</div>
+                                <div class="instruction" data-step="5. ">Sirve huevos con pan y tomate fresco</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Puedes preparar los huevos revueltos o en tortilla. Añade verduras (pimiento, cebolla) si quieres más volumen.
+                            </div>
+                        </div>
+
+                        <!-- Receta 3 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">3. Yogur Griego con Granola</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">42g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">18g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">72g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">200g yogur griego sin azúcar</div>
+                                <div class="ingredient">50g granola casera (avena, miel, frutos secos)</div>
+                                <div class="ingredient">100g fresas frescas</div>
+                                <div class="ingredient">30g almendras crudas</div>
+                                <div class="ingredient">10g miel</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Vierte yogur griego en un bol</div>
+                                <div class="instruction" data-step="2. ">Añade granola casera</div>
+                                <div class="instruction" data-step="3. ">Corta las fresas y distribúyelas</div>
+                                <div class="instruction" data-step="4. ">Añade almendras crujientes</div>
+                                <div class="instruction" data-step="5. ">Vierte miel al gusto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Prepara granola casera en lotes (avena + miel + frutos secos al horno). Dura 2 semanas en recipiente hermético.
+                            </div>
+                        </div>
+
+                        <!-- Receta 4 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">4. Tortitas Proteicas</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">48g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">16g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">68g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">2 huevos</div>
+                                <div class="ingredient">50g harina integral</div>
+                                <div class="ingredient">30g proteína en polvo</div>
+                                <div class="ingredient">100ml leche desnatada</div>
+                                <div class="ingredient">30g mantequilla de cacahuete</div>
+                                <div class="ingredient">1 plátano pequeño</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Mezcla huevos, harina, proteína y leche</div>
+                                <div class="instruction" data-step="2. ">Deja reposar 5 minutos</div>
+                                <div class="instruction" data-step="3. ">Calienta sartén antiadherente</div>
+                                <div class="instruction" data-step="4. ">Vierte masa y cocina 2-3 min por lado</div>
+                                <div class="instruction" data-step="5. ">Sirve con mantequilla de cacahuete y plátano</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Prepara la masa la noche anterior. Puedes hacer 4-5 tortitas y congelar para la semana.
+                            </div>
+                        </div>
+
+                        <!-- Receta 5 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">5. Sándwich Proteico</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">46g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">19g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">70g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">2 rebanadas pan integral</div>
+                                <div class="ingredient">150g pechuga pollo cocida</div>
+                                <div class="ingredient">Lechuga fresca</div>
+                                <div class="ingredient">2 rodajas tomate</div>
+                                <div class="ingredient">10ml aceite de oliva</div>
+                                <div class="ingredient">Mostaza al gusto</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Tuesta el pan integral</div>
+                                <div class="instruction" data-step="2. ">Unta mostaza en ambas rebanadas</div>
+                                <div class="instruction" data-step="3. ">Añade lechuga y tomate</div>
+                                <div class="instruction" data-step="4. ">Coloca pechuga pollo en el medio</div>
+                                <div class="instruction" data-step="5. ">Cierra y sirve</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Prepara pechuga pollo cocida en lotes el domingo para toda la semana. Dura 4-5 días en refrigerador.
+                            </div>
+                        </div>
+
+                        <!-- Receta 6 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">6. Batido Completo</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">44g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">21g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">71g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">50g proteína en polvo</div>
+                                <div class="ingredient">200ml leche entera</div>
+                                <div class="ingredient">1 plátano mediano</div>
+                                <div class="ingredient">30g mantequilla de cacahuete</div>
+                                <div class="ingredient">50g avena integral</div>
+                                <div class="ingredient">Hielo al gusto</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Vierte leche en licuadora</div>
+                                <div class="instruction" data-step="2. ">Añade proteína en polvo</div>
+                                <div class="instruction" data-step="3. ">Corta plátano y añádelo</div>
+                                <div class="instruction" data-step="4. ">Añade mantequilla de cacahuete y avena</div>
+                                <div class="instruction" data-step="5. ">Licúa hasta obtener textura cremosa</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Perfecto para mañanas con prisa. Prepara en 3 minutos y bebe en el coche.
+                            </div>
+                        </div>
+
+                        <!-- Receta 7 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">7. Tostadas Halal</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">43g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">20g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">69g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">2 tostadas integrales</div>
+                                <div class="ingredient">150g pechuga pavo cocida</div>
+                                <div class="ingredient">1/2 aguacate maduro</div>
+                                <div class="ingredient">2 rodajas tomate</div>
+                                <div class="ingredient">5ml aceite de oliva</div>
+                                <div class="ingredient">Sal y pimienta</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Coloca tostadas en un plato</div>
+                                <div class="instruction" data-step="2. ">Aplasta aguacate con tenedor</div>
+                                <div class="instruction" data-step="3. ">Extiende aguacate en las tostadas</div>
+                                <div class="instruction" data-step="4. ">Añade pechuga pavo y tomate</div>
+                                <div class="instruction" data-step="5. ">Rocía aceite de oliva y sazona</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> El aguacate es grasa saludable. Elige aguacates maduros pero firmes para mejor sabor.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SNACK/MERIENDA -->
+                <div class="section">
+                    <h2 class="section-title">🥤 Snack/Merienda (400 kcal)</h2>
+                    <div class="meal-type-intro">
+                        El snack es tu oportunidad para aumentar proteína y mantener energía hasta la cena. Elige opciones que te sacie sin ser demasiado pesadas. Todas las opciones rondan 400 kcal y 35-40g de proteína.
+                    </div>
+
+                    <div class="recipe-grid">
+                        <!-- Receta 1 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">1. Batido Proteico Simple</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">40g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">12g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">35g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">50g proteína en polvo</div>
+                                <div class="ingredient">200ml leche desnatada</div>
+                                <div class="ingredient">1 plátano pequeño</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Vierte leche en licuadora</div>
+                                <div class="instruction" data-step="2. ">Añade proteína en polvo</div>
+                                <div class="instruction" data-step="3. ">Corta plátano y añádelo</div>
+                                <div class="instruction" data-step="4. ">Licúa 30 segundos</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Rápido y fácil. Perfecto para entre entrenamientos o en el trabajo.
+                            </div>
+                        </div>
+
+                        <!-- Receta 2 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">2. Yogur con Frutos Secos</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">35g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">14g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">38g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">200g yogur griego sin azúcar</div>
+                                <div class="ingredient">30g almendras crudas</div>
+                                <div class="ingredient">100g arándanos frescos</div>
+                                <div class="ingredient">10g miel</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Vierte yogur en un bol</div>
+                                <div class="instruction" data-step="2. ">Añade almendras</div>
+                                <div class="instruction" data-step="3. ">Distribuye arándanos</div>
+                                <div class="instruction" data-step="4. ">Vierte miel al gusto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Los arándanos son ricos en antioxidantes. Puedes usar otras bayas (fresas, frambuesas).
+                            </div>
+                        </div>
+
+                        <!-- Receta 3 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">3. Pechuga con Pan</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">42g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">10g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">40g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">150g pechuga pollo cocida</div>
+                                <div class="ingredient">1 rebanada pan integral</div>
+                                <div class="ingredient">Lechuga fresca</div>
+                                <div class="ingredient">1 rodaja tomate</div>
+                                <div class="ingredient">Mostaza</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Tuesta el pan</div>
+                                <div class="instruction" data-step="2. ">Unta mostaza</div>
+                                <div class="instruction" data-step="3. ">Añade lechuga y tomate</div>
+                                <div class="instruction" data-step="4. ">Coloca pechuga</div>
+                                <div class="instruction" data-step="5. ">Sirve</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Usa pechuga cocida preparada el domingo. Tarda 2 minutos en armar.
+                            </div>
+                        </div>
+
+                        <!-- Receta 4 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">4. Queso Fresco con Frutas</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">38g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">13g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">36g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">200g queso fresco desnatado</div>
+                                <div class="ingredient">1 manzana mediana</div>
+                                <div class="ingredient">20g almendras</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Corta queso en trozos</div>
+                                <div class="instruction" data-step="2. ">Corta manzana en rodajas</div>
+                                <div class="instruction" data-step="3. ">Mezcla en un plato</div>
+                                <div class="instruction" data-step="4. ">Añade almendras</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> El queso fresco es proteína de calidad. Elige variedades desnatadas para menos grasa.
+                            </div>
+                        </div>
+
+                        <!-- Receta 5 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">5. Atún con Galletas</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">40g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">11g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">39g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">120g atún en lata al natural</div>
+                                <div class="ingredient">6 galletas integrales</div>
+                                <div class="ingredient">1 naranja mediana</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Escurre bien el atún</div>
+                                <div class="instruction" data-step="2. ">Coloca en un plato</div>
+                                <div class="instruction" data-step="3. ">Acompaña con galletas integrales</div>
+                                <div class="instruction" data-step="4. ">Come naranja de postre</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Atún en lata es práctico para llevar al trabajo. Elige al natural, no en aceite.
+                            </div>
+                        </div>
+
+                        <!-- Receta 6 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">6. Huevos Cocidos</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">36g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">15g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">37g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">3 huevos cocidos</div>
+                                <div class="ingredient">1 rebanada pan integral</div>
+                                <div class="ingredient">1 plátano pequeño</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Hierve huevos 10-12 minutos</div>
+                                <div class="instruction" data-step="2. ">Enfría en agua fría</div>
+                                <div class="instruction" data-step="3. ">Pela y coloca en un plato</div>
+                                <div class="instruction" data-step="4. ">Acompaña con pan y plátano</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Prepara 6-8 huevos el domingo. Duran toda la semana en refrigerador.
+                            </div>
+                        </div>
+
+                        <!-- Receta 7 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">7. Pavo con Frutas</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">41g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">9g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">41g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">150g pechuga pavo cocida</div>
+                                <div class="ingredient">200g fresas frescas</div>
+                                <div class="ingredient">30g nueces</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Corta pechuga pavo en trozos</div>
+                                <div class="instruction" data-step="2. ">Corta fresas por la mitad</div>
+                                <div class="instruction" data-step="3. ">Mezcla en un plato</div>
+                                <div class="instruction" data-step="4. ">Añade nueces picadas</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Combinación dulce y salada. Las fresas aportan vitamina C para absorción de hierro.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMIDA PRINCIPAL -->
+                <div class="section">
+                    <h2 class="section-title">🍖 Comida Principal (900 kcal)</h2>
+                    <div class="meal-type-intro">
+                        La comida es tu mayor ingesta calórica. Debe incluir proteína de calidad + carbohidratos complejos + verduras + grasas saludables. Esta es tu comida más elaborada, perfecta para días sin guardia. Todas las opciones rondan 900 kcal y 65g de proteína.
+                    </div>
+
+                    <div class="recipe-grid">
+                        <!-- Receta 1 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">1. Arroz con Pollo Clásico</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">65g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">28g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">95g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g pechuga pollo a la plancha</div>
+                                <div class="ingredient">200g arroz integral cocido</div>
+                                <div class="ingredient">150g brócoli fresco</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                                <div class="ingredient">Ajo, cebolla, especias</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Cocina arroz integral (30 min)</div>
+                                <div class="instruction" data-step="2. ">Calienta sartén con aceite de oliva</div>
+                                <div class="instruction" data-step="3. ">Cocina pechuga pollo 8-10 min por lado</div>
+                                <div class="instruction" data-step="4. ">Hierve brócoli 5 minutos</div>
+                                <div class="instruction" data-step="5. ">Sirve todo junto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Prepara arroz en lotes el domingo. Dura toda la semana en refrigerador.
+                            </div>
+                        </div>
+
+                        <!-- Receta 2 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">2. Salmón con Patata</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">62g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">32g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">92g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g salmón fresco</div>
+                                <div class="ingredient">300g patata cocida</div>
+                                <div class="ingredient">150g espárragos frescos</div>
+                                <div class="ingredient">10ml aceite de oliva</div>
+                                <div class="ingredient">Limón, sal, pimienta</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Precalienta horno a 200°C</div>
+                                <div class="instruction" data-step="2. ">Coloca salmón en bandeja</div>
+                                <div class="instruction" data-step="3. ">Rocía con aceite y limón</div>
+                                <div class="instruction" data-step="4. ">Hornea 15-18 minutos</div>
+                                <div class="instruction" data-step="5. ">Sirve con patata y espárragos</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> El salmón es rico en omega-3. Excelente para salud cardiovascular y cerebral.
+                            </div>
+                        </div>
+
+                        <!-- Receta 3 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">3. Ternera con Verduras</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">68g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">26g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">96g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g ternera magra</div>
+                                <div class="ingredient">200g puré de patata</div>
+                                <div class="ingredient">200g calabaza asada</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                                <div class="ingredient">Cebolla, ajo, especias</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="2. ">Cocina ternera 6-8 min por lado</div>
+                                <div class="instruction" data-step="3. ">Prepara puré de patata</div>
+                                <div class="instruction" data-step="4. ">Asa calabaza en horno</div>
+                                <div class="instruction" data-step="5. ">Sirve todo junto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Ternera magra es proteína de excelente calidad. Rica en hierro y zinc.
+                            </div>
+                        </div>
+
+                        <!-- Receta 4 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">4. Atún con Pasta Integral</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">64g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">27g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">98g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g atún fresco</div>
+                                <div class="ingredient">200g pasta integral cocida</div>
+                                <div class="ingredient">150g pimiento rojo</div>
+                                <div class="ingredient">150g tomate cherry</div>
+                                <div class="ingredient">12ml aceite de oliva</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Cocina pasta integral según instrucciones</div>
+                                <div class="instruction" data-step="2. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="3. ">Cocina atún 3-4 min por lado</div>
+                                <div class="instruction" data-step="4. ">Sofríe pimiento y tomate</div>
+                                <div class="instruction" data-step="5. ">Mezcla todo</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Atún fresco es mejor que en lata. Más proteína y menos sodio.
+                            </div>
+                        </div>
+
+                        <!-- Receta 5 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">5. Pavo con Legumbres</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">66g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">25g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">100g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g pechuga pavo</div>
+                                <div class="ingredient">150g lentejas cocidas</div>
+                                <div class="ingredient">150g zanahoria cocida</div>
+                                <div class="ingredient">150g pepino fresco</div>
+                                <div class="ingredient">12ml aceite de oliva</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Cocina lentejas (30 min) o usa enlatadas</div>
+                                <div class="instruction" data-step="2. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="3. ">Cocina pechuga pavo 8-10 min</div>
+                                <div class="instruction" data-step="4. ">Hierve zanahoria</div>
+                                <div class="instruction" data-step="5. ">Sirve con pepino fresco</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Lentejas son proteína vegetal. Combinadas con pavo crean aminoácidos completos.
+                            </div>
+                        </div>
+
+                        <!-- Receta 6 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">6. Corazones de Pollo</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">70g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">24g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">94g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">300g corazones pollo</div>
+                                <div class="ingredient">200g arroz blanco</div>
+                                <div class="ingredient">150g calabacín</div>
+                                <div class="ingredient">10ml aceite de oliva</div>
+                                <div class="ingredient">Ajo, cebolla, especias</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Cocina arroz blanco (20 min)</div>
+                                <div class="instruction" data-step="2. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="3. ">Cocina corazones 10-12 min</div>
+                                <div class="instruction" data-step="4. ">Sofríe calabacín</div>
+                                <div class="instruction" data-step="5. ">Sirve todo junto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Corazones de pollo son tu proteína favorita. Más sabrosos que pechuga.
+                            </div>
+                        </div>
+
+                        <!-- Receta 7 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">7. Bacalao con Boniato</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">63g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">29g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">97g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g bacalao fresco</div>
+                                <div class="ingredient">300g boniato cocido</div>
+                                <div class="ingredient">150g brócoli</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                                <div class="ingredient">Limón, sal, pimienta</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Precalienta horno a 200°C</div>
+                                <div class="instruction" data-step="2. ">Coloca bacalao en bandeja</div>
+                                <div class="instruction" data-step="3. ">Rocía con aceite y limón</div>
+                                <div class="instruction" data-step="4. ">Hornea 15 minutos</div>
+                                <div class="instruction" data-step="5. ">Sirve con boniato y brócoli</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Bacalao es pescado blanco magro. Boniato tiene más nutrientes que patata normal.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CENA -->
+                <div class="section">
+                    <h2 class="section-title">🌙 Cena (900 kcal) - Proteína + Grasas</h2>
+                    <div class="meal-type-intro">
+                        La cena debe ser proteica pero moderada en carbohidratos para no interferir el sueño. Prioriza proteína + grasas saludables + verduras. En guardias nocturnas, come comidas ligeras y no elaboradas. Todas las opciones rondan 900 kcal y 60-70g de proteína.
+                    </div>
+
+                    <div class="recipe-grid">
+                        <!-- Receta 1 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">1. Salmón con Verduras</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">62g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">35g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">45g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g salmón fresco</div>
+                                <div class="ingredient">200g brócoli</div>
+                                <div class="ingredient">100g patata cocida</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                                <div class="ingredient">Limón, sal, pimienta</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Precalienta horno a 200°C</div>
+                                <div class="instruction" data-step="2. ">Coloca salmón en bandeja</div>
+                                <div class="instruction" data-step="3. ">Rocía con aceite y limón</div>
+                                <div class="instruction" data-step="4. ">Hornea 15-18 minutos</div>
+                                <div class="instruction" data-step="5. ">Sirve con verduras</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Salmón es perfecto para cena. Omega-3 ayuda a dormir mejor.
+                            </div>
+                        </div>
+
+                        <!-- Receta 2 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">2. Pechuga con Aguacate</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">65g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">32g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">48g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g pechuga pollo</div>
+                                <div class="ingredient">1 aguacate maduro</div>
+                                <div class="ingredient">150g espárragos</div>
+                                <div class="ingredient">10ml aceite de oliva</div>
+                                <div class="ingredient">Sal, pimienta, limón</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="2. ">Cocina pechuga 8-10 min por lado</div>
+                                <div class="instruction" data-step="3. ">Hierve espárragos 5 minutos</div>
+                                <div class="instruction" data-step="4. ">Corta aguacate en rodajas</div>
+                                <div class="instruction" data-step="5. ">Sirve todo junto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Aguacate es grasa saludable que promueve saciedad. Elige maduro pero firme.
+                            </div>
+                        </div>
+
+                        <!-- Receta 3 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">3. Ternera con Ensalada</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">68g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">30g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">50g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g ternera magra</div>
+                                <div class="ingredient">300g ensalada mixta (lechuga, tomate, pepino)</div>
+                                <div class="ingredient">100g patata cocida</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                                <div class="ingredient">Vinagre balsámico, sal, pimienta</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="2. ">Cocina ternera 6-8 min por lado</div>
+                                <div class="instruction" data-step="3. ">Prepara ensalada fresca</div>
+                                <div class="instruction" data-step="4. ">Aliña con aceite y vinagre</div>
+                                <div class="instruction" data-step="5. ">Sirve ternera con ensalada</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Ensalada fresca aporta micronutrientes. Usa vinagre balsámico en lugar de mayonesa.
+                            </div>
+                        </div>
+
+                        <!-- Receta 4 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">4. Atún con Arroz Integral</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">60g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">33g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">52g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g atún fresco</div>
+                                <div class="ingredient">150g arroz integral cocido</div>
+                                <div class="ingredient">150g calabacín</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                                <div class="ingredient">Ajo, sal, pimienta</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="2. ">Cocina atún 3-4 min por lado</div>
+                                <div class="instruction" data-step="3. ">Sofríe calabacín con ajo</div>
+                                <div class="instruction" data-step="4. ">Calienta arroz integral</div>
+                                <div class="instruction" data-step="5. ">Sirve todo junto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Arroz integral tiene más fibra. Prepáralo en lotes el domingo.
+                            </div>
+                        </div>
+
+                        <!-- Receta 5 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">5. Pavo con Boniato</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">63g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">31g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">54g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g pechuga pavo</div>
+                                <div class="ingredient">200g boniato cocido</div>
+                                <div class="ingredient">150g brócoli</div>
+                                <div class="ingredient">12ml aceite de oliva</div>
+                                <div class="ingredient">Sal, pimienta, especias</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén con aceite</div>
+                                <div class="instruction" data-step="2. ">Cocina pechuga pavo 8-10 min</div>
+                                <div class="instruction" data-step="3. ">Hierve brócoli 5 minutos</div>
+                                <div class="instruction" data-step="4. ">Calienta boniato</div>
+                                <div class="instruction" data-step="5. ">Sirve todo junto</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Boniato tiene más nutrientes que patata. Mejor para cena por su índice glucémico.
+                            </div>
+                        </div>
+
+                        <!-- Receta 6 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">6. Bacalao con Verduras</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">61g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">34g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">49g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">250g bacalao fresco</div>
+                                <div class="ingredient">200g pimiento rojo</div>
+                                <div class="ingredient">100g patata cocida</div>
+                                <div class="ingredient">150g calabaza asada</div>
+                                <div class="ingredient">15ml aceite de oliva</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Precalienta horno a 200°C</div>
+                                <div class="instruction" data-step="2. ">Coloca bacalao en bandeja</div>
+                                <div class="instruction" data-step="3. ">Añade pimiento y calabaza</div>
+                                <div class="instruction" data-step="4. ">Rocía con aceite de oliva</div>
+                                <div class="instruction" data-step="5. ">Hornea 15 minutos</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Bacalao es pescado blanco magro. Perfecto para cena sin culpa.
+                            </div>
+                        </div>
+
+                        <!-- Receta 7 -->
+                        <div class="recipe-card">
+                            <div class="recipe-title">7. Corazones Pollo (Guardia)</div>
+                            <div class="recipe-macros">
+                                <div class="macro">
+                                    <span class="macro-label">Proteína</span>
+                                    <span class="macro-value">70g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Grasas</span>
+                                    <span class="macro-value">28g</span>
+                                </div>
+                                <div class="macro">
+                                    <span class="macro-label">Carbos</span>
+                                    <span class="macro-value">35g</span>
+                                </div>
+                            </div>
+                            <div class="recipe-ingredients">
+                                <div class="ingredients-title">Ingredientes</div>
+                                <div class="ingredient">300g corazones pollo a la plancha</div>
+                                <div class="ingredient">150g ensalada mixta</div>
+                                <div class="ingredient">50g pan integral</div>
+                                <div class="ingredient">10ml aceite de oliva</div>
+                                <div class="ingredient">Sal, pimienta, vinagre</div>
+                            </div>
+                            <div class="recipe-instructions">
+                                <div class="instructions-title">Preparación</div>
+                                <div class="instruction" data-step="1. ">Calienta sartén sin aceite</div>
+                                <div class="instruction" data-step="2. ">Cocina corazones 10-12 min</div>
+                                <div class="instruction" data-step="3. ">Prepara ensalada fresca</div>
+                                <div class="instruction" data-step="4. ">Aliña con aceite y vinagre</div>
+                                <div class="instruction" data-step="5. ">Sirve con pan integral</div>
+                            </div>
+                            <div class="recipe-tips">
+                                💡 <strong>Tip:</strong> Opción ligera para guardias nocturnas. Fácil de preparar y llevar.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notas Finales -->
+                <div class="section">
+                    <div class="alert-box">
+                        <div class="alert-title">✅ Consejos de Preparación</div>
+                        <div class="alert-text">
+                            <strong>Meal Prep Semanal:</strong> Dedica 2-3 horas el domingo para preparar proteínas (pollo, pavo, atún), carbohidratos (arroz, patata) y verduras. Guarda en recipientes herméticos. <strong>Guardias Nocturnas:</strong> Lleva comidas frías y fáciles: corazones pollo cocidos, queso fresco, huevos cocidos, atún en lata. <strong>Flexibilidad:</strong> Si un día no puedes seguir exactamente el plan, no importa. Lo importante es mantener el déficit calórico semanal. <strong>Hidratación:</strong> Bebe agua constantemente, especialmente en guardias nocturnas. <strong>Variedad:</strong> Rota entre opciones para evitar aburrimiento y asegurar micronutrientes variados.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-bottom">
+            <a href="cliente-hamza-menu.html" class="nav-button">← Volver al Menú</a>
+        </div>
+    </div>
+</body>
+</html>

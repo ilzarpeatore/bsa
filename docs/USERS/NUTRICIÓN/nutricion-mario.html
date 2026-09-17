@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'mario';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Nutricional - Mario Garcia Guiraro</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .nutrition-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .nutrition-header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .nutrition-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 42px;
+            font-style: italic;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .nutrition-title span {
+            color: #c47878;
+        }
+
+        .client-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: #c47878;
+            margin-top: 15px;
+        }
+
+        .nutrition-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-left: 4px solid #c47878;
+            padding-left: 15px;
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+
+        .nutrition-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #c8bfb5;
+            margin-bottom: 12px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .summary-card {
+            background: rgba(196, 120, 120, 0.08);
+            border: 1px solid rgba(196, 120, 120, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        .macros-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(200, 191, 181, 0.03);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .macros-table th {
+            background: rgba(196, 120, 120, 0.1);
+            color: #ede8e2;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .macros-table td {
+            padding: 12px;
+            color: #c8bfb5;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.05);
+        }
+
+        .macros-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meal-card {
+            background: rgba(200, 191, 181, 0.03);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .meal-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 10px;
+        }
+
+        .meal-time {
+            font-size: 12px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .meal-content {
+            color: #c8bfb5;
+            line-height: 1.6;
+        }
+
+        .meal-macros {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .meal-macro {
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .meal-macro-label {
+            color: #c8bfb5;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .meal-macro-value {
+            color: #c47878;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .highlight-box {
+            background: rgba(196, 120, 120, 0.1);
+            border-left: 4px solid #c47878;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .highlight-box strong {
+            color: #ede8e2;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 15px 0;
+        }
+
+        .tips-list li {
+            font-size: 14px;
+            color: #c8bfb5;
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .tips-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-weight: bold;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .nav-buttons a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-buttons a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        @media (max-width: 768px) {
+            .nutrition-container {
+                padding: 20px 15px;
+            }
+
+            .nutrition-title {
+                font-size: 32px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .meal-macros {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .nav-buttons a {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="nutrition-container">
+        <!-- Header -->
+        <div class="nutrition-header">
+            <div style="font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px; color: #ede8e2; margin-bottom: 5px;">
+                Be <span style="color: #c47878;">Stronger</span>
+            </div>
+            <div style="font-size: 12px; color: #c8bfb5; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 20px;">
+                Asesoría Personal Online
+            </div>
+            <div class="nutrition-title">Plan <span>Nutricional</span></div>
+            <div class="client-name">Mario Garcia Guiraro</div>
+        </div>
+
+        <!-- Section 1: Executive Summary -->
+        <div class="nutrition-section">
+            <div class="section-title">1. Resumen Ejecutivo</div>
+            
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">TDEE</div>
+                    <div class="summary-value">2,600 kcal</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Objetivo</div>
+                    <div class="summary-value">Recomposición</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Meta Diaria</div>
+                    <div class="summary-value">2,400 kcal</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Proteína</div>
+                    <div class="summary-value">170g</div>
+                </div>
+            </div>
+
+            <div class="highlight-box">
+                <p><strong>Contexto Personal:</strong> Objetivo: Ganar masa muscular mientras reduces grasa corporal. Recomposición corporal.</p>
+            </div>
+        </div>
+
+        <!-- Section 2: Macronutrient Distribution -->
+        <div class="nutrition-section">
+            <div class="section-title">2. Distribución de Macronutrientes</div>
+            
+            <div class="subsection-title">Macros Diarios</div>
+            <table class="macros-table">
+                <thead>
+                    <tr>
+                        <th>Macronutriente</th>
+                        <th>Gramos/Día</th>
+                        <th>Kcal/Día</th>
+                        <th>% del Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Proteína</strong></td>
+                        <td>170g</td>
+                        <td>680 kcal</td>
+                        <td>28%%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Grasas</strong></td>
+                        <td>80g</td>
+                        <td>720 kcal</td>
+                        <td>30%%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Carbohidratos</strong></td>
+                        <td>300g</td>
+                        <td>1,200 kcal</td>
+                        <td>50%%</td>
+                    </tr>
+                    <tr style="background: rgba(196, 120, 120, 0.1);">
+                        <td><strong>TOTAL</strong></td>
+                        <td><strong>550g</strong></td>
+                        <td><strong>2,400 kcal</strong></td>
+                        <td><strong>100%</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="highlight-box">
+                <p><strong>Notas sobre macros:</strong></p>
+                <p>Proteína alta para recomposición. Déficit leve o mantenimiento. Carbos altos para energía.</p>
+            </div>
+        </div>
+
+        <!-- Section 3: Meal Structure -->
+        <div class="nutrition-section">
+            <div class="section-title">3. Estructura de Comidas</div>
+            
+            <div class="subsection-title">Distribución Recomendada</div>
+            <p class="nutrition-text">Distribuidas en 4 comidas para mantener saciedad y energía.</p>
+
+            <!-- Meal 1 -->
+            <div class="meal-card">
+                <div class="meal-name">🌅 Desayuno</div>
+                <div class="meal-time">07:00</div>
+                <div class="meal-content">
+                    • Huevos (3) + Tostadas integrales (2) + Mermelada
+• Avena (50g) + Leche (250ml) + Plátano
+• Yogur griego (200g) + Granola (35g)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">38g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">14g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">65g</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meal 2 -->
+            <div class="meal-card">
+                <div class="meal-name">☀️ Almuerzo</div>
+                <div class="meal-time">13:00</div>
+                <div class="meal-content">
+                    • Pollo (160g) + Arroz (120g) + Verduras
+• Ternera (160g) + Patata (130g) + Ensalada
+• Pescado blanco (160g) + Pasta integral (100g)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">52g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">18g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">80g</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meal 3 -->
+            <div class="meal-card">
+                <div class="meal-name">🌙 Cena</div>
+                <div class="meal-time">19:30</div>
+                <div class="meal-content">
+                    • Pechuga de pollo (140g) + Boniato (120g) + Verduras
+• Pavo (140g) + Arroz (100g) + Brócoli
+• Atún (140g) + Pasta integral (90g)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">45g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">14g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">75g</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Snacks -->
+            <div class="meal-card">
+                <div class="meal-name">🥤 Snacks/Extras</div>
+                <div class="meal-content">
+                    • Proteína en polvo + Plátano
+• Yogur griego (150g) + Frutos secos (15g)
+• Claras de huevo cocidas (3)
+                </div>
+                <div class="meal-macros">
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Proteína</div>
+                        <div class="meal-macro-value">35g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Grasas</div>
+                        <div class="meal-macro-value">10g</div>
+                    </div>
+                    <div class="meal-macro">
+                        <div class="meal-macro-label">Carbos</div>
+                        <div class="meal-macro-value">60g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Special Recommendations -->
+        <div class="nutrition-section">
+            <div class="section-title">4. Recomendaciones Especiales</div>
+            
+            <div class="subsection-title">Hidratación</div>
+            <p class="nutrition-text">Mínimo 3 litros diarios. Aumenta en días de entrenamiento intenso.</p>
+
+            <div class="subsection-title">Suplementación</div>
+            <p class="nutrition-text">Proteína en polvo, Multivitamínico, Creatina (opcional).</p>
+
+            <div class="subsection-title">Consideraciones Especiales</div>
+            <ul class="tips-list">
+                <li>Recomposición corporal es posible con entrenamiento + nutrición estructurada.</li>
+                <li>Progreso puede ser más lento que ganancia o pérdida pura.</li>
+                <li>Monitorea composición corporal: Más importante que peso total.</li>
+                <li>Consistencia es clave: Mejor 80% consistente que 100% perfecto 2 semanas.</li>
+            </ul>
+
+            <div class="highlight-box">
+                <p><strong>⚠️ Importante:</strong> Recomposición requiere entrenamiento consistente, nutrición estructurada y recuperación adecuada.</p>
+            </div>
+        </div>
+
+        <!-- Section 5: Tracking & Adjustments -->
+        <div class="nutrition-section">
+            <div class="section-title">5. Seguimiento y Ajustes</div>
+            
+            <div class="subsection-title">Cómo Registrar tu Progreso</div>
+            <ul class="tips-list">
+                <li>Pesa tus alimentos en gramos (usa una balanza de cocina)</li>
+                <li>Registra todo en una app (MyFitnessPal, Cronometer, etc.)</li>
+                <li>Toma fotos de tu comida para referencia visual</li>
+                <li>Reporta peso corporal 1-2 veces por semana</li>
+            </ul>
+
+            <div class="subsection-title">Cuándo Ajustar Calorías</div>
+            <p class="nutrition-text">Monitorea peso y composición cada 2 semanas. Ajusta según progreso.</p>
+
+            <div class="highlight-box">
+                <p><strong>Recuerda:</strong> La nutrición es el factor limitante principal en composición corporal. Consistencia > Perfección.</p>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="nav-buttons">
+            <a href="cliente-mario-menu.html">← Volver al Menú</a>
+            <a href="recetario-mario.html">Ir a Recetario →</a>
+        </div>
+    </div>
+
+    <script>
+        // Session check
+        const clienteId = 'mario';
+        const isLoggedIn = localStorage.getItem(`${clienteId}_logged_in`);
+        if (!isLoggedIn) {
+            window.location.href = `login-${clienteId}.html`;
+        }
+    </script>
+</body>
+</html>

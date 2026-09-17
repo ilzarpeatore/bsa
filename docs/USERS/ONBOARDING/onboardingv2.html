@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'v2';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Onboarding - Be Stronger</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2e1f1f 0%, #3d2626 100%);
+            color: #c8bfb5;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .back-button-top {
+            margin-bottom: 30px;
+        }
+
+        .back-button-top button,
+        .back-button-bottom button {
+            background: rgba(196, 120, 120, 0.2);
+            border: 1px solid rgba(196, 120, 120, 0.3);
+            color: #c47878;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button-top button:hover,
+        .back-button-bottom button:hover {
+            background: rgba(196, 120, 120, 0.3);
+        }
+
+        .content {
+            background: rgba(46, 31, 31, 0.95);
+            border: 1px solid rgba(196, 120, 120, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 22px;
+            color: #ede8e2;
+            margin-bottom: 15px;
+            font-weight: 600;
+            border-left: 4px solid #c47878;
+            padding-left: 15px;
+        }
+
+        .subsection-title {
+            font-size: 15px;
+            color: #c47878;
+            margin-top: 18px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .text-content {
+            color: #c8bfb5;
+            margin-bottom: 12px;
+            line-height: 1.8;
+        }
+
+        .terms-list {
+            list-style: none;
+            margin-left: 0;
+            margin-bottom: 12px;
+        }
+
+        .terms-list li {
+            padding: 6px 0 6px 25px;
+            position: relative;
+            color: #c8bfb5;
+        }
+
+        .terms-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-weight: bold;
+        }
+
+        .response-time-graphic {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .response-item {
+            background: rgba(196, 120, 120, 0.1);
+            border: 1px solid rgba(196, 120, 120, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .response-time {
+            font-size: 18px;
+            color: #c47878;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .response-label {
+            font-size: 11px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+        }
+
+        .example-box {
+            background: rgba(196, 120, 120, 0.05);
+            border-left: 4px solid #c47878;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 4px;
+        }
+
+        .example-box.example-bad {
+            border-left-color: #8b5a5a;
+        }
+
+        .message-bubble {
+            margin: 8px 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .message-user {
+            background: rgba(196, 120, 120, 0.2);
+            color: #ede8e2;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message-coach {
+            background: rgba(196, 120, 120, 0.1);
+            color: #c8bfb5;
+            margin-right: auto;
+        }
+
+        .example-check {
+            font-size: 12px;
+            color: #c47878;
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+
+        .example-check:before {
+            content: "✓ ";
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .example-bad .example-check:before {
+            content: "✗ ";
+            color: #8b5a5a;
+        }
+
+        .screenshot-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .screenshot-placeholder {
+            background: rgba(196, 120, 120, 0.1);
+            border: 2px dashed rgba(196, 120, 120, 0.3);
+            border-radius: 8px;
+            aspect-ratio: 3/4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+        }
+
+        .screenshot-placeholder-text {
+            text-align: center;
+            color: #c47878;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .whatsapp-box {
+            background: rgba(196, 120, 120, 0.15);
+            border: 1px solid rgba(196, 120, 120, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            color: #ede8e2;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .emergency-box {
+            background: rgba(196, 120, 120, 0.2);
+            border: 2px solid #c47878;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            color: #ede8e2;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .highlight {
+            background: rgba(196, 120, 120, 0.1);
+            border-left: 4px solid #c47878;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 4px;
+            color: #ede8e2;
+            font-size: 14px;
+        }
+
+        .timeline {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .timeline-item {
+            background: rgba(196, 120, 120, 0.1);
+            border: 1px solid rgba(196, 120, 120, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .timeline-week {
+            font-size: 14px;
+            color: #c47878;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .timeline-content {
+            font-size: 11px;
+            color: #c8bfb5;
+            line-height: 1.5;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(196, 120, 120, 0.2);
+            margin: 25px 0;
+        }
+
+        .footer {
+            text-align: center;
+            border-top: 1px solid rgba(196, 120, 120, 0.2);
+            padding-top: 15px;
+            margin-top: 25px;
+            font-size: 11px;
+            color: #c47878;
+        }
+
+        .footer p {
+            margin: 2px 0;
+        }
+
+        .back-button-bottom {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 15px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Back Button Top -->
+        <div class="back-button-top">
+            <button onclick="history.back()">← Volver al Menú</button>
+            <button onclick="window.print()" style="margin-left: 10px; background: rgba(196, 120, 120, 0.4);">🖨️ Imprimir</button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <!-- SECTION 1: WELCOME & EXPECTATIONS -->
+            <div class="section">
+                <div class="section-title">1. Bienvenida</div>
+                <p class="text-content">
+                    ¡Hola! Me alegra mucho que hayas decidido empezar este viaje conmigo. A partir de ahora, somos un equipo. Tu objetivo es mi objetivo, y estoy aquí para asegurarme de que lo alcances de forma segura y sostenible.
+                </p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">2. Qué Esperar</div>
+                
+                <div class="subsection-title">Primeros Pasos (Semana 1)</div>
+                <ul class="terms-list">
+                    <li>Recibirás un email con acceso a la plataforma</li>
+                    <li>Tu primer programa estará listo en 48-72 horas</li>
+                    <li>Te contactaré por WhatsApp para presentarme</li>
+                    <li>Necesitaré que completes un cuestionario</li>
+                </ul>
+
+                <div class="subsection-title">Comunicación Garantizada</div>
+                <div class="response-time-graphic">
+                    <div class="response-item">
+                        <div class="response-time">&lt;24h</div>
+                        <div class="response-label">WhatsApp</div>
+                    </div>
+                    <div class="response-item">
+                        <div class="response-time">&lt;48h</div>
+                        <div class="response-label">Consultas</div>
+                    </div>
+                    <div class="response-item">
+                        <div class="response-time">&lt;72h</div>
+                        <div class="response-label">Vídeos</div>
+                    </div>
+                </div>
+
+                <div class="subsection-title">Disponibilidad</div>
+                <p class="text-content">
+                    Lunes a viernes 8:00-20:00. Fines de semana respondo cuando puedo. Emergencias: disponible bajo demanda.
+                </p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">3. Cómo Reportar Problemas</div>
+                <p class="text-content">
+                    <strong>Contacta siempre vía WhatsApp.</strong> Comunícate por escrito para que puedas buscar después en el chat. Si envías audios, hazlos directos al grano.
+                </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SECTION 2: WHATSAPP EXAMPLES -->
+            <div class="section">
+                <div class="section-title">Ejemplos de Comunicación</div>
+                
+                <div class="subsection-title">✅ Ejemplo 1: Máquina Averiada (CORRECTO)</div>
+                <div class="example-box">
+                    <div class="message-bubble message-user">
+                        La máquina de Hack Squat está averiada. ¿Por qué otro ejercicio la sustituyo?
+                    </div>
+                    <div class="message-bubble message-coach">
+                        Sin problema. Leg press o sentadilla búlgara. Mantén 4x8 reps. ¿Tienes ambas?
+                    </div>
+                    <div class="message-bubble message-user">
+                        Sí, ambas. ¿Cuál me recomiendas?
+                    </div>
+                    <div class="message-bubble message-coach">
+                        Leg press para mantener carga similar. Elige la que prefieras.
+                    </div>
+                </div>
+                <div class="example-check">Problema específico</div>
+                <div class="example-check">Solución inmediata y flexible</div>
+
+                <div class="subsection-title">✅ Ejemplo 2: Molestia Lumbar (CORRECTO)</div>
+                <div class="example-box">
+                    <div class="message-bubble message-user">
+                        Hoy tengo molestias en la lumbar. ¿Qué hago para calentar?
+                    </div>
+                    <div class="message-bubble message-coach">
+                        Antes de entrenar: 2 min bicicleta + 10 bird dogs cada lado + 10 glute bridges. Sin peso muerto hoy. ¿Mejor?
+                    </div>
+                    <div class="message-bubble message-user">
+                        Sí, mucho mejor. Gracias!
+                    </div>
+                    <div class="message-bubble message-coach">
+                        Perfecto. Mañana volvemos con carga reducida. Avísame si persiste.
+                    </div>
+                </div>
+                <div class="example-check">Molestia con contexto</div>
+                <div class="example-check">Protocolo específico</div>
+
+                <div class="subsection-title">✅ Ejemplo 3: Molestia en Hombro (CORRECTO)</div>
+                <div class="example-box">
+                    <div class="message-bubble message-user">
+                        Hoy me molesta el hombro en press banca. ¿Qué hago?
+                    </div>
+                    <div class="message-bubble message-coach">
+                        Hoy: 5 min movilidad hombro + 10 band pull aparts. Prueba press con 20% menos peso. Si molesta, cambia a mancuernas. ¿Cómo va?
+                    </div>
+                    <div class="message-bubble message-user">
+                        Con mancuernas va mejor, sin dolor
+                    </div>
+                    <div class="message-bubble message-coach">
+                        Perfecto. Mantén mancuernas hoy. Mañana barra con técnica controlada. Avísame si vuelve.
+                    </div>
+                </div>
+                <div class="example-check">Molestia específica</div>
+                <div class="example-check">Múltiples opciones</div>
+                <div class="example-check">Seguimiento en tiempo real</div>
+
+                <div class="subsection-title">❌ Ejemplo 4: Qué EVITAR (INCORRECTO)</div>
+                <div class="example-box example-bad">
+                    <div class="message-bubble message-user" style="background: rgba(196,120,120,0.2);">
+                        [Audio 3:45 min] "Hola tío, mira que hoy he ido al gym y tal, he hecho sentadilla pero me dolía la rodilla..."
+                    </div>
+                </div>
+                <div class="example-check">Audio muy largo</div>
+                <div class="example-check">Información desorganizada</div>
+                <div class="example-check">Imposible buscar después</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SECTION 3: APP GUIDE -->
+            <div class="section">
+                <div class="section-title">4. Guía de la App</div>
+                
+                <div class="subsection-title">4.1 Cómo Acceder y Navegar</div>
+                <p class="text-content">
+                    Una vez recibas tus credenciales, accede a la plataforma y familiarízate con la interfaz:
+                </p>
+                
+                <div class="screenshot-grid-2">
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 1:<br>Pantalla de Login]</div>
+                    </div>
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 2:<br>Dashboard Principal]</div>
+                    </div>
+                </div>
+
+                <div class="subsection-title">4.2 Dónde Encontrar tus Entrenamientos</div>
+                <p class="text-content">
+                    Tu programa semanal estará en la sección "Entrenamientos". Se actualiza cada semana con nuevas cargas y variaciones.
+                </p>
+
+                <div class="subsection-title">Estructura del Programa</div>
+                <ul class="terms-list">
+                    <li><strong>Día de Entrenamiento:</strong> Lunes, Martes, Miércoles, etc.</li>
+                    <li><strong>Objetivo del Día:</strong> Fuerza, Hipertrofia, Potencia</li>
+                    <li><strong>Duración Estimada:</strong> Tiempo total del entrenamiento</li>
+                    <li><strong>Intensidad:</strong> Baja, Media o Alta (RPE 1-10)</li>
+                    <li><strong>Notas Especiales:</strong> Modificaciones o precauciones</li>
+                </ul>
+                
+                <div class="screenshot-grid-2">
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 3:<br>Sección<br>Entrenamientos]</div>
+                    </div>
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 4:<br>Detalles del<br>Entrenamiento]</div>
+                    </div>
+                </div>
+
+                <div class="subsection-title">Información de Cada Ejercicio</div>
+                <ul class="terms-list">
+                    <li><strong>Nombre del Ejercicio:</strong> Identificación clara</li>
+                    <li><strong>Series x Repeticiones:</strong> Ej: 4x8 (4 series de 8 reps)</li>
+                    <li><strong>Carga Recomendada:</strong> Peso o RPE (Esfuerzo Percibido)</li>
+                    <li><strong>Descanso entre Series:</strong> Tiempo de recuperación</li>
+                    <li><strong>Técnica y Forma:</strong> Descripción de ejecución correcta</li>
+                    <li><strong>Alternativas:</strong> Ejercicios sustitutos si no tienes equipo</li>
+                </ul>
+                
+                <div class="screenshot-grid-2">
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 5:<br>Ejercicios<br>Individuales]</div>
+                    </div>
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 6:<br>Notas y<br>Modificaciones]</div>
+                    </div>
+                </div>
+
+                <div class="subsection-title">4.3 Cómo Registrar Sesiones Completadas</div>
+                <p class="text-content">
+                    Después de cada entrenamiento, marca la sesión como completada. Esto me ayuda a seguir tu progreso y ajustar el programa.
+                </p>
+
+                <div class="subsection-title">Qué Registrar en Cada Sesión</div>
+                <ul class="terms-list">
+                    <li><strong>Peso Utilizado:</strong> Carga real en cada ejercicio</li>
+                    <li><strong>Repeticiones Completadas:</strong> Reps reales vs. programadas</li>
+                    <li><strong>RPE (Esfuerzo Percibido):</strong> Escala 1-10 de dificultad</li>
+                    <li><strong>Sensación General:</strong> Cómo te sentiste durante el entrenamiento</li>
+                    <li><strong>Molestias o Dolor:</strong> Cualquier incomodidad reportada</li>
+                    <li><strong>Notas Personales:</strong> Cansancio, estrés, sueño, etc.</li>
+                </ul>
+
+                <div class="subsection-title">Por Qué es Importante</div>
+                <p class="text-content">
+                    El registro me permite: ver tu progreso real, detectar patrones de fatiga, identificar ejercicios problemáticos, y ajustar cargas de forma precisa.
+                </p>
+                
+                <div class="screenshot-grid-2">
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 7:<br>Registrar Sesión]</div>
+                    </div>
+                    <div class="screenshot-placeholder">
+                        <div class="screenshot-placeholder-text">[CAPTURA 8:<br>Historial de<br>Sesiones]</div>
+                    </div>
+                </div>
+
+                <div class="subsection-title">4.4 Cómo Enviar Vídeos para Correcciones</div>
+                <p class="text-content">
+                    Los vídeos se envían por <strong>WhatsApp</strong>. No es necesario subirlos a la app. Esto me permite dar feedback técnico detallado.
+                </p>
+
+                <div class="subsection-title">Cuándo Enviar Vídeos</div>
+                <ul class="terms-list">
+                    <li>Ejercicios nuevos o complejos (primeras 2-3 sesiones)</li>
+                    <li>Cuando tengas dudas sobre la técnica</li>
+                    <li>Si reportas molestias en un ejercicio específico</li>
+                    <li>Cada 2-3 semanas para revisar progreso</li>
+                    <li>Antes de aumentar carga significativamente</li>
+                </ul>
+
+                <div class="subsection-title">Cómo Grabar un Buen Vídeo</div>
+                <ul class="terms-list">
+                    <li>Ángulo frontal Y lateral (2 vídeos si es posible)</li>
+                    <li>Buena iluminación (evita contraluz)</li>
+                    <li>Ropa que permita ver movimiento completo</li>
+                    <li>2-3 repeticiones del ejercicio</li>
+                    <li>Movimiento completo desde inicio hasta fin</li>
+                </ul>
+
+                <div class="whatsapp-box">
+                    <strong>💬 Protocolo WhatsApp:</strong><br>
+                    Incluye: ejercicio, series/reps, peso, RPE (1-10), cómo te sentiste, molestias.
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SECTION 4: WHATSAPP PROTOCOL -->
+            <div class="section">
+                <div class="section-title">5. Protocolo de Comunicación WhatsApp</div>
+                
+                <div class="subsection-title">Horarios de Disponibilidad</div>
+                <p class="text-content">
+                    Lunes a viernes: 8:00 - 20:00 (Respuesta en &lt;24h)<br>
+                    Fines de semana: Respondo cuando puedo<br>
+                    Emergencias: Disponible bajo demanda
+                </p>
+
+                <div class="subsection-title">Cómo Enviar Información</div>
+                <ul class="terms-list">
+                    <li>Ejercicio específico o duda</li>
+                    <li>Series y repeticiones completadas</li>
+                    <li>Peso utilizado (si aplica)</li>
+                    <li>RPE (Esfuerzo Percibido 1-10)</li>
+                    <li>Cualquier molestia o sensación anormal</li>
+                </ul>
+
+                <div class="subsection-title">Cómo Enviar Vídeos</div>
+                <ul class="terms-list">
+                    <li>Ángulo frontal y lateral (si es posible)</li>
+                    <li>Buena iluminación</li>
+                    <li>Ropa que permita ver movimiento</li>
+                    <li>2-3 repeticiones del ejercicio</li>
+                    <li>Especifica peso y series</li>
+                </ul>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SECTION 5: INJURY PROTOCOL -->
+            <div class="section">
+                <div class="section-title">6. Protocolo ante Dolor o Lesión</div>
+                
+                <div class="subsection-title">Cuándo Contactar Inmediatamente</div>
+                <div class="emergency-box">
+                    <strong>⚠️ Contacta AHORA si:</strong><br>
+                    • Dolor agudo o punzante<br>
+                    • Hinchazón rápida o enrojecimiento<br>
+                    • Limitación severa de movimiento<br>
+                    • Síntomas que empeoran tras 48h<br>
+                    • Cualquier cosa que te preocupe
+                </div>
+
+                <div class="subsection-title">Cómo Describir Síntomas</div>
+                <ul class="terms-list">
+                    <li>Ubicación exacta del dolor</li>
+                    <li>Tipo de dolor (agudo, sordo, punzante)</li>
+                    <li>Cuándo empezó</li>
+                    <li>Qué movimientos lo empeoran o mejoran</li>
+                    <li>Escala de dolor 1-10</li>
+                </ul>
+
+                <div class="subsection-title">Protocolo de Adaptación</div>
+                <p class="text-content">
+                    Si reportas dolor, podemos: pausar el ejercicio, modificar técnica, cambiar por alternativo, o reducir volumen/intensidad.
+                </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SECTION 6: RESOURCES & MILESTONES -->
+            <div class="section">
+                <div class="section-title">7. Recursos Disponibles</div>
+                
+                <div class="subsection-title">Biblioteca de Contenido</div>
+                <ul class="terms-list">
+                    <li><strong>eBooks:</strong> Técnica, nutrición, recuperación</li>
+                    <li><strong>Vídeos:</strong> Tutoriales de ejercicios</li>
+                    <li><strong>Blog Privado:</strong> Artículos exclusivos</li>
+                    <li><strong>FAQ:</strong> Preguntas frecuentes</li>
+                    <li><strong>Plantillas:</strong> Seguimiento y registros</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <div class="section-title">8. Próximos Hitos</div>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-week">Sem 1</div>
+                        <div class="timeline-content"><strong>Evaluación Inicial</strong><br>Acceso, cuestionario, vídeos de movimiento.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-week">Sem 2</div>
+                        <div class="timeline-content"><strong>Programa Listo</strong><br>Tu programa personalizado disponible.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-week">Sem 3</div>
+                        <div class="timeline-content"><strong>Corrección Técnica</strong><br>Envía vídeos, recibe feedback.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-week">Sem 4</div>
+                        <div class="timeline-content"><strong>Llamada Quincenal</strong><br>Revisamos progreso y ajustes.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- SECTION 7: CONTACT & RULES -->
+            <div class="section">
+                <div class="section-title">9. Reglas de Oro para el Éxito</div>
+                
+                <div class="highlight">
+                    <strong>✓ Consistencia > Perfección</strong><br>
+                    Un 80% consistente es mejor que un 100% esporádico.
+                </div>
+
+                <div class="highlight">
+                    <strong>✓ Comunicación Honesta</strong><br>
+                    Si algo no funciona, dímelo. Juntos encontramos soluciones.
+                </div>
+
+                <div class="highlight">
+                    <strong>✓ Paciencia con el Proceso</strong><br>
+                    Los resultados reales llegan en 4-8 semanas.
+                </div>
+
+                <div class="highlight">
+                    <strong>✓ Feedback es Bienvenido</strong><br>
+                    Tu experiencia es importante para mejorar.
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">10. Contacto de Emergencia</div>
+                
+                <div class="highlight">
+                    <strong>📧 Email:</strong> contacto@bestronger.es<br>
+                    <strong>📱 WhatsApp:</strong> +34 643 99 10 86<br>
+                    <strong>🕐 Horarios:</strong> Lunes-Viernes 8:00-20:00<br>
+                    <strong>🆘 Emergencias:</strong> Disponible bajo demanda
+                </div>
+
+                <p class="text-content">
+                    No hay pregunta "tonta". Si tienes dudas, pregunta. Estoy aquí para ayudarte.
+                </p>
+            </div>
+
+            <div class="footer">
+                <p>Be Stronger | Rehab & Performance online coaching</p>
+                <p>contacto@bestronger.es | +34 643 99 10 86</p>
+                <p style="margin-top: 3px; font-size: 8px;">⚠️ Documento confidencial de Be Stronger</p>
+            </div>
+        </div>
+
+        <!-- Back Button Bottom -->
+        <div class="back-button-bottom">
+            <button onclick="history.back()">← Volver al Menú</button>
+            <button onclick="window.print()" style="margin-left: 10px; background: rgba(196, 120, 120, 0.4);">🖨️ Imprimir</button>
+        </div>
+    </div>
+</body>
+</html>

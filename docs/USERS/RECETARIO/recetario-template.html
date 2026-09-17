@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = '[CLIENTE_ID]';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - [NOMBRE_CLIENTE]</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .recipe-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .recipe-header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #c47878;
+        }
+
+        .recipe-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 42px;
+            font-style: italic;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .recipe-title span {
+            color: #c47878;
+        }
+
+        .client-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: #c47878;
+            margin-top: 15px;
+        }
+
+        .recipe-section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-left: 4px solid #c47878;
+            padding-left: 15px;
+        }
+
+        .recipe-card {
+            background: rgba(200, 191, 181, 0.03);
+            border: 1px solid rgba(200, 191, 181, 0.1);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .recipe-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #c47878;
+            margin-bottom: 8px;
+        }
+
+        .recipe-time {
+            font-size: 12px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 15px;
+        }
+
+        .recipe-macros {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(200, 191, 181, 0.1);
+        }
+
+        .macro-item {
+            text-align: center;
+        }
+
+        .macro-label {
+            font-size: 10px;
+            color: #c8bfb5;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .macro-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c47878;
+        }
+
+        .recipe-ingredients {
+            margin-bottom: 15px;
+        }
+
+        .ingredients-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .ingredients-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .ingredients-list li {
+            font-size: 13px;
+            color: #c8bfb5;
+            margin-bottom: 6px;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .ingredients-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #c47878;
+            font-weight: bold;
+        }
+
+        .recipe-instructions {
+            margin-bottom: 15px;
+        }
+
+        .instructions-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ede8e2;
+            margin-bottom: 10px;
+        }
+
+        .instructions-list {
+            list-style: none;
+            padding-left: 0;
+            counter-reset: step;
+        }
+
+        .instructions-list li {
+            font-size: 13px;
+            color: #c8bfb5;
+            margin-bottom: 8px;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.6;
+            counter-increment: step;
+        }
+
+        .instructions-list li:before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            background: rgba(196, 120, 120, 0.2);
+            color: #c47878;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .recipe-tips {
+            background: rgba(196, 120, 120, 0.08);
+            border-left: 4px solid #c47878;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #c8bfb5;
+        }
+
+        .recipe-tips strong {
+            color: #ede8e2;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(200, 191, 181, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .nav-buttons a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: rgba(196, 120, 120, 0.1);
+            color: #c47878;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(196, 120, 120, 0.3);
+        }
+
+        .nav-buttons a:hover {
+            background: #c47878;
+            color: #ede8e2;
+        }
+
+        @media (max-width: 768px) {
+            .recipe-container {
+                padding: 20px 15px;
+            }
+
+            .recipe-title {
+                font-size: 32px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .recipe-macros {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .nav-buttons a {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="recipe-container">
+        <!-- Header -->
+        <div class="recipe-header">
+            <div style="font-family: 'DM Serif Display', serif; font-style: italic; font-size: 28px; color: #ede8e2; margin-bottom: 5px;">
+                Be <span style="color: #c47878;">Stronger</span>
+            </div>
+            <div style="font-size: 12px; color: #c8bfb5; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 20px;">
+                Recetario Personalizado
+            </div>
+            <div class="recipe-title">Recetario <span>Nutricional</span></div>
+            <div class="client-name">[NOMBRE_CLIENTE]</div>
+        </div>
+
+        <!-- Section: Desayunos -->
+        <div class="recipe-section">
+            <div class="section-title">🌅 Desayunos</div>
+            
+            [DESAYUNOS]
+        </div>
+
+        <!-- Section: Almuerzos -->
+        <div class="recipe-section">
+            <div class="section-title">☀️ Almuerzos</div>
+            
+            [ALMUERZOS]
+        </div>
+
+        <!-- Section: Cenas -->
+        <div class="recipe-section">
+            <div class="section-title">🌙 Cenas</div>
+            
+            [CENAS]
+        </div>
+
+        <!-- Section: Snacks -->
+        <div class="recipe-section">
+            <div class="section-title">🥤 Snacks & Extras</div>
+            
+            [SNACKS]
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="nav-buttons">
+            <a href="cliente-[CLIENTE_ID]-menu.html">← Volver al Menú</a>
+            <a href="nutricion-[CLIENTE_ID].html">Ver Plan Nutricional →</a>
+        </div>
+    </div>
+
+    <script>
+        // Session check
+        const clienteId = '[CLIENTE_ID]';
+        const isLoggedIn = localStorage.getItem(`${clienteId}_logged_in`);
+        if (!isLoggedIn) {
+            window.location.href = `login-${clienteId}.html`;
+        }
+    </script>
+</body>
+</html>

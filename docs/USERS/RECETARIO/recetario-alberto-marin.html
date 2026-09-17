@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'alberto-marin';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Alberto Marín Girón</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #c47878;
+            --bg-dark: #2e1f1f;
+            --bg-card: rgba(200, 191, 181, 0.04);
+            --text-primary: #ede8e2;
+            --text-secondary: #c8bfb5;
+            --border: rgba(200, 191, 181, 0.10);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        .page-wrapper {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgba(196, 120, 120, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px;
+            font-style: italic;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .tagline {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .client-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav-top {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(196, 120, 120, 0.15);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background: rgba(196, 120, 120, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px 20px;
+            max-width: 100%;
+        }
+
+        .content-wrapper {
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 24px;
+            font-style: italic;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .recipe-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .recipe-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .recipe-macros {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .recipe-ingredients {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .recipe-instructions {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .alert-box {
+            background: rgba(196, 120, 120, 0.08);
+            border: 1px solid rgba(196, 120, 120, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .alert-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .footer {
+            padding: 40px 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .nav-button-footer {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(196, 120, 120, 0.15);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button-footer:hover {
+            background: rgba(196, 120, 120, 0.25);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 30px 15px;
+            }
+            .logo {
+                font-size: 24px;
+            }
+            .content {
+                padding: 30px 15px;
+            }
+            .section-title {
+                font-size: 20px;
+            }
+            .recipe-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="header">
+            <div class="logo">Be <span>Stronger</span></div>
+            <div class="tagline">Asesoría Personal Online</div>
+            <div class="client-name">Recetario Personalizado - Alberto Marín Girón</div>
+        </div>
+
+        <div class="nav-top">
+            <a href="cliente-alberto-marin-menu.html" class="nav-button">← Volver al Menú</a>
+        </div>
+
+        <div class="content">
+            <div class="content-wrapper">
+                <div class="alert-box">
+                    <div class="alert-title">🍳 Tu Recetario Personalizado</div>
+                    <div class="alert-text">
+                        Este recetario contiene recetas diseñadas específicamente para ti, respetando tus preferencias, restricciones (alergia a cacahuetes y melocotón), y objetivos nutricionales. Todas las recetas incluyen macros exactas para que puedas seguir tu plan sin complicaciones.
+                    </div>
+                </div>
+
+                <!-- DESAYUNOS -->
+                <div class="section">
+                    <h2 class="section-title">🌅 Desayunos (520 kcal, 22g proteína)</h2>
+                    <div class="recipe-grid">
+                        <div class="recipe-card">
+                            <div class="recipe-title">Bowl de Avena Clásico</div>
+                            <div class="recipe-macros">520 kcal | 22g proteína | 65g carbos | 16g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                60g copos avena | 150ml leche semidesnatada | 125g yogur griego 0% | Fresas/arándanos | 1 cda miel | 5g crema avellanas | 2 onzas chocolate 99%
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Mezcla avena con leche en un bol<br>
+                                2. Deja reposar 5 min<br>
+                                3. Añade yogur griego<br>
+                                4. Cubre con frutos rojos, miel, crema y chocolate<br>
+                                5. Mezcla y disfruta
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Tostadas con Jamón Serrano</div>
+                            <div class="recipe-macros">520 kcal | 22g proteína | 58g carbos | 18g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                2 tostadas pan integral | 3 lonchas jamón serrano | 1 tomate (si te gusta) | 1 cda aceite oliva | 1 naranja
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Tuesta el pan integral<br>
+                                2. Rocía con aceite oliva<br>
+                                3. Coloca jamón serrano<br>
+                                4. Acompaña con naranja fresca
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Tortilla Francesa + Fruta</div>
+                            <div class="recipe-macros">520 kcal | 24g proteína | 52g carbos | 17g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                3 huevos | 1 cda aceite oliva | 1 rebanada pan integral | 1 plátano pequeño | Sal y pimienta
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Bate los huevos con sal y pimienta<br>
+                                2. Calienta aceite en sartén<br>
+                                3. Vierte huevos y cuece hasta que cuaje<br>
+                                4. Sirve con pan y plátano
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Yogur Griego con Granola</div>
+                            <div class="recipe-macros">520 kcal | 23g proteína | 62g carbos | 15g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                200g yogur griego 0% | 40g granola casera | 50g arándanos | 1 cda miel | 30ml leche
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Vierte yogur en un bol<br>
+                                2. Añade granola y arándanos<br>
+                                3. Rocía con miel<br>
+                                4. Sirve con leche fría
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Batido Proteico Completo</div>
+                            <div class="recipe-macros">520 kcal | 25g proteína | 60g carbos | 14g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                30g proteína en polvo | 200ml leche semidesnatada | 1 plátano | 1 cda crema avellanas | 30g copos avena
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Vierte leche en licuadora<br>
+                                2. Añade proteína, plátano y crema<br>
+                                3. Tritura hasta homogéneo<br>
+                                4. Sirve con copos de avena al lado
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Sándwich de Pavo</div>
+                            <div class="recipe-macros">520 kcal | 26g proteína | 58g carbos | 16g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                2 rebanadas pan integral | 4 lonchas pavo | 1 tomate | Lechuga | 1 cda mayonesa light | 1 kiwi
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Tuesta el pan integral<br>
+                                2. Extiende mayonesa light<br>
+                                3. Coloca pavo, tomate y lechuga<br>
+                                4. Cierra y acompaña con kiwi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMIDAS PRINCIPALES -->
+                <div class="section">
+                    <h2 class="section-title">🍗 Comidas Principales (620 kcal, 45g proteína)</h2>
+                    <div class="recipe-grid">
+                        <div class="recipe-card">
+                            <div class="recipe-title">Pechuga de Pollo + Arroz</div>
+                            <div class="recipe-macros">620 kcal | 45g proteína | 70g carbos | 8g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g pechuga pollo | 120g arroz cocido | Verduras (pimiento, cebolla, zanahoria) | 1 cda aceite oliva | Sal y pimienta
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Calienta aceite en sartén<br>
+                                2. Cocina pechuga hasta dorar (12-15 min)<br>
+                                3. Saltea verduras<br>
+                                4. Sirve con arroz cocido
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Lomo de Cerdo + Pasta</div>
+                            <div class="recipe-macros">620 kcal | 46g proteína | 68g carbos | 9g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g lomo cerdo | 120g pasta integral cocida | Pesto ligero (2 cdas) | Tomate cherry | Sal y pimienta
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Calienta sartén sin aceite<br>
+                                2. Cocina lomo hasta punto (10-12 min)<br>
+                                3. Mezcla pasta con pesto<br>
+                                4. Acompaña con tomate cherry
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Merluza a la Plancha + Verduras</div>
+                            <div class="recipe-macros">620 kcal | 48g proteína | 65g carbos | 7g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g merluza | 150g boniato cocido | Espárragos y zanahoria | 1 cda aceite oliva | Limón
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Calienta plancha<br>
+                                2. Cocina merluza 4-5 min por lado<br>
+                                3. Saltea verduras<br>
+                                4. Sirve con boniato y limón
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Ternera Magra + Ensalada</div>
+                            <div class="recipe-macros">620 kcal | 47g proteína | 66g carbos | 9g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g ternera magra | 120g arroz integral | Ensalada mixta | 1 cda aceite oliva | Vinagre balsámico
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Calienta sartén<br>
+                                2. Cocina ternera 8-10 min<br>
+                                3. Prepara ensalada con aceite y vinagre<br>
+                                4. Sirve con arroz integral
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Dorada al Horno + Patata</div>
+                            <div class="recipe-macros">620 kcal | 46g proteína | 68g carbos | 8g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g dorada | 150g patata cocida | Brócoli o espárragos | 1 cda aceite oliva | Sal, pimienta, limón
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Precalienta horno a 180°C<br>
+                                2. Coloca dorada en bandeja<br>
+                                3. Rocía con aceite y limón<br>
+                                4. Hornea 12-15 min<br>
+                                5. Sirve con patata y verdura
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Pechuga Rellena de Queso</div>
+                            <div class="recipe-macros">620 kcal | 48g proteína | 62g carbos | 11g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g pechuga pollo | 30g queso bajo grasa | 120g arroz | Champiñones | 1 cda aceite
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Abre la pechuga por la mitad<br>
+                                2. Rellena con queso<br>
+                                3. Cierra con palillos<br>
+                                4. Cocina en sartén 12-15 min<br>
+                                5. Sirve con arroz y champiñones
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CENAS -->
+                <div class="section">
+                    <h2 class="section-title">🌙 Cenas (490 kcal, 40g proteína)</h2>
+                    <div class="recipe-grid">
+                        <div class="recipe-card">
+                            <div class="recipe-title">Fajitas de Pechuga</div>
+                            <div class="recipe-macros">490 kcal | 40g proteína | 52g carbos | 12g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                120g pechuga pollo | 2 tortillas integrales | Pimiento rojo y amarillo | Cebolla | Lechuga | 1 cda aceite
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Calienta aceite en sartén<br>
+                                2. Cocina pechuga cortada en tiras<br>
+                                3. Saltea pimientos y cebolla<br>
+                                4. Calienta tortillas<br>
+                                5. Rellena y sirve con lechuga
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Merluza a la Sal</div>
+                            <div class="recipe-macros">490 kcal | 42g proteína | 48g carbos | 10g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                200g merluza | 150g boniato | Espárragos | 1 cda aceite oliva | Sal gruesa | Limón
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Cubre merluza con sal gruesa<br>
+                                2. Hornea a 180°C durante 12 min<br>
+                                3. Retira sal cuidadosamente<br>
+                                4. Sirve con boniato y espárragos
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Jamón Serrano + Huevos</div>
+                            <div class="recipe-macros">490 kcal | 40g proteína | 50g carbos | 13g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                3-4 lonchas jamón serrano | 2 huevos | Canónigos | 1 rebanada pan integral | 1 cda aceite
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Fríe huevos en aceite<br>
+                                2. Calienta jamón serrano<br>
+                                3. Tuesta el pan<br>
+                                4. Sirve con canónigos frescos
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Dorada + Ensalada Completa</div>
+                            <div class="recipe-macros">490 kcal | 41g proteína | 48g carbos | 11g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g dorada | Lechuga, tomate, pepino | 30g queso fresco | 1 cda aceite oliva | Vinagre
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Cocina dorada a la plancha<br>
+                                2. Prepara ensalada con verduras<br>
+                                3. Añade queso fresco<br>
+                                4. Aliña con aceite y vinagre
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Pechuga Asada + Verduras</div>
+                            <div class="recipe-macros">490 kcal | 40g proteína | 52g carbos | 10g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g pechuga pollo | Berenjena, calabacín, tomate | 1 cda aceite oliva | Ajo y hierbas
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Corta verduras en dados<br>
+                                2. Coloca en bandeja con aceite<br>
+                                3. Añade pechuga cortada<br>
+                                4. Hornea a 200°C 15-20 min
+                            </div>
+                        </div>
+
+                        <div class="recipe-card">
+                            <div class="recipe-title">Ternera Magra + Patata</div>
+                            <div class="recipe-macros">490 kcal | 41g proteína | 50g carbos | 11g grasas</div>
+                            <div class="recipe-ingredients">
+                                <strong>Ingredientes:</strong><br>
+                                150g ternera magra | 150g patata cocida | Espinacas | 1 cda aceite oliva | Sal y pimienta
+                            </div>
+                            <div class="recipe-instructions">
+                                <strong>Preparación:</strong><br>
+                                1. Cocina ternera en sartén<br>
+                                2. Saltea espinacas<br>
+                                3. Sirve con patata cocida<br>
+                                4. Aliña con aceite y pimienta
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTAS FINALES -->
+                <div class="section">
+                    <h2 class="section-title">📌 Notas Importantes</h2>
+                    <div class="alert-box">
+                        <div class="alert-title">✅ Variación y Flexibilidad</div>
+                        <div class="alert-text">
+                            Estas recetas son ejemplos. Puedes variar verduras, condimentos y métodos de cocción. Lo importante es mantener las macros (proteína, carbos, grasas) dentro del rango especificado. Si una receta no te gusta, elige otra del mismo tipo.
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">🚫 Exclusiones Críticas</div>
+                        <div class="alert-text">
+                            <strong>Alergia:</strong> Cacahuetes y melocotón — EXCLUIDOS completamente<br>
+                            <strong>No te gusta:</strong> Huevo cocido, tomate en rodaja, atún/salmón, brócoli — usa sustitutos<br>
+                            <strong>Plátano limitado:</strong> Solo post-fútbol, no en otras comidas
+                        </div>
+                    </div>
+                    <div class="alert-box">
+                        <div class="alert-title">🍳 Consejos de Cocina</div>
+                        <div class="alert-text">
+                            Prepara comidas los domingos para la semana. Cocina proteína en lotes. Congela porciones. Usa especias y hierbas para variar sabor sin añadir calorías. Bebe agua abundante durante las comidas.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="cliente-alberto-marin-menu.html" class="nav-button-footer">← Volver al Menú</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        // Session protection - redirect if not logged in
+        (function() {
+            const clienteId = 'toni';
+            const isLoggedIn = localStorage.getItem(clienteId + '_logged_in') === 'true';
+            if (!isLoggedIn) {
+                window.location.href = 'login-' + clienteId + '.html';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetario - Toni Pérez</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="be-stronger-resources.css">
+    <style>
+        .back-button { display: inline-block; margin-bottom: 30px; padding: 10px 20px; background: rgba(196, 120, 120, 0.15); border: 1px solid rgba(196, 120, 120, 0.3); border-radius: 6px; color: #c47878; text-decoration: none; font-size: 13px; font-weight: 600; text-transform: uppercase; transition: all 0.3s; }
+        .back-button:hover { background: rgba(196, 120, 120, 0.25); }
+        .print-button { display: inline-block; margin-left: 10px; padding: 10px 20px; background: #c47878; border: none; border-radius: 6px; color: #ede8e2; font-size: 13px; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: all 0.3s; }
+        .print-button:hover { background: #b06868; }
+        .header-section { text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 2px solid #c47878; }
+        .header-logo { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 24px; color: #ede8e2; margin-bottom: 15px; }
+        .header-logo span { color: #c47878; }
+        .header-title { font-family: 'DM Serif Display', serif; font-size: 42px; font-style: italic; color: #ede8e2; margin: 0 0 10px 0; }
+        .header-title span { color: #c47878; }
+        .header-subtitle { font-size: 14px; color: #c8bfb5; margin: 0; }
+        .alert-box { background: rgba(220, 100, 100, 0.1); border-left: 4px solid #ff6b6b; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .alert-box strong { color: #ede8e2; }
+        .toc-container { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin: 30px 0; }
+        .toc-title { font-size: 16px; font-weight: 600; color: #c47878; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.1em; }
+        .toc-list { list-style: none; padding: 0; margin: 0; }
+        .toc-list li { margin-bottom: 12px; }
+        .toc-list a { color: #c8bfb5; text-decoration: none; font-size: 14px; transition: color 0.3s; }
+        .toc-list a:hover { color: #c47878; }
+        .meal-section { margin: 50px 0; padding-top: 30px; border-top: 2px solid rgba(200, 191, 181, 0.1); }
+        .meal-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-style: italic; color: #c47878; margin-bottom: 30px; }
+        .recipe-card { background: rgba(200, 191, 181, 0.03); border: 1px solid rgba(200, 191, 181, 0.1); border-radius: 8px; padding: 25px; margin-bottom: 25px; }
+        .recipe-name { font-size: 20px; font-weight: 600; color: #ede8e2; margin: 0 0 15px 0; }
+        .recipe-macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; background: rgba(196, 120, 120, 0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .macro-item { text-align: center; }
+        .macro-label { font-size: 11px; color: #c8bfb5; text-transform: uppercase; margin-bottom: 5px; }
+        .macro-value { font-size: 18px; font-weight: 700; color: #c47878; }
+        .section-subtitle { font-size: 14px; font-weight: 600; color: #c47878; text-transform: uppercase; margin-bottom: 12px; border-left: 3px solid #c47878; padding-left: 10px; }
+        .recipe-ingredients ul, .recipe-steps ol { margin: 0; padding-left: 20px; }
+        .recipe-ingredients li, .recipe-steps li { font-size: 13px; color: #c8bfb5; margin-bottom: 8px; line-height: 1.6; }
+        .back-to-toc { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(200, 191, 181, 0.1); }
+        .back-to-toc a { color: #c47878; text-decoration: none; font-size: 12px; text-transform: uppercase; }
+        .back-to-toc a:hover { text-decoration: underline; }
+        .info-box { background: rgba(196, 120, 120, 0.08); border-left: 3px solid #c47878; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 13px; color: #c8bfb5; }
+        @media print { .back-button, .print-button { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 900px; margin: 0 auto; padding: 40px 20px;">
+        <a href="cliente-toni-menu-v2.html" class="back-button">← Volver al Menú</a>
+        <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
+        
+        <div class="header-section">
+            <div class="header-logo">Be <span>Stronger</span></div>
+            <h1 class="header-title">Recetario de <span>Toni Pérez</span></h1>
+            <p class="header-subtitle">Recetas personalizadas para 2,900 kcal/día | Ganancia muscular | SIN FRUTAS NI FRUCTOSA</p>
+        </div>
+
+        <div class="alert-box">
+            <strong>🚨 ALERGIA A FRUTA Y FRUCTOSA - CRÍTICO:</strong>
+            <p>Este recetario EXCLUYE completamente frutas, miel, siropes y alimentos con fructosa. Todas las recetas están diseñadas para tu alergia y objetivo de ganancia muscular.</p>
+        </div>
+
+        <div class="info-box">
+            <strong>📌 Estructura Personalizada:</strong> Recetas diseñadas para tu objetivo de ganancia muscular (2,900 kcal/día) con macros optimizadas (170g proteína, 97g grasas, 362g carbos). Incluye batidos de proteínas sin azúcares añadidos.
+        </div>
+        
+        <div class="toc-container">
+            <div class="toc-title">📑 Índice de Recetas</div>
+            <ul class="toc-list">
+                <li><a href="#desayuno">🌅 Desayunos (5 opciones)</a></li>
+                <li><a href="#almuerzo">☀️ Almuerzos (7 opciones)</a></li>
+                <li><a href="#cena">🌙 Cenas (7 opciones)</a></li>
+                <li><a href="#snacks">🥤 Batidos y Snacks (5 opciones)</a></li>
+            </ul>
+        </div>
+
+        <!-- DESAYUNOS -->
+        <div class="meal-section" id="desayuno">
+            <h2 class="meal-title">🌅 Desayunos</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Desayunos proteicos sin frutas para comenzar el día con energía.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Tortilla de Claras con Pavo y Tostadas</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">35g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">42g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">450</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>6 claras de huevo</li><li>100g pechuga de pavo</li><li>2 rebanadas pan integral</li><li>5ml aceite oliva</li><li>Sal y pimienta al gusto</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Bate las claras con sal</li><li>Calienta sartén con aceite</li><li>Vierte claras y cocina 4-5 min</li><li>Añade pavo picado en el centro</li><li>Dobla y sirve con tostadas</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Avena con Proteína y Canela</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">32g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">420</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>50g avena cruda</li><li>30g proteína polvo (sin azúcares)</li><li>250ml leche desnatada</li><li>5g canela</li><li>Edulcorante al gusto</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Vierte leche en bol</li><li>Añade avena y mezcla bien</li><li>Deja reposar 2-3 min</li><li>Añade proteína en polvo</li><li>Espolvorea canela y sirve</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Huevos Revueltos con Jamón y Pan</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">33g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">40g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">14g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">460</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>3 huevos completos</li><li>80g jamón serrano</li><li>2 rebanadas pan tostado</li><li>5ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Calienta sartén con aceite</li><li>Bate huevos con sal y pimienta</li><li>Vierte en sartén</li><li>Añade jamón picado</li><li>Cocina 3-4 min y sirve</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Yogur Griego con Granola y Frutos Secos</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">28g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">45g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">430</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g yogur griego 0%</li><li>30g granola (sin miel)</li><li>20g almendras crudas</li><li>Edulcorante al gusto</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Vierte yogur en bol</li><li>Añade granola y almendras</li><li>Mezcla bien</li><li>Endulza al gusto con edulcorante</li><li>Sirve inmediatamente</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Tortitas de Claras con Queso</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">36g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">38g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">11g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">440</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>8 claras de huevo</li><li>50g queso fresco</li><li>40g harina integral</li><li>5ml aceite oliva</li><li>Sal al gusto</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Mezcla claras con harina</li><li>Añade queso desmenuzado</li><li>Calienta sartén con aceite</li><li>Vierte porciones pequeñas</li><li>Cocina 2-3 min por lado</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- ALMUERZOS -->
+        <div class="meal-section" id="almuerzo">
+            <h2 class="meal-title">☀️ Almuerzos</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Almuerzos equilibrados sin frutas para mantener energía durante el día.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Pechuga de Pollo con Arroz Blanco y Verduras</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">45g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">55g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">520</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g pechuga de pollo</li><li>150g arroz blanco cocido</li><li>100g brócoli</li><li>100g zanahoria</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina arroz en agua con sal</li><li>Corta pollo en filetes</li><li>Calienta sartén con aceite</li><li>Cocina pollo 6-7 min por lado</li><li>Hierve verduras 5 min</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Atún en Lata con Pasta y Tomate</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">42g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">58g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">7g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">510</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>2 latas atún en agua (160g escurrido)</li><li>150g pasta integral cocida</li><li>100g tomate natural</li><li>50g cebolla</li><li>10ml aceite oliva</li><li>Sal y orégano</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina pasta en agua con sal</li><li>Sofríe cebolla en aceite</li><li>Añade tomate y orégano</li><li>Escurre atún y añade a la salsa</li><li>Mezcla con pasta cocida</li><li>Sirve caliente</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Carne Molida con Patata y Espinacas</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">44g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">52g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">520</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g carne molida magra</li><li>150g patata cocida</li><li>100g espinacas frescas</li><li>50g cebolla</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Sofríe cebolla en aceite</li><li>Añade carne molida y cocina 5 min</li><li>Hierve patata cortada en cubos</li><li>Añade espinacas a la carne</li><li>Mezcla todo y sirve</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Salmón a la Plancha con Boniato</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">40g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">50g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">520</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>180g salmón fresco</li><li>150g boniato cocido</li><li>100g judías verdes</li><li>10ml aceite oliva</li><li>Limón, sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Calienta plancha con aceite</li><li>Cocina salmón 4-5 min por lado</li><li>Hierve boniato y judías</li><li>Exprime limón sobre salmón</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Pavo Picado con Arroz Integral</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">46g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">9g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">510</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>220g pavo picado</li><li>130g arroz integral cocido</li><li>100g champiñones</li><li>50g cebolla</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina arroz integral</li><li>Sofríe cebolla en aceite</li><li>Añade pavo picado y cocina 5 min</li><li>Añade champiñones picados</li><li>Mezcla con arroz y sirve</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">6. Bacalao con Patata y Pimiento</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">43g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">51g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">500</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g bacalao fresco</li><li>150g patata cocida</li><li>100g pimiento rojo</li><li>50g cebolla</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Hierve patata cortada en cubos</li><li>Sofríe cebolla y pimiento</li><li>Cocina bacalao 5-6 min</li><li>Mezcla todo en la sartén</li><li>Sirve caliente</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">7. Pollo con Fideos y Verduras</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">44g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">54g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">510</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g pechuga de pollo</li><li>120g fideos integrales cocidos</li><li>100g zanahoria</li><li>100g calabacín</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina fideos en agua con sal</li><li>Corta pollo en tiras</li><li>Sofríe verduras en aceite</li><li>Cocina pollo 5 min</li><li>Mezcla todo y sirve</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- CENAS -->
+        <div class="meal-section" id="cena">
+            <h2 class="meal-title">🌙 Cenas</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Cenas ligeras pero proteicas sin frutas para una buena recuperación.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Pechuga de Pollo con Brócoli</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">28g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">380</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>220g pechuga de pollo</li><li>200g brócoli fresco</li><li>50g patata cocida</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Calienta sartén con aceite</li><li>Cocina pollo 6-7 min por lado</li><li>Hierve brócoli 5 min</li><li>Sirve todo junto</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Merluza a la Papillote con Verduras</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">46g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">30g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">7g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">370</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>220g merluza fresca</li><li>100g zanahoria</li><li>100g calabacín</li><li>50g patata cocida</li><li>10ml aceite oliva</li><li>Limón, sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Precalienta horno a 180°C</li><li>Envuelve merluza y verduras en papel</li><li>Rocía con aceite y limón</li><li>Hornea 15-20 min</li><li>Sirve en el papel</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Pavo Picado con Verduras Salteadas</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">50g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">25g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">370</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>240g pavo picado</li><li>100g champiñones</li><li>100g espinacas</li><li>50g cebolla</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Sofríe cebolla en aceite</li><li>Añade pavo picado y cocina 5 min</li><li>Añade champiñones y espinacas</li><li>Cocina 3-4 min más</li><li>Sirve caliente</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Atún con Ensalada y Pan Integral</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">44g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">32g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">380</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>2 latas atún en agua (160g escurrido)</li><li>150g lechuga mixta</li><li>100g tomate</li><li>50g cebolla</li><li>2 rebanadas pan integral</li><li>10ml aceite oliva</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Prepara la ensalada</li><li>Escurre el atún</li><li>Mezcla atún con ensalada</li><li>Aliña con aceite y vinagre</li><li>Sirve con pan integral</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Carne Magra con Puré de Coliflor</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">48g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">26g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">370</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>220g carne magra</li><li>200g coliflor fresca</li><li>50g leche desnatada</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Hierve coliflor 10 min</li><li>Cocina carne en sartén 6-7 min</li><li>Tritura coliflor con leche</li><li>Sirve carne con puré</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">6. Salmón al Horno con Verduras</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">42g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">28g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">10g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">380</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>180g salmón fresco</li><li>100g espárragos</li><li>100g calabacín</li><li>50g patata cocida</li><li>10ml aceite oliva</li><li>Limón, sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Precalienta horno a 180°C</li><li>Coloca salmón en bandeja</li><li>Añade verduras alrededor</li><li>Rocía con aceite y limón</li><li>Hornea 15-18 min</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">7. Pollo con Ensalada de Pasta</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">46g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">30g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">380</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>200g pechuga de pollo</li><li>100g pasta integral cocida</li><li>100g tomate</li><li>50g cebolla</li><li>10ml aceite oliva</li><li>Sal y pimienta</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Cocina pasta en agua con sal</li><li>Cocina pollo en sartén 6-7 min</li><li>Corta pollo en tiras</li><li>Mezcla pasta con pollo y tomate</li><li>Sirve frío o templado</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- BATIDOS Y SNACKS -->
+        <div class="meal-section" id="snacks">
+            <h2 class="meal-title">🥤 Batidos y Snacks</h2>
+            <p style="color: #c8bfb5; margin-bottom: 20px;">Batidos de proteína sin azúcares y snacks sin frutas para complementar tu nutrición.</p>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">1. Batido de Proteína Clásico</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">35g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">15g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">2g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">220</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>40g proteína en polvo (sin azúcares)</li><li>250ml leche desnatada</li><li>5g canela</li><li>Edulcorante al gusto</li><li>Hielo</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Vierte leche en licuadora</li><li>Añade proteína en polvo</li><li>Añade canela y edulcorante</li><li>Añade hielo</li><li>Licúa hasta obtener textura homogénea</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">2. Batido con Mantequilla de Cacahuete</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">38g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">18g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">290</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>40g proteína en polvo (sin azúcares)</li><li>250ml leche desnatada</li><li>15g mantequilla de cacahuete natural</li><li>Edulcorante al gusto</li><li>Hielo</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Vierte leche en licuadora</li><li>Añade proteína en polvo</li><li>Añade mantequilla de cacahuete</li><li>Añade edulcorante</li><li>Añade hielo y licúa</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">3. Batido de Chocolate</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">36g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">16g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">3g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">230</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>40g proteína chocolate (sin azúcares)</li><li>250ml leche desnatada</li><li>5g cacao puro sin azúcar</li><li>Edulcorante al gusto</li><li>Hielo</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Vierte leche en licuadora</li><li>Añade proteína chocolate</li><li>Añade cacao puro</li><li>Añade edulcorante</li><li>Añade hielo y licúa bien</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">4. Snack: Frutos Secos Variados</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">8g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">14g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">190</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>20g almendras crudas</li><li>15g nueces</li><li>15g anacardos</li><li>10g semillas de girasol</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Mezcla todos los frutos secos</li><li>Porciona en bolsas pequeñas</li><li>Consume como snack entre comidas</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-card">
+                <h3 class="recipe-name">5. Snack: Queso y Jamón</h3>
+                <div class="recipe-macros">
+                    <div class="macro-item"><div class="macro-label">Proteína</div><div class="macro-value">18g</div></div>
+                    <div class="macro-item"><div class="macro-label">Carbos</div><div class="macro-value">2g</div></div>
+                    <div class="macro-item"><div class="macro-label">Grasas</div><div class="macro-value">12g</div></div>
+                    <div class="macro-item"><div class="macro-label">Calorías</div><div class="macro-value">190</div></div>
+                </div>
+                <div class="recipe-ingredients">
+                    <div class="section-subtitle">📝 Ingredientes</div>
+                    <ul>
+                        <li>50g queso fresco</li><li>50g jamón serrano</li><li>Opcional: pan integral (30g)</li>
+                    </ul>
+                </div>
+                <div class="recipe-steps">
+                    <div class="section-subtitle">👨‍🍳 Preparación</div>
+                    <ol>
+                        <li>Corta queso en cubos</li><li>Corta jamón en tiras</li><li>Sirve como snack rápido</li><li>Opcional: acompaña con pan integral</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="back-to-toc"><a href="#top">↑ Volver al Índice</a></div>
+        </div>
+
+        <!-- Final Info -->
+        <div class="info-box" style="margin-top: 50px;">
+            <strong>📌 Recuerda:</strong>
+            <p>Este recetario está diseñado específicamente para tu alergia a fruta y fructosa. Todas las recetas excluyen completamente estos alimentos. Puedes consumir batidos de proteína regularmente, asegurándote de que sean sin azúcares añadidos y sin fructosa.</p>
+            <p>Mantén la consistencia, pesa tus alimentos y registra tu progreso. La nutrición es el factor limitante principal en composición corporal.</p>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div style="display: flex; gap: 15px; margin-top: 40px; padding-top: 30px; border-top: 1px solid rgba(200, 191, 181, 0.1); flex-wrap: wrap;">
+            <a href="cliente-toni-menu-v2.html" class="back-button">← Volver al Menú</a>
+            <a href="nutricion-toni.html" class="back-button">← Ir a Plan Nutricional</a>
+        </div>
+    </div>
+
+    <script>
+        // Session check
+        const clienteId = 'toni';
+        const isLoggedIn = localStorage.getItem(`${clienteId}_logged_in`);
+        if (!isLoggedIn) {
+            window.location.href = `login-${clienteId}.html`;
+        }
+    </script>
+</body>
+</html>
