@@ -231,6 +231,12 @@ const HERO_IMAGES = {
 };
 const HERO_DAY_VIDEO = require('../../assets/hero-day.mp4');
 
+// Fondo de la tarjeta "Ver todos los recursos" (sección Recursos, pedido
+// explícito 2026-09-17, con imagen de referencia) -- sustituye el fondo de
+// color liso (seeAllImage/C.orange) solo en esta tarjeta, no en las
+// equivalentes de Workouts/Blog más abajo, que no se pidió tocar.
+const RESOURCES_SEE_ALL_BG = require('../../assets/resources-see-all-bg.jpg');
+
 type HeroMood = keyof typeof HERO_IMAGES | 'day';
 
 function getHeroMoodForHour(hour: number): HeroMood {
@@ -793,6 +799,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           backgroundColor: C.orange,
           alignItems: 'center' as const,
           justifyContent: 'center' as const,
+        },
+        // Overlay oscuro sobre RESOURCES_SEE_ALL_BG -- la ilustración es clara
+        // (mint/blanco) y el icono de flecha va en blanco, sin esto se pierde
+        // el contraste que sí tenía sobre el fondo de color liso.
+        seeAllImageOverlay: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: 'rgba(0,0,0,0.18)',
         },
         // Banner de la Guía de autogestión -- a diferencia de blogCard, el
         // texto va superpuesto sobre la propia foto (no debajo, en una tarjeta
@@ -2089,6 +2102,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 style={styles.blogCard}
                 onPress={() => navigation?.navigate('MigratedResourcesList')}>
                 <Box style={[styles.blogImage, styles.seeAllImage]}>
+                  <ExpoImage
+                    source={RESOURCES_SEE_ALL_BG}
+                    style={StyleSheet.absoluteFillObject}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                  />
+                  <Box style={styles.seeAllImageOverlay} />
                   <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
                 </Box>
                 <Box style={styles.blogContent}>
