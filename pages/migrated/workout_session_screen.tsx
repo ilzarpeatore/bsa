@@ -211,7 +211,12 @@ function buildInitialRows(ex: UnifiedExercise): SetRow[] {
     ex.enabledMetrics.forEach((key) => {
       if (lastSet && lastSet[key] != null && lastSet[key] !== '') {
         values[key] = String(lastSet[key]);
-      } else if (ex.prescribed?.[key] != null) {
+      } else if (key !== 'rir' && key !== 'rpe' && ex.prescribed?.[key] != null) {
+        // RIR/RPE prescrito por el coach es un rango ("0-3"), no un valor
+        // numérico único -- el Motor de Auto-Regulación no puede leerlo.
+        // Se deja vacío para que el cliente registre el dato real de la
+        // serie; el rango sigue visible aparte como referencia ("Obj: X",
+        // ver más abajo en el render), pedido explícito 2026-09-17.
         values[key] = String(ex.prescribed[key]);
       }
     });
@@ -1088,7 +1093,24 @@ export default function WorkoutSessionScreen(props: Props) {
         if (!r.completed) return acc;
         const clean: Record<string, any> = {};
         ex.enabledMetrics.forEach((key) => {
-          if (r.values[key] != null && r.values[key] !== '') clean[key] = r.values[key];
+          if (r.values[key] == null || r.values[key] === '') return;
+          if (key === 'reps' || key === 'carga') {
+            // Bug real (2026-09-17): si el cliente marca la serie sin editar
+            // el objetivo precargado (ej. reps "12-15"), esto guardaba el
+            // rango tal cual como string. MuscleVolumeService::computeVolume
+            // (VPS) descarta con is_numeric() cualquier set así -- esa serie
+            // desaparecía del todo de Home/Estadísticas (0 volumen, 0
+            // series), aunque muscleVolumeSets/volumeKg más abajo en este
+            // mismo fichero SÍ la contaban, vía parseFloat truncando el
+            // rango a su primer número -- de ahí que el resumen post-entreno
+            // mostrase el heatmap bien y Home/Estadísticas no. Mismo
+            // parseFloat aquí para que lo persistido coincida con lo que ya
+            // se muestra en el resumen.
+            const n = parseFloat(r.values[key]);
+            if (!isNaN(n)) clean[key] = n;
+            return;
+          }
+          clean[key] = r.values[key];
         });
         acc.push(clean);
         return acc;
@@ -1322,7 +1344,20 @@ export default function WorkoutSessionScreen(props: Props) {
 
   const markAllRows = (blockIdx: number, exIdx: number) => {
     const currentEx = blocks[blockIdx].exercises[exIdx];
-    const ex = { ...currentEx, rows: currentEx.rows.map((r) => ({ ...r, completed: true })) };
+    // Replica los datos reales de la 1a serie (reps/carga/RIR ya rellenados
+    // a mano por el cliente, ver buildInitialRows -- el RIR ya no llega
+    // precargado con el rango del coach) al resto de series antes de
+    // marcarlas, para no dejarlas completadas con datos vacíos o el rango
+    // objetivo sin sustituir. Pedido explícito 2026-09-17.
+    const firstRowValues = currentEx.rows[0]?.values ?? {};
+    const ex = {
+      ...currentEx,
+      rows: currentEx.rows.map((r, i) => ({
+        ...r,
+        values: i === 0 ? r.values : { ...r.values, ...firstRowValues },
+        completed: true,
+      })),
+    };
 
     setBlocks((prev) => {
       const next = [...prev];
