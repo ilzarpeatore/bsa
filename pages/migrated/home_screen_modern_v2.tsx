@@ -764,6 +764,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           alignItems: 'center' as const,
           justifyContent: 'center' as const,
         },
+        // Oscurecido sutil sobre blog-see-all-bg.jpg -- el icono blanco
+        // necesita contraste garantizado independientemente de qué zona
+        // (clara u oscura) de la foto quede debajo.
+        seeAllImageOverlay: {
+          backgroundColor: 'rgba(0,0,0,0.28)',
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
         // Banner de la Guía de autogestión -- a diferencia de blogCard, el
         // texto va superpuesto sobre la propia foto (no debajo, en una tarjeta
         // aparte), de ahí el degradado oscuro y el blanco fijo en vez de
@@ -2212,8 +2220,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             <Pressable
               style={styles.blogCard}
               onPress={() => navigation?.navigate('MigratedViewAllBlog')}>
-              <Box style={[styles.blogImage, styles.seeAllImage]}>
-                <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+              <Box style={styles.blogImage}>
+                <ExpoImage
+                  source={require('../../assets/blog-see-all-bg.jpg')}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+                <Box style={[StyleSheet.absoluteFill, styles.seeAllImageOverlay]}>
+                  <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
+                </Box>
               </Box>
               <Box style={styles.blogContent}>
                 <Text style={[styles.blogTitle, { textAlign: 'center' }]}>
