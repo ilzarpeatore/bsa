@@ -759,7 +759,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         },
         blogTagText: { fontSize: r(9), fontFamily: FONT.semiBold, color: C.orange },
         blogTitle: { fontSize: r(13), fontFamily: FONT.semiBold, color: C.white, marginTop: r(6) },
-        blogDate: { fontSize: r(10), color: C.textSecondary, marginTop: r(4) },
         seeAllImage: {
           backgroundColor: C.orange,
           alignItems: 'center' as const,
@@ -2207,7 +2206,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Text style={styles.blogTitle} numberOfLines={2}>
                     {post.title}
                   </Text>
-                  {post.datetime && <Text style={styles.blogDate}>{post.datetime}</Text>}
                 </Box>
               </Pressable>
             ))}
