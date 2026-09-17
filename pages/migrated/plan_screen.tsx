@@ -468,7 +468,19 @@ export default function PlanScreen(props: any) {
 
   const addRecipeToPlan = async (recipe: RecipeListItem | AssignedMealRecipe) => {
     const planId = dailyPlanIdRef.current;
-    if (!planId || !addMealFor) return;
+    // Bug real reportado 2026-09-18 ("no puedo añadir comidas a mi plan, no
+    // pasa nada al pulsar"): si el plan del día todavía no había cargado
+    // (fetchDailyPlan en curso/fallido), dailyPlanIdRef.current queda null y
+    // esto devolvía sin más -- ningún toast, ningún error, la pulsación no
+    // hacía absolutamente nada visible. Mismo criterio que el catch de abajo:
+    // toda ruta de fallo debe avisar, nunca fallar en silencio.
+    if (!planId || !addMealFor) {
+      showToast('Espera un momento', {
+        description: 'Tu plan de hoy todavía se está cargando. Vuelve a intentarlo en unos segundos.',
+        variant: 'warning',
+      });
+      return;
+    }
     setSavingRecipeId(recipe.id);
     try {
       await recipesApi.saveDailyPlanRecipe(planId, recipe.id, addMealFor.key);
