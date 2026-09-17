@@ -6,6 +6,41 @@ No confundir con el item `0f` en sí (que queda resuelto cuando este plan se eje
 
 ---
 
+## 0. Estado de ejecución (actualizado 2026-09-17)
+
+**Fases 0-6 y 8 implementadas, probadas y en `Bckbs`/`bstronger-admin` rama `claude/program-modifications-per-client-ovc0k3`. Fase 7 (cutover en producción) NO ejecutada — requiere decisión humana y acceso al VPS, ver más abajo.**
+
+| Fase | Estado | Commit(s) en `Bckbs` |
+| --- | --- | --- |
+| 0 — Tests de caracterización + entorno sqlite | ✅ Hecho | `bf9411e` |
+| 1 — Migraciones aditivas (`source_*_id`/`is_client_copy`) | ✅ Hecho | `113431c` |
+| 2 — `ProgramCloningService`/`ProgramAssignmentService` tras feature flag `PROGRAM_CLONING_ENABLED` (default `false`) | ✅ Hecho | `96a8f53` |
+| 3 — Fix `SessionProgressionRuleEngine` (Riesgo A) | ✅ Hecho | `507b785` |
+| 4 — Test de aislamiento real entre clientes | ✅ Hecho (cubierto dentro del commit de Fase 2, `96a8f53`) | — |
+| 5 — Excluir copias de cliente de listados de biblioteca | ✅ Hecho | `9ec785b` |
+| 6 — Comando `programs:backfill-clones` (dry-run/`--apply`) | ✅ Hecho, **nunca ejecutado contra datos reales** | `37afbbd` |
+| 7 — Cutover en producción | ❌ Pendiente — requiere acceso al VPS y decisión humana, ver checklist abajo | — |
+| 8 — Frontend (`bstronger-admin`): deduplicar asignación + aviso de plantilla compartida | ✅ Hecho | `accca33` |
+| 9 — "Sincronizar cambios de plantilla" (mejora opcional) | Fuera de alcance, no iniciado | — |
+
+**Validación**: `php artisan test` en verde — 81 passed (302 assertions), los 13 fallos restantes son scaffolding de Laravel Breeze pre-existente y no relacionado (`UserFactory` inexistente en este backend de API), confirmados como pre-existentes antes de tocar nada de este plan.
+
+**Comportamiento en producción hoy: SIN CAMBIOS.** Todo lo anterior vive detrás de `PROGRAM_CLONING_ENABLED` (config `services.program_cloning.enabled`, default `false`) — con el flag desactivado (como está hoy en el `.env` de producción, que no se ha tocado), cada método de los 5 puntos de entrada de asignación se comporta exactamente igual que antes de este plan. El bug reportado por el usuario **sigue existiendo en producción** hasta que se ejecute la Fase 7.
+
+### Checklist para ejecutar la Fase 7 (requiere al humano operando el VPS/GitHub)
+
+1. Revisar el diff completo de la rama `claude/program-modifications-per-client-ovc0k3` en los 3 repos (o abrir PRs si se prefiere ese flujo de revisión) y mergear a las ramas por defecto.
+2. Desplegar `Bckbs` a staging (o directamente a producción si no hay staging separado) con `PROGRAM_CLONING_ENABLED` **todavía en `false`** — el deploy en sí no debe cambiar nada observable.
+3. Ejecutar `php artisan programs:backfill-clones` (dry-run, sin `--apply`) contra la base de datos real para ver el reporte de cuántas asignaciones existentes se convertirían en clones.
+4. Revisar ese reporte con el usuario antes de continuar.
+5. Ejecutar `php artisan programs:backfill-clones --apply` contra la base de datos real (recomendado: backup previo, aunque el comando no toca la plantilla de biblioteca original, solo crea filas nuevas y reapunta `program_client_assignments.training_program_id`).
+6. Verificar manualmente unos cuantos casos (checklist §5 de este documento).
+7. Activar `PROGRAM_CLONING_ENABLED=true` en el `.env` de producción y reiniciar el backend (`php artisan config:clear` si hay cache de config).
+8. Confirmar con el checklist de QA manual (§5) usando clientes reales o de prueba.
+9. Marcar el item `0f` de `docs/ROADMAP.md` como `✅ RESUELTO`.
+
+---
+
 ## 1. Diagnóstico (resumen de la auditoría completa)
 
 ### 1.1 Esquema actual y por qué existe el bug
