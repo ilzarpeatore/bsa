@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { Image as ExpoImage } from 'expo-image';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import Animated, {
@@ -212,17 +213,19 @@ function normalizeAcwr(acwr: number): number {
   return Math.max(0, 100 - (acwr - 1.3) * 150);
 }
 
-// Fondo real del hero (sustituye al LinearGradient plano) -- 3 fotos fijas
-// del cliente, elegidas por hora local del dispositivo. Mismo criterio que
-// greetingForHour: no hace falta posición solar real, basta con franjas
-// horarias razonables. Amanecer/atardecer comparten foto (misma luz cálida).
+// Fondo real del hero (sustituye al LinearGradient plano) -- fotos fijas del
+// cliente para amanecer/atardecer y noche, más un vídeo en bucle (mismo
+// corredor, mismo encuadre) para el tramo de día (2026-09-17), elegidos por
+// hora local del dispositivo. Mismo criterio que greetingForHour: no hace
+// falta posición solar real, basta con franjas horarias razonables.
+// Amanecer/atardecer comparten foto (misma luz cálida).
 const HERO_IMAGES = {
-  sunriseSunset: require('../../assets/hero-sunrise-sunset.jpg'),
-  day: require('../../assets/hero-day.jpg'),
-  night: require('../../assets/hero-night.jpg'),
+  sunriseSunset: require('../../assets/hero-sunrise-sunset.png'),
+  night: require('../../assets/hero-night.png'),
 };
+const HERO_DAY_VIDEO = require('../../assets/hero-day.mp4');
 
-type HeroMood = keyof typeof HERO_IMAGES;
+type HeroMood = keyof typeof HERO_IMAGES | 'day';
 
 function getHeroMoodForHour(hour: number): HeroMood {
   if (hour >= 5 && hour < 8) return 'sunriseSunset'; // amanecer
@@ -419,6 +422,26 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // recalcula por render (barato, solo lee la hora actual) y elige qué foto
   // de fondo mostrar (ver HERO_IMAGES arriba).
   const heroMood = getHeroMoodForHour(new Date().getHours());
+
+  // Vídeo de fondo del hero para el tramo "day" (ver HERO_DAY_VIDEO arriba).
+  // useVideoPlayer es un hook -- se llama siempre, con source null cuando el
+  // mood no es "day" (mismo patrón que WorkoutExercisePlayer en
+  // workout_session_screen.tsx). En bucle y muted (es solo fondo decorativo).
+  // Se pausa al perder el foco de esta pantalla (useFocusEffect) para no
+  // seguir consumiendo CPU/batería en otras pantallas, y se retoma al volver
+  // (pedido explícito 2026-09-17).
+  const heroVideoPlayer = useVideoPlayer(heroMood === 'day' ? HERO_DAY_VIDEO : null, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+  useFocusEffect(
+    useCallback(() => {
+      if (heroMood === 'day') heroVideoPlayer.play();
+      return () => {
+        if (heroMood === 'day') heroVideoPlayer.pause();
+      };
+    }, [heroMood, heroVideoPlayer]),
+  );
   const [showMenu, setShowMenu] = useState(false);
   // Nueva cabecera (estilo Helix, ver docs/Nueva_Cabecera_Home_Helix.md).
   const [motivationalPhrase, setMotivationalPhrase] = useState<string | null>(null);
@@ -1350,11 +1373,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           la hora del día, sin
           relación con el tema claro/oscuro. */}
       <Box style={StyleSheet.absoluteFill} pointerEvents="none">
-        <ExpoImage
-          source={HERO_IMAGES[heroMood]}
-          contentFit="cover"
-          style={StyleSheet.absoluteFill}
-        />
+        {heroMood === 'day' ? (
+          <VideoView
+            player={heroVideoPlayer}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            nativeControls={false}
+          />
+        ) : (
+          <ExpoImage
+            source={HERO_IMAGES[heroMood]}
+            contentFit="cover"
+            style={StyleSheet.absoluteFill}
+          />
+        )}
         <Animated.View
           style={[StyleSheet.absoluteFill, styles.homeBgDarkenLayer, homeBgDarkenAnimatedStyle]}
         />
