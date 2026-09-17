@@ -236,6 +236,9 @@ const HERO_DAY_VIDEO = require('../../assets/hero-day.mp4');
 // color liso (seeAllImage/C.orange) solo en esta tarjeta, no en las
 // equivalentes de Workouts/Blog más abajo, que no se pidió tocar.
 const RESOURCES_SEE_ALL_BG = require('../../assets/resources-see-all-bg.jpg');
+// Mismo tratamiento para "Ver todas las publicaciones" (sección Blog, pedido
+// explícito 2026-09-17, imagen de referencia distinta a la de Recursos).
+const BLOG_SEE_ALL_BG = require('../../assets/blog-see-all-bg.jpg');
 
 type HeroMood = keyof typeof HERO_IMAGES | 'day';
 
@@ -2274,6 +2277,14 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               style={styles.blogCard}
               onPress={() => navigation?.navigate('MigratedViewAllBlog')}>
               <Box style={[styles.blogImage, styles.seeAllImage]}>
+                <ExpoImage
+                  source={BLOG_SEE_ALL_BG}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+                <Box style={styles.seeAllImageOverlay} />
                 <Icon name="arrow-forward-circle" size={32} color="#FFFFFF" />
               </Box>
               <Box style={styles.blogContent}>
