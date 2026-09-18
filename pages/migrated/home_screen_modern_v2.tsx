@@ -2269,7 +2269,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   <Text style={styles.blogTitle} numberOfLines={2}>
                     {post.title}
                   </Text>
-                  {post.datetime && <Text style={styles.blogDate}>{post.datetime}</Text>}
                 </Box>
               </Pressable>
             ))}
