@@ -234,12 +234,14 @@ const HERO_IMAGES = {
 const HERO_DAY_VIDEO = require('../../assets/hero-day.mp4');
 
 // Fondo de la tarjeta "Ver todos los recursos" (sección Recursos, pedido
-// explícito 2026-09-17, con imagen de referencia) -- sustituye el fondo de
-// color liso (seeAllImage/C.orange) solo en esta tarjeta, no en las
-// equivalentes de Workouts/Blog más abajo, que no se pidió tocar.
-const RESOURCES_SEE_ALL_BG = require('../../assets/resources-see-all-bg.jpg');
+// explícito 2026-09-17, imagen actualizada 2026-09-18) -- sustituye el fondo
+// de color liso (seeAllImage/C.orange) solo en esta tarjeta y en la
+// equivalente de Blog ("Ver todas las publicaciones") de más abajo; la de
+// Workouts no se pidió tocar.
+const RESOURCES_SEE_ALL_BG = require('../../assets/resources-see-all-bg.png');
 // Mismo tratamiento para "Ver todas las publicaciones" (sección Blog, pedido
-// explícito 2026-09-17, imagen de referencia distinta a la de Recursos).
+// explícito 2026-09-17, imagen de referencia distinta a la de Recursos;
+// imagen actualizada 2026-09-18).
 const BLOG_SEE_ALL_BG = require('../../assets/blog-see-all-bg.jpg');
 
 type HeroMood = keyof typeof HERO_IMAGES | 'day';
