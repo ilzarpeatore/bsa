@@ -8,6 +8,7 @@ import { Button, ButtonText } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import ScreenHeader from '@components/ScreenHeader';
+import HomeSwipeNav from '@components/HomeSwipeNav';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
 import { useTabBarScroll } from '@store/TabBarScrollContext';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
@@ -182,7 +183,8 @@ export default function HabitsListScreen(props: Props) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
+    <HomeSwipeNav tab="HabitsTab" navigation={navigation}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title="Mis hábitos"
         onBack={() => navigation?.goBack()}
@@ -230,6 +232,7 @@ export default function HabitsListScreen(props: Props) {
           {items.map(renderCard)}
         </ScrollView>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </HomeSwipeNav>
   );
 }

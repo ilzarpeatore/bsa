@@ -20,6 +20,7 @@ import {  Divider  } from '@components/ui/divider';
 import AnimatedRing from '@components/AnimatedRing';
 import AnimatedGlowBorder from '@components/AnimatedGlowBorder';
 import ScreenHeader from '@components/ScreenHeader';
+import HomeSwipeNav from '@components/HomeSwipeNav';
 import TutorialTarget from '@components/tutorial/TutorialTarget';
 import {  useTutorial  } from '@store/TutorialContext';
 import {  GlassView, isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
@@ -724,6 +725,7 @@ export default function PlanScreen(props: any) {
     // color donde el status bar se pintaba con un fondo distinto al resto de
     // la cabecera. Se deja solo 'bottom' (para el home indicator), igual que
     // el resto de pantallas migradas.
+    <HomeSwipeNav tab="NutritionTab" navigation={props.navigation}>
     <SafeAreaView style={s.container} edges={['bottom']}>
       <ScreenHeader
         title="Plan diario"
@@ -863,6 +865,7 @@ export default function PlanScreen(props: any) {
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
+    </HomeSwipeNav>
   );
 }
 
