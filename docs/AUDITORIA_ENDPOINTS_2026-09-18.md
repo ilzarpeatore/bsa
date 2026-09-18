@@ -65,6 +65,10 @@ Todos los repos (`bsa`, `Bckbs`, `AgenticdesignBS`, `bstronger-admin`) tenían s
 - **Nutrición**: `DailyPlanRecipe` se crea con `daily_plan_id` propio de cada cliente/fecha (`saveDailyPlanRecipeData`, ya verificado en la sección 1) — no hay plantilla compartida mutable en el camino de "añadir/marcar comida". `MealPlanTemplateController::addItem/removeItem` sí edita una plantilla compartida, pero es explícitamente la pantalla de gestión de plantillas del panel admin (no "editar la comida de este cliente concreto") — arquitectura correcta, `importToCalendar` copia a filas propias del cliente.
 - **Hábitos**: `ClientHabitController::adopt()` crea una fila `Habit` nueva por cliente (`client_id` propio, `source_template_id` como referencia), nunca reutiliza ni edita la plantilla de origen. `storePersonal()`/`logHabit()` ya están scoped por `client_id`. Sin riesgo de mutación compartida.
 
+### 5. Nota operativa: `bstronger-admin` ya tiene auto-deploy
+
+Otra sesión añadió `.github/workflows/deploy.yml` — a partir de ahora cada push a `main` de `bstronger-admin` despliega solo (SSH al VPS, `git pull` + `npm ci` + `npm run build` + `chown www-data`). Ya no hace falta que yo construya y despliegue el panel admin a mano como hice hoy más arriba (sección 3) — solo aplica a partir de este commit en adelante.
+
 ## Pendiente de esta auditoría
 
 - [ ] **Prioridad alta**: decidir con el usuario el criterio de "clonar al editar" para `SessionDetailController` (addExercise/addBlock/removeExercise) antes de implementarlo — bug de aislamiento de datos real y confirmado, sin corregir.
