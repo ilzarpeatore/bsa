@@ -1,6 +1,5 @@
 import apiClient from './client';
 import { ApiMessageResponse } from './types';
-import { WorkoutDayExercise } from './workouts';
 
 export interface WorkoutSet {
   reps: string;
@@ -63,8 +62,14 @@ export interface LoadSuggestionDetail {
 }
 
 export interface CalendarDayExercise {
-  id: number; // workout_template_exercise_id
+  id: number; // workout_template_exercise_id, o un id sintético negativo si is_addition
   exercise_id: number;
+  // AISLAMIENTO (auditoría 2026-09-18): true si el coach añadió este
+  // ejercicio solo para este cliente (SessionDetailController::addExercise
+  // en el panel admin) -- no existe como WorkoutTemplateExercise real, así
+  // que `id` es un id sintético negativo, no un id de plantilla. Se trata
+  // igual que el "Añadir ejercicio +" ad-hoc ya existente en esta pantalla.
+  is_addition?: boolean;
   title: string | null;
   video_url: string | null;
   exercise_image: string | null;
@@ -186,9 +191,6 @@ export const workoutHistoryApi = {
     page?: number;
   }) =>
     apiClient.get<WorkoutExerciseHistoryResponse>('v1/get-user-workout-exercise', { params }),
-
-  getWorkoutDayExercise: (params: { workout_day_id: number; exercise_id: number }) =>
-    apiClient.get<{ data: WorkoutDayExercise[] }>('v1/workoutday-exercise-list', { params }),
 
   getMyCalendar: (month: number, year: number) =>
     apiClient.get<{ data: { days: CalendarMonthDay[] } }>('v1/my-calendar', { params: { month, year } }),

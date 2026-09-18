@@ -21,8 +21,14 @@ export function pickWorkoutFallbackImage(seed?: number | null) {
 }
 
 export interface UnifiedExercise {
-  id: number; // workout_template_exercise_id — clave para log-sets
+  id: number; // workout_template_exercise_id — clave para log-sets (id sintético negativo si isAdhoc)
   exerciseId: number;
+  // AISLAMIENTO (auditoría 2026-09-18): true si el coach añadió este
+  // ejercicio solo para este cliente (CalendarDayExercise.is_addition) --
+  // se trata exactamente igual que el "Añadir ejercicio +" ad-hoc ya
+  // existente en workout_session_screen.tsx (registra series por
+  // exerciseId, no por `id`), reutilizando ese mismo mecanismo.
+  isAdhoc?: boolean;
   title: string;
   image: string | null;
   /** body_parts.id del musculo principal — heatmap aislado en ExerciseThumb. */
@@ -89,6 +95,7 @@ export async function fetchUnifiedWorkout(params: WorkoutViewParams): Promise<Un
       exercises: (b.exercises ?? []).map((e) => ({
         id: e.id,
         exerciseId: e.exercise_id,
+        isAdhoc: !!e.is_addition,
         title: e.title || 'Ejercicio',
         image: e.exercise_image,
         bodyPartId: e.body_part_id ?? null,
