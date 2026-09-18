@@ -136,16 +136,21 @@ function buildWrapperHtml(C: ReturnType<typeof useAppColorMode>['colors']): stri
 <body>
   <div id="content">__CONTENT__</div>
   <script>
-    window.addEventListener('message', function(e) {
-      if (e.data === 'resize') {
-        document.body.style.height = document.documentElement.scrollHeight + 'px';
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type:'resize', height: document.documentElement.scrollHeight }));
-      }
-    });
-    window.onload = function() {
+    function postHeight() {
       document.body.style.height = document.documentElement.scrollHeight + 'px';
       window.ReactNativeWebView.postMessage(JSON.stringify({ type:'resize', height: document.documentElement.scrollHeight }));
-    };
+    }
+    window.addEventListener('message', function(e) {
+      if (e.data === 'resize') postHeight();
+    });
+    window.onload = postHeight;
+    // Mismo fix que resource_detail_screen.tsx (bug reportado 2026-09-18):
+    // si el contenido trae un <details> (acordeón), su 'toggle' no burbujea
+    // -- se escucha en captura sobre document para no depender de que el
+    // contenido use una clase concreta.
+    document.addEventListener('toggle', function() {
+      requestAnimationFrame(postHeight);
+    }, true);
   </script>
 </body>
 </html>`;

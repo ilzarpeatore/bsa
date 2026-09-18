@@ -177,9 +177,21 @@ function buildWrapperHtml(mode: 'light' | 'dark'): string {
 <body>
   <div id="content">__CONTENT__</div>
   <script>
-    window.onload = function() {
+    function postHeight() {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type:'resize', height: document.documentElement.scrollHeight }));
-    };
+    }
+    window.onload = postHeight;
+    // BUG (todos los recursos con acordeón, reportado 2026-09-18): la altura
+    // solo se medía una vez en window.onload -- al abrir un <details> (.acc)
+    // el documento crece pero nadie volvía a avisar a React Native, así que
+    // el WebView se quedaba con la altura del estado colapsado y el
+    // contenido expandido se veía cortado. 'toggle' no burbujea, por eso se
+    // escucha en fase de captura sobre document (delega a cualquier <details>
+    // sin tener que engancharse uno a uno); requestAnimationFrame deja que el
+    // layout se asiente tras el cambio de 'open' antes de medir scrollHeight.
+    document.addEventListener('toggle', function() {
+      requestAnimationFrame(postHeight);
+    }, true);
   </script>
 </body>
 </html>`;
@@ -192,9 +204,15 @@ function buildWrapperHtml(mode: 'light' | 'dark'): string {
 const isFullDocument = (html: string): boolean => /^\s*(<!DOCTYPE|<html)/i.test(html);
 
 const RESIZE_SCRIPT = `<script>
-  window.onload = function() {
+  function __postHeight() {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type:'resize', height: document.documentElement.scrollHeight }));
-  };
+  }
+  window.onload = __postHeight;
+  // Mismo fix que buildWrapperHtml() -- ver su comentario -- para un
+  // documento HTML completo subido tal cual que también use <details>.
+  document.addEventListener('toggle', function() {
+    requestAnimationFrame(__postHeight);
+  }, true);
 </script>`;
 
 const injectResizeScript = (html: string): string => {
