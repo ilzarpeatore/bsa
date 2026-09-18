@@ -190,7 +190,11 @@ export default function HabitsListScreen(props: Props) {
         onBack={() => navigation?.goBack()}
         rightAction={
           <TutorialTarget id="habits-add-button">
-            <Pressable onPress={() => navigation?.navigate('MigratedHabitAdd')}>
+            {/* .push() en vez de .navigate(): misma clase de bug confirmada
+                y corregida en add_post_screen.tsx (2026-09-18) -- la ruta
+                está registrada una sola vez, así que .navigate() puede
+                reutilizar una instancia ya visitada en vez de una nueva. */}
+            <Pressable onPress={() => navigation?.push('MigratedHabitAdd')}>
               <Icon name="add-circle" size={26} className="text-foreground" />
             </Pressable>
           </TutorialTarget>
@@ -209,7 +213,7 @@ export default function HabitsListScreen(props: Props) {
         <Box className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32 }}>
           <Icon name="flame-outline" size={40} className="text-muted-foreground" />
           <Text size="sm" muted className="text-center" style={{ marginTop: 12 }}>Todavía no tienes ningún hábito.</Text>
-          <Button radius="pill" style={{ marginTop: 18, paddingHorizontal: 22, paddingVertical: 12 }} onPress={() => navigation?.navigate('MigratedHabitAdd')}>
+          <Button radius="pill" style={{ marginTop: 18, paddingHorizontal: 22, paddingVertical: 12 }} onPress={() => navigation?.push('MigratedHabitAdd')}>
             <ButtonText size="sm" style={{ fontSize: 13.5 }}>Añadir mi primer hábito</ButtonText>
           </Button>
         </Box>
