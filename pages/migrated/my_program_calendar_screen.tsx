@@ -1498,15 +1498,22 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     fontSize: 12,
     color: C.textSecondary,
     paddingHorizontal: 20,
-    marginTop: 4,
+    marginTop: 10,
     marginBottom: 8,
   },
+  // marginBottom: TAB_BAR_CLEARANCE -- esta barra vive fuera del ScrollView
+  // (fija al fondo de la pantalla, no contenido desplazable), así que no
+  // heredaba el mismo hueco que ya reserva el ScrollView para la barra de
+  // pestañas flotante (ver contentContainerStyle más arriba) -- quedaba
+  // tapada/cortada detrás de esa barra y su botón "+" (reportado con
+  // captura: "Guardar cambios" totalmente inútil, tapado por el menú).
   unavailableBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 14,
+    marginBottom: TAB_BAR_CLEARANCE,
     borderTopWidth: 1,
     borderTopColor: C.gray70,
     backgroundColor: C.bg,

@@ -112,7 +112,10 @@ export default function BookmarkScreen({ navigation }: any) {
 
   const openDetail = useCallback(
     (item: BookmarkPost) => {
-      navigation.navigate('MigratedPostDetails', {
+      // .push() en vez de .navigate() -- ver comentario en community_screen.tsx
+      // (mismo bug real: .navigate() reutiliza la instancia ya visitada de
+      // MigratedPostDetails en vez de refrescarla con los datos de este post).
+      navigation.push('MigratedPostDetails', {
         postData: {
           id: item.id,
           content: item.content,

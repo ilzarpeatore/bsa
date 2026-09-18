@@ -86,7 +86,12 @@ export default function CommunityScreen(props: any) {
   };
 
   const handlePostPress = () => {
-    props.navigation.navigate('MigratedAddPost');
+    // .push() en vez de .navigate() -- mismo criterio que openPostDetail más
+    // abajo: MigratedAddPost está registrada una sola vez y se navega a ella
+    // con formas de params distintas (sin params para crear, {flow, postData}
+    // para editar) -- .push() garantiza una pantalla nueva siempre, sin
+    // arrastrar params de una visita anterior en la misma sesión.
+    props.navigation.push('MigratedAddPost');
   };
 
   const handleEndReached = () => {
@@ -110,7 +115,14 @@ export default function CommunityScreen(props: any) {
   };
 
   const openPostDetail = (item: PostData) => {
-    props.navigation.navigate('MigratedPostDetails', {
+    // .push() en vez de .navigate() -- MigratedPostDetails está registrada
+    // una sola vez en el stack, así que .navigate() reutiliza la instancia ya
+    // existente de esa ruta si ya se visitó antes en esta sesión (en vez de
+    // crear una nueva), sin refrescar bien los params. Bug real reportado
+    // (2026-09-18, captura: entrar a un post desde Comunidad mostraba la
+    // pantalla en blanco) -- .push() fuerza una pantalla nueva con los datos
+    // de ESTE post siempre, sin importar si ya se visitó la ruta antes.
+    props.navigation.push('MigratedPostDetails', {
       postData: {
         id: item.id,
         content: item.content,
@@ -170,7 +182,7 @@ export default function CommunityScreen(props: any) {
       {
         text: 'Editar',
         onPress: () => {
-          props.navigation.navigate('MigratedAddPost', {
+          props.navigation.push('MigratedAddPost', {
             flow: 'EditFlow',
             postData: {
               id: item.id,
