@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView, TextInput, Dimensions, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
@@ -150,7 +151,17 @@ export default function BodyMetricsScreen(props: any) {
         </Box>
       ) : (
         <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}>
+          {/* Bug real reportado con captura 2026-09-18: sin scrollbar
+              (showsHorizontalScrollIndicator={false}) ni ninguna otra pista
+              visual, el último tipo de medida ("Masa muscular") se veía
+              cortado justo en el borde de la pantalla y parecía un botón
+              roto/mal dimensionado, cuando en realidad la fila sí es
+              deslizable -- solo faltaba la señal de que hay más contenido.
+              Un degradado al color de fondo en el borde derecho (mismo
+              patrón que un "fade" de scroll estándar) deja claro que el
+              último pill sigue cortado a propósito, no roto. */}
+          <Box style={{ position: 'relative' }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}>
             {types.map((t) => (
               <Pressable
                 key={t.value}
@@ -180,7 +191,15 @@ export default function BodyMetricsScreen(props: any) {
                 </Text>
               </Pressable>
             ))}
-          </ScrollView>
+            </ScrollView>
+            <LinearGradient
+              pointerEvents="none"
+              colors={['transparent', C.bg]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ position: 'absolute', right: 0, top: 0, bottom: 12, width: 28 }}
+            />
+          </Box>
 
           <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
             <Box className="bg-card rounded-md" style={{ padding: 18, ...SHADOW.card }}>
