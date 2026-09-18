@@ -38,11 +38,17 @@ interface CalendarWorkout {
   // de este entrenamiento (ver has_load_suggestion en getMyMonth) -- el
   // detalle real (qué ejercicio, qué valor) se ve al abrir el entrenamiento.
   hasLoadSuggestion?: boolean;
+  // AÑADIDO (pedido explícito 2026-09-18): thumbnail real de la plantilla,
+  // subido por el coach desde el panel admin (WorkoutTemplatesView.tsx).
+  // null si el coach no ha puesto ninguna -- en ese caso se sigue usando
+  // getWorkoutImage() como respaldo.
+  image?: string | null;
 }
 
-// Mismo fallback por palabra clave que usa MigratedSchedule (schedule_screen.tsx) —
-// el backend de getMyCalendar no expone thumbnail real del WorkoutTemplate, así que
-// se replica aquí el mismo criterio para que ambas pantallas se vean consistentes.
+// Respaldo SOLO para cuando el coach no ha subido una imagen real a la
+// plantilla (ver CalendarWorkout.image) -- mismo criterio que usa
+// MigratedSchedule (schedule_screen.tsx) para que ambas pantallas se vean
+// consistentes en ese caso.
 function getWorkoutImage(title: string): string {
   const t = (title || '').toLowerCase();
   if (t.includes('cardio') || t.includes('hiit')) return 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400';
@@ -457,6 +463,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
           assignmentId: w.assignment_id,
           workoutTemplateId: w.id,
           hasLoadSuggestion: !!w.has_load_suggestion,
+          image: w.image || null,
         })),
       }));
       setMDays(mapped);
@@ -711,7 +718,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
               isSelectedToMove && styles.workoutCardMoving,
             ]}
           >
-            <Image source={{ uri: getWorkoutImage(w.title || '') }} contentFit="cover" style={styles.workoutImage} />
+            <Image source={{ uri: w.image || getWorkoutImage(w.title || '') }} contentFit="cover" style={styles.workoutImage} />
             <VStack style={{ flex: 1, marginLeft: 14 }}>
               <Text style={styles.workoutTitle} numberOfLines={2}>{w.title || ''}</Text>
               {completed && (
