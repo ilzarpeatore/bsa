@@ -273,7 +273,7 @@ export default function ProfileScreen(props: any) {
             >
               <AppIcon name="chatbubble-ellipses-outline" size={18} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
               <Text weight="bold" size="sm">Soporte</Text>
-              <Text size="xs" muted style={{ marginTop: 2 }}>Chat con el bot</Text>
+              <Text size="xs" muted style={{ marginTop: 2 }}>Escribe a tu entrenador</Text>
             </Pressable>
           </HStack>
 
