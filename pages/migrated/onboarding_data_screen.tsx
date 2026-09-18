@@ -382,7 +382,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     linkTitle: { fontSize: 14.5, fontFamily: FONT.semiBold, color: C.textPrimary },
     linkSubtitle: { fontSize: 12.5, color: C.gray50, marginTop: 2 },
     fieldRow: { marginBottom: 18 },
-    fieldTitle: { fontSize: 13.5, fontFamily: FONT.medium, color: C.textPrimary, marginBottom: 8, lineHeight: 18 },
+    fieldTitle: { fontSize: 13.5, fontFamily: FONT.bold, color: C.textPrimary, marginBottom: 8, lineHeight: 18 },
     pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     pill: {
       paddingVertical: 8,
