@@ -35,7 +35,7 @@ Todos los repos (`bsa`, `Bckbs`, `AgenticdesignBS`, `bstronger-admin`) tenían s
 
 - `Bckbs`: VPS ya estaba en el commit más reciente (`bab5f5c`) sin que yo desplegara nada — alguien más ya lo hizo.
 - Route collision real encontrado en logs de producción (`Another route has already been assigned name [users.show]`, repetido 3 veces el 2026-09-18) — ya corregido en 2 PRs (#25 y #26) por otra sesión, ambos ya en `main` y desplegados.
-- `docs/ROADMAP.md` actualizado: item 21 (sesión de cliente compartiendo plantilla) resuelto vía Bckbs PR #24; item 25 (editar onboarding) parcial — app hecha, admin pendiente. Sincronizado al panel admin (`POST admin/task-sync`, 23 items activos, 1 cerrado automáticamente).
+- `docs/ROADMAP.md` actualizado: item 25 (editar onboarding) parcial — app hecha, admin pendiente. Item 21 se marcó erróneamente como resuelto por la PR #24 en un primer pase; corregido más abajo tras encontrar que sigue abierto de verdad. Sincronizado al panel admin (`POST admin/task-sync`).
 
 ### 4. Dieta — causa real ya encontrada (y ya corregida por otra sesión en paralelo)
 
