@@ -291,7 +291,7 @@ export default function OnboardingDataScreen(props: any) {
                 C={C}
               />
             ))}
-            <Button size="md" radius="pill" onPress={saveParQ} disabled={saving === 'par_q'} style={styles.saveButton}>
+            <Button size="lg" radius="pill" onPress={saveParQ} disabled={saving === 'par_q'} style={styles.saveButton}>
               {saving === 'par_q' ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Guardar cribado médico</ButtonText>}
             </Button>
           </Box>
@@ -325,7 +325,7 @@ export default function OnboardingDataScreen(props: any) {
                 />
               </Input>
             </Box>
-            <Button size="md" radius="pill" onPress={saveTraining} disabled={saving === 'training'} style={styles.saveButton}>
+            <Button size="lg" radius="pill" onPress={saveTraining} disabled={saving === 'training'} style={styles.saveButton}>
               {saving === 'training' ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Guardar cuestionario de entrenamiento</ButtonText>}
             </Button>
           </Box>
@@ -347,7 +347,7 @@ export default function OnboardingDataScreen(props: any) {
                 C={C}
               />
             ))}
-            <Button size="md" radius="pill" onPress={saveNutrition} disabled={saving === 'nutrition'} style={styles.saveButton}>
+            <Button size="lg" radius="pill" onPress={saveNutrition} disabled={saving === 'nutrition'} style={styles.saveButton}>
               {saving === 'nutrition' ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Guardar cuestionario de nutrición</ButtonText>}
             </Button>
           </Box>
