@@ -43,7 +43,7 @@ Todos los repos (`bsa`, `Bckbs`, `AgenticdesignBS`, `bstronger-admin`) tenían s
 
 ---
 
-## 🔴 HALLAZGO GRAVE — bug de aislamiento de datos aún SIN corregir (2026-09-18)
+## ✅ HALLAZGO GRAVE — bug de aislamiento de datos CORREGIDO y desplegado (2026-09-18, ver "Fases de implementación" más abajo)
 
 **Esto es justo el patrón que preocupaba al usuario: editar la sesión de UN cliente puede modificar la de OTROS clientes, si comparten la misma plantilla base.**
 
@@ -104,7 +104,7 @@ Aparte de esto, `route:cache` corre limpio ahora mismo (sin colisiones de nombre
 
 ## Pendiente de esta auditoría
 
-- [ ] **Prioridad alta**: decidir con el usuario el criterio de "clonar al editar" para `SessionDetailController` (addExercise/addBlock/removeExercise) antes de implementarlo — bug de aislamiento de datos real y confirmado, sin corregir.
+- [x] **Criterio decidido con el usuario** (ver `~/.claude/plans/enumerated-marinating-ember.md`): (A) clonar la plantilla al asignar vía `assignDirect` (calendario personal suelto); (B) extender `ClientExerciseOverride` (ya existente, hoy solo oculta/ajusta) para que también soporte añadir un ejercicio o un bloque entero solo para un cliente, en el caso de programas compartidos entre varios clientes — sin tocar la plantilla compartida. En implementación, ver "Fases de implementación" más abajo.
 - [x] Dieta: causa raíz encontrada y corregida por otra sesión (`plan_screen.tsx`).
 - [x] Comunidad: causa raíz encontrada y corregida por otra sesión (`add_post_screen.tsx`, `.push()` + ErrorBoundary).
 - [x] Hábitos: mismo patrón encontrado y corregido en esta auditoría (`habits_list_screen.tsx`, `.push()`).
@@ -112,3 +112,14 @@ Aparte de esto, `route:cache` corre limpio ahora mismo (sin colisiones de nombre
 - [x] Seguir auditando otras zonas de la app con el mismo patrón (plantilla compartida + edición "individual" sin clonar) — barrido sistemático completo de `API/*` hecho (sección 8): 2 IDOR reales corregidos y desplegados (`ClientTagController::destroy`, `Comment`/`CommentReply` scopeMy*), 2 hallazgos admin-only de baja prioridad, 2 informativos, resto revisado sin bug.
 - [x] Salud de la conexión con la BD (schema drift): 144 modelos comprobados contra tablas reales, sin problemas (sección 6).
 - [x] Rutas rotas: 15 encontradas y corregidas (sección 7), todas del panel Blade legacy.
+
+## Fases de implementación del hallazgo grave (plan aprobado 2026-09-18)
+
+Plan completo en `~/.claude/plans/enumerated-marinating-ember.md`. Progreso:
+
+- [x] Parte A — `WorkoutTemplate::cloneStructure()` + `assignDirect()` clona al asignar. Verificado por simulación (tinker, rollback) en la sesión anterior.
+- [x] Parte B.1/B.2 — migraciones `create_client_block_overrides_table` / `add_addition_columns_to_client_exercise_overrides_table` corridas en el VPS (batch 40) + modelos `ClientBlockOverride`/`ClientExerciseOverride` actualizados.
+- [x] Parte B.3 — `SessionDetailController::addExercise/addBlock/removeExercise` reescritos sobre el overlay (`client_exercise_overrides`/`client_block_overrides`), con `assertClientOwnsAssignment()` (mismo criterio que `ClientCalendarController::resolveOwnedAssignment`, evita que se pueda personalizar la sesión de un cliente no asignado realmente a ese programa).
+- [x] Parte B.4 (parcial, con alcance recortado a propósito — ver nota abajo) — `SessionDetailController::getSessionDetail()` ahora respeta `hidden` (antes lo ignoraba por completo) y renderiza las adiciones (ejercicios sueltos + bloques propios) del cliente. **No se tocó** `ClientCalendarController::getDayDetail()` (vista móvil real del cliente) ni `AdaptiveWeekPlanner` — requieren coordinar el esquema de "id sintético" con el lado móvil antes de cablearlos (un ejercicio añadido no tiene `workout_template_exercise_id`, y ese id es lo que la app usa hoy para registrar series); hacerlo sin verificar el lado móvil se consideró riesgo de crash/regresión en la app real en producción. Pendiente, no bloqueante para el fix de seguridad.
+- [x] Parte B.5 (parcial) — frontend `bstronger-admin` (`SessionDetailView.tsx`) manda `client_id` en las 3 llamadas (ahora obligatorio en el backend) y usa un id sintético negativo (`-client_exercise_override_id` / `-client_block_override_id`) para que las adiciones no colisionen (keys de React, `Map` de lookup) con los ids reales de la plantilla. **No implementado todavía**: editar notas/prescrito inline o eliminar una adición ya creada desde la UI (esas llamadas seguirán fallando con un toast de error hasta que se cablee explícitamente); el badge visual "personalizado para este cliente" tampoco está.
+- [x] Verificación end-to-end contra BD real (PHP standalone bootstrap + transacción con rollback, `php artisan tinker` no ejecutaba el script multilínea correctamente — ver nota de proceso): 2 clientes en el mismo `ProgramDayAssignment` compartido, cliente A añade ejercicio+bloque propio y oculta el ejercicio original → cliente B sigue viendo la plantilla intacta (aislamiento confirmado), la plantilla compartida en BD no cambió, y un tercer cliente sin asignación real fue bloqueado con 403 al intentar `addBlock` (guardia IDOR). Desplegado y verificado en el VPS de producción; commit `Bckbs` `c221218`, pusheado a `main`.
