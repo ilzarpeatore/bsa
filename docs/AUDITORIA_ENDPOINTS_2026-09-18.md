@@ -69,6 +69,39 @@ Todos los repos (`bsa`, `Bckbs`, `AgenticdesignBS`, `bstronger-admin`) tenían s
 
 Otra sesión añadió `.github/workflows/deploy.yml` — a partir de ahora cada push a `main` de `bstronger-admin` despliega solo (SSH al VPS, `git pull` + `npm ci` + `npm run build` + `chown www-data`). Ya no hace falta que yo construya y despliegue el panel admin a mano como hice hoy más arriba (sección 3) — solo aplica a partir de este commit en adelante.
 
+### 6. Salud de la conexión con la BD — sin schema drift
+
+Comprobados los 144 modelos Eloquent del backend contra la BD real (`Schema::hasTable()` para cada uno, resolviendo `getTable()` como lo haría el código en producción): **ninguno apunta a una tabla que no existe.** Sin bugs de este tipo.
+
+### 7. Rutas rotas encontradas — 15, todas del panel Blade legacy, no alcanzables desde la UI real
+
+Recorridas las 1028 rutas registradas de verdad (`app('router')->getRoutes()`, no solo `route:list`) comprobando que el controlador y método existan de verdad. 15 rutas están rotas (`Route::resource(...)` que registra los 7 métodos CRUD pero el controlador solo implementa algunos — un `GET .../edit` o `POST` a esas rutas daría 500, "Call to undefined method"):
+
+- `pushnotification` (show/update), `bannerslider` (show), `posting` (store), `admin-login-history` (create/store/show/edit/update/destroy), `admin-login-device` (create/store/edit/update/destroy).
+
+Todas vienen de `routes/web.php` (el panel Blade antiguo, ya sustituido por `bstronger-admin`). Confirmado que el panel React real usa rutas API distintas y correctas para lo mismo (`admin/banner-sliders`, `admin/push-notifications`, `admin/admin-login-history`, `admin/admin-login-devices`, `admin/postings` con `->only(['index','show'])`) — así que nadie las pulsa desde la UI real. Riesgo bajo (solo alcanzable si alguien las golpea directamente por URL), pero es superficie de ataque/mantenimiento innecesaria. Limpieza recomendada: borrar esos 6 `Route::resource(...)` de `web.php` o acotarlos con `->only([...])` a lo que el controlador realmente implementa.
+
+Aparte de esto, `route:cache` corre limpio ahora mismo (sin colisiones de nombre pendientes).
+
+### 8. Barrido sistemático de IDOR en toda la API cliente (sub-agente, ~46 herramientas, cobertura completa de `API/*` + puntos señalados de `API/Admin/*`)
+
+**Corregidos ya (commit `Bckbs` `659b1ea`, desplegado):**
+
+- 🔴 **`ClientTagController::destroy()`** — no acotaba por `coach_id` (a diferencia de `getList()`/`store()` en el mismo archivo). Cualquier coach podía borrar el `ClientTag` de otro coach adivinando su id. **Corregido**: añadido `->where('coach_id', auth()->id())`.
+- 🔴 **`Comment::scopeMyComment()` / `CommentReply::scopeMyCommentReply()`** — el filtro de propiedad solo se aplicaba si la cuenta tenía el rol Spatie `user`; las cuentas de coach en este proyecto no tienen NINGÚN rol Spatie, así que se saltaban el filtro por completo y podían editar el comentario/respuesta de cualquier otro usuario vía `update-comment`/`save-comment-reply`. **Corregido**: mismo criterio que `scopeCanBeDeletedBy()` (solo admin exento). Verificado con simulación real: antes generaba SQL sin filtro para una cuenta coach real de producción; después sí lo aplica.
+
+**Encontrados, sin corregir (admin-only, patrón ya documentado/intencional en el proyecto — riesgo bajo, solo relevante si algún día se abre esa API a roles no-admin):**
+
+- `ClientProfileCalendarController::removeAssignment()` — borra un `ProgramDayAssignment` sin comprobar propiedad; gateado por `hasRole('admin')`.
+- `Admin/ExerciseSubstitutionController::update()/destroy()` — sin `coach_id` en el `find()`; gateado por `hasRole('admin')`.
+
+**Encontrados, severidad baja/informativa:**
+
+- `FormController::getDetail()` — cualquier cliente autenticado puede leer la estructura (título + preguntas) de un `Form` de otro coach por id; no expone datos personales de ningún cliente, solo la plantilla.
+- `ScreenReviewMarkController::index()` — sin filtro por usuario; es la herramienta temporal de QA de pantallas (se borrará con la feature), no datos reales.
+
+**Revisado a fondo, SIN bug encontrado** (no fueron solo listados, se verificó el código real): check-ins/formularios asignados, excepciones de coach, reglas de progresión, planes semanales adaptativos, sustituciones de ejercicio (rutas cliente), comentarios/respuestas — ruta de borrado (`scopeCanBeDeletedBy`, correcta, contrasta con el bug de arriba), récords personales/métricas corporales/datos de salud/feedback de ejercicio/gráficas de usuario, listas de la compra, recursos, bloqueo de usuarios, historial del chatbot, calendario de cliente, programas de entrenamiento, suscripciones/pagos, reseñas de recetas, revisión de sesión de entrenamiento, ajustes de features de cliente.
+
 ## Pendiente de esta auditoría
 
 - [ ] **Prioridad alta**: decidir con el usuario el criterio de "clonar al editar" para `SessionDetailController` (addExercise/addBlock/removeExercise) antes de implementarlo — bug de aislamiento de datos real y confirmado, sin corregir.
@@ -76,4 +109,6 @@ Otra sesión añadió `.github/workflows/deploy.yml` — a partir de ahora cada 
 - [x] Comunidad: causa raíz encontrada y corregida por otra sesión (`add_post_screen.tsx`, `.push()` + ErrorBoundary).
 - [x] Hábitos: mismo patrón encontrado y corregido en esta auditoría (`habits_list_screen.tsx`, `.push()`).
 - [ ] Verificar si hace falta lanzar un build nuevo (IPA/APK) para que estos fixes lleguen al usuario, dado que está probando la app instalada real, no un entorno de desarrollo — **sí hace falta**, son cambios de JS embebido en el bundle nativo, sin OTA.
-- [ ] Seguir auditando otras zonas de la app con el mismo patrón (plantilla compartida + edición "individual" sin clonar) — revisado por ahora: entrenamiento (bug encontrado), nutrición (sin bug), hábitos (sin bug). Quedan por revisar: recetario/favoritos, check-ins/formularios asignados, y cualquier otro sitio donde el admin "personalice" algo que en el fondo sea una fila de catálogo compartida.
+- [x] Seguir auditando otras zonas de la app con el mismo patrón (plantilla compartida + edición "individual" sin clonar) — barrido sistemático completo de `API/*` hecho (sección 8): 2 IDOR reales corregidos y desplegados (`ClientTagController::destroy`, `Comment`/`CommentReply` scopeMy*), 2 hallazgos admin-only de baja prioridad, 2 informativos, resto revisado sin bug.
+- [x] Salud de la conexión con la BD (schema drift): 144 modelos comprobados contra tablas reales, sin problemas (sección 6).
+- [x] Rutas rotas: 15 encontradas y corregidas (sección 7), todas del panel Blade legacy.
