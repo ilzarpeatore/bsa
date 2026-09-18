@@ -86,7 +86,12 @@ export default function CommunityScreen(props: any) {
   };
 
   const handlePostPress = () => {
-    props.navigation.navigate('MigratedAddPost');
+    // .push() en vez de .navigate() -- mismo criterio que openPostDetail más
+    // abajo: MigratedAddPost está registrada una sola vez y se navega a ella
+    // con formas de params distintas (sin params para crear, {flow, postData}
+    // para editar) -- .push() garantiza una pantalla nueva siempre, sin
+    // arrastrar params de una visita anterior en la misma sesión.
+    props.navigation.push('MigratedAddPost');
   };
 
   const handleEndReached = () => {
@@ -177,7 +182,7 @@ export default function CommunityScreen(props: any) {
       {
         text: 'Editar',
         onPress: () => {
-          props.navigation.navigate('MigratedAddPost', {
+          props.navigation.push('MigratedAddPost', {
             flow: 'EditFlow',
             postData: {
               id: item.id,
