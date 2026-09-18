@@ -170,7 +170,10 @@ export default function OtherUserProfileScreen(props: any) {
   };
 
   const openPostDetail = (item: PostData) => {
-    props.navigation?.navigate('MigratedPostDetails', {
+    // .push() en vez de .navigate() -- ver comentario en community_screen.tsx
+    // (mismo bug real: .navigate() reutiliza la instancia ya visitada de
+    // MigratedPostDetails en vez de refrescarla con los datos de este post).
+    props.navigation?.push('MigratedPostDetails', {
       postData: {
         id: item.id,
         content: item.content,

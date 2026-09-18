@@ -17,6 +17,52 @@ import { postsApi, PickedPostMedia } from '../../api/posts';
 import logger from '@helper/logger';
 import { showToast } from '@helper/toast';
 
+// Red de seguridad: bug real reportado (2026-09-18, captura -- "Nueva
+// publicación" se veía completamente en blanco bajo la cabecera, ni
+// siquiera el campo de texto ni el botón "Publicar", pese a que esta
+// pantalla no tiene ninguna rama condicional que devuelva vacío). Revisión
+// a fondo (esta pantalla, expo-image-picker, Textarea/Input compartidos,
+// registro en App.tsx) sin encontrar una causa raíz confirmable sin
+// dispositivo real. Mismo criterio que HabitAddErrorBoundary en
+// habit_add_screen.tsx: si hay un throw en el árbol de esta pantalla que la
+// investigación estática no detectó, este ErrorBoundary evita que se quede
+// en un vacío sin explicación y degrada a un mensaje con salida.
+class AddPostErrorBoundary extends React.Component<
+  { navigation?: any; colors: ReturnType<typeof useAppColorMode>['colors']; title: string; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { navigation?: any; colors: ReturnType<typeof useAppColorMode>['colors']; title: string; children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: unknown) {
+    logger.error('[AddPostScreen] Error atrapado por el ErrorBoundary:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      const C = this.props.colors;
+      return (
+        <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
+          <ScreenHeader title={this.props.title} onBack={() => this.props.navigation?.goBack()} />
+          <Box className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32 }}>
+            <Icon name="alert-circle-outline" size={36} className="text-muted-foreground" />
+            <Text size="sm" muted className="text-center" style={{ marginTop: 12 }}>
+              No se pudo mostrar esta pantalla. Vuelve a intentarlo en unos segundos.
+            </Text>
+            <Button radius="pill" style={{ marginTop: 18, paddingHorizontal: 22, paddingVertical: 12 }} onPress={() => this.props.navigation?.goBack()}>
+              <ButtonText size="sm">Volver</ButtonText>
+            </Button>
+          </Box>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function assetToPickedMedia(asset: ImagePicker.ImagePickerAsset): PickedPostMedia {
   const isVideo = asset.type === 'video';
   const extFromUri = asset.uri.split('.').pop()?.split('?')[0]?.toLowerCase();
@@ -28,7 +74,7 @@ function assetToPickedMedia(asset: ImagePicker.ImagePickerAsset): PickedPostMedi
   };
 }
 
-export default function AddPostScreen({ navigation, route }: any) {
+function AddPostScreenInner({ navigation, route }: any) {
   const { colors: C } = useAppColorMode();
   const flow = route?.params?.flow;
   const postData = route?.params?.postData;
@@ -220,5 +266,15 @@ export default function AddPostScreen({ navigation, route }: any) {
         </Box>
       )}
     </SafeAreaView>
+  );
+}
+
+export default function AddPostScreen(props: any) {
+  const { colors: C } = useAppColorMode();
+  const title = props.route?.params?.flow === 'EditFlow' ? 'Editar publicación' : 'Nueva publicación';
+  return (
+    <AddPostErrorBoundary navigation={props.navigation} colors={C} title={title}>
+      <AddPostScreenInner {...props} />
+    </AddPostErrorBoundary>
   );
 }

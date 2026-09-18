@@ -337,7 +337,21 @@ export default function NavigationTab({ state, descriptors, navigation }: Bottom
                       // en cualquiera de las 4 pestañas (todas comparten el mismo
                       // stack MigratedNavigator) y pedirle a SU stack que navegue a
                       // la pantalla real.
-                      navigation.navigate("PlanDiarioTab", { screen: action.route, params: action.params });
+                      //
+                      // Bug real (2026-09-18, reportado con captura desde Perfil sin
+                      // forma de volver atrás salvo cerrando la app): esto navegaba
+                      // siempre a "PlanDiarioTab" a pelo, sin importar la pestaña
+                      // activa. Si esa pestaña no se había visitado todavía en la
+                      // sesión, React Navigation inicializa su stack anidado
+                      // directamente con la pantalla pedida (MigratedProfile) como
+                      // única entrada -- sin la screen raíz (MigratedMyProgramCalendar)
+                      // debajo, así que no había nada a lo que volver ni con el gesto
+                      // de deslizar ni con ningún botón. Navegar dentro de la pestaña
+                      // YA ACTIVA (`state.routes[state.index].name`) garantiza que su
+                      // stack ya existe (es la que se está viendo), así que esto
+                      // siempre hace push de verdad y el swipe-back tiene a dónde ir.
+                      const activeTab = state.routes[state.index].name;
+                      navigation.navigate(activeTab, { screen: action.route, params: action.params });
                     }}
                   >
                     <View style={[styles.quickMenuIconWrap, { backgroundColor: `${C.orange}1F` }]}>

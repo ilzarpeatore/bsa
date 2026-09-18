@@ -78,10 +78,6 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
         // completo en vez de dejar un "Próximamente" -- ver mismo criterio en
         // home_screen_modern_v2.tsx ("Salud y dispositivos").
         { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
-        // Nuevo (2026-09-16, Bckbs PR #19): cambia días/semana + duración de
-        // sesión sin repetir el cuestionario completo del onboarding -- ver
-        // pages/migrated/training_availability_screen.tsx.
-        { icon: 'calendar-outline', title: 'Disponibilidad de entrenamiento', subtitle: 'Días por semana y duración de sesión', route: 'MigratedTrainingAvailability', iconColor: C.blue, iconBg: C.blue10 },
       ],
     },
     {
@@ -277,7 +273,7 @@ export default function ProfileScreen(props: any) {
             >
               <AppIcon name="chatbubble-ellipses-outline" size={18} color={C.orange} bg="rgba(255,107,53,0.15)" containerSize={36} borderRadius={12} style={{ marginBottom: 10 }} />
               <Text weight="bold" size="sm">Soporte</Text>
-              <Text size="xs" muted style={{ marginTop: 2 }}>Chat con el bot</Text>
+              <Text size="xs" muted style={{ marginTop: 2 }}>Escribe a tu entrenador</Text>
             </Pressable>
           </HStack>
 

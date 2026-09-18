@@ -14,7 +14,9 @@ import {
   LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { TAB_BAR_CLEARANCE } from '@components/NavigationTab';
+import HomeSwipeNav from '@components/HomeSwipeNav';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -295,6 +297,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const firstLoadDone = useRef(false);
+
+  // Carruseles horizontales de esta pantalla (Recursos, Entrenamientos,
+  // Blog) -- cada uno necesita su propio Gesture.Native() para que
+  // HomeSwipeNav (swipe entre pestañas de Home, ver más abajo en el
+  // return) sepa que debe esperar a que el scroll del carrusel falle antes
+  // de activarse, y no le robe el gesto cuando el usuario arrastra dentro
+  // de él en vez de en el resto de la pantalla.
+  const resourcesCarouselGesture = Gesture.Native();
+  const workoutsCarouselGesture = Gesture.Native();
+  const blogCarouselGesture = Gesture.Native();
 
   // scrollY alimenta tanto el plegado de la barra de pestañas (ver
   // reportScrollY más abajo) como el oscurecido progresivo del fondo (ver
@@ -1378,6 +1390,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           : C.destructive;
 
   return (
+    <HomeSwipeNav
+      tab="InicioTab"
+      navigation={navigation}
+      protectedGestures={[resourcesCarouselGesture, workoutsCarouselGesture, blogCarouselGesture]}>
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       {/* Fondo fijo de toda la pantalla (pedido explícito 2026-08-26, con 2
           capturas de referencia de otra app): la misma foto del hero, pero
@@ -2058,6 +2074,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               style={{ marginTop: r(24), marginBottom: r(12) }}>
               <Text style={styles.sectionTitle}>Recursos</Text>
             </HStack>
+            <GestureDetector gesture={resourcesCarouselGesture}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -2122,6 +2139,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Box>
               </Pressable>
             </ScrollView>
+            </GestureDetector>
           </>
         )}
 
@@ -2187,6 +2205,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               style={{ marginTop: r(24), marginBottom: r(12) }}>
               <Text style={styles.sectionTitle}>Entrenamientos</Text>
             </HStack>
+            <GestureDetector gesture={workoutsCarouselGesture}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -2230,6 +2249,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 </Box>
               </Pressable>
             </ScrollView>
+            </GestureDetector>
           </>
         )}
 
@@ -2243,6 +2263,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Pressable>
         </HStack>
         {blogPosts.length > 0 ? (
+          <GestureDetector gesture={blogCarouselGesture}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16 }}>
             {blogPosts.map((post: any) => (
               <Pressable
@@ -2293,6 +2314,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               </Box>
             </Pressable>
           </ScrollView>
+          </GestureDetector>
         ) : (
           <Box style={styles.emptySection}>
             <Text style={styles.emptyText}>No hay artículos disponibles</Text>
@@ -2729,5 +2751,6 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         </RNPressable>
       </Modal>
     </SafeAreaView>
+    </HomeSwipeNav>
   );
 }
