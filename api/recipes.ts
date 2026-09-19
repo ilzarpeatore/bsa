@@ -119,6 +119,12 @@ export const recipesApi = {
   saveDailyPlanRecipe: (daily_plan_id: number, recipe_id: number, meal_type: string) =>
     apiClient.post<ApiMessageResponse>('save-daily-plan-recipe', { daily_plan_id, recipe_id, meal_type }),
 
+  // Sustituir/añadir una comida por una receta de FatSecret en vez de una
+  // propia -- mismo endpoint, backend acepta EXACTAMENTE uno de recipe_id /
+  // fatsecret_recipe_id (ver docs/FATSECRET_INTEGRATION.md en Bckbs).
+  saveDailyPlanRecipeFromFatSecret: (daily_plan_id: number, fatsecret_recipe_id: number, meal_type: string) =>
+    apiClient.post<ApiMessageResponse>('save-daily-plan-recipe', { daily_plan_id, fatsecret_recipe_id, meal_type }),
+
   updateDailyPlanRecipe: (id: number, daily_plan_id: number, recipe_id: number, meal_type: string, is_complete: boolean) =>
     apiClient.post<DailyPlanDetailResponse>('save-daily-plan-recipe', { id, daily_plan_id, recipe_id, meal_type, is_complete }),
 

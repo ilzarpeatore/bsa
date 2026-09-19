@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { showToast } from '@helper/toast';
 import { Image } from 'expo-image';
 import Animated, {
@@ -17,6 +17,7 @@ import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
 import { Card } from '@components/ui/card';
 import { Spinner } from '@components/ui/spinner';
+import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import DaySelectorStrip from '../../components/DaySelectorStrip';
@@ -24,7 +25,10 @@ import { buildDayRange, toLocalISODate } from '../../components/dayRange';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
 import { recipesApi } from '../../api/recipes';
+import { fatSecretApi, FatSecretRecipeResult } from '../../api/fatsecret';
 import logger from '@helper/logger';
+
+type MealSource = 'assigned' | 'fatsecret';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
@@ -85,6 +89,18 @@ export default function AssignedMealsScreen(props: any) {
   const [dailyPlanId, setDailyPlanId] = useState<number | null>(null);
   const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
   const [isBulkAdding, setIsBulkAdding] = useState(false);
+
+  // Buscador de FatSecret (pedido explícito 2026-09-19): alternativa a las
+  // opciones que el coach ya dejó preparadas -- reutiliza esta misma
+  // pantalla y el mismo addRecipeToDay/save-daily-plan-recipe, en vez de una
+  // pantalla nueva. Nunca se mezcla con isDietMode (modo solo lectura de un
+  // Diet ya fijado) -- el toggle solo aparece en el modo normal.
+  const [mealSource, setMealSource] = useState<MealSource>('assigned');
+  const [fsQuery, setFsQuery] = useState('');
+  const [fsResults, setFsResults] = useState<FatSecretRecipeResult[]>([]);
+  const [fsSearching, setFsSearching] = useState(false);
+  const [fsAddingIds, setFsAddingIds] = useState<Set<number>>(new Set());
+  const fsDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Header colapsable al hacer scroll (pedido explícito, reportado con
   // captura: el header fijo -- tarjeta de objetivo + selector de día + tabs
@@ -153,6 +169,51 @@ export default function AssignedMealsScreen(props: any) {
       setAddingIds((prev) => {
         const next = new Set(prev);
         next.delete(recipe.id);
+        return next;
+      });
+    }
+  };
+
+  const searchFatSecret = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setFsResults([]);
+      return;
+    }
+    setFsSearching(true);
+    try {
+      const res = await fatSecretApi.searchRecipes(query.trim());
+      setFsResults(res.data.data.results);
+    } catch (e) {
+      logger.error('FatSecret recipe search error:', e);
+      setFsResults([]);
+    } finally {
+      setFsSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mealSource !== 'fatsecret') return;
+    if (fsDebounce.current) clearTimeout(fsDebounce.current);
+    fsDebounce.current = setTimeout(() => searchFatSecret(fsQuery), 400);
+    return () => { if (fsDebounce.current) clearTimeout(fsDebounce.current); };
+  }, [fsQuery, mealSource, searchFatSecret]);
+
+  const addFatSecretRecipeToDay = async (recipe: FatSecretRecipeResult) => {
+    if (!dailyPlanId) {
+      showToast('Error', { description: 'No se pudo preparar el plan de ese día. Inténtalo de nuevo.', variant: 'error' });
+      return;
+    }
+    setFsAddingIds((prev) => new Set(prev).add(recipe.fatsecret_recipe_id));
+    try {
+      await recipesApi.saveDailyPlanRecipeFromFatSecret(dailyPlanId, recipe.fatsecret_recipe_id, activeTab);
+      showToast('Añadido', { description: `"${recipe.name}" se añadió a ${MEAL_TYPES.find(m => m.key === activeTab)?.label} de ${selectedDayLabel()}. Ya lo verás en tu Plan diario.`, variant: 'success' });
+    } catch (e) {
+      logger.error('Add FatSecret recipe to day error:', e);
+      showToast('Error', { description: 'No se pudo añadir esta comida. Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setFsAddingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(recipe.fatsecret_recipe_id);
         return next;
       });
     }
@@ -371,7 +432,91 @@ export default function AssignedMealsScreen(props: any) {
             ))}
           </HStack>
 
-            {activeRecipes.length === 0 ? (
+          {!isDietMode && (
+            <HStack space="sm" style={{ marginBottom: 12 }}>
+              <Pressable
+                className={`flex-1 items-center py-2 rounded-md border ${mealSource === 'assigned' ? 'border-orange-500' : 'border-transparent'}`}
+                style={{ borderWidth: 1.5 }}
+                onPress={() => setMealSource('assigned')}
+              >
+                <Text weight="semibold" size="xs" style={{ color: mealSource === 'assigned' ? C.orange : C.gray40 }}>
+                  Tus opciones
+                </Text>
+              </Pressable>
+              <Pressable
+                className={`flex-1 items-center py-2 rounded-md border ${mealSource === 'fatsecret' ? 'border-orange-500' : 'border-transparent'}`}
+                style={{ borderWidth: 1.5 }}
+                onPress={() => setMealSource('fatsecret')}
+              >
+                <Text weight="semibold" size="xs" style={{ color: mealSource === 'fatsecret' ? C.orange : C.gray40 }}>
+                  Buscar otra (FatSecret)
+                </Text>
+              </Pressable>
+            </HStack>
+          )}
+
+          {mealSource === 'fatsecret' && !isDietMode && (
+            <Box style={{ marginBottom: 16 }}>
+              <Input style={{ marginBottom: 10, backgroundColor: C.surface }}>
+                <InputField
+                  placeholder="Buscar en FatSecret (en inglés)..."
+                  value={fsQuery}
+                  onChangeText={setFsQuery}
+                />
+              </Input>
+              {fsSearching ? (
+                <Box className="items-center" style={{ paddingVertical: 40 }}>
+                  <Spinner size="small" color={C.textPrimary} />
+                </Box>
+              ) : fsResults.length === 0 ? (
+                <Box className="items-center" style={{ paddingVertical: 40 }}>
+                  <Text size="sm" style={{ color: C.gray30 }}>
+                    {fsQuery.trim().length < 2 ? 'Escribe al menos 2 letras para buscar' : 'No se encontraron recetas'}
+                  </Text>
+                </Box>
+              ) : (
+                fsResults.map(recipe => (
+                  <Box
+                    key={recipe.fatsecret_recipe_id}
+                    className="flex-row items-center bg-card rounded-lg"
+                    style={{ marginBottom: 10 }}
+                  >
+                    <Box className="flex-1 flex-row items-center p-3">
+                      {recipe.image_url ? (
+                        <Image source={{ uri: recipe.image_url }} contentFit="cover" style={{ width: 52, height: 52, borderRadius: 10, marginRight: 12 }} />
+                      ) : (
+                        <Box className="bg-muted" style={{ width: 52, height: 52, borderRadius: 10, marginRight: 12 }} />
+                      )}
+                      <Box className="flex-1">
+                        <Text weight="bold" size="sm" numberOfLines={1} style={{ marginBottom: 4 }}>{recipe.name}</Text>
+                        <HStack space="sm">
+                          <Text size="xs" weight="semibold">{Math.round(recipe.calories)} kcal</Text>
+                          <Text size="xs" muted>P {Math.round(recipe.protein)}g</Text>
+                          <Text size="xs" muted>C {Math.round(recipe.carbs)}g</Text>
+                          <Text size="xs" muted>F {Math.round(recipe.fat)}g</Text>
+                        </HStack>
+                      </Box>
+                    </Box>
+                    <Pressable
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{ paddingHorizontal: 14, paddingVertical: 12, opacity: !dailyPlanId ? 0.5 : 1 }}
+                      disabled={fsAddingIds.has(recipe.fatsecret_recipe_id) || !dailyPlanId}
+                      onPress={() => addFatSecretRecipeToDay(recipe)}
+                    >
+                      {fsAddingIds.has(recipe.fatsecret_recipe_id) ? (
+                        <Spinner size="small" color={C.orange} />
+                      ) : (
+                        <Icon name="add-circle-outline" size={24} color={C.orange} />
+                      )}
+                    </Pressable>
+                  </Box>
+                ))
+              )}
+            </Box>
+          )}
+
+          {mealSource === 'assigned' && (
+            activeRecipes.length === 0 ? (
               <Box className="items-center" style={{ paddingVertical: 60 }}>
                 <Icon name="restaurant-outline" size={40} color={C.gray30} />
                 <Text size="sm" style={{ color: C.gray30, marginTop: 10 }}>
@@ -435,7 +580,8 @@ export default function AssignedMealsScreen(props: any) {
                   </Pressable>
                 </Box>
               ))
-            )}
+            )
+          )}
           </Animated.ScrollView>
         </>
       )}
