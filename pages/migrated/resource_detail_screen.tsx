@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Button, ButtonText } from '@components/ui/button';
@@ -304,11 +305,19 @@ export default function ResourceDetailScreen(props: Props) {
 
       {isExternalType ? (
         <Box className="flex-1 items-center justify-center px-8">
-          <Icon
-            name={resource.type === 'video' ? 'play-circle-outline' : 'link-outline'}
-            size={48}
-            className="text-muted-foreground"
-          />
+          {resource.image_url ? (
+            <Image
+              source={{ uri: resource.image_url }}
+              style={{ width: '100%', height: 180, borderRadius: 16, marginBottom: 20 }}
+              contentFit="cover"
+            />
+          ) : (
+            <Icon
+              name={resource.type === 'video' ? 'play-circle-outline' : 'link-outline'}
+              size={48}
+              className="text-muted-foreground"
+            />
+          )}
           <Text weight="extrabold" size="lg" className="text-center" style={{ marginTop: 16 }}>
             {resource.title}
           </Text>
@@ -318,6 +327,15 @@ export default function ResourceDetailScreen(props: Props) {
         </Box>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE, paddingTop: 12 }}>
+          {resource.image_url ? (
+            <Box className="px-4" style={{ marginBottom: 12 }}>
+              <Image
+                source={{ uri: resource.image_url }}
+                style={{ width: '100%', height: 180, borderRadius: 16 }}
+                contentFit="cover"
+              />
+            </Box>
+          ) : null}
           {resource.content ? (
             <WebView
               source={{

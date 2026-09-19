@@ -58,4 +58,12 @@ export const STARTUP_CHALLENGE_ENABLED = false;
 // entrada real a MigratedLinkDeviceChoice, la pantalla que llamaba a Health
 // Connect/HealthKit -- esa integración entera se eliminó del proyecto
 // 2026-09-10 tras el rechazo Guideline 2.2, así que esa nota ya no aplica.)
+//
+// Reactivado brevemente 2026-09-19 para el build interno sin firmar (run
+// "20260919-screenexplorer-unsigned") -- Screen Explorer llevaba ese build
+// el triaje de pantallas (lista/con dudas/a borrar) pedido para esa ronda
+// de QA. Vuelto a false aquí, inmediatamente después de lanzar ese build
+// (mismo criterio que la nota original: no son para usuarios finales). El
+// componente y el triaje siguen en el árbol, solo ocultos -- se reactiva
+// cambiando este flag, sin tener que reescribir nada.
 export const DEV_TOOLS_ENABLED = false;

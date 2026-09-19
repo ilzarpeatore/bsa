@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
 import { Pressable } from '@components/ui/pressable';
@@ -196,17 +197,25 @@ export default function ResourcesListScreen(props: Props) {
                           key={item.id}
                           className="flex-row items-center gap-3 bg-card rounded-lg p-3"
                           onPress={() => openResource(item)}>
-                          <Box
-                            className="w-[68px] h-[68px] rounded-lg items-center justify-center"
-                            style={{
-                              backgroundColor: `${TYPE_COLOR[item.type] ?? C.textPrimary}1A`,
-                            }}>
-                            <Icon
-                              name={TYPE_ICON[item.type] ?? 'document-text-outline'}
-                              size={28}
-                              color={TYPE_COLOR[item.type] ?? C.textPrimary}
+                          {item.image_url ? (
+                            <Image
+                              source={{ uri: item.image_url }}
+                              style={{ width: 68, height: 68, borderRadius: 12 }}
+                              contentFit="cover"
                             />
-                          </Box>
+                          ) : (
+                            <Box
+                              className="w-[68px] h-[68px] rounded-lg items-center justify-center"
+                              style={{
+                                backgroundColor: `${TYPE_COLOR[item.type] ?? C.textPrimary}1A`,
+                              }}>
+                              <Icon
+                                name={TYPE_ICON[item.type] ?? 'document-text-outline'}
+                                size={28}
+                                color={TYPE_COLOR[item.type] ?? C.textPrimary}
+                              />
+                            </Box>
+                          )}
                           <Box className="flex-1">
                             <Text weight="bold" size="md" numberOfLines={2}>
                               {item.title}

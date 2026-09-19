@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Triaje manual de pantallas (QA interna, build sin firmar) -- pedido
+// explícito: marcar cada pantalla como lista/con dudas/a borrar y poder
+// filtrar por esas 3 categorías (los "reportes"). Solo local (AsyncStorage),
+// no hay endpoint de backend para esto -- es una herramienta de desarrollo,
+// igual que el resto de Screen Explorer (gated por DEV_TOOLS_ENABLED).
+type ReviewStatus = 'lista' | 'dudas' | 'borrar';
+
+const REVIEW_STORAGE_KEY = 'screen_explorer_review_status_v1';
+
+const REVIEW_META: Record<ReviewStatus, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  lista: { label: 'Lista', color: '#34D399', icon: 'checkmark-circle' },
+  dudas: { label: 'Con dudas', color: '#F5B942', icon: 'help-circle' },
+  borrar: { label: 'A borrar', color: '#E17568', icon: 'trash' },
+};
 
 interface ScreenItem {
   name: string;
@@ -195,9 +211,42 @@ const ALL_SCREENS: ScreenItem[] = [
 
 export default function ScreenExplorer({ navigation }: any) {
   const [search, setSearch] = useState('');
+  const [reviewStatuses, setReviewStatuses] = useState<Record<string, ReviewStatus>>({});
+  const [reportFilter, setReportFilter] = useState<ReviewStatus | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(REVIEW_STORAGE_KEY)
+      .then((raw) => {
+        if (raw) setReviewStatuses(JSON.parse(raw));
+      })
+      .catch(() => {});
+  }, []);
+
+  const setReviewStatus = useCallback((screenName: string, status: ReviewStatus) => {
+    setReviewStatuses((prev) => {
+      // Tocar el mismo estado que ya tenía lo quita (toggle) -- así se puede
+      // "des-marcar" una pantalla sin tener que buscar un botón aparte.
+      const next = { ...prev };
+      if (next[screenName] === status) {
+        delete next[screenName];
+      } else {
+        next[screenName] = status;
+      }
+      AsyncStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const reportCounts = useMemo(() => {
+    const counts: Record<ReviewStatus, number> = { lista: 0, dudas: 0, borrar: 0 };
+    Object.values(reviewStatuses).forEach((status) => {
+      if (counts[status] !== undefined) counts[status]++;
+    });
+    return counts;
+  }, [reviewStatuses]);
 
   const sections = useMemo(() => {
-    const filtered = search.trim()
+    const searched = search.trim()
       ? ALL_SCREENS.filter(
           (s) =>
             s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -205,6 +254,10 @@ export default function ScreenExplorer({ navigation }: any) {
             (s.file ?? '').toLowerCase().includes(search.toLowerCase())
         )
       : ALL_SCREENS;
+
+    const filtered = reportFilter
+      ? searched.filter((s) => reviewStatuses[s.name] === reportFilter)
+      : searched;
 
     const grouped: Record<string, ScreenItem[]> = {};
     filtered.forEach((screen) => {
@@ -233,7 +286,7 @@ export default function ScreenExplorer({ navigation }: any) {
     }
 
     return categorySections;
-  }, [search]);
+  }, [search, reportFilter, reviewStatuses]);
 
   const totalCount = ALL_SCREENS.length;
   const navigableCount = ALL_SCREENS.filter((s) => s.route).length;
@@ -252,31 +305,65 @@ export default function ScreenExplorer({ navigation }: any) {
   );
 
   const renderScreenItem = useCallback(
-    ({ item }: { item: ScreenItem }) => (
-      <Pressable
-        style={({ pressed }) => [styles.screenItem, pressed && { opacity: 0.2 }]}
-        onPress={() => handleScreenPress(item.route)}
-        disabled={!item.route}
-      >
-        <View style={styles.screenInfo}>
-          <View style={[styles.statusDot, item.route ? styles.statusDotGreen : styles.statusDotGray]} />
-          <View style={styles.screenNameCol}>
-            <Text style={styles.screenName} numberOfLines={1}>
-              {item.gluestackMigrated ? '🟢 ' : ''}
-              {item.name}
-              {item.file ? <Text style={styles.screenFile}> ({item.file})</Text> : null}
-            </Text>
-            {item.deletionCandidate ? (
-              <Text style={styles.deletionReason} numberOfLines={3}>
-                {item.deletionCandidate}
-              </Text>
-            ) : null}
+    ({ item }: { item: ScreenItem }) => {
+      const currentStatus = reviewStatuses[item.name];
+      return (
+        <View style={styles.screenItem}>
+          <Pressable
+            style={({ pressed }) => [styles.screenPressable, pressed && { opacity: 0.2 }]}
+            onPress={() => handleScreenPress(item.route)}
+            disabled={!item.route}
+          >
+            <View style={styles.screenInfo}>
+              <View
+                style={[
+                  styles.statusDot,
+                  currentStatus
+                    ? { backgroundColor: REVIEW_META[currentStatus].color }
+                    : item.route
+                    ? styles.statusDotGreen
+                    : styles.statusDotGray,
+                ]}
+              />
+              <View style={styles.screenNameCol}>
+                <Text style={styles.screenName} numberOfLines={1}>
+                  {item.gluestackMigrated ? '🟢 ' : ''}
+                  {item.name}
+                  {item.file ? <Text style={styles.screenFile}> ({item.file})</Text> : null}
+                </Text>
+                {item.deletionCandidate ? (
+                  <Text style={styles.deletionReason} numberOfLines={3}>
+                    {item.deletionCandidate}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8A8CB2" />
+          </Pressable>
+          <View style={styles.reviewRow}>
+            {(Object.keys(REVIEW_META) as ReviewStatus[]).map((status) => {
+              const active = currentStatus === status;
+              const meta = REVIEW_META[status];
+              return (
+                <Pressable
+                  key={status}
+                  onPress={() => setReviewStatus(item.name, status)}
+                  style={({ pressed }) => [
+                    styles.reviewBtn,
+                    active && { backgroundColor: `${meta.color}33`, borderColor: meta.color },
+                    pressed && { opacity: 0.5 },
+                  ]}
+                >
+                  <Ionicons name={meta.icon} size={14} color={active ? meta.color : '#5C5A78'} />
+                  <Text style={[styles.reviewBtnLabel, active && { color: meta.color }]}>{meta.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#8A8CB2" />
-      </Pressable>
-    ),
-    [handleScreenPress]
+      );
+    },
+    [handleScreenPress, reviewStatuses, setReviewStatus]
   );
 
   return (
@@ -310,6 +397,29 @@ export default function ScreenExplorer({ navigation }: any) {
             <Ionicons name="close-circle" size={18} color="#8A8CB2" />
           </Pressable>
         )}
+      </View>
+
+      <View style={styles.reportRow}>
+        {(Object.keys(REVIEW_META) as ReviewStatus[]).map((status) => {
+          const meta = REVIEW_META[status];
+          const active = reportFilter === status;
+          return (
+            <Pressable
+              key={status}
+              onPress={() => setReportFilter((prev) => (prev === status ? null : status))}
+              style={({ pressed }) => [
+                styles.reportChip,
+                active && { backgroundColor: `${meta.color}33`, borderColor: meta.color },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Ionicons name={meta.icon} size={14} color={meta.color} />
+              <Text style={[styles.reportChipLabel, active && { color: meta.color }]}>
+                {meta.label} ({reportCounts[status]})
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <SectionList
@@ -350,10 +460,22 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, color: '#7773FA', fontFamily: 'Gilroy-Bold', textTransform: 'uppercase', letterSpacing: 1 },
   sectionCount: { fontSize: 12, color: '#8A8CB2', fontFamily: 'Gilroy-Regular' },
   listContent: { paddingBottom: 40 },
+  reportRow: {
+    flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap',
+  },
+  reportChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderWidth: 1, borderColor: '#2A2844', borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  reportChipLabel: { fontSize: 12, color: '#8A8CB2', fontFamily: 'Gilroy-Regular' },
   screenItem: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 16, paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#2A2844',
+  },
+  screenPressable: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   screenInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   screenNameCol: { flex: 1 },
@@ -363,4 +485,11 @@ const styles = StyleSheet.create({
   screenName: { fontSize: 14, color: '#fff', fontFamily: 'Gilroy-Regular', flex: 1 },
   screenFile: { fontSize: 12, color: '#8A8CB2', fontFamily: 'Gilroy-Regular' },
   deletionReason: { fontSize: 11, color: '#E17568', fontFamily: 'Gilroy-Regular', marginTop: 3 },
+  reviewRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  reviewBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderWidth: 1, borderColor: '#2A2844', borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  reviewBtnLabel: { fontSize: 11, color: '#5C5A78', fontFamily: 'Gilroy-Regular' },
 });
