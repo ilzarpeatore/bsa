@@ -14,7 +14,12 @@ import { showToast } from '@helper/toast';
 import logger from '@helper/logger';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { useAuth } from '@store/AuthContext';
-import { onboardingV2Api, MyOnboardingAnswers } from '../../api/onboardingV2';
+import {
+  onboardingV2Api,
+  ParQPayload,
+  TrainingQuestionnairePayload,
+  NutritionQuestionnairePayload,
+} from '../../api/onboardingV2';
 import { ONBOARDING_QUESTIONS } from '../../constants/onboardingV2Questions';
 import { OnboardingQuestion, OnboardingOption } from '../../types/onboardingV2';
 import { FONT, RADIUS } from './theme';
@@ -48,9 +53,47 @@ const QUESTION_BY_ID: Record<string, OnboardingQuestion> = Object.fromEntries(
   ONBOARDING_QUESTIONS.map((q) => [q.id, q])
 );
 
-type ParQForm = NonNullable<MyOnboardingAnswers['par_q']>;
-type TrainingForm = NonNullable<MyOnboardingAnswers['training_questionnaire']>;
-type NutritionForm = NonNullable<MyOnboardingAnswers['nutrition_questionnaire']>;
+// FIX (reportado 2026-09-19, caso real Osas Ehigiator / Alberto Martín): el
+// onboarding de registro de ambos falló a mitad (bug ya solucionado) y nunca
+// llegó a guardar PAR-Q ni cuestionario de nutrición -- el backend devuelve
+// `null` para esas etapas (ver getMyAnswers() más abajo). Esta pantalla solo
+// sabía "editar" una respuesta que ya existía: si venía `null` mostraba un
+// texto fijo sin ningún formulario, sin forma real de rellenarlo por primera
+// vez. `id`/`user_id` ahora son opcionales -- solo los trae un registro que
+// YA existe en el backend; un formulario recién scaffoldeado para rellenar
+// desde cero no los tiene todavía (se obtienen recargando tras el primer
+// guardado, ver loadAnswers()).
+type ParQForm = Partial<ParQPayload> & { id?: number; user_id?: number };
+type TrainingForm = Partial<TrainingQuestionnairePayload> & { id?: number; user_id?: number };
+type NutritionForm = Partial<NutritionQuestionnairePayload> & { id?: number; user_id?: number };
+
+// Construye un formulario en blanco a partir de la lista de preguntas de una
+// etapa -- un campo por pregunta, sin preseleccionar ninguna respuesta
+// (textarea empieza en '', el resto en `undefined`). Importante NO defaultear
+// las preguntas sí/no del PAR-Q (p. ej. "¿tiene una enfermedad cardíaca?") a
+// "No" solo por comodidad -- FieldRow/PillOptions tratan `undefined` como "sin
+// responder todavía" (ningún pill resaltado), igual que el onboarding real
+// nunca preselecciona una opción de single_choice.
+function buildEmptyAnswers<T>(questions: OnboardingQuestion[]): T {
+  const obj: Record<string, unknown> = {};
+  for (const q of questions) {
+    obj[q.id] = q.type === 'textarea' ? '' : undefined;
+  }
+  return obj as unknown as T;
+}
+
+// Solo para el caso "formulario nuevo, nunca rellenado": a diferencia de la
+// vista de edición (que remite días/duración a su propia pantalla, ver
+// comentario de cabecera), aquí hacen falta también training_days_per_week y
+// session_duration_preference -- ese endpoint dedicado (training-availability-
+// update) exige que el cuestionario YA exista, así que en el alta inicial no
+// se puede delegar todavía, hay que pedirlos en este mismo formulario.
+// training_experience_years se excluye a propósito: el campo real
+// (training_experience_months) usa su propio input numérico más abajo, igual
+// en el caso nuevo que en el de edición.
+const TRAINING_QUESTIONS_FOR_NEW = ONBOARDING_QUESTIONS.filter(
+  (q) => q.stage === 'training_questionnaire' && q.id !== 'training_experience_years'
+);
 
 // IDs de ONBOARDING_QUESTIONS cuyo valor es boolean en el backend pero se
 // presenta como Sí/No ('yes'/'no') en las opciones del onboarding -- misma
@@ -109,8 +152,8 @@ function FieldRow({
   C,
 }: {
   question: OnboardingQuestion;
-  value: string | number;
-  onChange: (v: string | number) => void;
+  value: string | number | boolean | undefined;
+  onChange: (v: string | number | boolean) => void;
   C: ReturnType<typeof useAppColorMode>['colors'];
 }) {
   const styles = createStyles(C);
@@ -122,7 +165,11 @@ function FieldRow({
       {question.type === 'single_choice' &&
         (() => {
           const opts = (question as any).options as OnboardingOption[];
-          const stringValue = isBoolean ? (value ? 'yes' : 'no') : String(value);
+          // `undefined` = pregunta todavía sin responder (formulario nuevo) --
+          // no se resalta ningún pill, a diferencia de antes que un booleano
+          // sin responder se mostraba como "No" ya seleccionado.
+          const stringValue =
+            value === undefined ? '' : isBoolean ? (value ? 'yes' : 'no') : String(value);
           return (
             <PillOptions
               options={opts}
@@ -164,84 +211,120 @@ export default function OnboardingDataScreen(props: any) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<null | 'par_q' | 'training' | 'nutrition'>(null);
+  // `null` real solo significa "la carga inicial falló del todo" (ver
+  // loadAnswers) -- una etapa nunca rellenada YA NO se queda en `null`, se
+  // rellena con un formulario en blanco (buildEmptyAnswers) para que se
+  // pueda completar aquí mismo. isNewParQ/isNewTraining/isNewNutrition (más
+  // abajo) distinguen "formulario en blanco todavía sin guardar" de "ya
+  // existe" mirando si trae `id` (un registro real del backend siempre lo
+  // trae; el scaffold en blanco no).
   const [parQ, setParQ] = useState<ParQForm | null>(null);
   const [training, setTraining] = useState<TrainingForm | null>(null);
   const [nutrition, setNutrition] = useState<NutritionForm | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await onboardingV2Api.getMyAnswers();
-        setParQ(res.data.data.par_q);
-        setTraining(res.data.data.training_questionnaire);
-        setNutrition(res.data.data.nutrition_questionnaire);
-      } catch (e) {
-        logger.error('[onboarding_data] fallo al cargar', e);
-        showToast('No se pudieron cargar tus datos', { variant: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const isNewParQ = !parQ?.id;
+  const isNewTraining = !training?.id;
+  const isNewNutrition = !nutrition?.id;
 
   const parQQuestions = useMemo(
     () =>
       ONBOARDING_QUESTIONS.filter((q) => q.stage === 'par_q' && (q.showIf === undefined || isFemale)),
     [isFemale]
   );
+  // Formulario nuevo (nunca guardado): incluye también
+  // training_days_per_week/session_duration_preference, que si no habría que
+  // pedir en la pantalla de disponibilidad de entrenamiento -- pero esa
+  // pantalla exige que el cuestionario YA exista (ver TRAINING_QUESTIONS_FOR_NEW
+  // arriba). Una vez guardado una vez (isNewTraining pasa a false tras
+  // loadAnswers), esos 2 campos se excluyen y se editan en su propia pantalla,
+  // como siempre.
   const trainingQuestions = useMemo(
     () =>
-      ONBOARDING_QUESTIONS.filter(
-        (q) => q.stage === 'training_questionnaire' && q.id !== 'training_days_per_week' && q.id !== 'session_duration_preference' && q.id !== 'training_experience_years'
-      ),
-    []
+      isNewTraining
+        ? TRAINING_QUESTIONS_FOR_NEW
+        : ONBOARDING_QUESTIONS.filter(
+            (q) =>
+              q.stage === 'training_questionnaire' &&
+              q.id !== 'training_days_per_week' &&
+              q.id !== 'session_duration_preference' &&
+              q.id !== 'training_experience_years'
+          ),
+    [isNewTraining]
   );
   const nutritionQuestions = useMemo(() => ONBOARDING_QUESTIONS.filter((q) => q.stage === 'nutrition_questionnaire'), []);
+
+  // Extraída para poder recargar tras cada guardado (no solo al entrar a la
+  // pantalla): un formulario recién guardado por primera vez necesita el
+  // `id` real que le asigna el backend para dejar de tratarse como "nuevo"
+  // (p. ej. para que días/duración del entrenamiento pasen a editarse en su
+  // propia pantalla en vez de seguir pidiéndose aquí).
+  const loadAnswers = useCallback(async () => {
+    try {
+      const res = await onboardingV2Api.getMyAnswers();
+      setParQ(res.data.data.par_q ?? buildEmptyAnswers<ParQForm>(parQQuestions));
+      setTraining(res.data.data.training_questionnaire ?? buildEmptyAnswers<TrainingForm>(TRAINING_QUESTIONS_FOR_NEW));
+      setNutrition(res.data.data.nutrition_questionnaire ?? buildEmptyAnswers<NutritionForm>(nutritionQuestions));
+    } catch (e) {
+      logger.error('[onboarding_data] fallo al cargar', e);
+      showToast('No se pudieron cargar tus datos', { variant: 'error' });
+    }
+  }, [parQQuestions, nutritionQuestions]);
+
+  useEffect(() => {
+    (async () => {
+      await loadAnswers();
+      setLoading(false);
+       
+    })();
+  }, []);
 
   const saveParQ = useCallback(async () => {
     if (!parQ) return;
     setSaving('par_q');
     try {
-      await onboardingV2Api.submitParQ(parQ);
-      showToast('Cribado médico actualizado', {
+      await onboardingV2Api.submitParQ(parQ as ParQPayload);
+      showToast(isNewParQ ? 'Cribado médico guardado' : 'Cribado médico actualizado', {
         description: 'Si cambiaste alguna respuesta a "sí", tu coach lo revisará antes de tu próximo ciclo.',
         variant: 'success',
       });
+      await loadAnswers();
     } catch (e: any) {
       logger.error('[onboarding_data] fallo al guardar par_q', e);
       showToast('No se pudo guardar', { description: e?.response?.data?.message, variant: 'error' });
     } finally {
       setSaving(null);
     }
-  }, [parQ]);
+  }, [parQ, isNewParQ, loadAnswers]);
 
   const saveTraining = useCallback(async () => {
     if (!training) return;
     setSaving('training');
     try {
-      await onboardingV2Api.submitTrainingQuestionnaire(training);
-      showToast('Cuestionario de entrenamiento actualizado', { variant: 'success' });
+      await onboardingV2Api.submitTrainingQuestionnaire(training as TrainingQuestionnairePayload);
+      showToast(isNewTraining ? 'Cuestionario de entrenamiento guardado' : 'Cuestionario de entrenamiento actualizado', { variant: 'success' });
+      await loadAnswers();
     } catch (e: any) {
       logger.error('[onboarding_data] fallo al guardar training', e);
       showToast('No se pudo guardar', { description: e?.response?.data?.message, variant: 'error' });
     } finally {
       setSaving(null);
     }
-  }, [training]);
+  }, [training, isNewTraining, loadAnswers]);
 
   const saveNutrition = useCallback(async () => {
     if (!nutrition) return;
     setSaving('nutrition');
     try {
-      await onboardingV2Api.submitNutritionQuestionnaire(nutrition);
-      showToast('Cuestionario de nutrición actualizado', { variant: 'success' });
+      await onboardingV2Api.submitNutritionQuestionnaire(nutrition as NutritionQuestionnairePayload);
+      showToast(isNewNutrition ? 'Cuestionario de nutrición guardado' : 'Cuestionario de nutrición actualizado', { variant: 'success' });
+      await loadAnswers();
     } catch (e: any) {
       logger.error('[onboarding_data] fallo al guardar nutrition', e);
       showToast('No se pudo guardar', { description: e?.response?.data?.message, variant: 'error' });
     } finally {
       setSaving(null);
     }
-  }, [nutrition]);
+  }, [nutrition, isNewNutrition, loadAnswers]);
 
   if (loading) {
     return (
@@ -259,8 +342,10 @@ export default function OnboardingDataScreen(props: any) {
       <ScreenHeader title="Mis respuestas" onBack={() => props.navigation?.goBack()} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Días/duración vive en su propia pantalla (ver comentario de arriba) --
-            solo un acceso directo aquí, no se duplica el formulario. */}
-        {training && (
+            solo un acceso directo aquí, no se duplica el formulario. Solo
+            tiene sentido una vez el cuestionario ya existe de verdad (esa
+            pantalla exige que ya esté guardado, ver TRAINING_QUESTIONS_FOR_NEW). */}
+        {training && !isNewTraining && (
           <Pressable
             style={styles.linkRow}
             onPress={() => props.navigation?.navigate('MigratedTrainingAvailability')}
@@ -276,12 +361,17 @@ export default function OnboardingDataScreen(props: any) {
         )}
 
         <Text style={styles.sectionLabel}>Cribado médico (PAR-Q)</Text>
-        {!parQ ? (
+        {parQ === null ? (
           <Box style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Todavía no has completado esta parte del onboarding.</Text>
+            <Text style={styles.emptyText}>No se pudieron cargar tus datos. Vuelve a intentarlo más tarde.</Text>
           </Box>
         ) : (
           <Box style={styles.card}>
+            {isNewParQ && (
+              <Text style={styles.newBanner}>
+                Todavía no has completado esta parte del onboarding -- rellénala y guarda para terminarla.
+              </Text>
+            )}
             {parQQuestions.map((q) => (
               <FieldRow
                 key={q.id}
@@ -292,18 +382,27 @@ export default function OnboardingDataScreen(props: any) {
               />
             ))}
             <Button size="lg" radius="pill" onPress={saveParQ} disabled={saving === 'par_q'} style={styles.saveButton}>
-              {saving === 'par_q' ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Guardar cribado médico</ButtonText>}
+              {saving === 'par_q' ? (
+                <Spinner size="small" color="#FFFFFF" />
+              ) : (
+                <ButtonText>{isNewParQ ? 'Guardar cribado médico' : 'Actualizar cribado médico'}</ButtonText>
+              )}
             </Button>
           </Box>
         )}
 
         <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>Cuestionario de entrenamiento</Text>
-        {!training ? (
+        {training === null ? (
           <Box style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Todavía no has completado esta parte del onboarding.</Text>
+            <Text style={styles.emptyText}>No se pudieron cargar tus datos. Vuelve a intentarlo más tarde.</Text>
           </Box>
         ) : (
           <Box style={styles.card}>
+            {isNewTraining && (
+              <Text style={styles.newBanner}>
+                Todavía no has completado esta parte del onboarding -- rellénala y guarda para terminarla.
+              </Text>
+            )}
             {trainingQuestions.map((q) => (
               <FieldRow
                 key={q.id}
@@ -326,18 +425,27 @@ export default function OnboardingDataScreen(props: any) {
               </Input>
             </Box>
             <Button size="lg" radius="pill" onPress={saveTraining} disabled={saving === 'training'} style={styles.saveButton}>
-              {saving === 'training' ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Guardar cuestionario de entrenamiento</ButtonText>}
+              {saving === 'training' ? (
+                <Spinner size="small" color="#FFFFFF" />
+              ) : (
+                <ButtonText>{isNewTraining ? 'Guardar cuestionario de entrenamiento' : 'Actualizar cuestionario de entrenamiento'}</ButtonText>
+              )}
             </Button>
           </Box>
         )}
 
         <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>Cuestionario de nutrición</Text>
-        {!nutrition ? (
+        {nutrition === null ? (
           <Box style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Todavía no has completado esta parte del onboarding.</Text>
+            <Text style={styles.emptyText}>No se pudieron cargar tus datos. Vuelve a intentarlo más tarde.</Text>
           </Box>
         ) : (
           <Box style={styles.card}>
+            {isNewNutrition && (
+              <Text style={styles.newBanner}>
+                Todavía no has completado esta parte del onboarding -- rellénala y guarda para terminarla.
+              </Text>
+            )}
             {nutritionQuestions.map((q) => (
               <FieldRow
                 key={q.id}
@@ -348,7 +456,11 @@ export default function OnboardingDataScreen(props: any) {
               />
             ))}
             <Button size="lg" radius="pill" onPress={saveNutrition} disabled={saving === 'nutrition'} style={styles.saveButton}>
-              {saving === 'nutrition' ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Guardar cuestionario de nutrición</ButtonText>}
+              {saving === 'nutrition' ? (
+                <Spinner size="small" color="#FFFFFF" />
+              ) : (
+                <ButtonText>{isNewNutrition ? 'Guardar cuestionario de nutrición' : 'Actualizar cuestionario de nutrición'}</ButtonText>
+              )}
             </Button>
           </Box>
         )}
@@ -367,6 +479,15 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     card: { backgroundColor: C.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: C.border, padding: 16 },
     emptyCard: { backgroundColor: C.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: C.border, padding: 16 },
     emptyText: { fontSize: 13.5, color: C.gray50 },
+    newBanner: {
+      fontSize: 12.5,
+      color: C.orange,
+      backgroundColor: `${C.orange}1A`,
+      borderRadius: RADIUS.sm,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginBottom: 16,
+    },
     linkRow: {
       flexDirection: 'row',
       alignItems: 'center',
