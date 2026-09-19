@@ -59,10 +59,11 @@ export const STARTUP_CHALLENGE_ENABLED = false;
 // Connect/HealthKit -- esa integración entera se eliminó del proyecto
 // 2026-09-10 tras el rechazo Guideline 2.2, así que esa nota ya no aplica.)
 //
-// Reactivado temporalmente 2026-09-19 (pedido explícito): tras lanzar el
-// build firmado de App Store con el fix de recursos, se activa aquí para
-// un build interno sin firmar -- Screen Explorer ahora incluye el triaje
-// de pantallas (lista/con dudas/a borrar) pedido para esta ronda de QA.
-// Volver a false en cuanto se lance ese build sin firmar (mismo criterio
-// que la nota original: no son para usuarios finales).
-export const DEV_TOOLS_ENABLED = true;
+// Reactivado brevemente 2026-09-19 para el build interno sin firmar (run
+// "20260919-screenexplorer-unsigned") -- Screen Explorer llevaba ese build
+// el triaje de pantallas (lista/con dudas/a borrar) pedido para esa ronda
+// de QA. Vuelto a false aquí, inmediatamente después de lanzar ese build
+// (mismo criterio que la nota original: no son para usuarios finales). El
+// componente y el triaje siguen en el árbol, solo ocultos -- se reactiva
+// cambiando este flag, sin tener que reescribir nada.
+export const DEV_TOOLS_ENABLED = false;
