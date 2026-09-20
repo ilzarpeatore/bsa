@@ -82,6 +82,7 @@ interface DailyPlanRecipeItem {
   id?: number;
   dailyPlanId?: number;
   recipeId?: number;
+  fatsecretRecipeId?: number;
   mealType?: string;
   isComplete?: boolean;
   recipeName?: string;
@@ -236,6 +237,7 @@ export default function PlanScreen(props: any) {
         id: entry.id,
         dailyPlanId: entry.daily_plan_id,
         recipeId: entry.recipe_id,
+        fatsecretRecipeId: entry.fatsecret_recipe_id,
         mealType: entry.meal_type,
         isComplete: !!entry.is_complete,
         recipeName: entry.recipe?.title,
@@ -342,20 +344,33 @@ export default function PlanScreen(props: any) {
   const kcalProgress = kcalTarget > 0 ? Math.min(kcalCurrent / kcalTarget, 1) : 0;
 
   const toggleRecipeCompletion = async (item: DailyPlanRecipeItem, mealType: string) => {
-    if (!item.id || !item.dailyPlanId || !item.recipeId) {
+    // FIX (2026-09-20, bug real confirmado en vivo): antes exigía recipeId
+    // (local) siempre -- una comida de FatSecret (recipeId undefined,
+    // fatsecretRecipeId sí presente) nunca podía marcarse como comida, así
+    // que nunca contaba en el total diario (el backend solo suma
+    // is_complete=true). Ver docs/FATSECRET_INTEGRATION.md en Bckbs.
+    if (!item.id || !item.dailyPlanId || (!item.recipeId && !item.fatsecretRecipeId)) {
       showToast('Error', { description: 'Falta información necesaria', variant: 'error' });
       return;
     }
     setIsLoading(true);
     try {
       const wasComplete = item.isComplete ?? false;
-      const response = await recipesApi.updateDailyPlanRecipe(
-        item.id,
-        item.dailyPlanId,
-        item.recipeId,
-        mealType,
-        !wasComplete
-      );
+      const response = item.fatsecretRecipeId
+        ? await recipesApi.updateDailyPlanRecipeFromFatSecret(
+            item.id,
+            item.dailyPlanId,
+            item.fatsecretRecipeId,
+            mealType,
+            !wasComplete
+          )
+        : await recipesApi.updateDailyPlanRecipe(
+            item.id,
+            item.dailyPlanId,
+            item.recipeId!,
+            mealType,
+            !wasComplete
+          );
       if (!wasComplete) {
         reportAction('meal_marked_done');
         hapticLight();
@@ -376,9 +391,12 @@ export default function PlanScreen(props: any) {
   };
 
   const openRecipeDetail = (recipe: DailyPlanRecipeItem) => {
-    if (!recipe.recipeId) return;
+    // FIX (2026-09-20): mismo bug que toggleRecipeCompletion -- no dejaba
+    // ver el detalle de una comida de FatSecret al tocar título/imagen.
+    if (!recipe.recipeId && !recipe.fatsecretRecipeId) return;
     props.navigation?.navigate('MigratedDietDetail', {
       recipeId: recipe.recipeId,
+      fatsecretRecipeId: recipe.fatsecretRecipeId,
       recipeImage: recipe.recipeImage,
     });
   };

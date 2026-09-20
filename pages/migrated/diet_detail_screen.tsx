@@ -19,6 +19,7 @@ import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import {  dietApi  } from '../../api/diet';
 import {  recipesApi, RecipeStep, RecipeIngredient  } from '../../api/recipes';
+import {  fatSecretApi  } from '../../api/fatsecret';
 import logger from '@helper/logger';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -47,6 +48,7 @@ interface DietDetailScreenProps {
       dietModel?: DietModel;
       id?: number;
       recipeId?: number;
+      fatsecretRecipeId?: number;
       recipeImage?: string;
       isCategory?: boolean;
       isFeatured?: boolean;
@@ -67,8 +69,17 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
   const dietModel = props.route.params?.dietModel ?? {};
   const fallbackId = props.route.params?.id;
   const recipeId = props.route.params?.recipeId;
+  // FIX (2026-09-20, bug real confirmado en vivo): antes esta pantalla solo
+  // sabía mostrar una receta propia -- tocar el título/imagen de una comida
+  // de FatSecret no llevaba a ningún sitio (plan_screen.tsx cortaba antes de
+  // navegar). isAnyRecipeMode cubre el render compartido (mismas pestañas
+  // Ingredientes/Instrucciones); isLockedRecipe/favoritos siguen siendo
+  // exclusivos de una receta propia -- FatSecret no tiene ese concepto.
+  const fatsecretRecipeId = props.route.params?.fatsecretRecipeId;
   const recipeImageParam = props.route.params?.recipeImage;
   const isRecipeMode = !!recipeId;
+  const isFatSecretMode = !!fatsecretRecipeId;
+  const isAnyRecipeMode = isRecipeMode || isFatSecretMode;
   const [select, setSelect] = useState(true);
   const [dietState, setDietState] = useState<DietModel>(dietModel);
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
@@ -178,8 +189,67 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
     }
   }, [recipeId, recipeImageParam]);
 
+  useEffect(() => {
+    // Modo FatSecret: se adapta la respuesta a los MISMOS shapes que ya
+    // usa el modo receta propia (RecipeStep/RecipeIngredient) para
+    // reutilizar el render de ingredients()/instruction() sin duplicarlo --
+    // ver docs/FATSECRET_INTEGRATION.md en Bckbs para el contrato real de
+    // esta respuesta (directions: string[], ingredients: {description,...}[]).
+    if (fatsecretRecipeId) {
+      setIsLoading(true);
+      fatSecretApi
+        .getRecipeDetail(fatsecretRecipeId)
+        .then((res) => {
+          const d = res.data?.data;
+          if (!d) return;
+          const totalMinutes = (d.preparation_time_min ?? 0) + (d.cooking_time_min ?? 0);
+          setDietState({
+            id: d.fatsecret_recipe_id,
+            title: d.name,
+            dietImage: d.image_url || recipeImageParam,
+            calories: String(Math.round(d.calories ?? 0)),
+            carbs: String(Math.round(d.carbs ?? 0)),
+            fat: String(Math.round(d.fat ?? 0)),
+            protein: String(Math.round(d.protein ?? 0)),
+            totalTime: totalMinutes ? `${totalMinutes} min` : '',
+            isPremium: 0,
+            isAccessible: 1,
+            isFavourite: 0,
+          });
+          setRecipeIngredients(
+            (d.ingredients ?? []).map((ing, index) => ({
+              id: index,
+              ingredient_id: ing.food_id ?? 0,
+              ingredient_title: ing.description || 'Ingrediente',
+              measurement_unit_id: 0,
+              measurement_unit_title: '',
+              quantity: ing.number_of_units ?? 0,
+              amount: 0,
+              quantity_grams: 0,
+              quantity_display: '',
+              calories: 0,
+              protein: 0,
+              fats: 0,
+              carbs: 0,
+            }))
+          );
+          setRecipeSteps(
+            (d.directions ?? []).map((instruction, index) => ({
+              id: index,
+              instruction,
+              sequence: index,
+            }))
+          );
+        })
+        .catch((e) => logger.error(e))
+        .finally(() => setIsLoading(false));
+    }
+  }, [fatsecretRecipeId, recipeImageParam]);
+
   const setDiet = async (id?: number) => {
-    if (!id) return;
+    // FatSecret no tiene concepto de favorito -- el botón se oculta para
+    // este modo (ver JSX), esto es solo una red de seguridad extra.
+    if (!id || isFatSecretMode) return;
     setIsLoading(true);
     try {
       if (isRecipeMode) {
@@ -212,7 +282,7 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
           Este contenido no está disponible en este momento.
         </Text>
       </Box>
-    ) : isRecipeMode ? (
+    ) : isAnyRecipeMode ? (
       <Box style={localStyles.htmlContent}>
         {recipeIngredients.length === 0 ? (
           <Text style={localStyles.htmlText}>No hay ingredientes.</Text>
@@ -221,8 +291,11 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
             <HStack key={ing.id} className="items-center" style={{ marginBottom: 10 }}>
               <Box style={localStyles.ingredientDot} />
               <Text style={[localStyles.htmlText, { flex: 1 }]}>{ing.ingredient_title}</Text>
+              {/* ing.quantity=0 en modo FatSecret (la cantidad ya viene
+                  incluida en ingredient_title, ver mapeo en el useEffect de
+                  fatsecretRecipeId) -- sin el guard mostraría "0" suelto. */}
               <Text style={localStyles.ingredientQty}>
-                {ing.quantity_display || `${ing.quantity} ${ing.measurement_unit_title}`}
+                {ing.quantity_display || (ing.quantity ? `${ing.quantity} ${ing.measurement_unit_title}` : '')}
               </Text>
             </HStack>
           ))
@@ -241,7 +314,7 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
           Este contenido no está disponible en este momento.
         </Text>
       </Box>
-    ) : isRecipeMode ? (
+    ) : isAnyRecipeMode ? (
       <Box style={localStyles.htmlContent}>
         {recipeSteps.length === 0 ? (
           <Text style={localStyles.htmlText}>No hay instrucciones.</Text>
@@ -287,19 +360,22 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
             que cualquier otro, sin distinción visual que sugiera un
             desbloqueo dentro de la app. */}
 
-        {/* Favourite Button */}
-        <Pressable
-          style={[localStyles.favBtn, { top: insets.top + 18 }]}
-          onPress={() => setDiet(dietState.id)}
-        >
-          <Box style={localStyles.favBtnInner}>
-            <Icon
-              name={dietState.isFavourite === 1 ? 'heart' : 'heart-outline'}
-              size={20}
-              color={dietState.isFavourite === 1 ? C.red : C.white}
-            />
-          </Box>
-        </Pressable>
+        {/* Favourite Button -- oculto en modo FatSecret, no existe ese
+            concepto para una receta de ese origen (ver setDiet). */}
+        {!isFatSecretMode && (
+          <Pressable
+            style={[localStyles.favBtn, { top: insets.top + 18 }]}
+            onPress={() => setDiet(dietState.id)}
+          >
+            <Box style={localStyles.favBtnInner}>
+              <Icon
+                name={dietState.isFavourite === 1 ? 'heart' : 'heart-outline'}
+                size={20}
+                color={dietState.isFavourite === 1 ? C.red : C.white}
+              />
+            </Box>
+          </Pressable>
+        )}
 
         {/* Title + Time */}
         <Box style={localStyles.titleRow}>
@@ -330,16 +406,19 @@ export default function DietDetailScreen(props: DietDetailScreenProps) {
           {/* Cita de la fuente de los datos nutricionales (Guideline 1.4.1,
               rechazo real de Apple 2026-09-04: "provides health or medical
               recommendations in the Recetas section without citations").
-              Los valores de calorías/macros de esta pantalla salen de la API
-              de USDA FoodData Central (ver UsdaNutritionService.php en el
-              backend) -- enlace real a esa fuente, no un texto genérico. */}
+              Para una receta propia, los valores salen de USDA FoodData
+              Central (ver UsdaNutritionService.php en el backend). Para una
+              receta de FatSecret, la atribución tiene que ser a FatSecret
+              -- es una obligación real de sus términos de uso mientras la
+              cuenta no sea Premier (ver docs/FATSECRET_INTEGRATION.md en
+              Bckbs sección 0), no solo una cuestión de precisión. */}
           <Pressable
             style={localStyles.sourceLink}
-            onPress={() => Linking.openURL('https://fdc.nal.usda.gov/')}
+            onPress={() => Linking.openURL(isFatSecretMode ? 'https://www.fatsecret.com' : 'https://fdc.nal.usda.gov/')}
           >
             <Icon name="information-circle-outline" size={13} color={C.textSecondary} />
             <Text style={localStyles.sourceLinkText}>
-              Datos nutricionales: USDA FoodData Central
+              {isFatSecretMode ? 'Receta y datos nutricionales: FatSecret' : 'Datos nutricionales: USDA FoodData Central'}
             </Text>
           </Pressable>
 

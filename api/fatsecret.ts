@@ -25,7 +25,35 @@ export interface FatSecretRecipeSearchResponse {
   };
 }
 
+// Detalle completo -- ver DietDetailScreen (modo FatSecret). directions/
+// ingredients vienen ya normalizados por el backend (FatSecretRecipeCache,
+// cache-aside de corta duración, ver docs/FATSECRET_INTEGRATION.md).
+export interface FatSecretIngredientLine {
+  description: string | null;
+  food_id: number | null;
+  number_of_units: number | null;
+  measurement_description: string | null;
+}
+
+export interface FatSecretRecipeDetail {
+  fatsecret_recipe_id: number;
+  name: string;
+  image_url: string | null;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  number_of_servings: number | null;
+  preparation_time_min: number | null;
+  cooking_time_min: number | null;
+  directions: string[];
+  ingredients: FatSecretIngredientLine[];
+}
+
 export const fatSecretApi = {
   searchRecipes: (query: string, page: number = 0) =>
     apiClient.get<FatSecretRecipeSearchResponse>('fatsecret/recipes/search', { params: { q: query, page } }),
+
+  getRecipeDetail: (fatsecretRecipeId: number) =>
+    apiClient.get<{ data: FatSecretRecipeDetail }>(`fatsecret/recipes/${fatsecretRecipeId}`),
 };

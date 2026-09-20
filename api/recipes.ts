@@ -128,6 +128,13 @@ export const recipesApi = {
   updateDailyPlanRecipe: (id: number, daily_plan_id: number, recipe_id: number, meal_type: string, is_complete: boolean) =>
     apiClient.post<DailyPlanDetailResponse>('save-daily-plan-recipe', { id, daily_plan_id, recipe_id, meal_type, is_complete }),
 
+  // FIX (2026-09-20, bug real confirmado en vivo): marcar/desmarcar como
+  // comida una entrada de FatSecret no funcionaba -- plan_screen.tsx exigía
+  // recipeId (local) para cualquier actualización. Mismo endpoint, mismo
+  // patrón que saveDailyPlanRecipeFromFatSecret.
+  updateDailyPlanRecipeFromFatSecret: (id: number, daily_plan_id: number, fatsecret_recipe_id: number, meal_type: string, is_complete: boolean) =>
+    apiClient.post<DailyPlanDetailResponse>('save-daily-plan-recipe', { id, daily_plan_id, fatsecret_recipe_id, meal_type, is_complete }),
+
   deleteDailyPlanRecipe: (id: number) =>
     apiClient.post<ApiMessageResponse>('daily-plan-recipe-delete', { id }),
 
