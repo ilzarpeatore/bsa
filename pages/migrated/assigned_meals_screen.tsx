@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ScrollView } from 'react-native';
 import { showToast } from '@helper/toast';
 import { Image } from 'expo-image';
 import Animated, {
@@ -25,7 +26,7 @@ import { buildDayRange, toLocalISODate } from '../../components/dayRange';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { dietApi, AssignedMealsSummary, AssignedMealRecipe } from '../../api/diet';
 import { recipesApi } from '../../api/recipes';
-import { fatSecretApi, FatSecretRecipeResult } from '../../api/fatsecret';
+import { fatSecretApi, FatSecretRecipeResult, FatSecretRecipeSearchFilters } from '../../api/fatsecret';
 import logger from '@helper/logger';
 
 type MealSource = 'assigned' | 'fatsecret';
@@ -102,6 +103,16 @@ export default function AssignedMealsScreen(props: any) {
   const [fsAddingIds, setFsAddingIds] = useState<Set<number>>(new Set());
   const fsDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Filtros server-side de recipes.search.v3 (2026-09-20, ver
+  // docs/FATSECRET_INTEGRATION.md sección 13 en Bckbs) -- subconjunto
+  // pensado para el cliente en móvil (sin % de macros, más orientado al
+  // coach en el panel admin): rango de calorías, tiempo de preparación,
+  // tipo de receta, solo-con-foto, orden.
+  const [showFsFilters, setShowFsFilters] = useState(false);
+  const [fsFilters, setFsFilters] = useState<FatSecretRecipeSearchFilters>({});
+  const [fsRecipeTypes, setFsRecipeTypes] = useState<string[]>([]);
+  const fsFiltersActive = Object.values(fsFilters).some((v) => v !== undefined && v !== false && v !== '');
+
   // Header colapsable al hacer scroll (pedido explícito, reportado con
   // captura: el header fijo -- tarjeta de objetivo + selector de día + tabs
   // de tipo de comida -- ocupaba tanto espacio permanente que a la lista de
@@ -174,14 +185,14 @@ export default function AssignedMealsScreen(props: any) {
     }
   };
 
-  const searchFatSecret = useCallback(async (query: string) => {
+  const searchFatSecret = useCallback(async (query: string, filters: FatSecretRecipeSearchFilters) => {
     if (query.trim().length < 2) {
       setFsResults([]);
       return;
     }
     setFsSearching(true);
     try {
-      const res = await fatSecretApi.searchRecipes(query.trim());
+      const res = await fatSecretApi.searchRecipes(query.trim(), 0, filters);
       setFsResults(res.data.data.results);
     } catch (e) {
       logger.error('FatSecret recipe search error:', e);
@@ -194,9 +205,18 @@ export default function AssignedMealsScreen(props: any) {
   useEffect(() => {
     if (mealSource !== 'fatsecret') return;
     if (fsDebounce.current) clearTimeout(fsDebounce.current);
-    fsDebounce.current = setTimeout(() => searchFatSecret(fsQuery), 400);
+    fsDebounce.current = setTimeout(() => searchFatSecret(fsQuery, fsFilters), 400);
     return () => { if (fsDebounce.current) clearTimeout(fsDebounce.current); };
-  }, [fsQuery, mealSource, searchFatSecret]);
+  }, [fsQuery, fsFilters, mealSource, searchFatSecret]);
+
+  // recipe_types.get es casi estático (13 valores fijos de FatSecret) -- se
+  // pide una sola vez, la primera vez que el cliente abre el buscador.
+  useEffect(() => {
+    if (mealSource !== 'fatsecret' || fsRecipeTypes.length > 0) return;
+    fatSecretApi.getRecipeTypes()
+      .then((res) => setFsRecipeTypes(res.data.data))
+      .catch((e) => logger.error('FatSecret recipe types fetch error:', e));
+  }, [mealSource, fsRecipeTypes.length]);
 
   const addFatSecretRecipeToDay = async (recipe: FatSecretRecipeResult) => {
     if (!dailyPlanId) {
@@ -464,6 +484,118 @@ export default function AssignedMealsScreen(props: any) {
                   onChangeText={setFsQuery}
                 />
               </Input>
+
+              <Pressable
+                className="flex-row items-center justify-between"
+                style={{ paddingVertical: 8, marginBottom: showFsFilters ? 10 : 0 }}
+                onPress={() => setShowFsFilters((v) => !v)}
+              >
+                <HStack space="xs" className="items-center">
+                  <Icon name="options-outline" size={15} color={fsFiltersActive ? C.orange : C.gray40} />
+                  <Text size="xs" weight="semibold" style={{ color: fsFiltersActive ? C.orange : C.gray40 }}>
+                    Filtros {fsFiltersActive ? '(activos)' : ''}
+                  </Text>
+                </HStack>
+                <Icon name={showFsFilters ? 'chevron-up-outline' : 'chevron-down-outline'} size={15} color={C.gray40} />
+              </Pressable>
+
+              {showFsFilters && (
+                <Box className="bg-card rounded-lg" style={{ padding: 12, marginBottom: 10 }}>
+                  <HStack space="sm" style={{ marginBottom: 10 }}>
+                    <Input style={{ flex: 1, backgroundColor: C.surface }}>
+                      <InputField
+                        placeholder="Kcal desde"
+                        keyboardType="numeric"
+                        value={fsFilters.caloriesFrom != null ? String(fsFilters.caloriesFrom) : ''}
+                        onChangeText={(v) => setFsFilters((p) => ({ ...p, caloriesFrom: v ? Number(v) : undefined }))}
+                      />
+                    </Input>
+                    <Input style={{ flex: 1, backgroundColor: C.surface }}>
+                      <InputField
+                        placeholder="Kcal hasta"
+                        keyboardType="numeric"
+                        value={fsFilters.caloriesTo != null ? String(fsFilters.caloriesTo) : ''}
+                        onChangeText={(v) => setFsFilters((p) => ({ ...p, caloriesTo: v ? Number(v) : undefined }))}
+                      />
+                    </Input>
+                  </HStack>
+                  <HStack space="sm" style={{ marginBottom: 10 }}>
+                    <Input style={{ flex: 1, backgroundColor: C.surface }}>
+                      <InputField
+                        placeholder="Prep. min (min)"
+                        keyboardType="numeric"
+                        value={fsFilters.prepTimeFrom != null ? String(fsFilters.prepTimeFrom) : ''}
+                        onChangeText={(v) => setFsFilters((p) => ({ ...p, prepTimeFrom: v ? Number(v) : undefined }))}
+                      />
+                    </Input>
+                    <Input style={{ flex: 1, backgroundColor: C.surface }}>
+                      <InputField
+                        placeholder="Prep. máx (min)"
+                        keyboardType="numeric"
+                        value={fsFilters.prepTimeTo != null ? String(fsFilters.prepTimeTo) : ''}
+                        onChangeText={(v) => setFsFilters((p) => ({ ...p, prepTimeTo: v ? Number(v) : undefined }))}
+                      />
+                    </Input>
+                  </HStack>
+
+                  {fsRecipeTypes.length > 0 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                      <HStack space="xs">
+                        {fsRecipeTypes.map((t) => (
+                          <Pressable
+                            key={t}
+                            className="rounded-full border"
+                            style={{
+                              paddingHorizontal: 10,
+                              paddingVertical: 5,
+                              borderWidth: 1.5,
+                              borderColor: fsFilters.recipeType === t ? C.orange : C.gray30,
+                            }}
+                            onPress={() => setFsFilters((p) => ({ ...p, recipeType: p.recipeType === t ? undefined : t }))}
+                          >
+                            <Text size="xs" weight="semibold" style={{ color: fsFilters.recipeType === t ? C.orange : C.gray40 }}>
+                              {t}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </HStack>
+                    </ScrollView>
+                  )}
+
+                  <HStack className="items-center justify-between">
+                    <Pressable
+                      className="flex-row items-center"
+                      onPress={() => setFsFilters((p) => ({ ...p, mustHaveImages: !p.mustHaveImages }))}
+                    >
+                      <Icon
+                        name={fsFilters.mustHaveImages ? 'checkbox' : 'square-outline'}
+                        size={17}
+                        color={fsFilters.mustHaveImages ? C.orange : C.gray40}
+                      />
+                      <Text size="xs" style={{ marginLeft: 6, color: C.gray40 }}>Solo con foto</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() =>
+                        setFsFilters((p) => ({
+                          ...p,
+                          sortBy: p.sortBy === 'caloriesPerServingAscending' ? undefined : 'caloriesPerServingAscending',
+                        }))
+                      }
+                    >
+                      <Text size="xs" weight="semibold" style={{ color: fsFilters.sortBy === 'caloriesPerServingAscending' ? C.orange : C.gray40 }}>
+                        Menos calorías primero
+                      </Text>
+                    </Pressable>
+                  </HStack>
+
+                  {fsFiltersActive && (
+                    <Pressable style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setFsFilters({})}>
+                      <Text size="xs" style={{ color: C.gray30 }}>Quitar filtros</Text>
+                    </Pressable>
+                  )}
+                </Box>
+              )}
+
               {fsSearching ? (
                 <Box className="items-center" style={{ paddingVertical: 40 }}>
                   <Spinner size="small" color={C.textPrimary} />
