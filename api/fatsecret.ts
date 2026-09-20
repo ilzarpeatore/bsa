@@ -82,7 +82,12 @@ function buildRecipeSearchParams(query: string, page: number, filters: FatSecret
   if (filters.fatPercentageTo != null) params.fat_percentage_to = filters.fatPercentageTo;
   if (filters.prepTimeFrom != null) params.prep_time_from = filters.prepTimeFrom;
   if (filters.prepTimeTo != null) params.prep_time_to = filters.prepTimeTo;
-  if (filters.mustHaveImages) params.must_have_images = 'true';
+  // Laravel valida esto como `boolean` (acepta 1/0/true/false REALES, no el
+  // string literal "true" que exige FatSecret) -- el backend hace esa
+  // conversión FatSecret-específica internamente
+  // (FatSecretRecipeService::buildSearchFilterParams()), aquí solo hay que
+  // mandar algo que la VALIDACIÓN de Laravel acepte.
+  if (filters.mustHaveImages) params.must_have_images = '1';
   if (filters.sortBy) params.sort_by = filters.sortBy;
   // Clave con [] literal (no un array de JS) -- así el backend (PHP) lo
   // interpreta como recipe_types=['X'] sin depender de cómo axios
