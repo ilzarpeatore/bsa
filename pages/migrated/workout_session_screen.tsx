@@ -64,6 +64,7 @@ import {
   ActiveWorkoutSession,
 } from '../../helper/workoutSessionBus';
 import { discardActiveWorkoutSession } from '../../helper/discardWorkoutSession';
+import WorkoutInProgressConflict from '../../components/WorkoutInProgressConflict';
 import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
@@ -83,6 +84,18 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Mismas keys que usa el resto de la app (ver exercise_info_screen.tsx,
 // prioridad ['series','carga','reps','rir','rpe','tiempo']) — se elige
 // 'rir' como default único entre "rir o rpe" que pide la nota.
+// Diálogo "Salir del entrenamiento" (onClose). Compartido tal cual con
+// "Cancelar entrenamiento en curso" de la pantalla de conflicto
+// (2026-09-24, pedido explícito: el MISMO diálogo, no otro distinto).
+const EXIT_SESSION_DIALOG = {
+  icon: 'log-out-outline' as const,
+  title: 'Salir del entrenamiento',
+  message:
+    'Todavía no has finalizado esta sesión. Si sales ahora se perderá la duración y el feedback (las series ya marcadas quedan guardadas).',
+  confirmText: 'Salir sin finalizar',
+  cancelText: 'Seguir entrenando',
+};
+
 const ADHOC_DEFAULT_METRICS = ['carga', 'reps', 'descanso', 'rir'];
 const ADHOC_DEFAULT_SERIES = 3;
 // Orden pedido explícitamente por el usuario (2026-08-26): series,
@@ -758,9 +771,25 @@ export default function WorkoutSessionScreen(props: Props) {
   const { state } = useAuth();
   const { reportAction } = useTutorial();
   const insets = useSafeAreaInsets();
-  const programDayAssignmentId: number | undefined = route?.params?.programDayAssignmentId;
-  const workoutTemplateId: number | undefined = route?.params?.workoutTemplateId;
-  const mTitle: string | undefined = route?.params?.mTitle;
+  // Qué entrenamiento es esta instancia: por defecto el de route.params,
+  // pero la pantalla de conflicto ("Ya tienes un entrenamiento en curso")
+  // puede convertir ESTA MISMA instancia en el entrenamiento en curso
+  // (sessionTarget) sin navegar -- ver continueActiveSession más abajo.
+  const [sessionTarget, setSessionTarget] = useState<{
+    programDayAssignmentId?: number;
+    workoutTemplateId?: number;
+    mTitle?: string;
+  } | null>(null);
+  const programDayAssignmentId: number | undefined = sessionTarget
+    ? sessionTarget.programDayAssignmentId
+    : route?.params?.programDayAssignmentId;
+  const workoutTemplateId: number | undefined = sessionTarget
+    ? sessionTarget.workoutTemplateId
+    : route?.params?.workoutTemplateId;
+  const mTitle: string | undefined = sessionTarget ? sessionTarget.mTitle : route?.params?.mTitle;
+  // Sube cada vez que hay que (re)arrancar el flujo de montaje (retomar /
+  // empezar + load) en esta misma instancia.
+  const [bootSeq, setBootSeq] = useState(0);
 
   // Misma fuente de verdad que ya usan logSets()/finishSession() en el
   // backend para identificar esta sesion: program_day_assignment_id por
@@ -1017,10 +1046,41 @@ export default function WorkoutSessionScreen(props: Props) {
     return () => {
       cancelled = true;
     };
-    // Solo al montar esta instancia de pantalla -- identityKey/load no
-    // cambian durante la vida de esta pantalla (vienen de route.params).
+    // Al montar y cada vez que la pantalla de conflicto pide rearrancar
+    // (bootSeq) -- identityKey/load ya son los del nuevo objetivo en ese
+    // render (sessionTarget se fija en el mismo lote que bootSeq).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [bootSeq]);
+
+  // Rearranca esta misma instancia (sale del modo conflicto) para el
+  // entrenamiento indicado -- null = el de route.params.
+  const rebootAs = useCallback(
+    (target: { programDayAssignmentId?: number; workoutTemplateId?: number; mTitle?: string } | null) => {
+      setSessionTarget(target);
+      setConflictingSession(null);
+      setIsLoading(true);
+      setBootSeq((n) => n + 1);
+    },
+    []
+  );
+
+  // Bug real (2026-09-24, captura de iPhone): en la pantalla de conflicto
+  // tocar la barra flotante del entrenamiento en curso no hacía nada. La
+  // barra navega a 'MigratedWorkoutSession' con los params del en curso, y
+  // en React Navigation 7 navigate() a una ruta con el MISMO nombre que la
+  // actual solo actualiza sus params (StackRouter: "If the route matches
+  // the current one, then navigate to it") -- no se monta otra instancia,
+  // y esta seguía en modo conflicto porque el arranque solo corría al
+  // montar. Ahora, si cambian los params mientras se muestra el conflicto,
+  // se rearranca con ellos.
+  // (Patrón de React "ajustar estado cuando cambia una prop", durante el
+  // render y con guarda, en vez de un efecto.)
+  const routeIdentity = `${route?.params?.programDayAssignmentId ?? ''}|${route?.params?.workoutTemplateId ?? ''}`;
+  const [prevRouteIdentity, setPrevRouteIdentity] = useState(routeIdentity);
+  if (prevRouteIdentity !== routeIdentity) {
+    setPrevRouteIdentity(routeIdentity);
+    if (conflictingSession) rebootAs(null);
+  }
 
   // Persiste la sesion en curso (debounced) cada vez que cambia algo
   // relevante -- asi si la app se mata sin previo aviso (no hay evento
@@ -1715,49 +1775,67 @@ export default function WorkoutSessionScreen(props: Props) {
     transform: [{ translateY: dragY.value }],
   }));
 
+  // Conflicto -> "Continuar entrenamiento en curso": esta misma instancia
+  // pasa a ser la sesión en curso (lee su sesión guardada y la carga, igual
+  // que al abrirla desde la barra). Sin navegar: nada que pueda quedarse a
+  // medias entre pestañas/instancias.
+  const continueActiveSession = () => {
+    const active = getActiveWorkoutSession() ?? conflictingSession;
+    if (!active) {
+      // Ya no hay nada en curso (se descartó desde la barra): se empieza el
+      // que se había abierto.
+      rebootAs(null);
+      return;
+    }
+    const [kind, rawId] = String(active.identityKey || '').split(':');
+    const parsedId = Number(rawId);
+    const hasParsedId = Number.isFinite(parsedId) && parsedId > 0;
+    rebootAs({
+      programDayAssignmentId:
+        active.programDayAssignmentId ?? (kind === 'pda' && hasParsedId ? parsedId : undefined),
+      workoutTemplateId: active.workoutTemplateId ?? (kind === 'wt' && hasParsedId ? parsedId : undefined),
+      mTitle: active.mTitle,
+    });
+  };
+
+  // Conflicto -> "Cancelar entrenamiento en curso" (tras el mismo diálogo
+  // que "Salir del entrenamiento"): descarta el que estaba en curso
+  // (AsyncStorage + barra + Live Activity) y arranca aquí el que se quería
+  // empezar, en vez de dejar una pantalla vacía.
+  const discardActiveAndStartThis = () => {
+    setCloseConfirmVisible(false);
+    const activeKey = (getActiveWorkoutSession() ?? conflictingSession)?.identityKey ?? null;
+    discardActiveWorkoutSession(activeKey)
+      .catch(() => {})
+      .finally(() => rebootAs(null));
+  };
+
   // Punto (e): ya hay OTRO workout en curso -- se bloquea el arranque de
   // este por completo (nunca se llegó a llamar load()) y se ofrece
   // continuar con el que ya estaba activo, en vez de arrancar dos sesiones
   // en paralelo.
   if (conflictingSession) {
+    // Pantalla de conflicto rehecha (2026-09-24, reportado con captura de
+    // iPhone: ningún botón hacía nada). Ya no depende de navegar a otra
+    // instancia de esta misma ruta para nada: "Continuar" convierte ESTA
+    // instancia en el entrenamiento en curso y "Cancelar entrenamiento en
+    // curso" lo descarta y arranca aquí mismo el que se quería empezar.
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-        <Box
-          className="flex-row items-center px-5"
-          style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
-        >
-          <Pressable onPress={() => navigation?.goBack()} accessibilityRole="button" accessibilityLabel="Cerrar">
-            <Icon name="close" size={26} color={C.textPrimary} />
-          </Pressable>
-        </Box>
-        <Box className="flex-1 items-center justify-center px-8">
-          <Icon name="alert-circle-outline" size={44} color={C.warning60} />
-          <Heading size="md" className="text-center" style={{ marginTop: 16 }}>
-            Ya tienes un entrenamiento en curso
-          </Heading>
-          <Text muted className="text-center" style={{ marginTop: 8, fontSize: 14 }}>
-            Termina o continúa &ldquo;{conflictingSession.mTitle || 'tu entrenamiento'}&rdquo; antes de empezar uno nuevo.
-          </Text>
-          <Button
-            radius="pill"
-            style={{ marginTop: 24, alignSelf: 'stretch' }}
-            onPress={() => {
-              const params = {
-                programDayAssignmentId: conflictingSession.programDayAssignmentId,
-                workoutTemplateId: conflictingSession.workoutTemplateId,
-                mTitle: conflictingSession.mTitle,
-              };
-              if (navigation?.replace) navigation.replace('MigratedWorkoutSession', params);
-              else navigation?.navigate('MigratedWorkoutSession', params);
-            }}
-          >
-            <ButtonText>Continuar con ese entrenamiento</ButtonText>
-          </Button>
-          <Pressable style={{ marginTop: 16 }} onPress={() => navigation?.goBack()}>
-            <Text muted style={{ fontSize: 13 }}>Cancelar</Text>
-          </Pressable>
-        </Box>
-      </SafeAreaView>
+      <>
+        <WorkoutInProgressConflict
+          activeTitle={conflictingSession.mTitle}
+          onContinue={continueActiveSession}
+          onCancelActive={() => setCloseConfirmVisible(true)}
+          onBack={() => navigation?.goBack()}
+        />
+        <ConfirmDialogMem
+          visible={closeConfirmVisible}
+          {...EXIT_SESSION_DIALOG}
+          destructive
+          onCancel={() => setCloseConfirmVisible(false)}
+          onConfirm={discardActiveAndStartThis}
+        />
+      </>
     );
   }
 
@@ -2534,12 +2612,8 @@ export default function WorkoutSessionScreen(props: Props) {
 
       <ConfirmDialogMem
         visible={closeConfirmVisible}
-        icon="log-out-outline"
+        {...EXIT_SESSION_DIALOG}
         destructive
-        title="Salir del entrenamiento"
-        message="Todavía no has finalizado esta sesión. Si sales ahora se perderá la duración y el feedback (las series ya marcadas quedan guardadas)."
-        confirmText="Salir sin finalizar"
-        cancelText="Seguir entrenando"
         onCancel={() => setCloseConfirmVisible(false)}
         onConfirm={() => {
           setCloseConfirmVisible(false);
