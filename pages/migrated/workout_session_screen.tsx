@@ -217,6 +217,12 @@ function buildInitialRows(ex: UnifiedExercise): SetRow[] {
         // Se deja vacío para que el cliente registre el dato real de la
         // serie; el rango sigue visible aparte como referencia ("Obj: X",
         // ver más abajo en el render), pedido explícito 2026-09-17.
+        //
+        // La carga prescrita puede ser una indicación de texto del coach
+        // ("Mantener", "Subir", "Bajar") en vez de kilos: no se precarga en
+        // el input numérico (se registraría como carga inválida); sigue
+        // visible como objetivo ("Obj: Subir") bajo la celda.
+        if (key === 'carga' && Number.isNaN(Number(String(ex.prescribed[key]).replace(',', '.')))) return;
         values[key] = String(ex.prescribed[key]);
       }
     });
