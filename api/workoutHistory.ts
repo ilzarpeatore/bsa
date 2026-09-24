@@ -234,6 +234,9 @@ export const workoutHistoryApi = {
     logged_sets: Record<string, any>[];
     program_day_assignment_id?: number | null;
     notes?: string;
+    // Id estable de la sesión en curso (2026-09-24): `${identityKey}:${startedAt}`,
+    // saneado a [A-Za-z0-9_:-], máx. 64. Opcional -- backends anteriores lo ignoran.
+    session_key?: string;
   }) => apiClient.post<ApiMessageResponse>('v1/my-calendar-log-sets', payload),
 
   finishCalendarSession: (payload: {

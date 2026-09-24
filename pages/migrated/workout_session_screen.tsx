@@ -162,6 +162,58 @@ interface PersistedSession {
   blocks: SessionBlock[];
   activeIndexByBlock: Record<number, number>;
   mTitle?: string;
+  // Claves (exerciseSyncKey) de los ejercicios de los que ya se ha enviado
+  // al menos una serie al backend en esta sesion (2026-09-24). Opcional:
+  // sesiones persistidas por versiones anteriores de la app no lo traen --
+  // en ese caso se deduce de las filas completadas (ver seedSyncedKeys).
+  syncedExerciseKeys?: string[];
+}
+
+/**
+ * Identidad de un ejercicio tal y como la ve el backend en
+ * my-calendar-log-sets: workout_template_exercise_id para los prescritos por
+ * el coach, exercise_id para los añadidos ad-hoc (2026-09-24). Se usa para
+ * recordar qué ejercicios ya tienen series enviadas en esta sesión.
+ */
+function exerciseSyncKey(ex: SessionExercise): string {
+  return ex.isAdhoc ? `e:${ex.exerciseId}` : `t:${ex.id}`;
+}
+
+/**
+ * Semilla del registro de "ejercicios ya sincronizados" al retomar una
+ * sesión persistida (2026-09-24): usa la lista guardada si existe y, por si
+ * la sesión la guardó una versión anterior de la app (sin ese campo), añade
+ * cualquier ejercicio que tuviera alguna serie completada -- esas series ya
+ * se enviaron al marcarlas. Todo defensivo: datos de AsyncStorage pueden
+ * venir malformados.
+ */
+function seedSyncedKeys(persisted: PersistedSession | null): Set<string> {
+  const keys = new Set<string>();
+  if (!persisted) return keys;
+  if (Array.isArray(persisted.syncedExerciseKeys)) {
+    persisted.syncedExerciseKeys.forEach((k) => {
+      if (typeof k === 'string') keys.add(k);
+    });
+  }
+  (Array.isArray(persisted.blocks) ? persisted.blocks : []).forEach((b) => {
+    (Array.isArray(b?.exercises) ? b.exercises : []).forEach((ex) => {
+      if (Array.isArray(ex?.rows) && ex.rows.some((r) => r?.completed)) keys.add(exerciseSyncKey(ex));
+    });
+  });
+  return keys;
+}
+
+/**
+ * session_key de my-calendar-log-sets (2026-09-24): id estable de ESTA
+ * sesión concreta = identityKey + timestamp real de inicio. sessionStartedAt
+ * se restaura desde AsyncStorage al retomar tras reiniciar la app, así que
+ * la clave sobrevive a reinicios. El backend solo acepta [A-Za-z0-9_:-] y
+ * máximo 64 caracteres -- se sanea por si acaso.
+ */
+function buildSessionKey(identityKey: string | null, startedAt: number): string | undefined {
+  if (!identityKey || !Number.isFinite(startedAt)) return undefined;
+  const key = `${identityKey}:${Math.round(startedAt)}`.replace(/[^A-Za-z0-9_:-]/g, '').slice(0, 64);
+  return key || undefined;
 }
 
 /**
@@ -725,6 +777,10 @@ export default function WorkoutSessionScreen(props: Props) {
   // fallo (sin conexión, 5xx) -> se conserva para poder reintentar.
   const [loadErrorKind, setLoadErrorKind] = useState<'gone' | 'network' | null>(null);
   const persistedRef = useRef<PersistedSession | null>(null);
+  // Ejercicios (exerciseSyncKey) de los que ya se ha enviado alguna serie
+  // en esta sesión -- necesario para mandar logged_sets: [] cuando el
+  // cliente desmarca TODAS las series de uno (2026-09-24), y solo de esos.
+  const syncedExerciseKeysRef = useRef<Set<string>>(new Set());
   const [blocks, setBlocks] = useState<SessionBlock[]>([]);
   const [activeIndexByBlock, setActiveIndexByBlock] = useState<Record<number, number>>({});
   const [pageIndex, setPageIndex] = useState(0);
@@ -955,6 +1011,7 @@ export default function WorkoutSessionScreen(props: Props) {
       setSessionStartedAt(startedAt);
       setNowTick(Date.now());
       persistedRef.current = persisted;
+      syncedExerciseKeysRef.current = seedSyncedKeys(persisted);
       load(persisted);
     })();
     return () => {
@@ -977,6 +1034,7 @@ export default function WorkoutSessionScreen(props: Props) {
       blocks,
       activeIndexByBlock,
       mTitle,
+      syncedExerciseKeys: Array.from(syncedExerciseKeysRef.current),
     };
     const t = setTimeout(() => {
       AsyncStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(payload)).catch(() => {});
@@ -1140,7 +1198,18 @@ export default function WorkoutSessionScreen(props: Props) {
       // nunca al entrenador. Ahora también se envía si hay nota, aunque
       // logged_sets vaya vacío -- solo se corta de verdad cuando no hay
       // absolutamente nada que guardar.
-      if (loggedSets.length === 0 && !note) return;
+      //
+      // Bug real (2026-09-24): si el cliente desmarcaba TODAS las series de
+      // un ejercicio que ya había enviado, se cortaba aquí y el backend se
+      // quedaba con la última foto (con series) -- el entrenador veía como
+      // hechas series que el cliente había deshecho. Ahora, si ese
+      // ejercicio ya tenía series enviadas en esta sesión, se manda
+      // logged_sets: [] para que la última foto quede vacía. Los que nunca
+      // se enviaron siguen sin generar ninguna petición.
+      const syncKey = exerciseSyncKey(ex);
+      const wasSynced = syncedExerciseKeysRef.current.has(syncKey);
+      if (loggedSets.length === 0 && !note && !wasSynced) return;
+      if (loggedSets.length > 0) syncedExerciseKeysRef.current.add(syncKey);
       workoutHistoryApi
         .logCalendarSets({
           workout_template_exercise_id: ex.isAdhoc ? undefined : ex.id,
@@ -1148,10 +1217,11 @@ export default function WorkoutSessionScreen(props: Props) {
           logged_sets: loggedSets,
           program_day_assignment_id: programDayAssignmentId ?? null,
           notes: note || undefined,
+          session_key: buildSessionKey(identityKey, sessionStartedAt),
         })
         .catch(() => {});
     },
-    [programDayAssignmentId]
+    [programDayAssignmentId, identityKey, sessionStartedAt]
   );
 
   const updateExercise = (
