@@ -179,7 +179,12 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
       style={{ backgroundColor: active ? C.accentBlack : C.surfaceLight }}
       onPress={onPress}
     >
-      <Text weight="semibold" style={{ fontSize: 12.5, color: active ? C.accentBlackForeground : C.textSecondary }}>
+      {/* lineHeight explícito (2026-09-24): Gilroy semibold sin lineHeight
+          recorta el glifo en iOS (patrón ya documentado en el repo). */}
+      <Text
+        weight="semibold"
+        style={{ fontSize: 12.5, lineHeight: 16, color: active ? C.accentBlackForeground : C.textSecondary }}
+      >
         {label}
       </Text>
     </Pressable>
@@ -256,7 +261,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
+            style={styles.chipRow}
             contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 10 }}
           >
             {renderChip('Todos', bodyPartId === null, () => setBodyPartId(null), 'all')}
@@ -277,7 +282,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
             >
               <Text
                 weight="semibold"
-                style={{ fontSize: 12.5, color: filterActive(key) ? C.accentBlackForeground : C.textPrimary }}
+                style={{ fontSize: 12.5, lineHeight: 16, color: filterActive(key) ? C.accentBlackForeground : C.textPrimary }}
                 numberOfLines={1}
               >
                 {filterLabel(key)}
@@ -299,7 +304,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
               }}
               style={styles.clearFiltersBtn}
             >
-              <Text style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: FONT.medium }}>Limpiar</Text>
+              <Text style={{ fontSize: 12.5, lineHeight: 16, color: C.textSecondary, fontFamily: FONT.medium }}>Limpiar</Text>
             </Pressable>
           )}
         </HStack>
@@ -307,7 +312,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
+            style={styles.chipRow}
             contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
           >
             {renderChip('Cualquiera', openFilterValue == null, () => setOpenFilterValue(null), 'any')}
@@ -324,6 +329,9 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
         ) : (
           <FlatList
             data={results}
+            // flex: 1 (2026-09-24): ver styles.chipRow -- la lista es la
+            // que debe ocupar (y ceder) el alto restante, no las filas de chips.
+            style={{ flex: 1 }}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
@@ -358,6 +366,14 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
+    // Filas horizontales de chips (2026-09-24, bug real con captura de
+    // iPhone: solo se veía la mitad superior de cada píldora). ScrollView y
+    // FlatList llevan por defecto flexShrink: 1, y la FlatList de debajo no
+    // tenía flex: 1 -- su alto "natural" es el de todos sus resultados, la
+    // columna desbordaba y Yoga encogía también estas filas (la fila de
+    // Equipo/Nivel/Tipo es un HStack normal, flexShrink 0, por eso esa no se
+    // cortaba). flexGrow/flexShrink 0 = siempre a su alto de contenido.
+    chipRow: { flexGrow: 0, flexShrink: 0 },
     resultImage: { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 },
     resultSubtitle: { fontSize: 12, color: C.textSecondary, fontFamily: FONT.regular, marginTop: 2 },
     filterChip: {

@@ -2394,10 +2394,17 @@ export default function WorkoutSessionScreen(props: Props) {
               aire real por los 4 lados sin cambiar el resto (gap:8 entre
               píldoras y paddingHorizontal:20 del scroll, ya consistentes
               con el buscador y la lista de debajo, se quedan igual). */}
+          {/* flexGrow/flexShrink 0 (2026-09-24, bug real con captura de
+              iPhone: las píldoras salían cortadas a media altura). Este
+              ScrollView no tenía ni flexGrow: 0 y, como la FlatList de
+              debajo no llevaba flex: 1, al desbordar la columna Yoga encogía
+              esta fila (flexShrink: 1 por defecto en ScrollView). Ahora la
+              fila mide siempre su contenido y la lista ocupa el resto. */}
           {bodyParts.length > 0 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              style={{ flexGrow: 0, flexShrink: 0 }}
               contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
             >
               <Pressable
@@ -2407,7 +2414,12 @@ export default function WorkoutSessionScreen(props: Props) {
               >
                 <Text
                   weight="semibold"
-                  style={{ fontSize: 12.5, color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary }}
+                  style={{
+                    fontSize: 12.5,
+                    // lineHeight explícito: Gilroy semibold sin él se recorta en iOS.
+                    lineHeight: 16,
+                    color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary,
+                  }}
                 >
                   Todos
                 </Text>
@@ -2421,7 +2433,11 @@ export default function WorkoutSessionScreen(props: Props) {
                 >
                   <Text
                     weight="semibold"
-                    style={{ fontSize: 12.5, color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary }}
+                    style={{
+                      fontSize: 12.5,
+                      lineHeight: 16,
+                      color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary,
+                    }}
                   >
                     {bp.title}
                   </Text>
@@ -2436,6 +2452,7 @@ export default function WorkoutSessionScreen(props: Props) {
           ) : (
             <FlatList
               data={pickerResults}
+              style={{ flex: 1 }}
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
               onEndReached={onPickerEndReached}
