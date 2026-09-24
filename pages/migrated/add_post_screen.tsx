@@ -45,7 +45,7 @@ class AddPostErrorBoundary extends React.Component<
     if (this.state.hasError) {
       const C = this.props.colors;
       return (
-        <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
           <ScreenHeader title={this.props.title} onBack={() => this.props.navigation?.goBack()} />
           <Box className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32 }}>
             <Icon name="alert-circle-outline" size={36} className="text-muted-foreground" />
@@ -182,13 +182,13 @@ function AddPostScreenInner({ navigation, route }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title={flow === 'EditFlow' ? 'Editar publicación' : 'Nueva publicación'}
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
         <VStack space="lg" style={{ paddingTop: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}>
           {/* Description field */}
           <Textarea className="bg-card rounded-sm border-border h-auto" style={{ minHeight: 140 }}>

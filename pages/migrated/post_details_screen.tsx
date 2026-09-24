@@ -39,7 +39,8 @@ interface PostData {
 
 export default function PostDetailsScreen(props: any) {
   const { colors: C } = useAppColorMode();
-  const { user: authUser } = useAuth();
+  const { state: authState } = useAuth();
+  const authUser = authState.user;
   const postData: PostData | undefined = props.route?.params?.postData;
   const isFromLink: boolean = props.route?.params?.isFromLink ?? false;
 
@@ -76,7 +77,7 @@ export default function PostDetailsScreen(props: any) {
 
   if (!postData) {
     return (
-      <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
         <ScreenHeader title="" onBack={() => props.navigation?.goBack()} />
         <Box className="flex-1 items-center justify-center">
           <Text muted weight="medium">
@@ -232,7 +233,7 @@ export default function PostDetailsScreen(props: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -36,7 +36,8 @@ class LiveActivityModule: NSObject {
 
     @objc
     func updateActivity(_ params: NSDictionary) {
-        guard let activity = currentActivity else { return }
+        guard let activity = currentActivity ?? Activity<WorkoutActivityAttributes>.activities.first else { return }
+        currentActivity = activity
         let state = Self.contentState(from: params)
         Task {
             await activity.update(ActivityContent(state: state, staleDate: nil))
@@ -48,11 +49,16 @@ class LiveActivityModule: NSObject {
         endCurrentActivity()
     }
 
+    // Termina TODAS las Live Activities de entrenamiento, no solo la que
+    // guarda currentActivity: si JS se recarga o la sesión se retoma, esta
+    // instancia pierde la referencia y la actividad quedaba huérfana en la
+    // pantalla de bloqueo con el cronómetro corriendo.
     private func endCurrentActivity() {
-        guard let activity = currentActivity else { return }
         currentActivity = nil
-        Task {
-            await activity.end(nil, dismissalPolicy: .immediate)
+        for activity in Activity<WorkoutActivityAttributes>.activities {
+            Task {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
         }
     }
 
