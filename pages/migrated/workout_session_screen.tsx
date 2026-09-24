@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
+  Alert,
   ScrollView,
   TextInput,
   Platform,
@@ -62,6 +63,7 @@ import {
   getActiveWorkoutSession,
   ActiveWorkoutSession,
 } from '../../helper/workoutSessionBus';
+import { discardActiveWorkoutSession } from '../../helper/discardWorkoutSession';
 import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
@@ -717,6 +719,12 @@ export default function WorkoutSessionScreen(props: Props) {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  // 'gone' = el entrenamiento ya no existe o ya no es de este cliente (404/
+  // 403: el coach lo quitó o movió del calendario) -> se descarta la sesión
+  // guardada, reintentar no serviría de nada. 'network' = cualquier otro
+  // fallo (sin conexión, 5xx) -> se conserva para poder reintentar.
+  const [loadErrorKind, setLoadErrorKind] = useState<'gone' | 'network' | null>(null);
+  const persistedRef = useRef<PersistedSession | null>(null);
   const [blocks, setBlocks] = useState<SessionBlock[]>([]);
   const [activeIndexByBlock, setActiveIndexByBlock] = useState<Record<number, number>>({});
   const [pageIndex, setPageIndex] = useState(0);
@@ -870,6 +878,7 @@ export default function WorkoutSessionScreen(props: Props) {
     async (persisted?: PersistedSession | null) => {
       setIsLoading(true);
       setError(false);
+      setLoadErrorKind(null);
       try {
         const [data, catalog] = await Promise.all([
           fetchUnifiedWorkout({ programDayAssignmentId, workoutTemplateId, fallbackTitle: mTitle }),
@@ -893,13 +902,20 @@ export default function WorkoutSessionScreen(props: Props) {
         setBlocks(mappedBlocks);
         setActiveIndexByBlock(initialActiveIndex);
         setPageIndex(0);
-      } catch (e) {
+      } catch (e: any) {
+        const status = e?.response?.status;
+        const gone = status === 404 || status === 403;
+        setLoadErrorKind(gone ? 'gone' : 'network');
+        // Si era la sesión minimizada, deja de estarlo: si no, la barra
+        // flotante seguiría llevando aquí para siempre y bloquearía empezar
+        // cualquier otro entrenamiento.
+        if (gone) discardActiveWorkoutSession(identityKey).catch(() => {});
         setError(true);
       } finally {
         setIsLoading(false);
       }
     },
-    [programDayAssignmentId, workoutTemplateId, mTitle]
+    [programDayAssignmentId, workoutTemplateId, mTitle, identityKey]
   );
 
   // Punto 4: al entrar en esta pantalla, mira si ya habia una sesion sin
@@ -938,6 +954,7 @@ export default function WorkoutSessionScreen(props: Props) {
       const startedAt = persisted?.startedAt ?? Date.now();
       setSessionStartedAt(startedAt);
       setNowTick(Date.now());
+      persistedRef.current = persisted;
       load(persisted);
     })();
     return () => {
@@ -1488,6 +1505,7 @@ export default function WorkoutSessionScreen(props: Props) {
         enabledMetrics: ADHOC_DEFAULT_METRICS,
         coachNotes: null,
         lastPerformance: null,
+        loadSuggestion: null,
         sequence: (blocks[targetBlockIdx]?.exercises.length ?? 0) + 1,
       };
       const newExercise: SessionExercise = {
@@ -1684,6 +1702,25 @@ export default function WorkoutSessionScreen(props: Props) {
   }
 
   if (error || blocks.length === 0) {
+    const gone = loadErrorKind === 'gone';
+    const empty = !error && blocks.length === 0;
+    const confirmDiscard = () =>
+      Alert.alert(
+        'Descartar entrenamiento',
+        'Se cerrará este entrenamiento sin finalizarlo. Las series que ya marcaste siguen guardadas.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Descartar',
+            style: 'destructive',
+            onPress: () => {
+              discardActiveWorkoutSession(identityKey)
+                .catch(() => {})
+                .finally(() => navigation?.goBack());
+            },
+          },
+        ]
+      );
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
         <Box
@@ -1694,14 +1731,45 @@ export default function WorkoutSessionScreen(props: Props) {
             <Icon name="close" size={26} color={C.textPrimary} />
           </Pressable>
         </Box>
-        <Box className="flex-1 items-center justify-center">
-          <Text muted className="text-center px-6" style={{ fontSize: 15 }}>
-            No se pudo cargar el entrenamiento.
+        <Box className="flex-1 items-center justify-center px-8">
+          <Icon name={gone ? 'calendar-clear-outline' : 'cloud-offline-outline'} size={44} color={C.warning60} />
+          <Heading size="md" className="text-center" style={{ marginTop: 16 }}>
+            {gone
+              ? 'Este entrenamiento ya no está disponible'
+              : empty
+                ? 'Este entrenamiento no tiene ejercicios'
+                : 'No se pudo cargar el entrenamiento'}
+          </Heading>
+          <Text muted className="text-center" style={{ marginTop: 8, fontSize: 14 }}>
+            {gone
+              ? 'Tu entrenador lo ha quitado o cambiado de día en tu calendario. Las series que ya marcaste siguen guardadas.'
+              : empty
+                ? 'Consulta con tu entrenador o elige otro entrenamiento.'
+                : 'Revisa tu conexión e inténtalo de nuevo.'}
           </Text>
+          {!gone && !empty && (
+            <Button
+              radius="pill"
+              style={{ marginTop: 24, alignSelf: 'stretch' }}
+              onPress={() => load(persistedRef.current)}
+            >
+              <ButtonText>Reintentar</ButtonText>
+            </Button>
+          )}
+          {gone ? (
+            <Button radius="pill" style={{ marginTop: 24, alignSelf: 'stretch' }} onPress={() => navigation?.goBack()}>
+              <ButtonText>Volver</ButtonText>
+            </Button>
+          ) : (
+            <Pressable style={{ marginTop: 16 }} onPress={confirmDiscard}>
+              <Text style={{ fontSize: 13, color: C.destructive }}>Descartar entrenamiento</Text>
+            </Pressable>
+          )}
         </Box>
       </SafeAreaView>
     );
   }
+
 
   // Extraído para reutilizarse tal cual dentro del reproductor a pantalla
   // completa (WorkoutExercisePlayer, ver Modal más abajo) -- mismo
