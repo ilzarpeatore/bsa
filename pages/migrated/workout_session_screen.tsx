@@ -15,7 +15,7 @@ import {
   BackHandler,
 } from 'react-native';
 import {  Image  } from 'expo-image';
-import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
@@ -2447,12 +2447,23 @@ export default function WorkoutSessionScreen(props: Props) {
         animationType="slide"
         onRequestClose={() => setIsPickerVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+        {/* SafeAreaProvider propio dentro del Modal (2026-09-24): un <Modal>
+            de RN es una ventana nativa aparte en iOS y el SafeAreaView de
+            dentro no recibía los insets del provider raíz -- la cabecera
+            quedaba detrás de la hora y la X no se podía pulsar (mismo bug
+            reportado en ExercisePickerModal). */}
+        <SafeAreaProvider>
+        <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: C.bg }}>
           <Box
             className="flex-row items-center justify-between px-5"
             style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
           >
-            <Pressable onPress={() => setIsPickerVisible(false)} accessibilityRole="button" accessibilityLabel="Cerrar">
+            <Pressable
+              onPress={() => setIsPickerVisible(false)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar"
+            >
               <Icon name="close" size={26} className="text-foreground" />
             </Pressable>
             <Heading size="sm">Añadir ejercicio</Heading>
@@ -2550,6 +2561,7 @@ export default function WorkoutSessionScreen(props: Props) {
             />
           )}
         </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       {/* Modo guiado a pantalla completa (pedido explícito 2026-08-27) --

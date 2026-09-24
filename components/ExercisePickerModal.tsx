@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { HStack } from '@components/ui/hstack';
@@ -233,12 +233,19 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+      {/* SafeAreaProvider propio DENTRO del Modal (2026-09-24, bug real con
+          captura de iPhone: la X y el título quedaban detrás de la hora y la
+          X no se podía pulsar). Un <Modal> de RN es una ventana nativa aparte
+          en iOS y el SafeAreaView de dentro no recibía los insets del
+          SafeAreaProvider raíz (quedaba con inset 0). Es el arreglo que
+          recomienda react-native-safe-area-context para Modals. */}
+      <SafeAreaProvider>
+      <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: C.bg }}>
         <Box
           className="flex-row items-center justify-between px-5"
           style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
         >
-          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar">
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Cerrar">
             <Icon name="close" size={26} className="text-foreground" />
           </Pressable>
           <Heading size="sm">{title}</Heading>
@@ -360,6 +367,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           </Box>
         )}
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
