@@ -995,7 +995,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           const list = res.data?.data;
           // Nunca dejar un no-array en el estado: el .map() del render
           // tumbaría el Home entero.
-          setActivePrograms(Array.isArray(list) ? list.filter((p) => p && p.training_program_id != null) : []);
+          // Programas primero y "Plan de tu entrenador" (kind
+          // 'coach_calendar', 2026-09-24) después; sin kind (backend
+          // anterior) = programa. sort estable: respeta el orden del backend
+          // dentro de cada grupo.
+          const valid = Array.isArray(list) ? list.filter((p) => p && p.training_program_id != null) : [];
+          const rank = (p: ActiveProgram) => (p.kind === 'coach_calendar' ? 1 : 0);
+          setActivePrograms([...valid].sort((a, b) => rank(a) - rank(b)));
         })
         .catch(() => {});
 
@@ -1866,9 +1872,17 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           <Text style={styles.sectionTitle}>Entrenamientos</Text>
         </HStack>
         <Card variant="glass" className="mx-5 p-4" style={{ marginBottom: r(4) }}>
-          {activePrograms.map((p) => {
-            const subtitle =
-              p.current_week > 0
+          {activePrograms.map((p, idx) => {
+            const isCoachCalendar = p.kind === 'coach_calendar';
+            // "Plan de tu entrenador" (2026-09-24): sin semanas de programa,
+            // solo las sesiones sueltas que le ha puesto su coach esta semana.
+            const sessionsThisWeek = Number(p.sessions_this_week) || 0;
+            const completedThisWeek = Number(p.completed_this_week) || 0;
+            const subtitle = isCoachCalendar
+              ? sessionsThisWeek > 0
+                ? `${completedThisWeek}/${sessionsThisWeek} sesiones esta semana`
+                : 'Sesiones de tu entrenador esta semana'
+              : p.current_week > 0
                 ? `Semana ${p.current_week} de ${p.num_weeks}` +
                   (p.sessions_this_week > 0
                     ? ` · ${p.completed_this_week}/${p.sessions_this_week} sesiones esta semana`
@@ -1877,19 +1891,20 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   ? `Empieza el ${String(p.start_date).split('-').reverse().slice(0, 2).join('/')}`
                   : 'Pendiente de empezar';
             return (
-              <React.Fragment key={p.program_client_assignment_id}>
+              <React.Fragment key={`${isCoachCalendar ? 'coach' : 'program'}-${p.program_client_assignment_id ?? idx}`}>
                 <Pressable
                   onPress={() =>
                     navigation?.navigate('MigratedMyProgramCalendar', {
                       programId: p.training_program_id,
-                      programTitle: p.title || 'Mi programa',
+                      programTitle: p.title || (isCoachCalendar ? 'Plan de tu entrenador' : 'Mi programa'),
                       initialViewMode: 'list',
                       initialPeriodMode: 'week',
+                      ...(isCoachCalendar ? { excludeCustom: true } : {}),
                     })
                   }>
                   <HStack space="md" className="items-center">
                     <AppIcon
-                      name="barbell-outline"
+                      name={isCoachCalendar ? 'calendar-outline' : 'barbell-outline'}
                       size={20}
                       color={C.orange}
                       bg={C.orange10}
@@ -1898,7 +1913,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     />
                     <VStack className="flex-1">
                       <Text style={styles.todayWorkoutTitle} numberOfLines={2}>
-                        {p.title || 'Mi programa'}
+                        {p.title || (isCoachCalendar ? 'Plan de tu entrenador' : 'Mi programa')}
                       </Text>
                       <Text style={styles.todayWorkoutSub}>{subtitle}</Text>
                     </VStack>
