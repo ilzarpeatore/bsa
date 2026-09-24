@@ -30,9 +30,10 @@ function buildStatusMeta(
   C: ReturnType<typeof useAppColorMode>['colors']
 ): Record<ScreenReviewStatus, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> {
   return {
+    comment: { label: 'Añadir comentario', icon: 'chatbubble-ellipses-outline', color: C.blue60 },
     delete: { label: 'Marcar para borrar', icon: 'trash-outline', color: C.destructive60 },
+    confused: { label: 'Tengo una duda', icon: 'help-circle-outline', color: C.warning60 },
     done: { label: 'Marcar como terminada', icon: 'checkmark-circle-outline', color: C.success60 },
-    confused: { label: 'No entiendo esta pantalla', icon: 'help-circle-outline', color: C.warning60 },
   };
 }
 
@@ -162,7 +163,7 @@ export default function ScreenReviewFab({ navigationRef }: Props) {
                   ) : null}
                 </Box>
               ) : null}
-              {(['delete', 'done', 'confused'] as ScreenReviewStatus[]).map((status) => {
+              {(['comment', 'delete', 'confused', 'done'] as ScreenReviewStatus[]).map((status) => {
                 const meta = STATUS_META[status];
                 return (
                   <Pressable
@@ -192,7 +193,13 @@ export default function ScreenReviewFab({ navigationRef }: Props) {
               </Text>
               <Textarea className="border-0 bg-card" style={{ borderRadius: RADIUS.sm, minHeight: 90 }}>
                 <TextareaInput
-                  placeholder="Nota (opcional) — objetivo, instrucciones, qué falta..."
+                  placeholder={
+                    pendingStatus === 'comment'
+                      ? 'Escribe tu comentario sobre esta pantalla...'
+                      : pendingStatus === 'confused'
+                        ? '¿Qué duda tienes sobre esta pantalla?'
+                        : 'Nota (opcional) — objetivo, instrucciones, qué falta...'
+                  }
                   style={{ fontFamily: FONT.regular, fontSize: 13.5 }}
                   value={note}
                   onChangeText={onNoteChange}
@@ -210,9 +217,14 @@ export default function ScreenReviewFab({ navigationRef }: Props) {
                 </Pressable>
                 <Pressable
                   className="flex-1 items-center justify-center rounded-md"
-                  style={{ paddingVertical: 13, backgroundColor: STATUS_META[pendingStatus].color }}
+                  style={{
+                    paddingVertical: 13,
+                    backgroundColor: STATUS_META[pendingStatus].color,
+                    opacity: pendingStatus === 'comment' && !note.trim() ? 0.5 : 1,
+                  }}
                   onPress={() => submit(pendingStatus, note.trim() || undefined)}
-                  disabled={saving}
+                  // Un comentario vacío no aporta nada (en borrar/duda/terminada la nota es opcional).
+                  disabled={saving || (pendingStatus === 'comment' && !note.trim())}
                 >
                   {saving ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
