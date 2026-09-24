@@ -78,6 +78,7 @@ import { exerciseStatsApi } from '../../api/exerciseStats';
 import { ViewSide } from '../../constants/bodyMusclesPaths';
 import { motivationalPhraseApi } from '../../api/motivationalPhrase';
 import { workoutHistoryApi, CompletedSessionItem } from '../../api/workoutHistory';
+import { customWorkoutsApi, ActiveProgram } from '../../api/customWorkouts';
 import { dietApi } from '../../api/diet';
 import { blogApi } from '../../api/blog';
 import { workoutTemplateApi, WorkoutTemplateListItem } from '../../api/workoutTemplate';
@@ -500,6 +501,10 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   const [steps, setSteps] = useState<StepsSummary | null>(null);
   const [workout, setWorkout] = useState<WorkoutSummary | null>(null);
   const [workoutTemplateList, setWorkoutTemplateList] = useState<WorkoutTemplateListItem[]>([]);
+  // Sección "Entrenamientos" (2026-09-24): programas asignados por el coach
+  // (sin el calendario personal) -- vacío = solo se ve el botón de crear
+  // entrenamiento personalizado.
+  const [activePrograms, setActivePrograms] = useState<ActiveProgram[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceListItem[]>([]);
   const [pendingCheckins, setPendingCheckins] = useState<CheckInAssignment[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -981,6 +986,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       const todayStr = localDateKey(now);
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
+
+      // Best-effort, fuera del Promise.allSettled principal: si falla, la
+      // sección Entrenamientos solo muestra el botón de crear.
+      customWorkoutsApi
+        .getActivePrograms()
+        .then((res) => setActivePrograms(res.data?.data ?? []))
+        .catch(() => {});
 
       const [
         dashRes,
@@ -1838,6 +1850,80 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           </Card>
         )}
 
+        {/* Entrenamientos (pedido 2026-09-24) — justo debajo de "Mi plan de
+            hoy". Con programa asignado: el programa (abre Mi programa en
+            vista Lista + Semana filtrada a ese programa, mismas reglas de
+            "solo la semana en curso") y debajo el botón de crear
+            entrenamiento personalizado. Sin programa: solo el botón. */}
+        <HStack
+          className="justify-between items-center px-5"
+          style={{ marginTop: r(24), marginBottom: r(12) }}>
+          <Text style={styles.sectionTitle}>Entrenamientos</Text>
+        </HStack>
+        <Card variant="glass" className="mx-5 p-4" style={{ marginBottom: r(4) }}>
+          {activePrograms.map((p) => {
+            const subtitle =
+              p.current_week > 0
+                ? `Semana ${p.current_week} de ${p.num_weeks}` +
+                  (p.sessions_this_week > 0
+                    ? ` · ${p.completed_this_week}/${p.sessions_this_week} sesiones esta semana`
+                    : '')
+                : `Empieza el ${p.start_date.split('-').reverse().slice(0, 2).join('/')}`;
+            return (
+              <React.Fragment key={p.program_client_assignment_id}>
+                <Pressable
+                  onPress={() =>
+                    navigation?.navigate('MigratedMyProgramCalendar', {
+                      programId: p.training_program_id,
+                      programTitle: p.title,
+                      initialViewMode: 'list',
+                      initialPeriodMode: 'week',
+                    })
+                  }>
+                  <HStack space="md" className="items-center">
+                    <AppIcon
+                      name="barbell-outline"
+                      size={20}
+                      color={C.orange}
+                      bg={C.orange10}
+                      containerSize={r(44)}
+                      borderRadius={r(12)}
+                    />
+                    <VStack className="flex-1">
+                      <Text style={styles.todayWorkoutTitle} numberOfLines={2}>
+                        {p.title}
+                      </Text>
+                      <Text style={styles.todayWorkoutSub}>{subtitle}</Text>
+                    </VStack>
+                    <Icon name="chevron-forward" size={20} color={C.textSecondary} />
+                  </HStack>
+                </Pressable>
+                <Divider style={{ marginVertical: r(12) }} />
+              </React.Fragment>
+            );
+          })}
+          <Pressable
+            onPress={() => navigation?.navigate('MigratedCustomWorkoutBuilder', { date: localDateKey(new Date()) })}
+            accessibilityRole="button"
+            accessibilityLabel="Crear entrenamiento personalizado">
+            <HStack space="md" className="items-center">
+              <AppIcon
+                name="add"
+                size={22}
+                color={C.accentBlackForeground}
+                bg={C.accentBlack}
+                containerSize={r(44)}
+                borderRadius={r(12)}
+              />
+              <VStack className="flex-1">
+                <Text style={styles.todayWorkoutTitle}>Crear entrenamiento personalizado</Text>
+                <Text style={styles.todayWorkoutSub}>Elige secciones, ejercicios, series y descansos</Text>
+              </VStack>
+              <Icon name="chevron-forward" size={20} color={C.textSecondary} />
+            </HStack>
+          </Pressable>
+        </Card>
+
         {/* Nutrición — pedido explícito 2026-08-31: reordenada antes de
             Hábitos (nuevo orden de secciones del Home). */}
         <HStack
@@ -2205,7 +2291,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
             <HStack
               className="justify-between items-center px-5"
               style={{ marginTop: r(24), marginBottom: r(12) }}>
-              <Text style={styles.sectionTitle}>Entrenamientos</Text>
+              <Text style={styles.sectionTitle}>Descubre entrenamientos</Text>
             </HStack>
             <GestureDetector gesture={workoutsCarouselGesture}>
             <ScrollView
