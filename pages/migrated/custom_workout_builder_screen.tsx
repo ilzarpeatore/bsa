@@ -19,7 +19,12 @@ import { hapticLight, hapticSuccess } from '@helper/haptics';
 import ExercisePickerModal from '../../components/ExercisePickerModal';
 import { ConfirmDialogMem } from '../../components/ConfirmDialog';
 import { ExerciseItem } from '../../api/exercises';
-import { customWorkoutsApi, CustomWorkoutMetricKey, newCustomWorkoutRequestId } from '../../api/customWorkouts';
+import {
+  customWorkoutsApi,
+  CustomWorkoutDetail,
+  CustomWorkoutMetricKey,
+  newCustomWorkoutRequestId,
+} from '../../api/customWorkouts';
 
 // Creador de entrenamientos personalizados del propio cliente (pedido
 // 2026-09-24). Se llega desde Home > Entrenamientos ("Crear entrenamiento
@@ -28,6 +33,14 @@ import { customWorkoutsApi, CustomWorkoutMetricKey, newCustomWorkoutRequestId } 
 // el backend lo coloca en el calendario personal del cliente ese día (y,
 // si se pide, el mismo día de las semanas siguientes); a partir de ahí se
 // entrena como cualquier otro día del calendario.
+//
+// Modo edición (2026-09-24): con route.params.editAssignmentId se carga el
+// entrenamiento ya creado (GET my-custom-workout-detail), se prerrellena y
+// al guardar se llama a my-custom-workouts-update en vez de crear. La fecha
+// no se puede cambiar (se muestra como texto, sin selector de día ni
+// repetición semanal). Si es de una serie semanal, antes de guardar se
+// pregunta si aplicar a "solo este día" o "este y los siguientes" (salvo
+// que ya venga route.params.editScope).
 
 type Intensity = 'rir' | 'rpe';
 
@@ -42,6 +55,11 @@ interface BuilderExercise {
   descanso: string;
   intensity: Intensity;
   intensityValue: string;
+  // Solo en modo edición (2026-09-24): datos que este creador no muestra
+  // pero que el entrenamiento guardado podía traer -- se reenvían tal cual
+  // para no perderlos al editar.
+  notes?: string | null;
+  tiempo?: string;
 }
 
 interface BuilderSection {
@@ -59,7 +77,8 @@ const MAX_SERIES = 20;
 const MAX_SECTIONS = 20;
 const MAX_EXERCISES_PER_SECTION = 40;
 const MAX_EXERCISES = 60;
-const REPEAT_OPTIONS = [4, 8, 12, 16, 24];
+// 52 = "1 año" (2026-09-24), el máximo que acepta el backend.
+const REPEAT_OPTIONS = [4, 8, 12, 16, 24, 52];
 const DEFAULT_REPEAT_WEEKS = 8;
 const WEEKDAY_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const WEEKDAY_LONG = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'];
@@ -84,7 +103,11 @@ function startOfWeekMonday(d: Date): Date {
 }
 
 function formatLongDate(key: string): string {
+  // En modo edición la fecha viene del servidor: si no es YYYY-MM-DD válida,
+  // mejor no mostrar nada que "undefined, NaN de undefined".
+  if (typeof key !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return '';
   const d = parseDateKey(key);
+  if (Number.isNaN(d.getTime())) return '';
   return `${WEEKDAY_TITLE[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
 }
 
@@ -130,6 +153,65 @@ function cleanMetricValue(key: 'reps' | 'carga' | 'descanso' | 'rir' | 'rpe', ra
   return String(key === 'descanso' ? Math.round(clamped) : Math.round(clamped * 100) / 100);
 }
 
+/**
+ * Detalle del servidor -> secciones del creador (modo edición, 2026-09-24).
+ * Todo defensivo: cualquier campo puede faltar o venir con otro tipo.
+ * `prescribed` son strings; rir vs rpe se decide por cuál de las dos claves
+ * trae valor (o, sin valor, por enabled_metrics).
+ */
+function detailToSections(detail: CustomWorkoutDetail): BuilderSection[] {
+  const str = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
+  const blocks = Array.isArray(detail?.blocks) ? detail.blocks.slice(0, MAX_SECTIONS) : [];
+  let total = 0;
+  return blocks.map((b, i) => {
+    const rawExercises = Array.isArray(b?.exercises) ? b.exercises.slice(0, MAX_EXERCISES_PER_SECTION) : [];
+    const exercises: BuilderExercise[] = [];
+    rawExercises.forEach((ex) => {
+      const exerciseId = Number(ex?.exercise_id);
+      if (!Number.isInteger(exerciseId) || exerciseId <= 0 || total >= MAX_EXERCISES) return;
+      total += 1;
+      const p: Record<string, unknown> = ex?.prescribed && typeof ex.prescribed === 'object' ? ex.prescribed : {};
+      const metrics = Array.isArray(ex?.enabled_metrics) ? ex.enabled_metrics : [];
+      const rir = str(p.rir).trim();
+      const rpe = str(p.rpe).trim();
+      const intensity: Intensity = rpe && !rir ? 'rpe' : !rir && metrics.includes('rpe') && !metrics.includes('rir') ? 'rpe' : 'rir';
+      const seriesNum = parseInt(str(p.series), 10);
+      const tiempo = str(p.tiempo).trim();
+      exercises.push({
+        key: nextKey('e'),
+        exerciseId,
+        title: typeof ex?.title === 'string' && ex.title.trim() ? ex.title : 'Ejercicio',
+        image: typeof ex?.image === 'string' && ex.image ? ex.image : null,
+        series: Number.isFinite(seriesNum) ? Math.min(MAX_SERIES, Math.max(1, seriesNum)) : DEFAULT_SERIES,
+        reps: sanitizeNumber(str(p.reps), true),
+        carga: sanitizeNumber(str(p.carga)),
+        descanso: sanitizeNumber(str(p.descanso)),
+        intensity,
+        intensityValue: sanitizeNumber(intensity === 'rpe' ? rpe : rir),
+        notes: typeof ex?.notes === 'string' && ex.notes.trim() ? ex.notes : null,
+        tiempo: tiempo && metrics.includes('tiempo') ? tiempo : undefined,
+      });
+    });
+    return {
+      key: nextKey('s'),
+      title: typeof b?.title === 'string' && b.title.trim() ? b.title : `Sección ${i + 1}`,
+      exercises,
+    };
+  });
+}
+
+// Huella de lo editable, para saber en modo edición si hay cambios sin
+// guardar (el aviso de descartar no debe saltar si solo se ha mirado).
+function sectionsSnapshot(title: string, sections: BuilderSection[]): string {
+  return JSON.stringify([
+    title,
+    sections.map((s) => [
+      s.title,
+      s.exercises.map((e) => [e.exerciseId, e.series, e.reps, e.carga, e.descanso, e.intensity, e.intensityValue]),
+    ]),
+  ]);
+}
+
 interface Props {
   navigation?: any;
   route?: any;
@@ -154,9 +236,27 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
   }, [today]);
   const initialDate: string = weekDays.includes(route?.params?.date) ? route.params.date : todayKey;
 
+  // Modo edición (2026-09-24). El id puede llegar como string según desde
+  // dónde se navegue: solo vale un entero positivo.
+  const editAssignmentId: number | null = (() => {
+    const n = Number(route?.params?.editAssignmentId);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  })();
+  const isEdit = editAssignmentId != null;
+  const editScopeParam: 'single' | 'following' | null =
+    route?.params?.editScope === 'single' || route?.params?.editScope === 'following' ? route.params.editScope : null;
+
   const [title, setTitle] = useState('Entrenamiento personalizado');
   const [date, setDate] = useState<string>(initialDate);
-  const [sections, setSections] = useState<BuilderSection[]>(() => [newSection(0), newSection(1)]);
+  const [sections, setSections] = useState<BuilderSection[]>(() => (isEdit ? [] : [newSection(0), newSection(1)]));
+  const [editLoading, setEditLoading] = useState(isEdit);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editMeta, setEditMeta] = useState<{ isRepeating: boolean; isCompleted: boolean } | null>(null);
+  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
+  const [editReloadSeq, setEditReloadSeq] = useState(0);
+  // Alert de "solo este día / este y los siguientes" abierto: evita que un
+  // doble toque en Guardar abra dos.
+  const askingScopeRef = useRef(false);
   const [repeat, setRepeat] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(DEFAULT_REPEAT_WEEKS);
   const [pickerSectionKey, setPickerSectionKey] = useState<string | null>(null);
@@ -270,8 +370,50 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
   };
 
   const hasContent = exerciseCount > 0;
+  const currentSnapshot = useMemo(() => (isEdit ? sectionsSnapshot(title, sections) : ''), [isEdit, title, sections]);
+  // En creación basta con tener algún ejercicio; en edición, con haber
+  // cambiado algo respecto a lo cargado.
+  const hasUnsavedChanges = isEdit ? initialSnapshot != null && currentSnapshot !== initialSnapshot : hasContent;
 
-  usePreventRemove(hasContent && !saved && !leaveAction, ({ data }) => {
+  // Carga del entrenamiento a editar. Nunca rompe: cualquier fallo o
+  // respuesta malformada acaba en editError (mensaje + volver/reintentar).
+  useEffect(() => {
+    if (editAssignmentId == null) return;
+    let cancelled = false;
+    // editLoading/editError ya parten de true/null (estado inicial) y el
+    // botón Reintentar los reinicia antes de subir editReloadSeq.
+    customWorkoutsApi
+      .getDetail(editAssignmentId)
+      .then((res) => {
+        if (cancelled) return;
+        const detail = res?.data?.data;
+        if (!detail || typeof detail !== 'object' || !Array.isArray(detail.blocks)) {
+          setEditError('No se pudo leer este entrenamiento.');
+          return;
+        }
+        const loadedTitle = typeof detail.title === 'string' && detail.title.trim() ? detail.title : 'Entrenamiento personalizado';
+        const loadedSections = detailToSections(detail);
+        const finalSections = loadedSections.length > 0 ? loadedSections : [newSection(0)];
+        setTitle(loadedTitle);
+        if (typeof detail.date === 'string') setDate(detail.date);
+        setSections(finalSections);
+        setEditMeta({ isRepeating: detail.is_repeating === true, isCompleted: detail.is_completed === true });
+        setInitialSnapshot(sectionsSnapshot(loadedTitle, finalSections));
+      })
+      .catch((e: any) => {
+        if (cancelled) return;
+        const message = e?.response?.data?.message;
+        setEditError(typeof message === 'string' && message ? message : 'No se pudo cargar el entrenamiento. Revisa tu conexión.');
+      })
+      .finally(() => {
+        if (!cancelled) setEditLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editAssignmentId, editReloadSeq]);
+
+  usePreventRemove(hasUnsavedChanges && !saved && !leaveAction, ({ data }) => {
     if (savingRef.current) return; // guardando: no se puede salir a medias
     pendingNavActionRef.current = data.action;
     setDiscardVisible(true);
@@ -286,16 +428,124 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
   // El aviso de descartar lo lanza usePreventRemove cuando hay contenido.
   const onBack = () => navigation?.goBack();
 
-  const save = async () => {
-    if (savingRef.current || saved) return;
+  const buildBlocks = () =>
+    sections
+      .filter((s) => s.exercises.length > 0)
+      .map((s, i) => ({
+        title: s.title.trim() || `Sección ${i + 1}`,
+        exercises: s.exercises.map((e) => {
+          const prescribed: Partial<Record<'series' | CustomWorkoutMetricKey, string>> = {
+            series: String(e.series),
+          };
+          const reps = cleanMetricValue('reps', e.reps);
+          const carga = cleanMetricValue('carga', e.carga);
+          const descanso = cleanMetricValue('descanso', e.descanso);
+          const intensity = cleanMetricValue(e.intensity, e.intensityValue);
+          if (reps) prescribed.reps = reps;
+          if (carga) prescribed.carga = carga;
+          if (descanso) prescribed.descanso = descanso;
+          if (intensity) prescribed[e.intensity] = intensity;
+          const enabled: CustomWorkoutMetricKey[] = ['reps', 'carga', 'descanso', e.intensity];
+          if (e.tiempo) {
+            prescribed.tiempo = e.tiempo;
+            enabled.push('tiempo');
+          }
+          return {
+            exercise_id: e.exerciseId,
+            prescribed,
+            enabled_metrics: enabled,
+            ...(e.notes ? { notes: e.notes } : {}),
+          };
+        }),
+      }));
+
+  const validateBeforeSave = () => {
     if (!title.trim()) {
       showToast('Ponle un nombre', { description: 'El entrenamiento necesita un nombre.', variant: 'warning' });
-      return;
+      return false;
     }
     if (exerciseCount === 0) {
       showToast('Sin ejercicios', { description: 'Añade al menos un ejercicio a alguna sección.', variant: 'warning' });
+      return false;
+    }
+    return true;
+  };
+
+  const saveEdit = async (scope: 'single' | 'following') => {
+    if (editAssignmentId == null || savingRef.current || saved) return;
+    if (!validateBeforeSave()) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const res = await customWorkoutsApi.update({
+        program_day_assignment_id: editAssignmentId,
+        scope,
+        title: title.trim(),
+        blocks: buildBlocks(),
+      });
+      hapticSuccess();
+      setSaved(true);
+      const message = res?.data?.message;
+      showToast('Entrenamiento actualizado', {
+        description: typeof message === 'string' && message ? message : 'Cambios guardados.',
+        variant: 'success',
+      });
+      leave(() => navigation?.goBack());
+    } catch (e: any) {
+      const message = e?.response?.data?.message;
+      showToast('No se pudo guardar', {
+        description: typeof message === 'string' ? message : 'Inténtalo de nuevo en unos minutos.',
+        variant: 'error',
+      });
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
+  const onSaveEditPress = () => {
+    if (savingRef.current || saved || askingScopeRef.current) return;
+    if (!editMeta || editMeta.isCompleted) return;
+    if (!validateBeforeSave()) return;
+    if (editScopeParam || !editMeta.isRepeating) {
+      saveEdit(editScopeParam ?? 'single');
       return;
     }
+    askingScopeRef.current = true;
+    const done = () => {
+      askingScopeRef.current = false;
+    };
+    Alert.alert(
+      'Entrenamiento repetido',
+      'Este entrenamiento se repite cada semana. ¿A cuáles quieres aplicar los cambios?',
+      [
+        { text: 'Cancelar', style: 'cancel', onPress: done },
+        {
+          text: 'Solo este día',
+          onPress: () => {
+            done();
+            saveEdit('single');
+          },
+        },
+        {
+          text: 'Este y los siguientes',
+          onPress: () => {
+            done();
+            saveEdit('following');
+          },
+        },
+      ],
+      { cancelable: true, onDismiss: done }
+    );
+  };
+
+  const save = async () => {
+    if (isEdit) {
+      onSaveEditPress();
+      return;
+    }
+    if (savingRef.current || saved) return;
+    if (!validateBeforeSave()) return;
     savingRef.current = true;
     setSaving(true);
     try {
@@ -304,29 +554,7 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
         title: title.trim(),
         date,
         repeat_weeks: repeat ? repeatWeeks : 1,
-        blocks: sections
-          .filter((s) => s.exercises.length > 0)
-          .map((s, i) => ({
-            title: s.title.trim() || `Sección ${i + 1}`,
-            exercises: s.exercises.map((e) => {
-              const prescribed: Partial<Record<'series' | CustomWorkoutMetricKey, string>> = {
-                series: String(e.series),
-              };
-              const reps = cleanMetricValue('reps', e.reps);
-              const carga = cleanMetricValue('carga', e.carga);
-              const descanso = cleanMetricValue('descanso', e.descanso);
-              const intensity = cleanMetricValue(e.intensity, e.intensityValue);
-              if (reps) prescribed.reps = reps;
-              if (carga) prescribed.carga = carga;
-              if (descanso) prescribed.descanso = descanso;
-              if (intensity) prescribed[e.intensity] = intensity;
-              return {
-                exercise_id: e.exerciseId,
-                prescribed,
-                enabled_metrics: ['reps', 'carga', 'descanso', e.intensity] as CustomWorkoutMetricKey[],
-              };
-            }),
-          })),
+        blocks: buildBlocks(),
       });
       hapticSuccess();
       setSaved(true);
@@ -492,10 +720,47 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
         <Pressable onPress={onBack} hitSlop={10} accessibilityRole="button" accessibilityLabel="Volver">
           <Icon name="chevron-back" size={26} color={C.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Nuevo entrenamiento</Text>
+        <Text style={styles.headerTitle}>{isEdit ? 'Editar entrenamiento' : 'Nuevo entrenamiento'}</Text>
         <Box style={{ width: 26 }} />
       </HStack>
 
+      {isEdit && (editLoading || editError != null || !editMeta || editMeta.isCompleted) ? (
+        <VStack style={styles.stateWrap}>
+          {editLoading ? (
+            <Spinner size="large" color={C.orange} />
+          ) : (
+            <>
+              <Icon
+                name={editMeta?.isCompleted && editError == null ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+                size={40}
+                color={C.textSecondary}
+              />
+              <Text style={styles.stateText}>
+                {editError ??
+                  (editMeta?.isCompleted
+                    ? 'Este entrenamiento ya está completado y no se puede editar.'
+                    : 'No se pudo cargar el entrenamiento.')}
+              </Text>
+              {editError != null && (
+                <Button
+                  radius="pill"
+                  style={[styles.saveBtn, { marginTop: 16, paddingHorizontal: 24 }] as any}
+                  onPress={() => {
+                    setEditLoading(true);
+                    setEditError(null);
+                    setEditReloadSeq((n) => n + 1);
+                  }}
+                >
+                  <ButtonText style={styles.saveText}>Reintentar</ButtonText>
+                </Button>
+              )}
+              <Pressable onPress={onBack} hitSlop={8} style={{ marginTop: 14 }} accessibilityRole="button">
+                <Text style={styles.stateLink}>Volver</Text>
+              </Pressable>
+            </>
+          )}
+        </VStack>
+      ) : (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           ref={scrollRef}
@@ -514,6 +779,11 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
           />
 
           <Text style={[styles.label, { marginTop: 18 }]}>Día</Text>
+          {isEdit ? (
+            // En edición la fecha no se puede cambiar (2026-09-24).
+            <Text style={styles.dateFixed}>{formatLongDate(date) || date}</Text>
+          ) : (
+          <>
           <HStack style={styles.dayRow}>
             {weekDays.map((key, i) => {
               const active = key === date;
@@ -555,13 +825,15 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
                     style={[styles.weeksChip, repeatWeeks === w && styles.weeksChipActive]}
                   >
                     <Text style={[styles.weeksChipText, repeatWeeks === w && styles.weeksChipTextActive]}>
-                      {w} semanas
+                      {w === 52 ? '1 año' : `${w} semanas`}
                     </Text>
                   </Pressable>
                 ))}
               </HStack>
             )}
           </Box>
+          </>
+          )}
 
           {/* Secciones */}
           {sections.map((section, sIdx) => (
@@ -624,12 +896,14 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
               <Spinner size="small" color={C.accentBlackForeground} />
             ) : (
               <ButtonText style={styles.saveText}>
-                Guardar entrenamiento{exerciseCount > 0 ? ` · ${exerciseCount} ejercicio${exerciseCount !== 1 ? 's' : ''}` : ''}
+                {isEdit ? 'Guardar cambios' : 'Guardar entrenamiento'}
+                {exerciseCount > 0 ? ` · ${exerciseCount} ejercicio${exerciseCount !== 1 ? 's' : ''}` : ''}
               </ButtonText>
             )}
           </Button>
         </Box>
       </KeyboardAvoidingView>
+      )}
 
       {pickerSectionKey != null && (
         <ExercisePickerModal
@@ -643,8 +917,8 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
       <ConfirmDialogMem
         visible={discardVisible}
         icon="trash-outline"
-        title="¿Descartar entrenamiento?"
-        message="Perderás las secciones y ejercicios que has añadido."
+        title={isEdit ? '¿Descartar cambios?' : '¿Descartar entrenamiento?'}
+        message={isEdit ? 'Perderás los cambios que has hecho en este entrenamiento.' : 'Perderás las secciones y ejercicios que has añadido.'}
         confirmText="Descartar"
         cancelText="Seguir editando"
         destructive
@@ -697,6 +971,17 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       paddingTop: 8,
       paddingBottom: 12,
     },
+    stateWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+    stateText: {
+      fontSize: 15,
+      fontFamily: FONT.medium,
+      color: C.textSecondary,
+      textAlign: 'center',
+      marginTop: 12,
+      lineHeight: 21,
+    },
+    stateLink: { fontSize: 15, fontFamily: FONT.semiBold, color: C.orange60, lineHeight: 20 },
+    dateFixed: { fontSize: 15, fontFamily: FONT.semiBold, color: C.textPrimary, lineHeight: 20 },
     headerTitle: { fontSize: 18, fontFamily: FONT.bold, color: C.textPrimary, lineHeight: 24 },
     label: { fontSize: 13, fontFamily: FONT.semiBold, color: C.textSecondary, marginBottom: 8, lineHeight: 18 },
     titleInput: {
