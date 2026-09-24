@@ -39,6 +39,12 @@ export interface CreatedCustomWorkout {
 }
 
 export interface ActiveProgram {
+  // 'coach_calendar' (2026-09-24) = el calendario personal del cliente
+  // cuando el entrenador le ha asignado sesiones sueltas esta semana
+  // ("Plan de tu entrenador"; num_weeks/current_week = 0, end_date null, y
+  // los contadores excluyen los entrenamientos creados por el cliente).
+  // Sin `kind` (backend anterior) = 'program'.
+  kind?: 'program' | 'coach_calendar';
   program_client_assignment_id: number;
   training_program_id: number;
   title: string;
@@ -48,6 +54,43 @@ export interface ActiveProgram {
   current_week: number; // 0 = todavía no ha empezado
   sessions_this_week: number;
   completed_this_week: number;
+}
+
+// Detalle de un entrenamiento personalizado para editarlo (2026-09-24,
+// backend: GET v1/my-custom-workout-detail). `prescribed` son strings tal
+// cual se guardaron; trae `rir` o `rpe`, nunca los dos.
+export interface CustomWorkoutDetailExercise {
+  exercise_id: number;
+  title: string;
+  image: string | null;
+  prescribed: Partial<Record<'series' | CustomWorkoutMetricKey, string>>;
+  enabled_metrics: string[];
+  notes: string | null;
+}
+
+export interface CustomWorkoutDetail {
+  assignment_id: number;
+  date: string; // YYYY-MM-DD
+  title: string;
+  is_repeating: boolean;
+  is_completed: boolean;
+  blocks: { title: string; exercises: CustomWorkoutDetailExercise[] }[];
+}
+
+export interface UpdateCustomWorkoutPayload {
+  program_day_assignment_id: number;
+  // 'following' = este día y las siguientes repeticiones semanales.
+  scope: 'single' | 'following';
+  title: string;
+  blocks: CustomWorkoutBlockPayload[];
+}
+
+// Fecha LOCAL del dispositivo en YYYY-MM-DD (no toISOString(), que da la
+// fecha UTC y de madrugada/noche puede ser el día anterior/siguiente).
+export function localTodayYmd(d: Date = new Date()): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 // Id de petición para client_request_id (backend: [A-Za-z0-9_-], máx. 36).
@@ -73,5 +116,25 @@ export const customWorkoutsApi = {
       scope,
     }),
 
-  getActivePrograms: () => apiClient.get<{ data: ActiveProgram[] }>('v1/my-active-programs'),
+  getDetail: (programDayAssignmentId: number) =>
+    apiClient.get<{ data: CustomWorkoutDetail }>('v1/my-custom-workout-detail', {
+      params: { program_day_assignment_id: programDayAssignmentId },
+    }),
+
+  // Mismo timeout largo que create: con scope 'following' puede reescribir
+  // muchas repeticiones semanales.
+  update: (payload: UpdateCustomWorkoutPayload) =>
+    apiClient.post<{ message: string; data: { updated: number; skipped_completed: number } }>(
+      'v1/my-custom-workouts-update',
+      payload,
+      { timeout: 60000 }
+    ),
+
+  // `today` = fecha local del dispositivo (2026-09-24): el backend calcula
+  // "esta semana" y la semana actual del programa con ella en vez de con su
+  // propia zona horaria. Backends anteriores ignoran el parámetro.
+  getActivePrograms: () =>
+    apiClient.get<{ data: ActiveProgram[] }>('v1/my-active-programs', {
+      params: { today: localTodayYmd() },
+    }),
 };
