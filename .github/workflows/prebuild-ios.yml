@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
 
@@ -17,7 +17,7 @@ jobs:
 
       - name: Expo prebuild (iOS only)
         env:
-          CI: "1"
+          CI: '1'
         run: npx expo prebuild --platform ios
 
       - uses: actions/upload-artifact@v7
