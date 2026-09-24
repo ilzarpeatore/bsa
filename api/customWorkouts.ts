@@ -24,6 +24,9 @@ export interface CustomWorkoutBlockPayload {
 }
 
 export interface CreateCustomWorkoutPayload {
+  // Idempotencia: el mismo id en un reintento devuelve lo ya creado en vez
+  // de duplicarlo (backend: ClientCustomWorkoutController::store()).
+  client_request_id?: string;
   title: string;
   date: string; // YYYY-MM-DD
   repeat_weeks?: number; // 1 = sin repetir
@@ -47,9 +50,21 @@ export interface ActiveProgram {
   completed_this_week: number;
 }
 
+// Id de petición para client_request_id (backend: [A-Za-z0-9_-], máx. 36).
+export function newCustomWorkoutRequestId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export const customWorkoutsApi = {
+  // Timeout propio (60 s en vez de los 15 s globales): repetir un
+  // entrenamiento largo durante muchas semanas crea bastantes filas, y un
+  // timeout en la app con el servidor todavía guardando llevaba al usuario a
+  // pulsar Guardar otra vez (el client_request_id ya evita el duplicado, esto
+  // evita además el falso error).
   create: (payload: CreateCustomWorkoutPayload) =>
-    apiClient.post<{ message: string; data: CreatedCustomWorkout }>('v1/my-custom-workouts', payload),
+    apiClient.post<{ message: string; replayed?: boolean; data: CreatedCustomWorkout }>('v1/my-custom-workouts', payload, {
+      timeout: 60000,
+    }),
 
   // scope 'following' = esta y las siguientes repeticiones semanales.
   remove: (programDayAssignmentId: number, scope: 'single' | 'following' = 'single') =>

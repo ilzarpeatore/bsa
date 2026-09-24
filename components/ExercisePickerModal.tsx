@@ -40,6 +40,12 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
+// La API a veces devuelve null/objeto en vez de lista (catálogo vacío,
+// error manejado en backend): nunca dejar que un .map() reviente la pantalla.
+function asList<T extends { id: unknown }>(raw: unknown): T[] {
+  return Array.isArray(raw) ? (raw as T[]).filter((it) => it != null && (it as any).id != null) : [];
+}
+
 // Catálogos (grupos musculares/equipo/nivel) cacheados en memoria durante
 // la sesión: no cambian mientras se usa la app y el picker se abre muchas
 // veces seguidas al montar un entrenamiento.
@@ -70,6 +76,14 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
   // Selección en el orden en que se tocan (así se añaden en ese orden).
   const [selected, setSelected] = useState<ExerciseItem[]>([]);
   const selectedIds = useMemo(() => new Set(selected.map((s) => s.id)), [selected]);
+  // Doble toque en "Añadir N ejercicios" antes de que el padre desmonte el
+  // modal: añadiría la misma selección dos veces.
+  const confirmedRef = useRef(false);
+  const confirm = () => {
+    if (confirmedRef.current || selected.length === 0) return;
+    confirmedRef.current = true;
+    onConfirm(selected);
+  };
 
   // Quien lo usa lo monta solo mientras está abierto (ver
   // custom_workout_builder_screen.tsx), así que cada apertura empieza con
@@ -77,9 +91,9 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
   useEffect(() => {
     if (!catalogCache) {
       Promise.all([
-        exercisesApi.getBodyParts(1).then((r) => r.data?.data ?? []).catch(() => [] as BodyPartItem[]),
-        exercisesApi.getEquipment(1).then((r) => r.data?.data ?? []).catch(() => [] as EquipmentItem[]),
-        exercisesApi.getLevels(1).then((r) => r.data?.data ?? []).catch(() => [] as LevelItem[]),
+        exercisesApi.getBodyParts(1).then((r) => asList<BodyPartItem>(r.data?.data)).catch(() => [] as BodyPartItem[]),
+        exercisesApi.getEquipment(1).then((r) => asList<EquipmentItem>(r.data?.data)).catch(() => [] as EquipmentItem[]),
+        exercisesApi.getLevels(1).then((r) => asList<LevelItem>(r.data?.data)).catch(() => [] as LevelItem[]),
       ]).then(([bp, eq, lv]) => {
         if (bp.length || eq.length || lv.length) catalogCache = { bodyParts: bp, equipment: eq, levels: lv };
         setBodyParts(bp);
@@ -105,8 +119,15 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           per_page: PAGE_SIZE,
         });
         if (requestId !== requestIdRef.current) return; // respuesta obsoleta
-        const items = res.data?.data ?? [];
-        setResults((prev) => (page === 1 ? items : [...prev, ...items]));
+        const raw = res.data?.data;
+        const items = (Array.isArray(raw) ? raw : []).filter((it) => it && typeof it.id === 'number');
+        // Si el catálogo cambia entre página y página el mismo ejercicio
+        // puede venir dos veces -- claves duplicadas en la FlatList.
+        setResults((prev) => {
+          if (page === 1) return items;
+          const seen = new Set(prev.map((p) => p.id));
+          return [...prev, ...items.filter((it) => !seen.has(it.id))];
+        });
         const totalPages = res.data?.pagination?.totalPages ?? 1;
         isLastPageRef.current = page >= totalPages;
       } catch {
@@ -175,7 +196,10 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
   const renderItem = ({ item }: { item: ExerciseItem }) => {
     const isSelected = selectedIds.has(item.id);
-    const subtitle = [item.bodypart_name?.map((b) => b.title).join(', '), item.equipment_title].filter(Boolean).join(' · ');
+    const bodyPartNames = Array.isArray(item.bodypart_name)
+      ? item.bodypart_name.map((b) => b?.title).filter(Boolean).join(', ')
+      : '';
+    const subtitle = [bodyPartNames, item.equipment_title].filter(Boolean).join(' · ');
     return (
       <Pressable className="flex-row items-center py-2.5" onPress={() => toggle(item)}>
         {item.exercise_image ? (
@@ -185,7 +209,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
         )}
         <Box style={{ flex: 1, marginRight: 8 }}>
           <Text weight="semibold" className="text-foreground" style={{ fontSize: 14 }} numberOfLines={2}>
-            {item.title}
+            {item.title || 'Ejercicio sin nombre'}
           </Text>
           {!!subtitle && (
             <Text style={styles.resultSubtitle} numberOfLines={1}>
@@ -300,7 +324,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
         ) : (
           <FlatList
             data={results}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => String(item.id)}
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
             onEndReached={onEndReached}
@@ -320,7 +344,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
         {selected.length > 0 && (
           <Box style={styles.footer}>
-            <Button radius="pill" style={styles.confirmBtn as any} onPress={() => onConfirm(selected)}>
+            <Button radius="pill" style={styles.confirmBtn as any} onPress={confirm}>
               <ButtonText style={styles.confirmText}>
                 Añadir {selected.length} ejercicio{selected.length !== 1 ? 's' : ''}
               </ButtonText>

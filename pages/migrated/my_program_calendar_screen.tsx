@@ -30,6 +30,7 @@ import {  workoutHistoryApi, CompletedSessionItem  } from '../../api/workoutHist
 import {  adaptiveWeekPlansApi  } from '../../api/adaptiveWeekPlans';
 import {  checkinsApi, checkinTypeLabel, CheckInAssignment  } from '../../api/checkins';
 import {  customWorkoutsApi  } from '../../api/customWorkouts';
+import {  getActiveWorkoutSession  } from '../../helper/workoutSessionBus';
 
 interface CalendarWorkout {
   title?: string;
@@ -50,6 +51,7 @@ interface CalendarWorkout {
   // (entrenamiento personalizado: badge + borrable con pulsación larga).
   trainingProgramId?: number;
   isCustom?: boolean;
+  isRepeating?: boolean;
 }
 
 // Respaldo SOLO para cuando el coach no ha subido una imagen real a la
@@ -483,6 +485,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             image: w.image || null,
             trainingProgramId: w.training_program_id,
             isCustom: !!w.is_custom,
+            isRepeating: !!w.is_repeating,
           })),
       }));
       setMDays(mapped);
@@ -756,19 +759,34 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   const confirmDeleteCustom = (w: CalendarWorkout) => {
     if (w.assignmentId == null) return;
     const assignmentId = w.assignmentId;
-    Alert.alert(
-      'Eliminar entrenamiento',
-      `¿Quieres quitar "${w.title || 'este entrenamiento'}" de tu calendario?`,
-      [
+    // Borrar el entrenamiento que está en curso (minimizado) dejaría la
+    // barra flotante y la sesión guardada apuntando a un día que ya no
+    // existe -- al volver a abrirla solo daría error.
+    const active = getActiveWorkoutSession();
+    if (active?.programDayAssignmentId === assignmentId || active?.identityKey === `pda:${assignmentId}`) {
+      showToast('Entrenamiento en curso', {
+        description: 'Termina o descarta la sesión en curso antes de eliminarlo.',
+        variant: 'warning',
+      });
+      return;
+    }
+    const title = `¿Quieres quitar "${w.title || 'este entrenamiento'}" de tu calendario?`;
+    if (!w.isRepeating) {
+      Alert.alert('Eliminar entrenamiento', title, [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Solo este día', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
-        {
-          text: 'Este y los siguientes',
-          style: 'destructive',
-          onPress: () => deleteCustomWorkout(assignmentId, 'following'),
-        },
-      ]
-    );
+        { text: 'Eliminar', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
+      ]);
+      return;
+    }
+    Alert.alert('Eliminar entrenamiento', `${title}\n\nSe repite cada semana.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Solo este día', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
+      {
+        text: 'Este y los siguientes',
+        style: 'destructive',
+        onPress: () => deleteCustomWorkout(assignmentId, 'following'),
+      },
+    ]);
   };
 
   const renderCreateCustomButton = (dateKey: string) =>

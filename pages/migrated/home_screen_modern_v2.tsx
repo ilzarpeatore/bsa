@@ -991,7 +991,12 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       // sección Entrenamientos solo muestra el botón de crear.
       customWorkoutsApi
         .getActivePrograms()
-        .then((res) => setActivePrograms(res.data?.data ?? []))
+        .then((res) => {
+          const list = res.data?.data;
+          // Nunca dejar un no-array en el estado: el .map() del render
+          // tumbaría el Home entero.
+          setActivePrograms(Array.isArray(list) ? list.filter((p) => p && p.training_program_id != null) : []);
+        })
         .catch(() => {});
 
       const [
@@ -1868,14 +1873,16 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                   (p.sessions_this_week > 0
                     ? ` · ${p.completed_this_week}/${p.sessions_this_week} sesiones esta semana`
                     : '')
-                : `Empieza el ${p.start_date.split('-').reverse().slice(0, 2).join('/')}`;
+                : p.start_date
+                  ? `Empieza el ${String(p.start_date).split('-').reverse().slice(0, 2).join('/')}`
+                  : 'Pendiente de empezar';
             return (
               <React.Fragment key={p.program_client_assignment_id}>
                 <Pressable
                   onPress={() =>
                     navigation?.navigate('MigratedMyProgramCalendar', {
                       programId: p.training_program_id,
-                      programTitle: p.title,
+                      programTitle: p.title || 'Mi programa',
                       initialViewMode: 'list',
                       initialPeriodMode: 'week',
                     })
@@ -1891,7 +1898,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     />
                     <VStack className="flex-1">
                       <Text style={styles.todayWorkoutTitle} numberOfLines={2}>
-                        {p.title}
+                        {p.title || 'Mi programa'}
                       </Text>
                       <Text style={styles.todayWorkoutSub}>{subtitle}</Text>
                     </VStack>

@@ -52,6 +52,9 @@ export interface CalendarMonthWorkout {
   training_program_id?: number;
   is_personal?: boolean;
   is_custom?: boolean;
+  // true si forma parte de una serie semanal de más de una ocurrencia
+  // ("repetir todos los lunes") -- solo entonces se ofrece "este y los siguientes".
+  is_repeating?: boolean;
 }
 
 export interface CalendarMonthDay {

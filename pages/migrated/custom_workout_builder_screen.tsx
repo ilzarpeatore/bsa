@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { usePreventRemove } from '@react-navigation/native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
@@ -18,7 +19,7 @@ import { hapticLight, hapticSuccess } from '@helper/haptics';
 import ExercisePickerModal from '../../components/ExercisePickerModal';
 import { ConfirmDialogMem } from '../../components/ConfirmDialog';
 import { ExerciseItem } from '../../api/exercises';
-import { customWorkoutsApi, CustomWorkoutMetricKey } from '../../api/customWorkouts';
+import { customWorkoutsApi, CustomWorkoutMetricKey, newCustomWorkoutRequestId } from '../../api/customWorkouts';
 
 // Creador de entrenamientos personalizados del propio cliente (pedido
 // 2026-09-24). Se llega desde Home > Entrenamientos ("Crear entrenamiento
@@ -54,6 +55,10 @@ const DEFAULT_REPS = '10';
 const DEFAULT_REST = '90';
 const DEFAULT_RIR = '2';
 const MAX_SERIES = 20;
+// Mismos topes que valida el backend (ClientCustomWorkoutController::store).
+const MAX_SECTIONS = 20;
+const MAX_EXERCISES_PER_SECTION = 40;
+const MAX_EXERCISES = 60;
 const REPEAT_OPTIONS = [4, 8, 12, 16, 24];
 const DEFAULT_REPEAT_WEEKS = 8;
 const WEEKDAY_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -92,9 +97,38 @@ const newSection = (index: number): BuilderSection => ({
   exercises: [],
 });
 
-// Solo dígitos y separador decimal/rango ("8-10", "22.5").
-const sanitizeNumber = (v: string, allowRange = false) =>
-  v.replace(',', '.').replace(allowRange ? /[^0-9.\-]/g : /[^0-9.]/g, '').slice(0, 7);
+// Mientras se escribe: solo dígitos y, como mucho, UN separador decimal
+// ("22.5") o, en reps, UN guion de rango ("8-10") -- antes se aceptaba
+// "1.2.3" o "8--10", que luego no se podían leer como número.
+const sanitizeNumber = (v: string, allowRange = false) => {
+  if (allowRange) {
+    const digitsAndDash = v.replace(/[^0-9-]/g, '').replace(/^-+/, '');
+    const [first, ...rest] = digitsAndDash.split('-');
+    return (rest.length ? `${first}-${rest.join('')}` : first).slice(0, 7);
+  }
+  const digitsAndDot = v.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const [int, ...dec] = digitsAndDot.split('.');
+  return (dec.length ? `${int}.${dec.join('')}` : int).slice(0, 7);
+};
+
+// Al guardar: valor final limpio (sin "8-", "." suelto, fuera de rango...).
+// El backend vuelve a normalizar igual, esto evita mandar basura.
+function cleanMetricValue(key: 'reps' | 'carga' | 'descanso' | 'rir' | 'rpe', raw: string): string | undefined {
+  const v = raw.trim();
+  if (!v) return undefined;
+  if (key === 'reps') {
+    const m = v.match(/^(\d+)(?:-(\d+))?/);
+    if (!m) return undefined;
+    const a = Math.max(1, parseInt(m[1], 10));
+    const b = m[2] ? Math.max(1, parseInt(m[2], 10)) : null;
+    return b == null || a === b ? String(a) : `${Math.min(a, b)}-${Math.max(a, b)}`;
+  }
+  const n = parseFloat(v);
+  if (!Number.isFinite(n)) return undefined;
+  const [min, max] = key === 'carga' ? [0, 1000] : key === 'descanso' ? [0, 3600] : key === 'rir' ? [0, 10] : [1, 10];
+  const clamped = Math.min(max, Math.max(min, n));
+  return String(key === 'descanso' ? Math.round(clamped) : Math.round(clamped * 100) / 100);
+}
 
 interface Props {
   navigation?: any;
@@ -130,6 +164,19 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
   const [discardVisible, setDiscardVisible] = useState(false);
   const [startNow, setStartNow] = useState<{ assignmentId: number; title: string } | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  // Doble toque en Guardar: `saving` (estado) no se refleja hasta el
+  // siguiente render, así que dos toques seguidos podían lanzar dos POST.
+  const savingRef = useRef(false);
+  // Un id por pantalla de creación: si el POST se repite (timeout, doble
+  // envío), el backend devuelve lo ya creado en vez de duplicarlo.
+  const requestIdRef = useRef(newCustomWorkoutRequestId());
+  // Salir con cambios sin guardar (botón atrás, gesto de swipe, botón físico
+  // de Android): pregunta antes de descartar. `saved` desactiva la
+  // protección una vez guardado; `leaveAction` ejecuta la navegación
+  // pendiente DESPUÉS del render que ya ha quitado la protección.
+  const [saved, setSaved] = useState(false);
+  const [leaveAction, setLeaveAction] = useState<null | (() => void)>(null);
+  const pendingNavActionRef = useRef<any>(null);
 
   const exerciseCount = sections.reduce((n, s) => n + s.exercises.length, 0);
   const weekdayIdx = (() => {
@@ -164,12 +211,44 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const removeSection = (key: string) => setSections((prev) => prev.filter((s) => s.key !== key));
+  const removeSection = (key: string) => {
+    const section = sections.find((s) => s.key === key);
+    const doRemove = () => setSections((prev) => prev.filter((s) => s.key !== key));
+    // Un toque accidental en la "x" no debe llevarse por delante los
+    // ejercicios ya configurados: solo se pregunta si la sección tiene alguno.
+    if (!section || section.exercises.length === 0) {
+      doRemove();
+      return;
+    }
+    Alert.alert(
+      'Eliminar sección',
+      `"${section.title || 'Esta sección'}" tiene ${section.exercises.length} ejercicio${section.exercises.length !== 1 ? 's' : ''}. ¿Eliminarla?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: doRemove },
+      ]
+    );
+  };
 
-  const onPickerConfirm = (items: ExerciseItem[]) => {
+  const onPickerConfirm = (picked: ExerciseItem[]) => {
     const sectionKey = pickerSectionKey;
     setPickerSectionKey(null);
     if (!sectionKey) return;
+    const section = sections.find((s) => s.key === sectionKey);
+    if (!section) return;
+    // Topes del backend: por sección y en total.
+    const room = Math.max(
+      0,
+      Math.min(MAX_EXERCISES_PER_SECTION - section.exercises.length, MAX_EXERCISES - exerciseCount)
+    );
+    const items = picked.slice(0, room);
+    if (items.length < picked.length) {
+      showToast('Demasiados ejercicios', {
+        description: `Máximo ${MAX_EXERCISES_PER_SECTION} por sección y ${MAX_EXERCISES} en total. Se han añadido ${items.length}.`,
+        variant: 'warning',
+      });
+    }
+    if (items.length === 0) return;
     updateSection(sectionKey, (s) => ({
       ...s,
       exercises: [
@@ -177,7 +256,7 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
         ...items.map((item) => ({
           key: nextKey('e'),
           exerciseId: item.id,
-          title: item.title,
+          title: item.title || 'Ejercicio',
           image: item.exercise_image || null,
           series: DEFAULT_SERIES,
           reps: DEFAULT_REPS,
@@ -191,12 +270,24 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
   };
 
   const hasContent = exerciseCount > 0;
-  const onBack = () => {
-    if (hasContent && !saving) setDiscardVisible(true);
-    else navigation?.goBack();
-  };
+
+  usePreventRemove(hasContent && !saved && !leaveAction, ({ data }) => {
+    if (savingRef.current) return; // guardando: no se puede salir a medias
+    pendingNavActionRef.current = data.action;
+    setDiscardVisible(true);
+  });
+
+  useEffect(() => {
+    if (leaveAction) leaveAction();
+  }, [leaveAction]);
+
+  const leave = (fn: () => void) => setLeaveAction(() => fn);
+
+  // El aviso de descartar lo lanza usePreventRemove cuando hay contenido.
+  const onBack = () => navigation?.goBack();
 
   const save = async () => {
+    if (savingRef.current || saved) return;
     if (!title.trim()) {
       showToast('Ponle un nombre', { description: 'El entrenamiento necesita un nombre.', variant: 'warning' });
       return;
@@ -205,9 +296,11 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
       showToast('Sin ejercicios', { description: 'Añade al menos un ejercicio a alguna sección.', variant: 'warning' });
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       const res = await customWorkoutsApi.create({
+        client_request_id: requestIdRef.current,
         title: title.trim(),
         date,
         repeat_weeks: repeat ? repeatWeeks : 1,
@@ -219,10 +312,14 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
               const prescribed: Partial<Record<'series' | CustomWorkoutMetricKey, string>> = {
                 series: String(e.series),
               };
-              if (e.reps) prescribed.reps = e.reps;
-              if (e.carga) prescribed.carga = e.carga;
-              if (e.descanso) prescribed.descanso = e.descanso;
-              if (e.intensityValue) prescribed[e.intensity] = e.intensityValue;
+              const reps = cleanMetricValue('reps', e.reps);
+              const carga = cleanMetricValue('carga', e.carga);
+              const descanso = cleanMetricValue('descanso', e.descanso);
+              const intensity = cleanMetricValue(e.intensity, e.intensityValue);
+              if (reps) prescribed.reps = reps;
+              if (carga) prescribed.carga = carga;
+              if (descanso) prescribed.descanso = descanso;
+              if (intensity) prescribed[e.intensity] = intensity;
               return {
                 exercise_id: e.exerciseId,
                 prescribed,
@@ -232,15 +329,17 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
           })),
       });
       hapticSuccess();
-      const first = res.data?.data?.assignments?.[0];
-      if (first && first.date === todayKey) {
+      setSaved(true);
+      const assignments = Array.isArray(res.data?.data?.assignments) ? res.data.data.assignments : [];
+      const first = assignments[0];
+      if (first && first.date === todayKey && typeof first.assignment_id === 'number') {
         setStartNow({ assignmentId: first.assignment_id, title: title.trim() });
       } else {
         showToast('Entrenamiento creado', {
           description: res.data?.message ?? 'Ya lo tienes en tu calendario.',
           variant: 'success',
         });
-        navigation?.goBack();
+        leave(() => navigation?.goBack());
       }
     } catch (e: any) {
       const message = e?.response?.data?.message;
@@ -249,6 +348,7 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
         variant: 'error',
       });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -491,17 +591,26 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
 
               {section.exercises.map((ex, idx) => renderExercise(section, ex, idx))}
 
-              <Pressable style={styles.addExerciseBtn} onPress={() => setPickerSectionKey(section.key)}>
+              <Pressable
+                style={[
+                  styles.addExerciseBtn,
+                  (section.exercises.length >= MAX_EXERCISES_PER_SECTION || exerciseCount >= MAX_EXERCISES) && { opacity: 0.4 },
+                ]}
+                disabled={section.exercises.length >= MAX_EXERCISES_PER_SECTION || exerciseCount >= MAX_EXERCISES}
+                onPress={() => setPickerSectionKey(section.key)}
+              >
                 <Icon name="add-circle-outline" size={18} color={C.orange60} />
                 <Text style={styles.addExerciseText}>Añadir ejercicio</Text>
               </Pressable>
             </Box>
           ))}
 
-          <Pressable style={styles.addSectionBtn} onPress={addSection}>
-            <Icon name="layers-outline" size={18} color={C.textPrimary} />
-            <Text style={styles.addSectionText}>Añadir sección</Text>
-          </Pressable>
+          {sections.length < MAX_SECTIONS && (
+            <Pressable style={styles.addSectionBtn} onPress={addSection}>
+              <Icon name="layers-outline" size={18} color={C.textPrimary} />
+              <Text style={styles.addSectionText}>Añadir sección</Text>
+            </Pressable>
+          )}
         </ScrollView>
 
         <Box style={styles.footer}>
@@ -509,7 +618,7 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
             radius="pill"
             style={[styles.saveBtn, (saving || exerciseCount === 0) && { opacity: 0.6 }] as any}
             onPress={save}
-            disabled={saving}
+            disabled={saving || saved}
           >
             {saving ? (
               <Spinner size="small" color={C.accentBlackForeground} />
@@ -539,10 +648,15 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
         confirmText="Descartar"
         cancelText="Seguir editando"
         destructive
-        onCancel={() => setDiscardVisible(false)}
+        onCancel={() => {
+          pendingNavActionRef.current = null;
+          setDiscardVisible(false);
+        }}
         onConfirm={() => {
           setDiscardVisible(false);
-          navigation?.goBack();
+          const action = pendingNavActionRef.current;
+          pendingNavActionRef.current = null;
+          leave(() => (action ? navigation?.dispatch(action) : navigation?.goBack()));
         }}
       />
 
@@ -555,15 +669,18 @@ export default function CustomWorkoutBuilderScreen({ navigation, route }: Props)
         cancelText="Más tarde"
         onCancel={() => {
           setStartNow(null);
-          navigation?.goBack();
+          leave(() => navigation?.goBack());
         }}
         onConfirm={() => {
           const s = startNow;
           setStartNow(null);
           if (!s) return;
           const params = { programDayAssignmentId: s.assignmentId, mTitle: s.title };
-          if (navigation?.replace) navigation.replace('MigratedWorkoutPreview', params);
-          else navigation?.navigate('MigratedWorkoutPreview', params);
+          leave(() =>
+            navigation?.replace
+              ? navigation.replace('MigratedWorkoutPreview', params)
+              : navigation?.navigate('MigratedWorkoutPreview', params)
+          );
         }}
       />
     </SafeAreaView>
