@@ -825,8 +825,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         // Overlay oscuro sobre RESOURCES_SEE_ALL_BG -- la ilustración es clara
         // (mint/blanco) y el icono de flecha va en blanco, sin esto se pierde
         // el contraste que sí tenía sobre el fondo de color liso.
+        // StyleSheet.absoluteFill (2026-09-24): antes absoluteFillObject, que
+        // en RN 0.86 ya no existe (ni en tipos ni en runtime: el spread no
+        // añadía nada y el overlay/las imagenes de fondo no cubrian la
+        // tarjeta). absoluteFill es un objeto plano congelado, se puede
+        // pasar tal cual o expandir.
         seeAllImageOverlay: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           backgroundColor: 'rgba(0,0,0,0.18)',
         },
         // Banner de la Guía de autogestión -- a diferencia de blogCard, el
@@ -2234,7 +2239,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Box style={[styles.blogImage, styles.seeAllImage]}>
                   <ExpoImage
                     source={RESOURCES_SEE_ALL_BG}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                     contentFit="cover"
                     cachePolicy="memory-disk"
                     transition={200}
@@ -2409,7 +2414,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Box style={[styles.blogImage, styles.seeAllImage]}>
                 <ExpoImage
                   source={BLOG_SEE_ALL_BG}
-                  style={StyleSheet.absoluteFillObject}
+                  style={StyleSheet.absoluteFill}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   transition={200}

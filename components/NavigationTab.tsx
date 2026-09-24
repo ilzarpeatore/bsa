@@ -53,13 +53,19 @@ interface QuickAction {
 // "community" se filtra en tiempo de render si COMMUNITY_ENABLED es false
 // (ver constants/featureFlags.ts) -- se mantiene aquí definido, igual que el
 // resto de flags de esta app, para reactivarlo con un solo cambio.
-const QUICK_ACTIONS: QuickAction[] = [
+// Tipado en dos pasos (2026-09-24): con el .filter() encadenado al literal,
+// TS infería `icon: string` antes de comprobarlo contra QuickAction (error de
+// tsc) -- declarado primero como QuickAction[] conserva los nombres de icono.
+const ALL_QUICK_ACTIONS: QuickAction[] = [
   { id: "profile", label: "Perfil", icon: "person-outline", route: "MigratedProfile" },
   { id: "blog", label: "Blog", icon: "newspaper-outline", route: "MigratedBlog" },
   { id: "community", label: "Comunidad", icon: "people-outline", route: "MigratedCommunity" },
   { id: "metrics", label: "Métricas", icon: "body-outline", route: "MigratedBodyMetrics" },
   { id: "checkins", label: "Check-ins", icon: "clipboard-outline", route: "MigratedCheckIns" },
-].filter((action) => COMMUNITY_ENABLED || action.id !== "community");
+];
+const QUICK_ACTIONS: QuickAction[] = ALL_QUICK_ACTIONS.filter(
+  (action) => COMMUNITY_ENABLED || action.id !== "community"
+);
 
 /**
  * NavigationTab
