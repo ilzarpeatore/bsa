@@ -1,7 +1,9 @@
-// Pantalla "Ya tienes un entrenamiento en curso" (workout_session_screen.tsx
-// + components/WorkoutInProgressConflict.tsx), 2026-09-24. Bug real
-// reportado con captura de iPhone: con un entrenamiento minimizado, al
-// intentar empezar otro, ningún botón de esa pantalla funcionaba.
+// Tests de workout_session_screen.tsx (2026-09-24):
+// - Pantalla "Ya tienes un entrenamiento en curso" (+ componente
+//   WorkoutInProgressConflict). Bug real reportado con captura de iPhone:
+//   con un entrenamiento minimizado, al intentar empezar otro, ningún botón
+//   de esa pantalla funcionaba.
+// - Tabla de series: el número de la serie es el botón de completarla.
 //
 // Se renderiza la pantalla de sesión REAL; solo se sustituyen por dobles lo
 // nativo (reanimated, gesture-handler, vídeo...) y los componentes de UI de
@@ -16,6 +18,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 // pantalla ya se importa con todos los dobles de abajo.
 import WorkoutSessionScreen from './workout_session_screen';
 import { fetchUnifiedWorkout } from './workoutViewShared';
+import { workoutHistoryApi } from '../../api/workoutHistory';
 import {
   clearActiveWorkoutSession,
   getActiveWorkoutSession,
@@ -118,7 +121,9 @@ jest.mock('../../components/ExerciseThumb', () => ({ ExerciseThumbMem: () => nul
 jest.mock('../../components/IntensityCheckSheet', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../components/PainReportSheet', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../components/WorkoutNoteSheet', () => ({ __esModule: true, default: () => null }));
-jest.mock('../../api/workoutHistory', () => ({ workoutHistoryApi: {} }));
+jest.mock('../../api/workoutHistory', () => ({
+  workoutHistoryApi: { logCalendarSets: jest.fn(async () => ({ data: {} })) },
+}));
 jest.mock('../../api/exercises', () => ({ exercisesApi: {} }));
 jest.mock('../../api/loadSuggestion', () => ({ loadSuggestionApi: {}, pickPendingSuggestion: () => null }));
 jest.mock('../../api/workoutTemplate', () => ({}));
@@ -259,4 +264,64 @@ test('tocar la barra flotante desde la pantalla de conflicto abre el entrenamien
   expect(screen.queryByText(CONFLICT_TITLE)).toBeNull();
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(fetchMock.mock.calls[0][0]).toMatchObject({ programDayAssignmentId: 1 });
+});
+
+// Tabla de series (2026-09-24): el número de la serie es el botón de
+// completarla y ejecuta el mismo toggle que el antiguo check (sync con el
+// backend incluido). De paso cubre "todas las series desmarcadas" ->
+// logged_sets: [] y el session_key.
+test('tocar el número de la serie la marca/desmarca y sincroniza con el backend', async () => {
+  clearActiveWorkoutSession();
+  const logMock = workoutHistoryApi.logCalendarSets as jest.Mock;
+  logMock.mockClear();
+  fetchMock.mockResolvedValueOnce({
+    blocks: [
+      {
+        id: 10,
+        title: 'Bloque',
+        exercises: [
+          {
+            id: 100,
+            exerciseId: 7,
+            title: 'Sentadilla',
+            image: null,
+            bodyPartId: null,
+            videoUrl: null,
+            prescribed: { series: '2', reps: '10', carga: '60', rir: '2' },
+            enabledMetrics: ['reps', 'carga', 'rir'],
+            coachNotes: null,
+            lastPerformance: null,
+            sequence: 1,
+            loadSuggestion: null,
+          },
+        ],
+      },
+    ],
+  });
+  const navigation = { goBack: jest.fn(), replace: jest.fn(), navigate: jest.fn(), dispatch: jest.fn() };
+  await render(
+    <WorkoutSessionScreen navigation={navigation} route={{ params: { programDayAssignmentId: 5, mTitle: 'Pierna' } }} />
+  );
+  const first = await screen.findByLabelText('Marcar serie 1 como hecha');
+  expect(screen.getByLabelText('Marcar serie 2 como hecha')).toBeTruthy();
+
+  // Fila 1: reps / carga / RIR (obligatorios para poder marcarla).
+  const inputs = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(inputs[0], '10');
+  await fireEvent.changeText(inputs[1], '60');
+  await fireEvent.changeText(inputs[2], '2');
+
+  await fireEvent.press(first);
+  expect(screen.getByLabelText('Desmarcar serie 1')).toBeTruthy();
+  expect(logMock).toHaveBeenCalledTimes(1);
+  const payload = logMock.mock.calls[0][0];
+  expect(payload.workout_template_exercise_id).toBe(100);
+  expect(payload.logged_sets).toHaveLength(1);
+  expect(payload.session_key).toMatch(/^pda:5:\d+$/);
+
+  await fireEvent.press(screen.getByLabelText('Desmarcar serie 1'));
+  expect(screen.getByLabelText('Marcar serie 1 como hecha')).toBeTruthy();
+  expect(logMock).toHaveBeenCalledTimes(2);
+  expect(logMock.mock.calls[1][0].logged_sets).toEqual([]);
+  expect(logMock.mock.calls[1][0].session_key).toBe(payload.session_key);
 });

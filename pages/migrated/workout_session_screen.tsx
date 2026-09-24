@@ -347,6 +347,64 @@ interface WorkoutExercisePlayerProps {
 // y desmontarse entero con el Modal que lo envuelve, nunca llamarse
 // condicionalmente dentro del componente padre (que ya tiene decenas de
 // hooks propios y sigue vivo aunque el reproductor esté cerrado).
+// Ancho de la columna "SERIE" (número/botón de completar) -- el mismo en
+// cabecera y filas para que todo quede alineado.
+const SET_NUMBER_COL_WIDTH = 38;
+
+/**
+ * Número de la serie = botón de completarla (2026-09-24, pedido explícito
+ * con captura de iPhone: con reps + carga + RIR/RPE + descanso, el check de
+ * la derecha quedaba fuera de la pantalla y había que deslizar para verlo).
+ * Ya no hay columna de check: se toca el propio número. Pendiente = círculo
+ * con el número; hecha = círculo relleno verde (mismo color que el check
+ * "completado" de antes) con ✓ blanco. Solo cambia DÓNDE se pulsa: onPress
+ * es el mismo toggle de siempre (toggleRowComplete / onToggleRowComplete).
+ */
+function SetNumberToggle({
+  index,
+  completed,
+  onPress,
+  C,
+}: {
+  index: number;
+  completed: boolean;
+  onPress: () => void;
+  C: ReturnType<typeof useAppColorMode>['colors'];
+}) {
+  const n = index + 1;
+  return (
+    <Pressable
+      onPress={onPress}
+      // 28 + 8 por lado = 44 pt de zona táctil.
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={completed ? `Desmarcar serie ${n}` : `Marcar serie ${n} como hecha`}
+      accessibilityState={{ checked: completed }}
+      style={{ width: SET_NUMBER_COL_WIDTH, alignItems: 'center', marginTop: 2 }}
+    >
+      <Box
+        className="items-center justify-center"
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          borderWidth: completed ? 0 : 1.5,
+          borderColor: C.border,
+          backgroundColor: completed ? C.success : 'transparent',
+        }}
+      >
+        {completed ? (
+          <Icon name="checkmark" size={16} color="#FFFFFF" />
+        ) : (
+          <Text weight="semibold" className="text-foreground" style={{ fontSize: 12, lineHeight: 16 }}>
+            {n}
+          </Text>
+        )}
+      </Box>
+    </Pressable>
+  );
+}
+
 function WorkoutExercisePlayer({
   ex,
   exercisePositionLabel,
@@ -592,10 +650,22 @@ function WorkoutExercisePlayer({
                   modernización, captura de referencia) -- puramente
                   informativa, no sustituye a la columna "Descanso" editable
                   si el ejercicio la tiene habilitada. */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20 }}>
+              {/* 2026-09-24: sin columna de check (se completa tocando el
+                  número, ver SetNumberToggle) y columnas de métricas a flex
+                  en vez de 72 px fijos -- con 4-5 métricas todo cabe sin
+                  scroll horizontal, que ya no hace falta. Cabecera, casilla
+                  y "Obj: X" comparten la misma columna flex, así que siguen
+                  alineados. Etiquetas de cabecera hasta 2 líneas: la
+                  cabecera crece, no se solapa con los inputs. */}
+              <Box style={{ marginTop: 20 }}>
                 <Box className="px-5">
-                  <HStack className="items-center" style={{ marginBottom: 8 }}>
-                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                  <HStack style={{ marginBottom: 8, alignItems: 'flex-end' }}>
+                    <Text
+                      weight="semibold"
+                      muted
+                      className="text-center"
+                      style={{ fontSize: 11, lineHeight: 13, width: SET_NUMBER_COL_WIDTH }}
+                    >
                       SERIE
                     </Text>
                     {displayMetrics.map((key) => {
@@ -605,11 +675,8 @@ function WorkoutExercisePlayer({
                           weight="semibold"
                           muted={!isIntensity}
                           className="text-center"
-                          style={[
-                            { fontSize: 11, width: 72, marginHorizontal: 2 },
-                            isIntensity && { color: C.blue },
-                          ]}
-                          numberOfLines={1}
+                          style={[{ fontSize: 11, lineHeight: 13 }, isIntensity && { color: C.blue }]}
+                          numberOfLines={2}
                         >
                           {metricLabel(key)}
                         </Text>
@@ -617,6 +684,7 @@ function WorkoutExercisePlayer({
                       return isIntensity ? (
                         <Pressable
                           key={key}
+                          style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}
                           onPress={onToggleIntensityMode}
                           hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
                           accessibilityRole="button"
@@ -625,10 +693,11 @@ function WorkoutExercisePlayer({
                           {label}
                         </Pressable>
                       ) : (
-                        <Box key={key}>{label}</Box>
+                        <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
+                          {label}
+                        </Box>
                       );
                     })}
-                    <Box style={{ width: 34 }} />
                   </HStack>
 
                   {ex.rows.map((row, rowIdx) => (
@@ -641,23 +710,21 @@ function WorkoutExercisePlayer({
                           backgroundColor: row.completed ? C.success5 : 'transparent',
                         }}
                       >
-                        <Box
-                          className="items-center justify-center"
-                          style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, marginHorizontal: 5, marginTop: 4 }}
-                        >
-                          <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                            {rowIdx + 1}
-                          </Text>
-                        </Box>
+                        <SetNumberToggle
+                          index={rowIdx}
+                          completed={row.completed}
+                          onPress={() => onToggleRowComplete(rowIdx)}
+                          C={C}
+                        />
                         {displayMetrics.map((key) => {
                           const suggestedValue = key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
                           const hasSuggestion = suggestedValue != null;
                           const target = hasSuggestion ? suggestedValue : ex.prescribed?.[key];
                           return (
-                            <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
+                            <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
                               <TextInput
                                 className="bg-card rounded-sm text-foreground"
-                                style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
+                                style={{ paddingVertical: 8, paddingHorizontal: 2, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
                                 value={row.values[key] ?? ''}
                                 onChangeText={(t) => onChangeCell(rowIdx, key, t)}
                                 keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
@@ -681,25 +748,6 @@ function WorkoutExercisePlayer({
                             </Box>
                           );
                         })}
-                        <Pressable
-                          className="items-center justify-center"
-                          style={{ width: 34, marginTop: 3 }}
-                          onPress={() => onToggleRowComplete(rowIdx)}
-                        >
-                          <Box
-                            className="items-center justify-center"
-                            style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: 7,
-                              backgroundColor: row.completed ? C.success : 'transparent',
-                              borderWidth: row.completed ? 0 : 1.5,
-                              borderColor: C.border,
-                            }}
-                          >
-                            {row.completed && <Icon name="checkmark" size={16} color="#FFFFFF" />}
-                          </Box>
-                        </Pressable>
                       </HStack>
 
                       {ex.prescribed?.descanso && rowIdx < ex.rows.length - 1 ? (
@@ -714,7 +762,7 @@ function WorkoutExercisePlayer({
                     </React.Fragment>
                   ))}
                 </Box>
-              </ScrollView>
+              </Box>
 
               {/* Añadir serie (acción principal) y marcar todas (secundaria)
                   -- notas/progreso/dolor ya subieron junto al título, así
@@ -2060,11 +2108,24 @@ export default function WorkoutSessionScreen(props: Props) {
                   explícito 2026-08-26. La columna RIR/RPE es tocable: son
                   la misma "casilla" de intensidad intercambiable
                   (getIntensityMode/toggleIntensityMode), el cliente elige
-                  cuál rellenar tocando su título. */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  cuál rellenar tocando su título.
+                  2026-09-24 (pedido explícito, captura de iPhone): con reps +
+                  carga + RIR/RPE + descanso, el check de la derecha quedaba
+                  fuera de la pantalla y había que deslizar. Ahora se completa
+                  tocando el número de la serie (SetNumberToggle), sin columna
+                  de check, y las métricas se reparten el ancho con flex en
+                  vez de 72 px fijos: con 4-5 métricas todo cabe y el scroll
+                  horizontal deja de hacer falta. Etiquetas de cabecera hasta
+                  2 líneas (la cabecera crece, no pisa los inputs). */}
+              <Box>
                 <Box style={{ marginTop: 16 }}>
-                  <HStack className="items-center" style={{ marginBottom: 8 }}>
-                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                  <HStack style={{ marginBottom: 8, alignItems: 'flex-end' }}>
+                    <Text
+                      weight="semibold"
+                      muted
+                      className="text-center"
+                      style={{ fontSize: 11, lineHeight: 13, width: SET_NUMBER_COL_WIDTH }}
+                    >
                       SERIE
                     </Text>
                     {getDisplayMetrics(ex).map((key) => {
@@ -2074,11 +2135,8 @@ export default function WorkoutSessionScreen(props: Props) {
                           weight="semibold"
                           muted={!isIntensity}
                           className="text-center"
-                          style={[
-                            { fontSize: 11, width: 72, marginHorizontal: 2 },
-                            isIntensity && { color: C.blue },
-                          ]}
-                          numberOfLines={1}
+                          style={[{ fontSize: 11, lineHeight: 13 }, isIntensity && { color: C.blue }]}
+                          numberOfLines={2}
                         >
                           {metricLabel(key)}
                         </Text>
@@ -2086,6 +2144,7 @@ export default function WorkoutSessionScreen(props: Props) {
                       return isIntensity ? (
                         <Pressable
                           key={key}
+                          style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}
                           onPress={() => toggleIntensityMode(ex.exerciseId, key as IntensityMetric)}
                           hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
                           accessibilityRole="button"
@@ -2094,10 +2153,11 @@ export default function WorkoutSessionScreen(props: Props) {
                           {label}
                         </Pressable>
                       ) : (
-                        <Box key={key}>{label}</Box>
+                        <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
+                          {label}
+                        </Box>
                       );
                     })}
-                    <Box style={{ width: 34 }} />
                   </HStack>
 
                   {ex.rows.map((row, rowIdx) => (
@@ -2111,32 +2171,36 @@ export default function WorkoutSessionScreen(props: Props) {
                       }}
                     >
                       {/* items-start (no items-center) en el HStack de arriba
-                          -- las celdas de métrica son más altas que este
-                          círculo y el check de más abajo porque llevan
-                          debajo el texto "Obj: X" (ver más abajo); con
-                          items-center, el círculo/check se centraban contra
-                          esa altura TOTAL (input + texto) en vez de contra
-                          el propio recuadro del input, y quedaban más abajo
-                          de lo que tocaba (reportado con captura,
-                          2026-08-26). marginTop aquí los alinea contra la
-                          altura real del TextInput (paddingVertical:8 +
-                          fontSize:13 ≈ 32px). */}
-                      <Box
-                        className="items-center justify-center"
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          borderWidth: 1.5,
-                          borderColor: C.border,
-                          marginHorizontal: 5,
-                          marginTop: 4,
-                        }}
-                      >
-                        <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                          {rowIdx + 1}
-                        </Text>
-                      </Box>
+                          -- las celdas de métrica son más altas que el
+                          círculo del número porque llevan debajo el texto
+                          "Obj: X"; el marginTop de SetNumberToggle lo alinea
+                          contra el propio recuadro del input (reportado con
+                          captura, 2026-08-26). El número ES el botón de
+                          completar (2026-09-24) -- el TutorialTarget del
+                          paso "Marca una serie como hecha" pasa aquí desde
+                          el antiguo check de la derecha. */}
+                      {(() => {
+                        const toggleBtn = (
+                          <SetNumberToggle
+                            index={rowIdx}
+                            completed={row.completed}
+                            onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
+                            C={C}
+                          />
+                        );
+                        // exIdx === 0 añadido (auditoría 2026-08-29): sin
+                        // esto, con más de un ejercicio en el bloque 0 este
+                        // mismo id se registraba en la fila 0 de CADA
+                        // ejercicio de ese bloque (se pisaban entre sí en
+                        // targetsRef, ver store/TutorialContext.tsx
+                        // registerTarget) -- mismo criterio que ya usa
+                        // isTutorialMetric más abajo para las métricas.
+                        return blockIdx === 0 && exIdx === 0 && rowIdx === 0 ? (
+                          <TutorialTarget id="workout-session-first-set-toggle">{toggleBtn}</TutorialTarget>
+                        ) : (
+                          toggleBtn
+                        );
+                      })()}
                       {getDisplayMetrics(ex).map((key) => {
                         // Punto 1 (Motor de Auto-Regulacion de Carga): si hay una
                         // sugerencia PENDIENTE del motor para este ejercicio, esa
@@ -2159,11 +2223,12 @@ export default function WorkoutSessionScreen(props: Props) {
                           rowIdx === 0 &&
                           ['reps', 'carga', 'descanso', 'rir', 'rpe'].includes(key);
                         const cell = (
-                          <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
+                          <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
                             <TextInput
                               className="bg-card rounded-sm text-foreground"
                               style={{
                                 paddingVertical: 8,
+                                paddingHorizontal: 2,
                                 fontFamily: FONT.regular,
                                 fontSize: 13,
                                 textAlign: 'center',
@@ -2201,37 +2266,10 @@ export default function WorkoutSessionScreen(props: Props) {
                           cell
                         );
                       })}
-                      {(() => {
-                        const toggleBtn = (
-                          <Pressable
-                            className="items-center"
-                            style={{ width: 34, marginTop: 3 }}
-                            onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
-                          >
-                            <Icon
-                              name={row.completed ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                              size={26}
-                              color={row.completed ? C.success : C.textSecondary}
-                            />
-                          </Pressable>
-                        );
-                        // exIdx === 0 añadido (auditoría 2026-08-29): sin
-                        // esto, con más de un ejercicio en el bloque 0 este
-                        // mismo id se registraba en la fila 0 de CADA
-                        // ejercicio de ese bloque (se pisaban entre sí en
-                        // targetsRef, ver store/TutorialContext.tsx
-                        // registerTarget) -- mismo criterio que ya usa
-                        // isTutorialMetric más arriba para las métricas.
-                        return blockIdx === 0 && exIdx === 0 && rowIdx === 0 ? (
-                          <TutorialTarget id="workout-session-first-set-toggle">{toggleBtn}</TutorialTarget>
-                        ) : (
-                          toggleBtn
-                        );
-                      })()}
                     </HStack>
                   ))}
                 </Box>
-              </ScrollView>
+              </Box>
 
               {/* Fila de acciones modernizada (pedido explícito 2026-08-26):
                   "Progreso" abre el análisis histórico de ESTE ejercicio

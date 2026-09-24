@@ -191,7 +191,8 @@ export const TUTORIAL_CHALLENGES: TutorialChallenge[] = [
       {
         targetId: 'workout-session-first-set-toggle',
         title: 'Marca una serie como hecha',
-        text: 'Cuando termines una serie, toca este círculo para registrarla.',
+        // 2026-09-24: el botón de completar es ahora el número de la serie.
+        text: 'Cuando termines una serie, toca su número para registrarla.',
         completion: { type: 'action', actionId: 'workout_set_logged' },
       },
       // Finalizar -- faltaba del todo (auditoría 2026-08-28): el reto
