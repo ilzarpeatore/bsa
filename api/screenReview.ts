@@ -3,7 +3,8 @@ import apiClient from './client';
 // Herramienta temporal de desarrollo (ver components/ScreenReviewFab.tsx) —
 // borrar este archivo junto con el resto del feature cuando ya no haga falta.
 
-export type ScreenReviewStatus = 'delete' | 'done' | 'confused';
+// 'comment' (2026-09-24): comentario libre sobre la pantalla, sin juicio de estado.
+export type ScreenReviewStatus = 'comment' | 'delete' | 'done' | 'confused';
 
 export interface ScreenReviewMark {
   id: number;

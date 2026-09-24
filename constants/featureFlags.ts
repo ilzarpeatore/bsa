@@ -66,4 +66,8 @@ export const STARTUP_CHALLENGE_ENABLED = false;
 // (mismo criterio que la nota original: no son para usuarios finales). El
 // componente y el triaje siguen en el árbol, solo ocultos -- se reactiva
 // cambiando este flag, sin tener que reescribir nada.
-export const DEV_TOOLS_ENABLED = false;
+//
+// Reactivado 2026-09-24 (pedido explícito: "activa el screen explorer en
+// la app para el siguiente build"). Volver a false antes del próximo build
+// de tienda.
+export const DEV_TOOLS_ENABLED = true;

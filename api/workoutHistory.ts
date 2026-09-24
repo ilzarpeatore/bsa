@@ -45,6 +45,13 @@ export interface CalendarMonthWorkout {
   // real (peso/reps propuestos) viene en CalendarDayExercise.load_suggestion,
   // pedido aparte en getMyCalendarDayDetail(). Siempre false para clientes free.
   has_load_suggestion?: boolean;
+  image?: string | null;
+  // AÑADIDO (2026-09-24): programa al que pertenece (la lista abierta desde
+  // Home > Entrenamientos filtra por él), si es el calendario personal, y
+  // si lo creó el propio cliente (entrenamiento personalizado, borrable).
+  training_program_id?: number;
+  is_personal?: boolean;
+  is_custom?: boolean;
 }
 
 export interface CalendarMonthDay {

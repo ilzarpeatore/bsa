@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
+  Alert,
   StyleSheet,
   ScrollView,
   View,
@@ -28,6 +29,7 @@ import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  workoutHistoryApi, CompletedSessionItem  } from '../../api/workoutHistory';
 import {  adaptiveWeekPlansApi  } from '../../api/adaptiveWeekPlans';
 import {  checkinsApi, checkinTypeLabel, CheckInAssignment  } from '../../api/checkins';
+import {  customWorkoutsApi  } from '../../api/customWorkouts';
 
 interface CalendarWorkout {
   title?: string;
@@ -43,6 +45,11 @@ interface CalendarWorkout {
   // null si el coach no ha puesto ninguna -- en ese caso se sigue usando
   // getWorkoutImage() como respaldo.
   image?: string | null;
+  // AÑADIDO (2026-09-24): programa al que pertenece (filtro de la lista
+  // abierta desde Home > Entrenamientos) y si lo creó el propio cliente
+  // (entrenamiento personalizado: badge + borrable con pulsación larga).
+  trainingProgramId?: number;
+  isCustom?: boolean;
 }
 
 // Respaldo SOLO para cuando el coach no ha subido una imagen real a la
@@ -238,7 +245,15 @@ function chunkIntoWeeks<T>(days: T[]): T[][] {
 }
 
 export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenProps) {
-  const { navigation } = props;
+  const { navigation, route } = props;
+  // AÑADIDO (2026-09-24): Home > Entrenamientos abre esta misma pantalla en
+  // vista Lista + Semana y filtrada a UN programa asignado (programId), con
+  // su nombre como título -- mismas reglas (solo la semana en curso) que la
+  // pestaña normal, que llega sin params y se comporta igual que siempre.
+  const programId: number | undefined = route?.params?.programId;
+  const programTitle: string | undefined = route?.params?.programTitle;
+  const initialViewMode: 'calendar' | 'list' = route?.params?.initialViewMode === 'list' ? 'list' : 'calendar';
+  const initialPeriodMode: 'week' | 'month' = route?.params?.initialPeriodMode === 'week' ? 'week' : 'month';
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
   const today = toDateOnly(new Date());
@@ -257,8 +272,8 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   // proyectan sobre cualquier día del calendario. Ver getAssignedCalendar.
   const [scheduledTasksByDate, setScheduledTasksByDate] = useState<Record<string, CheckInAssignment[]>>({});
 
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
-  const [periodMode, setPeriodMode] = useState<'week' | 'month'>('month');
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>(initialViewMode);
+  const [periodMode, setPeriodMode] = useState<'week' | 'month'>(initialPeriodMode);
   const [selectedMonth, setSelectedMonth] = useState(() => startOfMonth(today));
   const [weekAnchor, setWeekAnchor] = useState(() => startOfWeekMonday(today));
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(todayKey);
@@ -458,13 +473,17 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
       const mapped: CalendarDayModel[] = days.map((d: any) => ({
         date: d.date,
         inMonth: !!d.in_month,
-        workouts: (d.workouts ?? []).map((w: any) => ({
-          title: w.title,
-          assignmentId: w.assignment_id,
-          workoutTemplateId: w.id,
-          hasLoadSuggestion: !!w.has_load_suggestion,
-          image: w.image || null,
-        })),
+        workouts: (d.workouts ?? [])
+          .filter((w: any) => programId == null || w.training_program_id === programId)
+          .map((w: any) => ({
+            title: w.title,
+            assignmentId: w.assignment_id,
+            workoutTemplateId: w.id,
+            hasLoadSuggestion: !!w.has_load_suggestion,
+            image: w.image || null,
+            trainingProgramId: w.training_program_id,
+            isCustom: !!w.is_custom,
+          })),
       }));
       setMDays(mapped);
       setLoadedYm(ymKey);
@@ -488,7 +507,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         setScheduledTasksByDate(grouped);
       })
       .catch(() => setScheduledTasksByDate({}));
-  }, []);
+  }, [programId]);
 
   useEffect(() => {
     if (ym === loadedYm) return;
@@ -512,12 +531,33 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   // matches específicos (por program_day_assignment_id o por
   // fecha+workout_template_id), igual que hace el backend para decidir el
   // detalle de sesión (SessionDetailController).
-  useEffect(() => {
+  const loadCompletedSessions = useCallback(() => {
     workoutHistoryApi
       .getMyCompletedSessions()
       .then((res) => setCompletedSessions(res.data?.data ?? []))
       .catch(() => setCompletedSessions([]));
   }, []);
+  useEffect(() => {
+    loadCompletedSessions();
+  }, [loadCompletedSessions]);
+
+  // AÑADIDO (2026-09-24): al volver del creador de entrenamientos
+  // personalizados (o de terminar una sesión) el mes cargado ya no refleja
+  // el calendario real -- se recarga al recuperar el foco (no en el primer
+  // foco, que ya cubre la carga inicial de arriba).
+  const hasFocusedOnceRef = useRef(false);
+  useEffect(() => {
+    if (!navigation?.addListener) return;
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!hasFocusedOnceRef.current) {
+        hasFocusedOnceRef.current = true;
+        return;
+      }
+      setLoadedYm(null);
+      loadCompletedSessions();
+    });
+    return unsubscribe;
+  }, [navigation, loadCompletedSessions]);
 
   // Sincroniza con "Mi plan de hoy" de Home (home_screen_modern.tsx): las
   // mismas tareas no-workout del coach (check-ins/formularios pendientes)
@@ -642,12 +682,14 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   // es HOY, o de fecha fija en cualquier día) sin tener ningún workout
   // programado — no debe tratarse como "día de descanso" ni desaparecer del
   // listado en ese caso.
+  // La lista filtrada por programa (Home > Entrenamientos) solo muestra
+  // las sesiones de ese programa, sin cuestionarios/check-ins.
   const checkinsForDay = useCallback(
-    (dateKey: string): CheckInAssignment[] => [
-      ...(dateKey === todayKey ? pendingCheckins : []),
-      ...(scheduledTasksByDate[dateKey] ?? []),
-    ],
-    [pendingCheckins, scheduledTasksByDate, todayKey]
+    (dateKey: string): CheckInAssignment[] =>
+      programId != null
+        ? []
+        : [...(dateKey === todayKey ? pendingCheckins : []), ...(scheduledTasksByDate[dateKey] ?? [])],
+    [pendingCheckins, scheduledTasksByDate, todayKey, programId]
   );
   const daysWithWorkouts = visibleDays.filter(
     (d) => (d.workouts.length > 0 || checkinsForDay(d.date).length > 0) && (periodMode === 'week' || d.inMonth)
@@ -683,6 +725,66 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     });
   };
 
+  // ─────────── Entrenamientos personalizados del cliente (2026-09-24) ───────────
+  // Crear: solo sobre días de la semana en curso (misma regla que abrir un
+  // entrenamiento, ver weeksAheadForDate) y no en la lista filtrada por
+  // programa (esa es solo "lo que me ha puesto mi coach").
+  const canCreateCustomOn = (dateKey: string) =>
+    programId == null && !selectionMode && !reorderMode && isCurrentWeekDate(dateKey);
+
+  const openCustomBuilder = (dateKey: string) => {
+    navigation?.navigate('MigratedCustomWorkoutBuilder', { date: dateKey });
+  };
+
+  const deleteCustomWorkout = async (assignmentId: number, scope: 'single' | 'following') => {
+    try {
+      const res = await customWorkoutsApi.remove(assignmentId, scope);
+      showToast('Eliminado', { description: res.data?.message ?? 'Entrenamiento eliminado.', variant: 'success' });
+      setLoadedYm(null);
+    } catch (e: any) {
+      const message = e?.response?.data?.message;
+      showToast('No se pudo eliminar', {
+        description: typeof message === 'string' ? message : 'Inténtalo de nuevo en unos minutos.',
+        variant: 'error',
+      });
+    }
+  };
+
+  // Pulsación larga sobre un entrenamiento que creó el propio cliente (nunca
+  // sobre lo que asignó el coach, ni sobre uno ya completado -- el backend
+  // también lo impide).
+  const confirmDeleteCustom = (w: CalendarWorkout) => {
+    if (w.assignmentId == null) return;
+    const assignmentId = w.assignmentId;
+    Alert.alert(
+      'Eliminar entrenamiento',
+      `¿Quieres quitar "${w.title || 'este entrenamiento'}" de tu calendario?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Solo este día', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
+        {
+          text: 'Este y los siguientes',
+          style: 'destructive',
+          onPress: () => deleteCustomWorkout(assignmentId, 'following'),
+        },
+      ]
+    );
+  };
+
+  const renderCreateCustomButton = (dateKey: string) =>
+    canCreateCustomOn(dateKey) ? (
+      <Pressable
+        key={`create-${dateKey}`}
+        onPress={() => openCustomBuilder(dateKey)}
+        style={styles.createCustomBtn}
+        accessibilityRole="button"
+        accessibilityLabel="Crear sesión de entrenamiento personalizada"
+      >
+        <Icon name="add-circle-outline" size={18} color={C.orange60} />
+        <Text style={styles.createCustomText}>Crear sesión personalizada</Text>
+      </Pressable>
+    ) : null;
+
   const renderWorkoutCard = (w: CalendarWorkout, dateKey: string, key: string | number) => {
     const completed = isWorkoutCompleted(w, dateKey);
     const pendingMove = w.assignmentId != null ? pendingMoves.get(w.assignmentId) : undefined;
@@ -708,6 +810,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
       >
         <Pressable
           onPress={() => (reorderMode ? (canMove && selectWorkoutToMove(w, dateKey)) : goToWorkout(w, dateKey))}
+          onLongPress={w.isCustom && !completed && !reorderMode && !selectionMode ? () => confirmDeleteCustom(w) : undefined}
           disabled={reorderMode && !canMove}
         >
           <Card
@@ -721,6 +824,12 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             <Image source={{ uri: w.image || getWorkoutImage(w.title || '') }} contentFit="cover" style={styles.workoutImage} />
             <VStack style={{ flex: 1, marginLeft: 14 }}>
               <Text style={styles.workoutTitle} numberOfLines={2}>{w.title || ''}</Text>
+              {w.isCustom && (
+                <HStack space="xs" style={{ marginTop: 4 }}>
+                  <Icon name="create-outline" size={13} color={C.orange60} />
+                  <Text style={styles.customBadgeText}>Personalizado</Text>
+                </HStack>
+              )}
               {completed && (
                 <HStack space="xs" style={{ marginTop: 4 }}>
                   <Icon name="checkmark-circle" size={13} color={C.success} />
@@ -922,8 +1031,19 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
     <HomeSwipeNav tab="PlanDiarioTab" navigation={navigation}>
     <SafeAreaView style={styles.container}>
       <HStack style={styles.headerRow}>
-        <Text style={styles.header}>
-          {selectionMode ? 'Marca los días' : reorderMode ? 'Reorganiza tu semana' : 'Mi programa'}
+        {programId != null && navigation?.canGoBack?.() && (
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={10}
+            style={{ marginRight: 6 }}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <Icon name="chevron-back" size={24} color={C.textPrimary} />
+          </Pressable>
+        )}
+        <Text style={styles.header} numberOfLines={2}>
+          {selectionMode ? 'Marca los días' : reorderMode ? 'Reorganiza tu semana' : programTitle || 'Mi programa'}
         </Text>
         {selectionMode ? (
           <Pressable onPress={cancelSelectionMode}>
@@ -1098,6 +1218,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                 <Text style={styles.restDayText}>Día de descanso</Text>
               </Card>
             ) : null}
+            {selectedDayKey && renderCreateCustomButton(selectedDayKey)}
           </Box>
         </ScrollView>
       ) : daysWithWorkouts.length === 0 && periodMode === 'month' ? (
@@ -1158,6 +1279,10 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
                     <Text style={styles.restDayText}>Día de descanso</Text>
                   </Card>
                 ) : null}
+                {/* En la lista de la semana, solo de hoy en adelante (en la
+                    vista calendario sí vale cualquier día de la semana en
+                    curso, uno cada vez) -- 7 botones seguidos saturaban la lista. */}
+                {periodMode === 'week' && day.date >= todayKey && renderCreateCustomButton(day.date)}
               </Box>
             );
           })}
@@ -1220,7 +1345,21 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  header: { fontSize: 20, fontFamily: FONT.bold, color: C.textPrimary },
+  header: { flex: 1, fontSize: 20, fontFamily: FONT.bold, color: C.textPrimary, marginRight: 8 },
+  createCustomBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: C.orange,
+  },
+  createCustomText: { fontSize: 14, fontFamily: FONT.semiBold, color: C.orange60, lineHeight: 18 },
+  customBadgeText: { fontSize: 12, fontFamily: FONT.semiBold, color: C.orange60, lineHeight: 16 },
   viewToggle: {
     flexDirection: 'row',
     backgroundColor: C.surfaceLight,

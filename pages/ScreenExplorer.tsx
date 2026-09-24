@@ -146,6 +146,7 @@ const ALL_SCREENS: ScreenItem[] = [
   { name: 'Session History Detail', route: 'MigratedSessionHistoryDetail', category: 'Migrated - Workout', file: 'session_history_detail_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Preview', route: 'MigratedWorkoutPreview', category: 'Migrated - Workout', file: 'workout_preview_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Session (migrated)', route: 'MigratedWorkoutSession', category: 'Migrated - Workout', file: 'workout_session_screen.tsx', gluestackMigrated: true },
+  { name: 'Custom Workout Builder', route: 'MigratedCustomWorkoutBuilder', category: 'Migrated - Workout', file: 'custom_workout_builder_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Feedback', route: 'MigratedWorkoutFeedback', category: 'Migrated - Workout', file: 'workout_feedback_screen.tsx', gluestackMigrated: true },
   { name: 'Workout Summary (migrated)', route: 'MigratedWorkoutSummary', category: 'Migrated - Workout', file: 'workout_summary_screen.tsx', gluestackMigrated: true },
   { name: 'View Body Parts', route: 'MigratedViewBodyPart', category: 'Migrated - Exercise', file: 'view_body_part_screen.tsx', gluestackMigrated: true },
