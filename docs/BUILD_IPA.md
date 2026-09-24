@@ -88,6 +88,15 @@ Pedido explícito: el usuario no tiene Mac, así que no puede usar Transporter p
 
 Sin `upload_to_app_store: true`, el workflow se comporta exactamente igual que antes (solo deja el `.ipa` como artifact descargable) — este paso es 100% opt-in, no afecta a ningún build existente.
 
+## Herramientas de desarrollo por build (`dev_tools`, 2026-09-24)
+
+`constants/featureFlags.ts::DEV_TOOLS_ENABLED` (Screen Explorer / "Revisar pantalla", montadas en `App.tsx`) ya no se cambia a mano: vale `process.env.EXPO_PUBLIC_DEV_TOOLS === '1'`, y Expo inlina los `EXPO_PUBLIC_*` en el bundle JS al generarlo. El workflow tiene un input `dev_tools` (bool, default `false`) que exporta `EXPO_PUBLIC_DEV_TOOLS=1` en el paso "Build IPA" — el bundle se genera dentro de ese mismo paso (fase "Bundle React Native code and images" de `xcodebuild`, que hereda el entorno y lanza Metro con `--reset-cache`), así que el valor llega al bundle. El resumen del build muestra `Dev tools: INCLUIDAS / no incluidas`.
+
+- **Builds internos/QA**: `"dev_tools": true`.
+- **Builds de tienda (App Store/TestFlight)**: no pasarlo (o `false`). Por defecto quedan fuera, así que un build de tienda ya no puede llevarlas por olvido.
+- Solo tiene efecto con `configuration: "Release"` (con `Debug` no se embebe bundle, ver arriba).
+- **Local** (`npm start`): `EXPO_PUBLIC_DEV_TOOLS=1 npx expo start --clear` (o `EXPO_PUBLIC_DEV_TOOLS=1` en un `.env.local`, ya ignorado por git). Sin la variable, arranca sin ellas.
+
 ## Resumen — checklist antes de lanzar un build "de verdad"
 
 - [ ] `ios_path: "ios"`
@@ -95,3 +104,4 @@ Sin `upload_to_app_store: true`, el workflow se comporta exactamente igual que a
 - [ ] `build_id` único (se usa para nombrar el `.ipa` final)
 - [ ] Si es para App Store Connect/TestFlight: `use_signing: true` + `export_method: "app-store"` + secrets de certificado de Distribution/perfil "App Store" configurados
 - [ ] Si además quieres que se suba solo (sin Mac/Transporter): `upload_to_app_store: true` + secrets `APPSTORE_API_KEY_ID`/`APPSTORE_API_ISSUER_ID`/`APPSTORE_API_KEY_P8` configurados
+- [ ] `dev_tools`: `true` solo para builds internos/QA (Screen Explorer); **build de tienda → sin `dev_tools` (false)**, y comprobar `Dev tools: no incluidas` en el resumen

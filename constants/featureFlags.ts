@@ -70,4 +70,21 @@ export const STARTUP_CHALLENGE_ENABLED = false;
 // Reactivado 2026-09-24 (pedido explícito: "activa el screen explorer en
 // la app para el siguiente build"). Volver a false antes del próximo build
 // de tienda.
-export const DEV_TOOLS_ENABLED = true;
+//
+// 2026-09-24 (más tarde): deja de ser un true/false puesto a mano -- ya ha
+// pasado varias veces que se activa para un build interno y hay que
+// acordarse de volver a apagarlo antes del de tienda. Ahora lo decide CADA
+// build: EXPO_PUBLIC_DEV_TOOLS=1 las incluye, cualquier otro valor (o sin
+// definir) las deja fuera. Expo inlina las variables EXPO_PUBLIC_* en el
+// bundle JS al generarlo (babel-preset-expo, inline-env-vars), así que el
+// valor queda fijo dentro de cada .ipa/.apk/.aab:
+//   - CI: input `dev_tools` (boolean, por defecto false) de
+//     .github/workflows/ios-build.yml y android-build.yml, que exporta
+//     EXPO_PUBLIC_DEV_TOOLS=1 en el paso que genera el bundle. Builds
+//     internos/QA: dev_tools: true. Builds de tienda: dejarlo en false (por
+//     defecto) -- un build de tienda nunca las lleva por olvido.
+//   - Local: `EXPO_PUBLIC_DEV_TOOLS=1 npx expo start --clear` (o esa línea en
+//     un .env.local, sin commitear). Sin la variable, npm start arranca sin
+//     ellas.
+// Ver docs/BUILD_IPA.md y docs/BUILD_AAB.md.
+export const DEV_TOOLS_ENABLED = process.env.EXPO_PUBLIC_DEV_TOOLS === '1';

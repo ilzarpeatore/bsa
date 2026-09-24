@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: false
+      dev_tools:
+        description: 'Incluir las herramientas de desarrollo (Screen Explorer / Revisar pantalla) -- solo builds internos/QA. Builds de tienda: dejar en false. Ver docs/BUILD_AAB.md.'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -138,6 +143,13 @@ jobs:
         env:
           BUILD_ID: ${{ inputs.build_id }}
           BUILD_FORMAT: ${{ inputs.build_format }}
+          # constants/featureFlags.ts::DEV_TOOLS_ENABLED (2026-09-24). Expo
+          # inlina los EXPO_PUBLIC_* al generar el bundle JS, y ese bundle lo
+          # genera Gradle DENTRO de este paso (createBundleReleaseJsAndAssets
+          # lanza Metro con --reset-cache heredando el entorno de gradlew; la
+          # carpeta android/ es nueva en cada run, no hay bundle cacheado).
+          # Vacío = herramientas fuera.
+          EXPO_PUBLIC_DEV_TOOLS: ${{ inputs.dev_tools && '1' || '' }}
         run: |
           set -e
           cd android
@@ -181,6 +193,7 @@ jobs:
         env:
           USE_SIGNING: ${{ inputs.use_signing }}
           BUILD_FORMAT: ${{ inputs.build_format }}
+          DEV_TOOLS: ${{ inputs.dev_tools }}
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -191,6 +204,11 @@ jobs:
             echo "- **Signing:** Release keystore (subible a Play Console si el formato es aab)" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Signing:** Keystore de debug (solo instalar/probar, Play Console la rechazara)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "$DEV_TOOLS" = "true" ]; then
+            echo "- **Dev tools:** INCLUIDAS (build interno/QA -- no subir a Play Console)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Dev tools:** no incluidas" >> $GITHUB_STEP_SUMMARY
           fi
           if [ -f build/*.apk ] || [ -f build/*.aab ]; then
             OUT_PATH=$(find build -type f | head -1)
