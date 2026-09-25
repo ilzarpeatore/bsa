@@ -236,8 +236,11 @@ function Homenavigator() {
   );
 }
 
+// A nivel de módulo: crear el navigator dentro del componente lo recreaba en
+// cada render y remontaba todo el stack (pantallas en blanco al hacer push).
+const MStack = createNativeStackNavigator();
+
 function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: string } } }) {
-  const MStack = createNativeStackNavigator();
   return (
     <MStack.Navigator
       initialRouteName={route?.params?.initialScreen ?? 'MigratedHomeModernV2'}

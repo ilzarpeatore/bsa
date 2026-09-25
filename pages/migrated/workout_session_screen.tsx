@@ -284,6 +284,12 @@ function buildInitialRows(ex: UnifiedExercise): SetRow[] {
         // Se deja vacío para que el cliente registre el dato real de la
         // serie; el rango sigue visible aparte como referencia ("Obj: X",
         // ver más abajo en el render), pedido explícito 2026-09-17.
+        //
+        // La carga prescrita puede ser una indicación de texto del coach
+        // ("Mantener", "Subir", "Bajar") en vez de kilos: no se precarga en
+        // el input numérico (se registraría como carga inválida); sigue
+        // visible como objetivo ("Obj: Subir") bajo la celda.
+        if (key === 'carga' && Number.isNaN(Number(String(ex.prescribed[key]).replace(',', '.')))) return;
         values[key] = String(ex.prescribed[key]);
       }
     });
@@ -2528,11 +2534,16 @@ export default function WorkoutSessionScreen(props: Props) {
               esta fila (flexShrink: 1 por defecto en ScrollView). Ahora la
               fila mide siempre su contenido y la lista ocupa el resto. */}
           {bodyParts.length > 0 && (
+            // Bug 2026-09-24 (captura iPhone): sin flexGrow:0 este ScrollView
+            // horizontal ocupaba media pantalla en vertical (es hermano de un
+            // FlatList flex:1) y las píldoras se estiraban a ~750 px de alto;
+            // flexGrow:0 lo ajusta a su contenido y alignItems evita que las
+            // píldoras se estiren al alto del contenedor.
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={{ flexGrow: 0, flexShrink: 0 }}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: 'flex-start' }}
             >
               <Pressable
                 className="px-4 py-2 rounded-pill"

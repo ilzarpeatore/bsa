@@ -427,8 +427,12 @@ export default function SearchScreen(props: any) {
                     <Icon name="search" size={20} className="text-muted-foreground" />
                   )}
                 </Input>
-                <Button variant="ghost" size="icon" onPress={() => props.navigation.navigate('MigratedViewBodyPart')}>
+                <Button variant="ghost" size="icon" onPress={() => props.navigation.navigate('MigratedViewBodyPart')} accessibilityLabel="Buscar por músculo">
                   <Icon name="body-outline" size={24} className="text-foreground" />
+                </Button>
+                {/* Punto de entrada a MigratedViewEquipment (ítem 20 del roadmap): misma idea que el botón de zona corporal. */}
+                <Button variant="ghost" size="icon" onPress={() => props.navigation.navigate('MigratedViewEquipment')} accessibilityLabel="Buscar por equipamiento">
+                  <Icon name="barbell-outline" size={24} className="text-foreground" />
                 </Button>
               </Box>
 

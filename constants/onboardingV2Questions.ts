@@ -378,6 +378,26 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: '¿Tienes alguna alergia o intolerancia?',
     placeholder: 'Ej. lactosa, frutos secos, gluten... (o "ninguna")',
   },
+  // Opcionales (2026-09-25): el backend y el admin ya los guardan/muestran
+  // (nutrition_questionnaire_answers.medications/supplements, Bckbs); una app
+  // antigua que no los envía no borra lo ya rellenado.
+  {
+    id: 'medications',
+    stage: 'nutrition_questionnaire',
+    type: 'textarea',
+    title: '¿Tomas algún medicamento?',
+    subtitle: 'Nos ayuda a ajustar tu plan con seguridad',
+    placeholder: 'Ej. anticoagulantes, metformina... (o "ninguno")',
+    required: false,
+  },
+  {
+    id: 'supplements',
+    stage: 'nutrition_questionnaire',
+    type: 'textarea',
+    title: '¿Tomas algún suplemento?',
+    placeholder: 'Ej. creatina, proteína, vitamina D... (o "ninguno")',
+    required: false,
+  },
   {
     id: 'disliked_foods',
     stage: 'nutrition_questionnaire',

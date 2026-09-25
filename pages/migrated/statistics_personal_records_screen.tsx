@@ -14,6 +14,7 @@ import { Input, InputField, InputSlot } from '@components/ui/input';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { exerciseStatsApi, PersonalRecordItem } from '../../api/exerciseStats';
+import { fuzzyFilter } from '@helper/textSearch';
 import MuscleFilterSheet from '../../components/MuscleFilterSheet';
 
 const RECENT_LIMIT = 15;
@@ -101,8 +102,8 @@ export default function StatisticsPersonalRecordsScreen(props: Props) {
   const visibleItems = useMemo(() => {
     let list = items;
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
-      list = list.filter((it) => it.title.toLowerCase().includes(q));
+      // Sin acentos y tolerante a erratas (helper/textSearch).
+      list = fuzzyFilter(list, searchText, (it) => it.title);
     }
     if (!muscleId) {
       list = list.slice(0, RECENT_LIMIT);

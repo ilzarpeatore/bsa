@@ -12,6 +12,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import MuscleBodyMap from '../../components/MuscleBodyMap';
 import { bodyPartIdForMuscle, BODY_PART_ID_TO_NAME } from '../../constants/bodyMusclesMap';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { fuzzyFilter } from '@helper/textSearch';
 
 const MUSCLE_OPTIONS = Object.entries(BODY_PART_ID_TO_NAME)
   .map(([id, name]) => ({ id: Number(id), name }))
@@ -79,8 +80,8 @@ export default function ViewBodyPartScreen(props: any) {
 
   const filteredOptions = useMemo(() => {
     if (!searchText.trim()) return MUSCLE_OPTIONS;
-    const q = searchText.trim().toLowerCase();
-    return MUSCLE_OPTIONS.filter((opt) => opt.name.toLowerCase().includes(q));
+    // Sin acentos y tolerante a erratas (helper/textSearch).
+    return fuzzyFilter(MUSCLE_OPTIONS, searchText, (opt) => opt.name);
   }, [searchText]);
 
   return (
