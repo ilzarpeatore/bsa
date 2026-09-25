@@ -69,6 +69,9 @@ export interface TrainingQuestionnairePayload {
 
 export interface NutritionQuestionnairePayload {
   allergies_intolerances: string;
+  // Opcionales (2026-09-25): si no se envían, el backend conserva lo ya guardado.
+  medications?: string;
+  supplements?: string;
   disliked_foods: string;
   liked_foods: string;
   current_meals_per_day: number;

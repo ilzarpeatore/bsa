@@ -2263,10 +2263,16 @@ export default function WorkoutSessionScreen(props: Props) {
               píldoras y paddingHorizontal:20 del scroll, ya consistentes
               con el buscador y la lista de debajo, se quedan igual). */}
           {bodyParts.length > 0 && (
+            // Bug 2026-09-24 (captura iPhone): sin flexGrow:0 este ScrollView
+            // horizontal ocupaba media pantalla en vertical (es hermano de un
+            // FlatList flex:1) y las píldoras se estiraban a ~750 px de alto;
+            // flexGrow:0 lo ajusta a su contenido y alignItems evita que las
+            // píldoras se estiren al alto del contenedor.
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
+              style={{ flexGrow: 0 }}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: 'flex-start' }}
             >
               <Pressable
                 className="px-4 py-2 rounded-pill"

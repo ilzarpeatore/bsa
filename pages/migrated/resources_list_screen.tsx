@@ -11,6 +11,7 @@ import { Input, InputField, InputSlot } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { fuzzyFilter } from '@helper/textSearch';
 import { resourcesApi, ResourceListItem, ResourceCategory } from '../../api/resources';
 
 type Tab = 'mine' | 'shared';
@@ -97,7 +98,8 @@ export default function ResourcesListScreen(props: Props) {
   const scopedList = activeTab === 'mine' ? mine : shared;
   const query = search.trim().toLowerCase();
   const activeList = useMemo(
-    () => (query ? scopedList.filter((i) => i.title.toLowerCase().includes(query)) : scopedList),
+    // Sin acentos y tolerante a erratas (helper/textSearch, mismas reglas que el servidor).
+    () => (query ? fuzzyFilter(scopedList, query, (i) => i.title) : scopedList),
     [scopedList, query],
   );
   const sectionDefs = activeTab === 'mine' ? MINE_SECTIONS : SHARED_SECTIONS;

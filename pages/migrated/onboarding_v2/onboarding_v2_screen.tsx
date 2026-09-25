@@ -311,6 +311,8 @@ export default function OnboardingV2Screen({ navigation }: any) {
         } else if (stageId === 'nutrition_questionnaire') {
           await onboardingV2Api.submitNutritionQuestionnaire({
             allergies_intolerances: String(answers.allergies_intolerances ?? ''),
+            medications: answers.medications ? String(answers.medications) : undefined,
+            supplements: answers.supplements ? String(answers.supplements) : undefined,
             disliked_foods: String(answers.disliked_foods ?? ''),
             liked_foods: String(answers.liked_foods ?? ''),
             current_meals_per_day: Number(answers.current_meals_per_day) || 0,

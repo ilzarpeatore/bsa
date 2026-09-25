@@ -152,6 +152,8 @@ export default function PlanScreen(props: any) {
   const [mealTotals, setMealTotals] = useState<Record<string, MealTotal>>({});
   const [mealRecipes, setMealRecipes] = useState<Record<string, DailyPlanRecipeItem[]>>({});
   const dailyPlanIdRef = useRef<number | null>(null);
+  // Día (YYYY-MM-DD) al que corresponde dailyPlanIdRef.current.
+  const planIdDayRef = useRef<string | null>(null);
 
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [showCompactSummary, setShowCompactSummary] = useState(false);
@@ -261,16 +263,47 @@ export default function PlanScreen(props: any) {
   // pasar a proposito, no hay condicion de carrera ahi.
   const fetchDailyPlan = useCallback(async (ignoreRef?: { current: boolean }) => {
     setIsLoading(true);
+    const day = formatDateYMD(selectedDay);
     try {
-      const res = await dietApi.getDailyPlan(formatDateYMD(selectedDay));
+      const res = await dietApi.getDailyPlan(day);
       if (ignoreRef?.current) return;
       applyDailyPlanResponse(res.data);
+      // Recuerda de QUÉ día es el id guardado (ver resolveDailyPlanId): sin
+      // esto, tras cambiar de día o fallar un fetch, el id quedaba obsoleto
+      // (de otro día) o a null para siempre.
+      planIdDayRef.current = res.data?.data?.id ? day : null;
     } catch (e) {
       logger.error('Plan fetch error:', e);
+      if (!ignoreRef?.current) {
+        dailyPlanIdRef.current = null;
+        planIdDayRef.current = null;
+      }
     } finally {
       setIsLoading(false);
     }
   }, [selectedDay, applyDailyPlanResponse]);
+
+  // Id del plan del día seleccionado, pidiéndolo al servidor si el guardado
+  // falta o es de otro día (mismo enfoque que assigned_meals_screen.tsx, que
+  // sí permitía añadir comidas). Reintenta una vez ante un fallo de red.
+  const resolveDailyPlanId = useCallback(async (): Promise<number | null> => {
+    const day = formatDateYMD(selectedDay);
+    if (dailyPlanIdRef.current && planIdDayRef.current === day) return dailyPlanIdRef.current;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await dietApi.getDailyPlan(day);
+        const id: number | null = res.data?.data?.id ?? null;
+        if (id) {
+          dailyPlanIdRef.current = id;
+          planIdDayRef.current = day;
+          return id;
+        }
+      } catch (e) {
+        logger.error(`Daily plan resolve error (intento ${attempt + 1}):`, e);
+      }
+    }
+    return null;
+  }, [selectedDay]);
 
   // react-doctor no reconoce la guarda de ignoreRef porque vive dentro de
   // fetchDailyPlan (llamada por referencia, no inline): si el fetch queda
@@ -402,7 +435,8 @@ export default function PlanScreen(props: any) {
   };
 
   const clearDailyPlan = () => {
-    const planId = dailyPlanIdRef.current;
+    // Solo si el id guardado es del día que se está viendo (nunca vaciar el plan de otro día).
+    const planId = planIdDayRef.current === formatDateYMD(selectedDay) ? dailyPlanIdRef.current : null;
     if (!planId) return;
     Alert.alert('Vaciar plan', '¿Seguro que quieres borrar todas las recetas de este día?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -486,17 +520,21 @@ export default function PlanScreen(props: any) {
   };
 
   const addRecipeToPlan = async (recipe: RecipeListItem | AssignedMealRecipe) => {
-    const planId = dailyPlanIdRef.current;
-    // Bug real reportado 2026-09-18 ("no puedo añadir comidas a mi plan, no
-    // pasa nada al pulsar"): si el plan del día todavía no había cargado
-    // (fetchDailyPlan en curso/fallido), dailyPlanIdRef.current queda null y
-    // esto devolvía sin más -- ningún toast, ningún error, la pulsación no
-    // hacía absolutamente nada visible. Mismo criterio que el catch de abajo:
-    // toda ruta de fallo debe avisar, nunca fallar en silencio.
-    if (!planId || !addMealFor) {
-      showToast('Espera un momento', {
-        description: 'Tu plan de hoy todavía se está cargando. Vuelve a intentarlo en unos segundos.',
-        variant: 'warning',
+    // Bug real reportado 2026-09-18 y otra vez 2026-09-24 ("no me deja añadir
+    // comidas asignadas ni del recetario", nota en MigratedPlan): dos causas.
+    // (1) Cierre obsoleto: renderAddMealResultItem (useCallback con deps
+    // [savingRecipeId]) capturaba la PRIMERA versión de esta función, con
+    // addMealFor === null -- por eso salía siempre "Espera un momento" aunque
+    // el plan ya estuviera cargado. Ahora el renderizado llama a la última
+    // versión vía addRecipeToPlanRef. (2) dailyPlanIdRef podía quedar a null o
+    // con el id de OTRO día tras un fallo/cambio de día: resolveDailyPlanId lo
+    // pide al servidor cuando hace falta. Toda ruta de fallo avisa y se registra.
+    if (!addMealFor) return;
+    const planId = await resolveDailyPlanId();
+    if (!planId) {
+      showToast('No se pudo preparar el plan', {
+        description: 'No hemos podido cargar tu plan de este día. Revisa tu conexión e inténtalo de nuevo.',
+        variant: 'error',
       });
       return;
     }
@@ -505,12 +543,21 @@ export default function PlanScreen(props: any) {
       await recipesApi.saveDailyPlanRecipe(planId, recipe.id, addMealFor.key);
       setAddMealFor(null);
       await fetchDailyPlan();
-    } catch {
-      showToast('Error', { description: 'No se pudo añadir esta comida. Inténtalo de nuevo.', variant: 'error' });
+    } catch (e: any) {
+      logger.error('Add recipe to plan error:', e);
+      showToast('Error', {
+        description: e?.response?.data?.message || 'No se pudo añadir esta comida. Inténtalo de nuevo.',
+        variant: 'error',
+      });
     } finally {
       setSavingRecipeId(null);
     }
   };
+  // Siempre apunta a la última versión de addRecipeToPlan (ver comentario arriba).
+  const addRecipeToPlanRef = useRef(addRecipeToPlan);
+  useEffect(() => {
+    addRecipeToPlanRef.current = addRecipeToPlan;
+  });
 
   const renderAddMealResultItem = useCallback(
     ({ item: recipe }: { item: RecipeListItem | AssignedMealRecipe }) => (
@@ -518,7 +565,7 @@ export default function PlanScreen(props: any) {
         <Pressable
           style={s.searchResultRow}
           disabled={savingRecipeId === recipe.id}
-          onPress={() => addRecipeToPlan(recipe)}
+          onPress={() => addRecipeToPlanRef.current(recipe)}
         >
           {recipe.recipe_image ? (
             <Image source={{ uri: recipe.recipe_image }} contentFit="cover" style={s.searchResultImage} />
