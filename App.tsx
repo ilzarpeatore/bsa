@@ -157,6 +157,16 @@ const AssessmentResultScreen = React.lazy(
 
 enableScreens();
 const Stack = createNativeStackNavigator();
+
+// Onboarding sin gesto de "volver" de iOS (bug real, 2026-09-24, captura de
+// TestFlight): en iOS reciente el swipe atrás del stack nativo se reconoce en
+// todo el contenido, no solo en el borde, y gana siempre al PanResponder de
+// las preguntas con barra (ScaleSelector/RulerPicker): al intentar
+// arrastrar la barra se deslizaba la pantalla entera y el usuario volvía a
+// la de inicio de sesión perdiendo lo respondido. La navegación atrás queda
+// en el botón de la cabecera (handleBack: pregunta anterior, o salir en la
+// primera) y en el botón físico de Android (BackHandler en la pantalla).
+const ONBOARDING_SCREEN_OPTIONS = { gestureEnabled: false } as const;
 const LazyFallback = () => <View style={{ flex: 1, backgroundColor: '#EBEBF0' }} />;
 
 const Tab = createBottomTabNavigator();
@@ -379,15 +389,15 @@ function RootNavigator() {
               handleContinue en onboarding_v2_screen.tsx (registro diferido
               a la última pregunta) y el comentario de hydrateSession en
               store/AuthContext.tsx. */}
-            <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
+            <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} options={ONBOARDING_SCREEN_OPTIONS} />
             <Stack.Screen name="ForgotOptions" component={ForgotPasswordOptionsScreen} />
             <Stack.Screen name="ForgotEmail" component={ForgotPasswordEmailScreen} />
             <Stack.Screen name="ResetSent" component={PasswordResetSentScreen} />
           </>
         ) : !state.onboardingCompleted ? (
           <>
-            <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} />
-            <Stack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} />
+            <Stack.Screen name="MigratedOnboardingV2" component={OnboardingV2Screen} options={ONBOARDING_SCREEN_OPTIONS} />
+            <Stack.Screen name="MigratedAssessmentResult" component={AssessmentResultScreen} options={ONBOARDING_SCREEN_OPTIONS} />
           </>
         ) : (
           <>
