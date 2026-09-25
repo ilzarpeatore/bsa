@@ -104,7 +104,9 @@ export default function CommunityScreen(props: any) {
 
   const openUserProfile = (item: PostData) => {
     if (!item.users?.id) return;
-    props.navigation.navigate('MigratedOtherUserProfile', {
+    // push(), no navigate(): navigate() reutiliza una instancia ya visitada sin refrescar los params
+    // anidados de forma fiable y el perfil salia en blanco (mismo bug que abd5a11 en MigratedPostDetails).
+    props.navigation.push('MigratedOtherUserProfile', {
       userDetails: {
         id: item.users.id,
         firstName: item.users.displayName || 'Usuario',

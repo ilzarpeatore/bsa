@@ -246,7 +246,8 @@ export default function PostDetailsScreen(props: any) {
                 className="flex-row items-center flex-1"
                 onPress={() => {
                   if (!user?.id) return;
-                  props.navigation?.navigate('MigratedOtherUserProfile', { userDetails: user });
+                  // push(), no navigate(): ver comentario en community_screen.tsx (perfil en blanco).
+                  props.navigation?.push('MigratedOtherUserProfile', { userDetails: user });
                 }}>
                 <Box className="w-9 h-9 rounded-pill bg-secondary items-center justify-center">
                   {user?.profileImage ? (

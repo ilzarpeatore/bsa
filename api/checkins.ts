@@ -76,6 +76,24 @@ export function checkinTypeLabel(a: CheckInAssignment): string {
   return a.form.recurrence ? RECURRENCE_LABEL[a.form.recurrence] ?? 'Check-in' : 'Cuestionario';
 }
 
+// Historial propio de check-ins enviados (backend FormController::mySubmissions/submissionDetail).
+export interface CheckInSubmissionItem {
+  id: number;
+  form_id: number | null;
+  form_title: string | null;
+  recurrence: string | null;
+  submitted_at: string | null;
+  answers_count: number;
+}
+
+export interface CheckInSubmissionDetail {
+  id: number;
+  form_title: string | null;
+  submitted_at: string | null;
+  coach_feedback: string | null;
+  answers: { question: string | null; type: string | null; answer: string | string[] | null }[];
+}
+
 export const checkinsApi = {
   // ?kind=questionnaire | checkin filtra por tipo; sin filtro trae ambos.
   getAssignedList: (kind?: 'questionnaire' | 'checkin') =>
@@ -87,6 +105,12 @@ export const checkinsApi = {
   // para proyectarlas en el calendario (my_program_calendar_screen.tsx).
   getAssignedCalendar: (month: number, year: number) =>
     apiClient.get<{ data: CheckInAssignment[] }>('form-assigned-calendar', { params: { month, year } }),
+
+  getMySubmissions: (limit = 100) =>
+    apiClient.get<{ data: CheckInSubmissionItem[] }>('form-my-submissions', { params: { limit } }),
+
+  getSubmissionDetail: (id: number) =>
+    apiClient.get<{ data: CheckInSubmissionDetail }>('form-submission-detail', { params: { id } }),
 
   submit: (formAssignmentId: number, answers: CheckInAnswerInput[]) =>
     apiClient.post<ApiMessageResponse>('form-submit', { form_assignment_id: formAssignmentId, answers }),
