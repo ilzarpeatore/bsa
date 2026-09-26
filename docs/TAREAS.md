@@ -2,6 +2,8 @@
 
 Estado del trabajo de conexión backend/navegación. Cada tarea pendiente indica el motivo y el endpoint/archivo relevante para retomarla sin tener que re-investigar desde cero.
 
+> **Aviso (2026-09-27):** este archivo, `BUGS_AND_FIXES.md` e `IMPROVEMENTS.md` son el registro histórico hasta agosto de 2026 (BUG-062 / IMP-022). Desde septiembre el seguimiento **vivo** de lo pendiente está en [`docs/ROADMAP.md`](ROADMAP.md) (sección «Pendiente real, priorizado», sincronizada con el panel de tareas del admin). Las correcciones y mejoras de septiembre están anotadas en `BUGS_AND_FIXES.md` (BUG-063 a BUG-069) e `IMPROVEMENTS.md` (IMP-023 a IMP-028).
+
 ---
 
 ## ✅ El onboarding ya no debería "reiniciarse" para usuarios ya registrados + confirmación de los 3 formularios (PAR-Q/entrenamiento/nutrición) (2026-08-23)

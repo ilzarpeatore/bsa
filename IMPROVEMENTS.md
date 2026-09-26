@@ -693,3 +693,60 @@ Mismo pedido de modernizar a formato circular, esta vez para `my_program_calenda
 ## Verificación
 
 `eslint --quiet` limpio. `tsc` no se pudo ejecutar en este entorno (sin `node_modules`) — verificado balanceo de llaves/paréntesis/corchetes del archivo completo a mano como comprobación estructural mínima. **Pendiente de confirmación visual real en dispositivo**, en particular que los anillos (28px en Semana, 26px en Mes) no desborden las celdas en pantallas estrechas.
+
+---
+
+# IMP-023 — Buscador «Añadir ejercicio»: mismos filtros en toda la app
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación en dispositivo
+**Categoría:** UI / ExerciseFilterBar
+
+`components/ExerciseFilterBar.tsx` (+ `useExerciseFilterCatalog`) con grupo muscular, equipo, nivel y tipo (todo lo que filtra `GET exercise-list`), usado por el buscador de la sesión en curso y por `ExercisePickerModal` (creador de entrenamientos), con «Limpiar (n)».
+
+---
+
+# IMP-024 — Sesión: reps, carga y series copiadas de forma útil para el motor de autorregulación
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación
+**Categoría:** Lógica / MigratedWorkoutSession
+
+- Reps y carga solo se precargan si son numéricas; un objetivo «12-15» es placeholder gris + «Obj: 12-15».
+- La carga sale de la **última serie del historial dentro del rango de reps prescrito** (`recent_performance`, últimas 6 sesiones por ejercicio, en `my-calendar-day-detail` y en el detalle de workout suelto; `Bckbs` `0f97747`), emparejada con sus reps/RIR; sin serie en rango, la última carga usada.
+- Marcar una serie que no es la primera copia lo que falte (reps, carga, RIR/RPE) de la anterior, sin pisar lo tecleado.
+- Lógica pura en `pages/migrated/workoutPrefill.ts` con tests.
+
+---
+
+# IMP-025 — Añadir hábito: buscador, categorías y «Creados por mí»
+
+**Estado:** 🔵 Aplicada, pendiente de confirmación
+**Categoría:** UI / MigratedHabitAdd
+
+Buscador sin acentos y tolerante a erratas (nombre y categoría), chips de categoría (`habits.category`: Mañana, Salud y fitness, Bienestar mental, Productividad, Social y hogar) y sección «Creados por mí» con los hábitos personales del cliente (`habitLibrary.ts`, 11 tests).
+
+---
+
+# IMP-026 — Panel: asignar a mano el entrenador de un cliente
+
+**Estado:** ✅ Desplegado (2026-09-27)
+**Categoría:** Panel + backend
+
+`GET/PUT admin/users/{id}/coach` (`Bckbs`; solo `user_type=admin` reasigna, con auditoría) y `ClientCoachSelector` en `/users/:id` (coaches y admins activos, aviso en ámbar si no hay). Falta asignar el coach real a los 14 clientes sin él (roadmap ítem 49).
+
+---
+
+# IMP-027 — Panel: el «Calendario del programa» usa el calendario compartido
+
+**Estado:** ✅ Desplegado (2026-09-27)
+**Categoría:** Panel / MonthWeekCalendar
+
+`MonthWeekCalendar` gana un modo `program` (semanas de plantilla sin fechas) con el mismo aspecto que el resto; `TrainingProgramsView` deja su rejilla propia y conserva arrastrar, copiar/pegar, selección y acciones de semana. No queda ningún calendario propio en el panel.
+
+---
+
+# IMP-028 — Lista de la compra completa
+
+**Estado:** 🔵 Backend desplegado; app en el IPA `20260927-9397049` (run 36276630831)
+**Categoría:** Funcionalidad / Shopping list
+
+Ver BUG-067. Crear con atajos (Hoy, Mañana, Esta semana, Próximos 7 días, Este mes) y calendario real, título automático, raciones y tipos de comida; listado con fechas y borrar; detalle con progreso, editar/quitar, elegir unidad, quitar comprados, actualizar desde el plan y compartir.

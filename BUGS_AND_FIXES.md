@@ -2438,3 +2438,161 @@ El usuario pidió que el tutorial de entrenamiento siguiera este orden: iniciar 
 ## Verificación
 
 Cambio de lógica/wiring de tutorial — **pendiente de confirmación visual real en dispositivo**.
+
+---
+
+# BUG-063 — Entreno: la primera serie salía con las celdas aplastadas
+
+**Estado:** 🔵 Aplicado, pendiente de confirmación en dispositivo (IPA `20260927-9397049` (run 36276630831))
+**Severidad:** 🟡 Medio
+**Categoría:** UI / MigratedWorkoutSession
+**Fase:** Reportado con captura de iPhone (2026-09-26)
+
+## Problema
+
+En un entrenamiento, solo la serie 1 del primer ejercicio se pintaba con Repeticiones, Carga, RIR y Descanso comprimidos (~30 px); las series 2 y 3 se veían bien.
+
+## Causa raíz
+
+Esa fila es el objetivo del tutorial y sus celdas van envueltas en `TutorialTarget`, un `View` sin `flex` ni ancho. Al ser hijo directo del `HStack`, se encogía al contenido y el `flex: 1` de la celda dejaba de mandar. Las filas 2+ no llevan wrapper.
+
+## Fix
+
+El `flex`/margen pasa al wrapper (`TutorialTarget style`) y la celda lo llena (`width: '100%'`).
+
+## Archivos modificados
+
+- `pages/migrated/workout_session_screen.tsx`
+
+## Verificación
+
+`tsc`/`eslint` limpios; pendiente de comprobar en dispositivo. Nota: el IPA de prueba salía de la rama `claude/custom-client-workouts-fzrovl`, no de `master` — comprobar de qué rama sale un build antes de arreglar contra una captura.
+
+---
+
+# BUG-064 — Minimizador: descartar el entrenamiento abría el diálogo nativo de iOS
+
+**Estado:** 🔵 Aplicado, pendiente de confirmación en dispositivo
+**Severidad:** 🟢 Bajo
+**Categoría:** UI / WorkoutMinimizedBar
+**Fase:** Reportado con captura (2026-09-26)
+
+## Fix
+
+`WorkoutMinimizedBar` usa `ConfirmDialog` (el mismo estilo que «Salir del entrenamiento») en vez de `Alert.alert`. El estado del diálogo se declara antes del `return null` (orden de Hooks) y se cierra solo si la sesión desaparece.
+
+## Archivos modificados
+
+- `components/WorkoutMinimizedBar.tsx`
+
+---
+
+# BUG-065 — Series rellenadas pero nunca marcadas: 0 series guardadas (caso Ayoub)
+
+**Estado:** 🔵 Aplicado, pendiente de confirmación en dispositivo
+**Severidad:** 🔴 Alto
+**Categoría:** Lógica / MigratedWorkoutSession + backend logSets
+**Fase:** Investigación 2026-09-25/26
+
+## Problema
+
+Ayoub (id 102) finalizó 4 sesiones (21–24 sep) sin ninguna serie guardada en el servidor y con volumen 0, diciendo que las había rellenado. Verificado: no hay filas suyas en ninguna de las 155 tablas con columnas de usuario ni identificadores borrados; las reseñas sí llegaron.
+
+## Causa (deducida leyendo el código, no demostrada; ~20-30 % de duda)
+
+Al pulsar ✓ sin RIR/RPE la app abre la hoja de RIR y no marca la serie; elegir el valor solo lo guardaba y cerraba la hoja, sin completar la serie. Si el cliente no volvía a pulsar ✓, todas quedaban rellenas y sin marcar. Además `syncExerciseLog` tragaba los errores (`.catch(() => {})`) y, si el cliente cambiaba de RIR a RPE, el RPE tecleado se descartaba y el servidor rechazaba la serie sin que se notara.
+
+## Fix
+
+- Elegir RIR/RPE guarda el valor **y completa la serie**.
+- «Finalizar» avisa «Tienes series sin marcar» (RIR/RPE puesto, o reps/carga tecleadas — `row.edited`).
+- `syncExerciseLog`: toast + `logger.error` y reintento al marcar otra serie y al finalizar; envía una sola intensidad por serie (la del modo activo o, si no, la otra).
+- «Marcar todas» ya no replica huecos de la 1ª serie y exige reps, carga y RIR/RPE.
+- Backend (`Bckbs` `93eaf0d`): `logSets` deja un warning por cada rechazo (`grep "\[logSets\]" storage/logs/laravel-*.log`).
+
+## Archivos modificados
+
+- `pages/migrated/workout_session_screen.tsx`, `pages/migrated/workoutPrefill.ts` (`isFilledButUnmarked`), `app/Http/Controllers/API/ClientCalendarController.php` (backend)
+
+## Verificación
+
+Tests nuevos que fallan con el código anterior. Falta confirmar con Ayoub qué pulsó (roadmap ítem 54).
+
+---
+
+# BUG-066 — Hábitos: «Crear el mío» no permitía crear hábitos propios
+
+**Estado:** 🔵 Reconstruido, causa raíz **sin confirmar**
+**Severidad:** 🟠 Alto
+**Categoría:** UI / MigratedHabitAdd
+**Fase:** Reportado 2026-08-26 y 2026-09-26
+
+## Investigación
+
+Backend en producción correcto (rutas, tabla, migraciones; creación de prueba en transacción con rollback OK); adoptar de la biblioteca funciona (último 23-09) pero no hay ningún hábito personal desde el 2026-08-04; el flujo completo funciona en test. No reproducible fuera del iPhone.
+
+## Fix
+
+Pestaña reconstruida con `TextInput`/`Pressable` básicos (sin `GlassSegmentedBar` ni `Input`/`Button` de gluestack), botón fijo abajo, error visible en pantalla (no solo toast) y protección de doble envío. Si vuelve a fallar, ahora se verá el error real.
+
+## Archivos modificados
+
+- `pages/migrated/habit_add_screen.tsx` (+ test)
+
+---
+
+# BUG-067 — Lista de la compra: la pantalla de crear estaba rota y las comidas de FatSecret se omitían
+
+**Estado:** 🔵 Aplicado y desplegado (backend); app en el IPA, pendiente de confirmación
+**Severidad:** 🟠 Alto
+**Categoría:** Lógica / Shopping list (app + backend)
+**Fase:** Roadmap ítem 26 (2026-09-27)
+
+## Problema
+
+- `add_shopping_list_screen`: el selector de fecha y de rango no hacía nada (el rango siempre fallaba con «Selecciona un rango de fechas»), la fecha era siempre hoy y «Solo comidas completas» venía activado, así que casi nunca salía una lista.
+- `DailyPlanShoppingListService::consolidate()` omitía en silencio las comidas con `fatsecret_recipe_id` (ingredientes de texto libre sin `ingredient_id`).
+- Al editar una lista de un día, su `daily_plan_id` pisaba las fechas nuevas.
+- El detalle no permitía elegir la unidad, editar ni quitar artículos.
+
+## Fix
+
+Backend: líneas de texto de FatSecret (`unit_label`, migración `2026_09_26_120000`), cantidades por ración y suma de líneas iguales, conservación de lo comprado al regenerar, fechas nuevas mandan al editar. App: 3 pantallas reconstruidas + `DateRangePicker`.
+
+## Archivos modificados
+
+- `Bckbs`: `DailyPlanShoppingListService.php`, `ShoppingListController.php`, `ShoppingListItemResource.php`, migración y 8 tests
+- `pages/migrated/add_shopping_list_screen.tsx`, `shopping_list_screen.tsx`, `shopping_list_detail_screen.tsx`, `components/DateRangePicker.tsx`, `helper/shoppingDates.ts`, `pages/migrated/shoppingList.ts` (+ tests)
+
+---
+
+# BUG-068 — Build de iOS roto: el widget de la Live Activity usaba una API de iOS 17
+
+**Estado:** ✅ Resuelto (build `20260927-9397049` (run 36276630831) en verde)
+**Severidad:** 🔴 Alto (bloquea el IPA)
+**Categoría:** Build / iOS nativo
+**Fase:** 2026-09-27
+
+## Problema
+
+`WorkoutLiveActivityView.swift:295,297`: `Text.foregroundStyle` solo existe desde iOS 17 y el target es 16.4; con `Debug` o `Release` el job fallaba en `xcodebuild` (run 36275881862). Vino del rediseño de la Live Activity (`39a7122`).
+
+## Fix
+
+`.foregroundColor(...)` en los dos `Text` concatenados con `+` (compila en iOS 16 y sigue devolviendo `Text`).
+
+## Archivos modificados
+
+- `ios/bestrongerWidgets/WorkoutLiveActivityView.swift`
+
+---
+
+# BUG-069 — Ejercicios: `exercise_type` vacío en todo el catálogo (el filtro «Tipo» no filtraba nada)
+
+**Estado:** ✅ Aplicado en producción (2026-09-26), pendiente de revisión de los tipos
+**Severidad:** 🟡 Medio
+**Categoría:** Datos / exercises
+
+## Fix
+
+Clasificación por palabras clave (título + equipo) de los 1520 ejercicios activos: 1387 fuerza, 73 movilidad, 25 pliometría, 18 cardio, 17 metabólico; más 16 sin grupo muscular y 2 sin equipo. Propuesta con regla y confianza en `docs/propuesta_exercise_type_2026-09-26.csv/.sql`; copia previa de la tabla en el VPS (`/root/exercises_backup_20260926.sql`).

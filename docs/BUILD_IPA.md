@@ -97,6 +97,13 @@ Sin `upload_to_app_store: true`, el workflow se comporta exactamente igual que a
 - Solo tiene efecto con `configuration: "Release"` (con `Debug` no se embebe bundle, ver arriba).
 - **Local** (`npm start`): `EXPO_PUBLIC_DEV_TOOLS=1 npx expo start --clear` (o `EXPO_PUBLIC_DEV_TOOLS=1` en un `.env.local`, ya ignorado por git). Sin la variable, arranca sin ellas.
 
+## Widgets y extensiones: el target es iOS 16.4 — nada de APIs de iOS 17+ (2026-09-27)
+
+`bestrongerWidgets` (Live Activity) compila para iOS **16.4**. Una API de iOS 17 (`Text.foregroundStyle`, `#Preview`, `ContentUnavailableView`, `@Observable`...) rompe el `xcodebuild` **sin tocar el JS**: el job falla en el paso «Build IPA» con `error: '...' is only available in iOS 17.0 or newer`. El run 36275881862 falló así en `WorkoutLiveActivityView.swift:295,297` (`Text("...").foregroundStyle(...)` concatenado con `+`; con `.foregroundColor(...)` compila y sigue devolviendo `Text`).
+
+- No se puede compilar Swift fuera de macOS: si se toca `ios/`, lanzar un build y **mirar el resultado** antes de dar el cambio por bueno (`gh run view <id> --log-failed | grep "error:"`).
+- Para saber qué falló en un build rojo: `gh run view <id> --json jobs` (paso fallido) y `gh run view <id> --log-failed`.
+
 ## Resumen — checklist antes de lanzar un build "de verdad"
 
 - [ ] `ios_path: "ios"`

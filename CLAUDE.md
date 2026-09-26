@@ -38,3 +38,12 @@ php artisan tinker --execute="App\Models\User::where('user_type','admin')->first
 ```
 
 — y pídele **a él** que lo guarde en ese archivo: el clasificador de auto-mode de Claude Code bloquea que Claude escriba o materialice credenciales directamente (visto en vivo el 2026-09-16), así que no lo intentes tú mismo, solo genera el token y pásaselo en texto para que lo guarde.
+
+## Despliegue manual al VPS (backend y panel) — lo aprendido el 2026-09-27
+
+GitHub Actions está bloqueado por facturación en los repos privados (`Bckbs`, `bstronger-admin`), así que se despliega a mano por SSH (`bestronger-vps`, ver también la memoria del proyecto). **Antes de nada, comprobar la rama local**: los clones locales de `Bckbs` y `bstronger-admin` suelen estar en una rama de trabajo, no en `main` (un `git push origin HEAD` creó por error una rama remota). Los repos son `main`.
+
+- **Backend** (`/var/www/testapp`): `git pull --ff-only` → `chown -R www-data:www-data app database routes` → `sudo -u www-data php artisan migrate --force` → `sudo -u www-data php artisan route:cache` (las rutas están cacheadas: sin esto los endpoints nuevos dan 404) → `systemctl reload php8.3-fpm`. Verificar con una petición real dentro de una transacción con rollback.
+- **Panel** (`/var/www/testapp/admin`, repo propio): copia `cp -a dist dist.bak.$(date +%Y%m%d%H%M%S)` → `git pull --ff-only` → `npm run build` **como root** (`node_modules/.vite-temp` es de root y con `www-data` falla con `EACCES`) → `chown -R www-data:www-data dist`. Un build que falla deja el `dist` viejo: comprobar la fecha de `dist/index.html` y que el sitio público sirve el `index-*.js` nuevo.
+- **`tinker` en producción**: `sudo -u www-data env HOME=/tmp php artisan tinker --execute="..."` (sin `HOME=/tmp` `psysh` falla al escribir en `/var/www/.config`). No ejecutar `artisan` como root sin `chown` posterior (ver «Root-owned cache»).
+- **Scripts largos**: el shell se come las barras invertidas de heredocs y `python -c`; escribirlos con el `Write` y ejecutarlos.
