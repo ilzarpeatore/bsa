@@ -27,6 +27,8 @@ export interface HabitTemplate {
   id: number;
   title: string;
   icon: string | null;
+  /** Categoría de la biblioteca ("Mañana", "Salud y fitness"...); null si el coach no la puso. */
+  category?: string | null;
   target_value: number | string | null;
   target_unit: string | null;
   frequency: HabitFrequency;
