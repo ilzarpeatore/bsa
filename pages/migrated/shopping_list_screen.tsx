@@ -1,92 +1,103 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Box } from '@components/ui/box';
 import { Text } from '@components/ui/text';
-import { Heading } from '@components/ui/heading';
-import { VStack } from '@components/ui/vstack';
-import { HStack } from '@components/ui/hstack';
-import { Button, ButtonText } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { Spinner } from '@components/ui/spinner';
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-} from '@components/ui/actionsheet';
 import ScreenHeader from '@components/ScreenHeader';
+import { ConfirmDialogMem } from '@components/ConfirmDialog';
+import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useAppColorMode } from '@helper/useAppColorMode';
+import { logger } from '@helper/logger';
+import { showToast } from '@helper/toast';
+import { describeRange } from '@helper/shoppingDates';
 import { shoppingApi, ShoppingListItem } from '@api/shopping';
-import logger from '@helper/logger';
+import { RADIUS } from './theme';
+import { listSubtitle } from './shoppingList';
 
-export default function ShoppingListScreen(props: any) {
+// Listado de listas de la compra (reconstruido 2026-09-26, ítem 26). Antes: sin forma de borrar
+// una lista desde aquí, sin refrescar, sin fechas ni raciones y con una hoja intermedia
+// "Fecha / Rango" que ya no hace falta (la pantalla de creación elige día o rango).
+
+export default function ShoppingListScreen({ navigation }: any) {
   const { colors: C } = useAppColorMode();
-  const [shoppingLists, setShoppingLists] = useState<ShoppingListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showGenerateSheet, setShowGenerateSheet] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(0); // 0=Date, 1=Date range
+  const [lists, setLists] = useState<ShoppingListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [toDelete, setToDelete] = useState<ShoppingListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const fetchShoppingLists = useCallback(async () => {
-    setIsLoading(true);
+  const load = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
+    if (mode === 'refresh') setRefreshing(true);
+    setFailed(false);
     try {
       const res = await shoppingApi.getList();
-      setShoppingLists(res.data?.data ?? []);
-    } catch (e: any) {
-      logger.error('Error fetching shopping lists:', e);
+      const data = res.data?.data;
+      setLists(Array.isArray(data) ? data.filter((l) => !!l && typeof l === 'object') : []);
+    } catch (e) {
+      logger.error('Error cargando las listas de la compra:', e);
+      setFailed(true);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  // False positive: this already returns `unsubscribe` from addListener,
-  // the rule just doesn't recognize a bare `return unsubscribe` (only
-  // literal `return () => ...`) as valid cleanup.
-  // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
-    fetchShoppingLists();
-    const unsubscribe = props.navigation.addListener('focus', fetchShoppingLists);
+    load();
+    const unsubscribe = navigation?.addListener?.('focus', () => load('refresh'));
     return unsubscribe;
-  }, [fetchShoppingLists, props.navigation]);
+  }, [load, navigation]);
 
-  const openAddListScreen = (isSpecificDate: boolean) => {
-    setShowGenerateSheet(false);
-    props.navigation.navigate('MigratedAddShoppingList', { isDefaultSpecificDate: isSpecificDate });
+  const confirmDelete = async () => {
+    if (!toDelete || deleting) return;
+    setDeleting(true);
+    try {
+      await shoppingApi.deleteShoppingList(toDelete.id);
+      setLists((prev) => prev.filter((l) => l.id !== toDelete.id));
+      setToDelete(null);
+    } catch (e) {
+      logger.error('Error borrando la lista de la compra:', e);
+      showToast('No se pudo borrar', { description: 'Inténtalo de nuevo.', variant: 'error' });
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const openDetail = (list: ShoppingListItem) => {
-    props.navigation.navigate('MigratedShoppingListDetail', { shoppingListId: list.id });
-  };
+  const newList = () => navigation.navigate('MigratedAddShoppingList');
 
-  const renderOption = (index: number, title: string, subtitle: string) => {
-    const selected = selectedOption === index;
+  const renderItem = ({ item }: { item: ShoppingListItem }) => {
+    const range =
+      item.start_date && item.end_date
+        ? describeRange({ start: String(item.start_date).slice(0, 10), end: String(item.end_date).slice(0, 10) })
+        : null;
     return (
       <Pressable
-        className="flex-row items-center rounded-lg p-5"
-        style={{
-          borderWidth: 1.5,
-          borderColor: selected ? C.brand5 : C.border,
-          backgroundColor: selected ? `${C.brand5}1A` : C.surfaceLight,
-        }}
-        onPress={() => setSelectedOption(index)}
+        onPress={() => navigation.navigate('MigratedShoppingListDetail', { shoppingListId: item.id })}
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir la lista ${item.title}`}
+        className="bg-card rounded-md"
+        style={{ flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 12, gap: 12 }}
       >
-        <Box
-          className="rounded-md p-2.5"
-          style={{ backgroundColor: selected ? `${C.brand5}33` : C.bg }}
+        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="cart-outline" size={22} color={C.textPrimary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text weight="bold" numberOfLines={2}>{item.title}</Text>
+          <Text size="sm" muted style={{ marginTop: 2 }}>
+            {[range, listSubtitle(item)].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => setToDelete(item)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Borrar la lista ${item.title}`}
         >
-          <Icon name="calendar-outline" size={24} color={selected ? C.orange : C.gray40} />
-        </Box>
-        <Box className="flex-1 gap-1" style={{ marginLeft: 20 }}>
-          <Text weight="bold" size="lg">{title}</Text>
-          <Text size="sm" muted>{subtitle}</Text>
-        </Box>
-        {selected ? (
-          <Icon name="checkmark-circle" size={24} color={C.success} />
-        ) : (
-          <Icon name="chevron-forward" size={24} className="text-muted-foreground" />
-        )}
+          <Icon name="trash-outline" size={20} color={C.textSecondary} />
+        </Pressable>
+        <Icon name="chevron-forward" size={18} color={C.textSecondary} />
       </Pressable>
     );
   };
@@ -95,71 +106,80 @@ export default function ShoppingListScreen(props: any) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader
         title="Listas de la compra"
-        onBack={() => props.navigation.goBack()}
+        onBack={() => navigation.goBack()}
         rightAction={
-          <Button variant="ghost" size="icon" onPress={() => setShowGenerateSheet(true)}>
-            <Icon name="add" size={28} className="text-foreground" />
-          </Button>
+          <Pressable
+            onPress={newList}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Nueva lista"
+          >
+            <Icon name="add" size={28} color={C.textPrimary} />
+          </Pressable>
         }
       />
 
-      <Box className="flex-1">
-        {isLoading && shoppingLists.length === 0 ? (
-          <Box className="flex-1 items-center justify-center">
-            <Spinner size="large" color={C.orange} />
-          </Box>
-        ) : shoppingLists.length === 0 ? (
-          <Box className="flex-1 items-center justify-center gap-3">
-            <Icon name="cart-outline" size={64} color={C.gray50} />
-            <Text weight="medium" muted>No se encontraron listas de la compra</Text>
-          </Box>
-        ) : (
-          <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-            {shoppingLists.map((list) => (
-              <Pressable
-                key={list.id}
-                className="p-4 bg-card rounded-md border border-border"
-                onPress={() => openDetail(list)}
-              >
-                <HStack className="items-center justify-between">
-                  <Box className="flex-1 gap-1">
-                    <Text weight="bold">{list.title}</Text>
-                    <Text size="sm" muted>{list.items_count ?? 0} artículos</Text>
-                  </Box>
-                  <Icon name="chevron-forward" size={20} color={C.gray40} />
-                </HStack>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-      </Box>
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={C.textPrimary} />
+        </View>
+      ) : failed && lists.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12 }}>
+          <Icon name="cloud-offline-outline" size={40} color={C.textSecondary} />
+          <Text muted className="text-center">No se pudieron cargar tus listas.</Text>
+          <Pressable
+            onPress={() => {
+              setLoading(true);
+              load();
+            }}
+            accessibilityRole="button"
+            style={{ paddingHorizontal: 22, paddingVertical: 12, borderRadius: RADIUS.pill, backgroundColor: C.accentBlack }}
+          >
+            <Text weight="bold" style={{ color: C.accentBlackForeground }}>Reintentar</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <FlatList
+          data={lists}
+          keyExtractor={(l) => String(l.id)}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 16, paddingBottom: 90 + WORKOUT_MINIBAR_CLEARANCE, flexGrow: 1 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} />}
+          ListEmptyComponent={
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingTop: 60, gap: 10 }}>
+              <Icon name="cart-outline" size={56} color={C.textSecondary} />
+              <Text weight="bold" size="lg">Aún no tienes listas</Text>
+              <Text muted className="text-center">
+                Crea una lista con lo que necesitas para las comidas que tienes planificadas, para un día o para varios.
+              </Text>
+            </View>
+          }
+        />
+      )}
 
-      {/* Generate Bottom Sheet */}
-      <Actionsheet isOpen={showGenerateSheet} onClose={() => setShowGenerateSheet(false)}>
-        <ActionsheetBackdrop />
-        <ActionsheetContent className="items-stretch rounded-t-lg p-5" style={{ backgroundColor: C.bg }}>
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-          <VStack space="lg">
-            <VStack space="sm">
-              <Heading size="lg">Generar lista de la compra</Heading>
-              <Text muted>Elige qué comidas planificadas incluir</Text>
-            </VStack>
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: C.bg }}>
+        <Pressable
+          onPress={newList}
+          accessibilityRole="button"
+          accessibilityLabel="Crear una lista nueva"
+          style={{ height: 52, borderRadius: RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: C.accentBlack, flexDirection: 'row', gap: 8 }}
+        >
+          <Icon name="add" size={20} color={C.accentBlackForeground} />
+          <Text weight="bold" style={{ letterSpacing: 0.5, color: C.accentBlackForeground, fontSize: 15 }}>NUEVA LISTA</Text>
+        </Pressable>
+      </View>
 
-            {renderOption(0, 'Fecha', 'Selecciona una fecha concreta')}
-            {renderOption(1, 'Rango de fechas', 'Elige fecha de inicio y fin')}
-
-            <Button size="lg" onPress={() => openAddListScreen(selectedOption === 0)}>
-              <ButtonText>Continuar</ButtonText>
-            </Button>
-
-            <Button variant="ghost" onPress={() => setShowGenerateSheet(false)}>
-              <ButtonText className="text-muted-foreground">Cancelar</ButtonText>
-            </Button>
-          </VStack>
-        </ActionsheetContent>
-      </Actionsheet>
+      <ConfirmDialogMem
+        visible={!!toDelete}
+        icon="trash-outline"
+        destructive
+        title="Borrar lista"
+        message={`Se borrará "${toDelete?.title ?? ''}" con todos sus artículos.`}
+        confirmText={deleting ? 'Borrando…' : 'Borrar'}
+        cancelText="Cancelar"
+        onCancel={() => setToDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </SafeAreaView>
   );
 }
