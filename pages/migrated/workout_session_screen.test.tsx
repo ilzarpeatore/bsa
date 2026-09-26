@@ -340,7 +340,7 @@ test('tocar el número de la serie la marca/desmarca y sincroniza con el backend
 
 
 // ── Caso Ayoub (2026-09-21..24): series rellenadas pero nunca marcadas ──────
-async function renderSquat() {
+async function renderSquat(exercise: Record<string, any> = {}) {
   clearActiveWorkoutSession();
   const logMock = workoutHistoryApi.logCalendarSets as jest.Mock;
   logMock.mockReset();
@@ -365,6 +365,7 @@ async function renderSquat() {
             lastPerformance: null,
             sequence: 1,
             loadSuggestion: null,
+            ...exercise,
           },
         ],
       },
@@ -443,4 +444,80 @@ test('si el cliente cambia a RPE, el RPE tecleado se envía (antes se descartaba
   const set = logMock.mock.calls[0][0].logged_sets[0];
   expect(set.rpe).toBe('8');
   expect(set.rir).toBeUndefined();
+});
+
+
+// ── Precarga y copia entre series (2026-09-26) ──────────────────────────────
+const RANGE_EXERCISE = {
+  prescribed: { series: '2', reps: '12-15', carga: 'Subir', rir: '0-3' },
+};
+
+test('un objetivo de reps en rango ("12-15") no se precarga: es placeholder, y el texto de carga sigue como objetivo', async () => {
+  await renderSquat(RANGE_EXERCISE);
+
+  const repsInputs = screen.getAllByPlaceholderText('12-15');
+  expect(repsInputs).toHaveLength(2);
+  expect(repsInputs[0].props.value).toBe('');
+  // El objetivo del coach sigue visible como referencia, incluido el texto de carga.
+  expect(screen.getAllByText('Obj: 12-15')).toHaveLength(2);
+  expect(screen.getAllByText('Obj: Subir')).toHaveLength(2);
+  // Y "Subir" tampoco entra en el input numérico de carga.
+  expect(screen.queryByDisplayValue('Subir')).toBeNull();
+});
+
+test('la carga se rellena siempre con la última usada en ese ejercicio, aunque haya menos series antes', async () => {
+  await renderSquat({
+    prescribed: { series: '3', reps: '12-15', carga: 'Mantener', rir: '0-3' },
+    lastPerformance: { sets: [{ reps: 10, carga: 40, rir: 2 }, { reps: 8, carga: 45, rir: 1 }] },
+  });
+
+  // Serie 1 -> 40, serie 2 -> 45, serie 3 (no existía) -> última usada: 45.
+  const cargas = screen.getAllByDisplayValue(/^(40|45)$/).map((i) => i.props.value);
+  expect(cargas).toEqual(['40', '45', '45']);
+});
+
+test('marcar la serie 2 copia de la serie 1 lo que le falte (reps, carga y RIR)', async () => {
+  const { logMock } = await renderSquat(RANGE_EXERCISE);
+  const reps = screen.getAllByPlaceholderText('12-15');
+  const others = screen.getAllByPlaceholderText('-'); // s1 carga, s1 rir, s2 carga, s2 rir
+  await fireEvent.changeText(reps[0], '12');
+  await fireEvent.changeText(others[0], '50');
+  await fireEvent.changeText(others[1], '2');
+  await fireEvent.press(screen.getByLabelText('Marcar serie 1 como hecha'));
+  expect(logMock).toHaveBeenCalledTimes(1);
+
+  // Serie 2 vacía: al marcarla se completa con los datos de la 1.
+  await fireEvent.press(screen.getByLabelText('Marcar serie 2 como hecha'));
+
+  expect(screen.getByLabelText('Desmarcar serie 2')).toBeTruthy();
+  expect(logMock).toHaveBeenCalledTimes(2);
+  expect(logMock.mock.calls[1][0].logged_sets).toEqual([
+    { reps: 12, carga: 50, rir: '2' },
+    { reps: 12, carga: 50, rir: '2' },
+  ]);
+});
+
+test('copiar de la serie anterior no pisa lo que el cliente ya tecleó', async () => {
+  const { logMock } = await renderSquat(RANGE_EXERCISE);
+  const reps = screen.getAllByPlaceholderText('12-15');
+  const others = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(reps[0], '12');
+  await fireEvent.changeText(others[0], '50');
+  await fireEvent.changeText(others[1], '2');
+  await fireEvent.press(screen.getByLabelText('Marcar serie 1 como hecha'));
+
+  await fireEvent.changeText(reps[1], '10'); // la serie 2 ya tiene sus propias reps
+  await fireEvent.press(screen.getByLabelText('Marcar serie 2 como hecha'));
+
+  expect(logMock.mock.calls[1][0].logged_sets[1]).toEqual({ reps: 10, carga: 50, rir: '2' });
+});
+
+test('"Marcar todas" con la 1ª serie en blanco no marca nada y avisa', async () => {
+  const { logMock } = await renderSquat(RANGE_EXERCISE);
+
+  await fireEvent.press(screen.getByText('MARCAR TODAS'));
+
+  expect(screen.queryByLabelText('Desmarcar serie 1')).toBeNull();
+  expect(logMock).not.toHaveBeenCalled();
+  expect(showToast).toHaveBeenCalledWith('Faltan datos para completar las series', expect.anything());
 });

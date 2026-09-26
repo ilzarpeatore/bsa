@@ -269,6 +269,24 @@ function mergePersistedBlocks(freshBlocks: SessionBlock[], persistedBlocks: Sess
   });
 }
 
+// "12" / "12,5" -> true; "12-15", "Subir", "" -> false.
+function isNumericValue(v: unknown): boolean {
+  if (v == null) return false;
+  const t = String(v).trim().replace(',', '.');
+  return t !== '' && !Number.isNaN(Number(t));
+}
+
+function isBlankValue(v: unknown): boolean {
+  return v == null || String(v).trim() === '';
+}
+
+// Placeholder de un input de serie: si el objetivo de reps es un rango
+// ("12-15") se enseña como pista gris, no como valor -- desaparece al teclear.
+function inputPlaceholder(key: string, target: unknown): string {
+  if (key === 'reps' && !isBlankValue(target) && !isNumericValue(target)) return String(target);
+  return '-';
+}
+
 // Cada fila se rellena con lo que el cliente hizo REALMENTE la ultima vez
 // (serie por serie, ej. 20/25/30/40 kg) en vez del objetivo marcado por el
 // coach - asi el cliente ve y edita desde su progreso real, no desde cero.
@@ -278,13 +296,31 @@ function mergePersistedBlocks(freshBlocks: SessionBlock[], persistedBlocks: Sess
 function buildInitialRows(ex: UnifiedExercise): SetRow[] {
   const count = Number(ex.prescribed?.series) || 1;
   const lastSets = ex.lastPerformance?.sets ?? [];
+  // Última carga REAL que el cliente usó en este ejercicio (la de la última
+  // serie que la tenga y sea numérica): se muestra siempre en la columna
+  // Carga, aunque la sesión anterior tuviera menos series que la actual
+  // (pedido explícito 2026-09-26).
+  const lastUsedCarga = [...lastSets].reverse().map((s) => s?.carga).find(isNumericValue);
   return Array.from({ length: count }, (_, i) => {
     const lastSet = lastSets[i];
     const values: Record<string, string> = {};
     ex.enabledMetrics.forEach((key) => {
-      if (lastSet && lastSet[key] != null && lastSet[key] !== '') {
-        values[key] = String(lastSet[key]);
-      } else if (key !== 'rir' && key !== 'rpe' && ex.prescribed?.[key] != null) {
+      // Reps y carga tienen que ser un NÚMERO: el Motor de Auto-Regulación no
+      // lee rangos ("12-15") ni texto ("Subir"). Un valor no numérico nunca se
+      // precarga en el input (2026-09-26: con "12-15" precargado, marcar la
+      // serie sin editarlo guardaba el rango); el objetivo del coach sigue
+      // visible como referencia ("Obj: 12-15") y como placeholder de reps.
+      const mustBeNumeric = key === 'reps' || key === 'carga';
+      const fromLast = lastSet?.[key];
+      if (fromLast != null && fromLast !== '' && (!mustBeNumeric || isNumericValue(fromLast))) {
+        values[key] = String(fromLast);
+        return;
+      }
+      if (key === 'carga' && lastUsedCarga != null) {
+        values[key] = String(lastUsedCarga);
+        return;
+      }
+      if (key !== 'rir' && key !== 'rpe' && ex.prescribed?.[key] != null) {
         // RIR/RPE prescrito por el coach es un rango ("0-3"), no un valor
         // numérico único -- el Motor de Auto-Regulación no puede leerlo.
         // Se deja vacío para que el cliente registre el dato real de la
@@ -293,9 +329,8 @@ function buildInitialRows(ex: UnifiedExercise): SetRow[] {
         //
         // La carga prescrita puede ser una indicación de texto del coach
         // ("Mantener", "Subir", "Bajar") en vez de kilos: no se precarga en
-        // el input numérico (se registraría como carga inválida); sigue
-        // visible como objetivo ("Obj: Subir") bajo la celda.
-        if (key === 'carga' && Number.isNaN(Number(String(ex.prescribed[key]).replace(',', '.')))) return;
+        // el input numérico; sigue visible como objetivo ("Obj: Subir").
+        if (mustBeNumeric && !isNumericValue(ex.prescribed[key])) return;
         values[key] = String(ex.prescribed[key]);
       }
     });
@@ -740,7 +775,7 @@ function WorkoutExercisePlayer({
                                 value={row.values[key] ?? ''}
                                 onChangeText={(t) => onChangeCell(rowIdx, key, t)}
                                 keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
-                                placeholder="-"
+                                placeholder={inputPlaceholder(key, target)}
                                 placeholderTextColor={C.textSecondary}
                               />
                               {target != null && target !== '' ? (
@@ -1534,13 +1569,36 @@ export default function WorkoutSessionScreen(props: Props) {
   ) => {
     currentFocusRef.current = { blockIdx, exIdx };
     const baseEx = blocks[blockIdx].exercises[exIdx];
-    const currentEx = extraValues
+    let currentEx = extraValues
       ? {
           ...baseEx,
           rows: baseEx.rows.map((r, i) => (i === rowIndex ? { ...r, values: { ...r.values, ...extraValues } } : r)),
         }
       : baseEx;
     const wasCompleted = currentEx.rows[rowIndex].completed;
+
+    // Al MARCAR una serie que no es la primera, lo que falte en ella (reps,
+    // carga, RIR/RPE...) se copia de la serie anterior (pedido explícito
+    // 2026-09-26): la mayoría de clientes repiten los mismos datos serie a
+    // serie. Solo se rellenan los huecos -- nunca se pisa lo que ya hay.
+    const carriedOver: Record<string, string> = {};
+    if (!wasCompleted && rowIndex > 0) {
+      const prevValues = currentEx.rows[rowIndex - 1].values;
+      const ownValues = currentEx.rows[rowIndex].values;
+      const copyKeys = [
+        ...currentEx.enabledMetrics.filter((k) => k !== 'rir' && k !== 'rpe'),
+        getIntensityMode(currentEx),
+      ];
+      copyKeys.forEach((k) => {
+        if (isBlankValue(ownValues[k]) && !isBlankValue(prevValues[k])) carriedOver[k] = prevValues[k];
+      });
+      if (Object.keys(carriedOver).length > 0) {
+        currentEx = {
+          ...currentEx,
+          rows: currentEx.rows.map((r, i) => (i === rowIndex ? { ...r, values: { ...r.values, ...carriedOver } } : r)),
+        };
+      }
+    }
 
     // RIR/RPE es obligatorio (uno u otro) al registrar una serie -- igual
     // que reps/carga, no se puede marcar completada sin rellenar. Solo se
@@ -1563,11 +1621,11 @@ export default function WorkoutSessionScreen(props: Props) {
         if (!targetValues[intensityMetric]) {
           setIntensityCheckTarget({ blockIdx, exIdx, rowIndex, metric: intensityMetric });
         }
-        // Lo que sí se acaba de elegir (RIR/RPE desde la hoja) se conserva
-        // aunque falte otro dato: no se pierde lo tecleado.
-        if (extraValues) {
-          Object.entries(extraValues).forEach(([k, v]) => setCellValue(blockIdx, exIdx, rowIndex, k, v));
-        }
+        // Lo que sí se acaba de elegir (RIR/RPE desde la hoja) o se copió de
+        // la serie anterior se conserva aunque falte otro dato.
+        Object.entries({ ...carriedOver, ...extraValues }).forEach(([k, v]) =>
+          setCellValue(blockIdx, exIdx, rowIndex, k, v)
+        );
         return;
       }
     }
@@ -1619,7 +1677,11 @@ export default function WorkoutSessionScreen(props: Props) {
     // precargado con el rango del coach) al resto de series antes de
     // marcarlas, para no dejarlas completadas con datos vacíos o el rango
     // objetivo sin sustituir. Pedido explícito 2026-09-17.
-    const firstRowValues = currentEx.rows[0]?.values ?? {};
+    // Solo se replican los valores que la 1a serie TIENE (un hueco de la 1a
+    // no borra lo que hubiera en las demás).
+    const firstRowValues = Object.fromEntries(
+      Object.entries(currentEx.rows[0]?.values ?? {}).filter(([, v]) => !isBlankValue(v))
+    );
     const ex = {
       ...currentEx,
       rows: currentEx.rows.map((r, i) => ({
@@ -1628,6 +1690,21 @@ export default function WorkoutSessionScreen(props: Props) {
         completed: true,
       })),
     };
+    // Mismo requisito que al marcar una a una (reps/carga/RIR-RPE): marcar
+    // todas con la 1a en blanco dejaba series "hechas" sin datos que el motor
+    // no puede leer.
+    const requiredKeys = [
+      ...['reps', 'carga'].filter((k) => currentEx.enabledMetrics.includes(k)),
+      getIntensityMode(currentEx),
+    ];
+    if (ex.rows.some((r) => requiredKeys.some((k) => isBlankValue(r.values[k])))) {
+      hapticLight();
+      showToast('Faltan datos para completar las series', {
+        description: 'Rellena la primera serie (reps, carga y RIR/RPE) y vuelve a pulsar.',
+        variant: 'warning',
+      });
+      return;
+    }
 
     setBlocks((prev) => {
       const next = [...prev];
@@ -2343,7 +2420,7 @@ export default function WorkoutSessionScreen(props: Props) {
                               onChangeText={(t) => setCellValue(blockIdx, exIdx, rowIdx, key, t)}
                               onFocus={isTutorialMetric ? () => reportAction(`metric_focus_${key}`) : undefined}
                               keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
-                              placeholder="-"
+                              placeholder={inputPlaceholder(key, target)}
                               placeholderTextColor={C.textSecondary}
                             />
                             {target != null && target !== '' ? (
