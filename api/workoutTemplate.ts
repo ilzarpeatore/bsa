@@ -15,6 +15,7 @@ export interface WorkoutTemplateExerciseModel {
   video_url: string | null;
   body_part_id: number | null;
   last_performance?: { sets: Record<string, any>[] } | null;
+  recent_performance?: { date: string | null; sets: Record<string, any>[] }[] | null;
   exercise?: {
     id: number;
     title: string;

@@ -521,3 +521,48 @@ test('"Marcar todas" con la 1ª serie en blanco no marca nada y avisa', async ()
   expect(logMock).not.toHaveBeenCalled();
   expect(showToast).toHaveBeenCalledWith('Faltan datos para completar las series', expect.anything());
 });
+
+// ── Carga dentro del rango de reps (2026-09-26) ─────────────────────────────
+const HISTORY = {
+  // Última sesión con 8 reps a 50 kg (otro rango); dos antes, 12-13 reps a 40 kg.
+  recentPerformance: [
+    { date: '2026-09-24', sets: [{ reps: 8, carga: 50, rir: 1 }, { reps: 8, carga: 50, rir: 1 }] },
+    { date: '2026-09-17', sets: [{ reps: 12, carga: 40, rir: 2 }, { reps: 13, carga: 42.5, rir: 2 }] },
+  ],
+  lastPerformance: { sets: [{ reps: 8, carga: 50, rir: 1 }, { reps: 8, carga: 50, rir: 1 }] },
+};
+
+test('con rango de reps, la carga sale de la última serie que cayó dentro de ese rango (no de la última sesión)', async () => {
+  await renderSquat({ prescribed: { series: '3', reps: '12-15', carga: 'Subir', rir: '0-3' }, ...HISTORY });
+
+  // Series en rango, en orden: 40 y 42,5; la 3ª fila repite la última en rango.
+  expect(screen.getAllByDisplayValue(/^(40|42\.5)$/).map((i) => i.props.value)).toEqual(['40', '42.5', '42.5']);
+  // Las reps van emparejadas con esa misma serie, no con las de la última sesión.
+  expect(screen.getAllByDisplayValue(/^(12|13)$/).map((i) => i.props.value)).toEqual(['12', '13', '13']);
+  expect(screen.queryByDisplayValue('50')).toBeNull();
+});
+
+test('sin ninguna serie dentro del rango se mantiene la última carga usada', async () => {
+  await renderSquat({
+    prescribed: { series: '2', reps: '20-25', carga: 'Subir', rir: '0-3' },
+    ...HISTORY,
+  });
+
+  // Nada entre 20 y 25 reps: cae al comportamiento anterior (última sesión, serie a serie).
+  expect(screen.getAllByDisplayValue('50')).toHaveLength(2);
+});
+
+test('un objetivo de reps que no es rango (AMRAP) no cambia el comportamiento anterior', async () => {
+  await renderSquat({ prescribed: { series: '2', reps: 'AMRAP', carga: 'Subir', rir: '0-3' }, ...HISTORY });
+
+  expect(screen.getAllByDisplayValue('50')).toHaveLength(2);
+});
+
+test('sin recent_performance (backend antiguo) usa solo la última sesión', async () => {
+  await renderSquat({
+    prescribed: { series: '2', reps: '12-15', carga: 'Subir', rir: '0-3' },
+    lastPerformance: { sets: [{ reps: 12, carga: 40, rir: 2 }] },
+  });
+
+  expect(screen.getAllByDisplayValue('40')).toHaveLength(2);
+});

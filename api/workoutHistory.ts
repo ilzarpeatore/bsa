@@ -88,6 +88,9 @@ export interface CalendarDayExercise {
   coach_notes: string | null;
   enabled_metrics: string[];
   last_performance: { sets: Record<string, any>[] } | null;
+  // Últimas sesiones del ejercicio (la más nueva primero, máx. 6): permite precargar la
+  // carga dentro del rango de reps prescrito. Opcional: backends anteriores no lo traen.
+  recent_performance?: { date: string | null; sets: Record<string, any>[] }[] | null;
   sequence: number;
   // Motor de Auto-Regulación de Carga: null si no hay ninguna sugerencia
   // relevante para este ejercicio (caso normal). 'pendiente' = esperando

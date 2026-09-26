@@ -33,6 +33,13 @@ import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { hapticLight, hapticSuccess } from '@helper/haptics';
 import { showToast } from '@helper/toast';
+import {
+  findSetsInRange,
+  isNumericValue,
+  parseRepRange,
+  performanceSessions,
+  pickReferenceSet,
+} from './workoutPrefill';
 import { logger } from '@helper/logger';
 import {
   startWorkoutLiveActivity,
@@ -269,13 +276,6 @@ function mergePersistedBlocks(freshBlocks: SessionBlock[], persistedBlocks: Sess
   });
 }
 
-// "12" / "12,5" -> true; "12-15", "Subir", "" -> false.
-function isNumericValue(v: unknown): boolean {
-  if (v == null) return false;
-  const t = String(v).trim().replace(',', '.');
-  return t !== '' && !Number.isNaN(Number(t));
-}
-
 function isBlankValue(v: unknown): boolean {
   return v == null || String(v).trim() === '';
 }
@@ -301,8 +301,16 @@ function buildInitialRows(ex: UnifiedExercise): SetRow[] {
   // Carga, aunque la sesión anterior tuviera menos series que la actual
   // (pedido explícito 2026-09-26).
   const lastUsedCarga = [...lastSets].reverse().map((s) => s?.carga).find(isNumericValue);
+  // Mejor aún (pedido explícito 2026-09-26): si el objetivo de reps es un
+  // rango ("12-15"), la carga (y las reps/RIR de esa misma serie) se toman de
+  // la serie más reciente del historial que cayó DENTRO de ese rango, no de
+  // la última sesión sin más. Sin serie comparable -> comportamiento anterior.
+  const repRange = parseRepRange(ex.prescribed?.reps);
+  const inRangeSets = repRange
+    ? findSetsInRange(performanceSessions(ex.recentPerformance, ex.lastPerformance), repRange)
+    : [];
   return Array.from({ length: count }, (_, i) => {
-    const lastSet = lastSets[i];
+    const lastSet = pickReferenceSet(inRangeSets, i) ?? lastSets[i];
     const values: Record<string, string> = {};
     ex.enabledMetrics.forEach((key) => {
       // Reps y carga tienen que ser un NÚMERO: el Motor de Auto-Regulación no

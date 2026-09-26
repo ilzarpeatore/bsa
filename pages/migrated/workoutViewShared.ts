@@ -38,6 +38,8 @@ export interface UnifiedExercise {
   enabledMetrics: string[];
   coachNotes: string | null;
   lastPerformance: { sets: Record<string, any>[] } | null;
+  /** Últimas sesiones (la más nueva primero) -- ver workoutPrefill.ts. */
+  recentPerformance?: { date?: string | null; sets: Record<string, any>[] }[] | null;
   sequence: number;
   // Motor de Auto-Regulación de Carga: null salvo que el motor tenga una
   // sugerencia pendiente/aplicada reciente para este ejercicio -- solo
@@ -104,6 +106,7 @@ export async function fetchUnifiedWorkout(params: WorkoutViewParams): Promise<Un
         enabledMetrics: e.enabled_metrics || [],
         coachNotes: e.coach_notes,
         lastPerformance: e.last_performance,
+        recentPerformance: e.recent_performance ?? null,
         sequence: e.sequence,
         loadSuggestion: e.load_suggestion ?? null,
       })),
@@ -143,6 +146,7 @@ export async function fetchUnifiedWorkout(params: WorkoutViewParams): Promise<Un
         enabledMetrics: e.enabled_metrics || [],
         coachNotes: e.notes,
         lastPerformance: e.last_performance ?? null,
+        recentPerformance: e.recent_performance ?? null,
         sequence: e.sequence,
         loadSuggestion: null,
       })),
