@@ -251,6 +251,9 @@ export default function DietList({ navigation }: Props) {
           data={categoryFilterData}
           horizontal
           showsHorizontalScrollIndicator={false}
+          // flexGrow/flexShrink 0 (2026-09-24): fila de chips en una columna
+          // flex; sin esto Yoga podía encogerla y recortar las píldoras.
+          style={{ flexGrow: 0, flexShrink: 0 }}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.chipList}
           renderItem={renderCategoryItem}

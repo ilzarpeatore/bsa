@@ -161,7 +161,12 @@ export default function BodyMetricsScreen(props: any) {
               patrón que un "fade" de scroll estándar) deja claro que el
               último pill sigue cortado a propósito, no roto. */}
           <Box style={{ position: 'relative' }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}>
+            {/* flexShrink: 0 (2026-09-24, captura de iPhone: "Peso"/"% Grasa
+                corporal" con el texto cortado por abajo). Con flexGrow: 0 solo,
+                el ScrollView horizontal conservaba flexShrink: 1 por defecto:
+                cuando la columna no cabía, Yoga lo encogía en vertical y las
+                píldoras (34 pt) quedaban recortadas. */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}>
             {types.map((t) => (
               <Pressable
                 key={t.value}

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {  View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet  } from 'react-native';
+import {  BackHandler, View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet  } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Input, InputField, InputSlot  } from '@components/ui/input';
@@ -477,6 +477,19 @@ export default function OnboardingV2Screen({ navigation }: any) {
     }
     setQuestionIndex((i) => i - 1);
   }, [questionIndex, navigation]);
+
+  // Botón físico "atrás" de Android = mismo comportamiento que la flecha de
+  // la cabecera (2026-09-24): antes salía del onboarding directamente desde
+  // cualquier pregunta, perdiendo el progreso. En iOS el gesto de volver
+  // está desactivado para esta pantalla (ver ONBOARDING_SCREEN_OPTIONS en
+  // App.tsx).
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
 
   if (!restored) {
     return (
