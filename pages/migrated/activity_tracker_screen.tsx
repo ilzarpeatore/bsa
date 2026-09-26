@@ -4,7 +4,8 @@ import { showToast } from '@helper/toast';
 import { hapticLight } from '@helper/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AnimatedRing from '@components/AnimatedRing';
+import ArcGauge from '@components/ArcGauge';
+import SmoothAreaChart from '@components/SmoothAreaChart';
 import SimpleBottomSheet from '@components/SimpleBottomSheet';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { FONT, RADIUS, SPACING } from './theme';
@@ -210,7 +211,12 @@ export default function ActivityTrackerScreen(props: any) {
   };
 
   const progress = dailyGoal > 0 ? Math.min(steps / dailyGoal, 1) : 0;
-  const weekMax = Math.max(1, ...week.map((d) => d.value), ...week.map((d) => d.today_goal));
+  // Línea de referencia del gráfico semanal: el objetivo vigente más
+  // reciente dentro de la semana (SmoothAreaChart solo admite un valor de
+  // referencia, no uno por día) -- si esa semana no trae ninguno, se cae al
+  // objetivo de hoy.
+  const weekGoalForChart =
+    [...week].reverse().find((d) => d.today_goal > 0)?.today_goal ?? (dailyGoal > 0 ? dailyGoal : null);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -256,14 +262,18 @@ export default function ActivityTrackerScreen(props: any) {
               <Text style={styles.bannerText}>{getBannerText()}</Text>
             </View>
 
+            {/* Hero -- gauge en arco con degradado y un punto que recorre el
+                trazo marcando el progreso (pedido explícito: "más animado y
+                dinámico" que el anillo plano de AnimatedRing), dibujado a
+                mano con SVG + Reanimated en ArcGauge. */}
             <View style={styles.progressContainer}>
-              <AnimatedRing size={240} strokeWidth={12} percent={progress * 100} color={C.orange} trackColor={C.gray10}>
+              <ArcGauge size={240} strokeWidth={14} percent={progress * 100} colorStart={C.orange} colorEnd="#8FE3C7">
                 <View style={styles.progressInner}>
-                  <Ionicons name="walk" size={44} color={C.orange} />
+                  <Ionicons name="walk" size={40} color={C.orange} />
                   <Text style={styles.consumedValue}>{steps.toLocaleString()}</Text>
                   <Text style={styles.glassesLabel}>de {dailyGoal.toLocaleString()} pasos</Text>
                 </View>
-              </AnimatedRing>
+              </ArcGauge>
             </View>
           </>
         )}
@@ -313,34 +323,26 @@ export default function ActivityTrackerScreen(props: any) {
         {week.length > 0 && (
           <View style={{ marginTop: SPACING.xxl }}>
             <Text style={styles.sectionTitle}>Esta semana</Text>
+            {/* Curva suave dibujada a mano (Catmull-Rom, ver
+                SmoothAreaChart) en vez de barras planas, pedido explícito
+                para que se sienta "más animada y dinámica". */}
             <View style={styles.weekCard}>
-              <View style={styles.weekBarsRow}>
-                {week.map((day, idx) => {
-                  const barHeight = Math.max(4, (day.value / weekMax) * 90);
-                  const achieved = day.today_goal > 0 && day.value >= day.today_goal;
+              <SmoothAreaChart
+                data={week.map((day, idx) => {
                   const d = new Date(day.date + 'T00:00:00');
                   const label = isNaN(d.getTime()) ? WEEKDAY_LABELS[idx % 7] : WEEKDAY_LABELS[d.getDay()];
-                  const isToday = day.date === todayDateKey();
-                  return (
-                    <View key={day.date} style={styles.weekBarCol}>
-                      <View style={styles.weekBarTrack}>
-                        <View
-                          style={[
-                            styles.weekBarFill,
-                            {
-                              height: barHeight,
-                              backgroundColor: achieved ? C.orange : C.gray20,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={[styles.weekBarLabel, isToday && { color: C.orange, fontFamily: FONT.bold }]}>
-                        {label}
-                      </Text>
-                    </View>
-                  );
+                  return {
+                    label,
+                    value: day.value,
+                    achieved: day.today_goal > 0 && day.value >= day.today_goal,
+                    isToday: day.date === todayDateKey(),
+                  };
                 })}
-              </View>
+                goalValue={weekGoalForChart}
+                color={C.orange}
+                achievedColor={C.success}
+                labelColor={C.textSecondary}
+              />
             </View>
           </View>
         )}
@@ -601,33 +603,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     borderWidth: 1,
     borderColor: C.border,
     padding: 16,
-  },
-  weekBarsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 110,
-  },
-  weekBarCol: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'flex-end',
-    height: '100%',
-  },
-  weekBarTrack: {
-    width: 16,
-    height: 90,
-    justifyContent: 'flex-end',
-  },
-  weekBarFill: {
-    width: 16,
-    borderRadius: 8,
-  },
-  weekBarLabel: {
-    fontFamily: FONT.medium,
-    fontSize: 12,
-    color: C.textSecondary,
-    marginTop: 8,
   },
   goalCard: {
     flexDirection: 'row',
