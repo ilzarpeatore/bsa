@@ -713,6 +713,16 @@ export default function WorkoutSessionScreen(props: Props) {
   const programDayAssignmentId: number | undefined = route?.params?.programDayAssignmentId;
   const workoutTemplateId: number | undefined = route?.params?.workoutTemplateId;
   const mTitle: string | undefined = route?.params?.mTitle;
+  // Deep link desde la Live Activity del entreno (chips "reps"/"carga" y
+  // botón "Serie hecha" en WorkoutLiveActivityView.swift, vía App.tsx) --
+  // solo llega cuando ya había una sesión activa que App.tsx resolvió antes
+  // de navegar aquí, así que esta pantalla ya está mostrando esa misma
+  // sesión por sus props de arriba. focusToken es un timestamp único por
+  // toque (cambia SIEMPRE aunque focusField repita valor) -- se usa como
+  // dependencia del efecto de abajo en vez de focusField para que un
+  // segundo toque al mismo chip lo vuelva a disparar.
+  const focusField: 'reps' | 'carga' | 'done' | undefined = route?.params?.focusField;
+  const focusToken: number | undefined = route?.params?.focusToken;
 
   // Misma fuente de verdad que ya usan logSets()/finishSession() en el
   // backend para identificar esta sesion: program_day_assignment_id por
@@ -828,6 +838,13 @@ export default function WorkoutSessionScreen(props: Props) {
   const [sessionStartedAt, setSessionStartedAt] = useState<number>(() => Date.now());
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
   const pagerRef = useRef<FlatList>(null);
+  // Refs de los TextInput de reps/carga de la lista principal en acordeón
+  // (NO del reproductor a pantalla completa WorkoutExercisePlayer, que tiene
+  // sus propios inputs) -- clave estable `${blockIdx}-${exIdx}-${rowIdx}-${key}`,
+  // usada solo por el deep link de focusField/focusToken de más abajo para
+  // poner el foco de teclado en la celda correcta sin tener que levantar
+  // estado nuevo por cada input.
+  const cellInputRefs = useRef<Record<string, TextInput | null>>({});
 
   const identityKey = useMemo(() => {
     if (programDayAssignmentId != null) return `pda:${programDayAssignmentId}`;
@@ -1544,6 +1561,102 @@ export default function WorkoutSessionScreen(props: Props) {
     setPageIndex(idx);
   };
 
+  // Deep link desde la Live Activity (focusField/focusToken, ver arriba
+  // dónde se leen de route?.params).
+  //
+  // CORRECCIÓN (revisión previa al commit): la primera versión de este
+  // efecto usaba currentFocusRef.current (el mismo origen de
+  // exerciseIndex/totalExercises en buildLiveActivityState) como "el
+  // ejercicio actual". Pero los chips de reps/carga/"Serie hecha" que el
+  // usuario ve y toca en la Live Activity NO salen de ahí -- salen de
+  // targetEx/targetRow, que ese mismo builder calcula saltando al SIGUIENTE
+  // ejercicio en cuanto el actual (currentFocusRef) se queda sin series
+  // pendientes (ver isNewExercise ahí arriba). Justo en ese hueco --
+  // recién completada la última serie de un ejercicio, antes de que el
+  // cliente avance manualmente-- exerciseIndex todavía apunta al ejercicio
+  // viejo pero los chips YA muestran datos del siguiente. Actuar sobre
+  // currentFocusRef en ese momento marcaría/enfocaría el ejercicio
+  // equivocado (el que ya está completo del todo). Se replica aquí el
+  // mismo cálculo de "target" que buildLiveActivityState, para actuar
+  // siempre sobre exactamente lo que el usuario tiene delante en la
+  // tarjeta, no sobre la fuente de exerciseIndex.
+  //
+  // Solo actúa sobre la lista principal en acordeón (setCellValue/
+  // toggleRowComplete), nunca sobre WorkoutExercisePlayer/playerTarget.
+  // Depende de focusToken (no solo focusField) para que un segundo toque al
+  // mismo chip -- mismo focusField, focusToken distinto -- vuelva a
+  // disparar esto; y espera a que blocks ya esté cargado, igual que el resto
+  // de inicializaciones de esta pantalla (ver isLoading/blocks.length arriba).
+  useEffect(() => {
+    if (isLoading || blocks.length === 0) return;
+    if (!focusField || focusToken == null) return;
+
+    const { blockIdx: focusBlockIdx, exIdx: focusExIdx } = currentFocusRef.current;
+    const currentEx = blocks[focusBlockIdx]?.exercises[focusExIdx];
+    if (!currentEx) return;
+
+    // Mismo cálculo que buildLiveActivityState: si el ejercicio con foco ya
+    // no tiene series pendientes, el "target" real (lo que se ve en los
+    // chips) es la primera fila del siguiente ejercicio del entreno.
+    let targetBlockIdx = focusBlockIdx;
+    let targetExIdx = focusExIdx;
+    let targetEx = currentEx;
+    let rowIdx = currentEx.rows.findIndex((r) => !r.completed);
+
+    if (rowIdx === -1) {
+      let found = false;
+      outer: for (let b = 0; b < blocks.length; b++) {
+        for (let e = 0; e < blocks[b].exercises.length; e++) {
+          if (b === focusBlockIdx && e === focusExIdx) {
+            found = true; // a partir de aquí, ejercicios posteriores al actual
+            continue;
+          }
+          if (!found) continue;
+          const candidateRowIdx = blocks[b].exercises[e].rows.findIndex((r) => !r.completed);
+          if (candidateRowIdx !== -1) {
+            targetBlockIdx = b;
+            targetExIdx = e;
+            targetEx = blocks[b].exercises[e];
+            rowIdx = candidateRowIdx;
+            break outer;
+          }
+        }
+      }
+      if (rowIdx === -1) {
+        // Entreno entero sin series pendientes -- no hay nada real que
+        // enfocar ni marcar (a diferencia de la primera versión, no se usa
+        // la última fila del ejercicio viejo como fallback: sería actuar
+        // sobre una serie que ni siquiera es la que el usuario está viendo).
+        return;
+      }
+    }
+
+    // Asegura que el bloque/ejercicio objetivo está visible antes de tocar
+    // nada dentro de él -- mismo patrón que goToRelativeExercise más arriba
+    // (activeIndexByBlock + goToPage si cae en otro bloque del pager
+    // horizontal).
+    setActiveIndexByBlock((prev) =>
+      prev[targetBlockIdx] === targetExIdx ? prev : { ...prev, [targetBlockIdx]: targetExIdx }
+    );
+    if (targetBlockIdx !== pageIndex) goToPage(targetBlockIdx);
+
+    if (focusField === 'done') {
+      const row = targetEx.rows[rowIdx];
+      if (!row.completed) toggleRowComplete(targetBlockIdx, targetExIdx, rowIdx);
+      return;
+    }
+
+    // 'reps' | 'carga': hace falta esperar un tick a que el acordeón recién
+    // expandido (setActiveIndexByBlock de arriba) haya montado esa fila
+    // antes de poder hacer .focus() sobre su ref -- si ya estaba expandido
+    // el ref ya existe, pero requestAnimationFrame no hace daño en ese caso.
+    const key = focusField;
+    requestAnimationFrame(() => {
+      cellInputRefs.current[`${targetBlockIdx}-${targetExIdx}-${rowIdx}-${key}`]?.focus();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, blocks.length, focusToken]);
+
   const navigateToFeedback = () => {
     // El cliente ya pulso "Finalizar" -> a partir de aqui la sesion pasa a
     // la pantalla de Feedback (que hara el POST real de finishSession), asi
@@ -1951,6 +2064,9 @@ export default function WorkoutSessionScreen(props: Props) {
                         const cell = (
                           <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
                             <TextInput
+                              ref={(r) => {
+                                cellInputRefs.current[`${blockIdx}-${exIdx}-${rowIdx}-${key}`] = r;
+                              }}
                               className="bg-card rounded-sm text-foreground"
                               style={{
                                 paddingVertical: 8,
