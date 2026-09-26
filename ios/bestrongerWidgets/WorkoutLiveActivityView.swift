@@ -292,9 +292,12 @@ private struct RestingView: View {
             .frame(height: 90)
             .frame(maxWidth: .infinity)
 
-            (Text("Siguiente: ").foregroundStyle(brandTeal).fontWeight(.semibold)
+            // foregroundColor (no foregroundStyle) en los Text que se concatenan con `+`:
+            // Text.foregroundStyle es iOS 17+ y este target es iOS 16.4 (el build de
+            // 2026-09-27 falló en estas dos líneas).
+            (Text("Siguiente: ").foregroundColor(brandTeal).fontWeight(.semibold)
                 + Text(state.nextExerciseName.map { "\($0) · \(state.targetSummaryLine)" } ?? state.targetSummaryLine)
-                    .foregroundStyle(.white.opacity(0.85)))
+                    .foregroundColor(Color.white.opacity(0.85)))
                 .font(.caption)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .center)
