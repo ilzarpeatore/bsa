@@ -10,18 +10,18 @@ No confundir con el item `0f` en sí (que queda resuelto cuando este plan se eje
 
 **Fases 0-6 y 8 implementadas, probadas y en `Bckbs`/`bstronger-admin` rama `claude/program-modifications-per-client-ovc0k3`. Fase 7 (cutover en producción) NO ejecutada — requiere decisión humana y acceso al VPS, ver más abajo.**
 
-| Fase | Estado | Commit(s) en `Bckbs` |
-| --- | --- | --- |
-| 0 — Tests de caracterización + entorno sqlite | ✅ Hecho | `bf9411e` |
-| 1 — Migraciones aditivas (`source_*_id`/`is_client_copy`) | ✅ Hecho | `113431c` |
-| 2 — `ProgramCloningService`/`ProgramAssignmentService` tras feature flag `PROGRAM_CLONING_ENABLED` (default `false`) | ✅ Hecho | `96a8f53` |
-| 3 — Fix `SessionProgressionRuleEngine` (Riesgo A) | ✅ Hecho | `507b785` |
-| 4 — Test de aislamiento real entre clientes | ✅ Hecho (cubierto dentro del commit de Fase 2, `96a8f53`) | — |
-| 5 — Excluir copias de cliente de listados de biblioteca | ✅ Hecho | `9ec785b` |
-| 6 — Comando `programs:backfill-clones` (dry-run/`--apply`) | ✅ Hecho, **nunca ejecutado contra datos reales** | `37afbbd` |
-| 7 — Cutover en producción | ❌ Pendiente — requiere acceso al VPS y decisión humana, ver checklist abajo | — |
-| 8 — Frontend (`bstronger-admin`): deduplicar asignación + aviso de plantilla compartida | ✅ Hecho | `accca33` |
-| 9 — "Sincronizar cambios de plantilla" (mejora opcional) | Fuera de alcance, no iniciado | — |
+| Fase                                                                                                                 | Estado                                                                       | Commit(s) en `Bckbs` |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------- |
+| 0 — Tests de caracterización + entorno sqlite                                                                        | ✅ Hecho                                                                     | `bf9411e`            |
+| 1 — Migraciones aditivas (`source_*_id`/`is_client_copy`)                                                            | ✅ Hecho                                                                     | `113431c`            |
+| 2 — `ProgramCloningService`/`ProgramAssignmentService` tras feature flag `PROGRAM_CLONING_ENABLED` (default `false`) | ✅ Hecho                                                                     | `96a8f53`            |
+| 3 — Fix `SessionProgressionRuleEngine` (Riesgo A)                                                                    | ✅ Hecho                                                                     | `507b785`            |
+| 4 — Test de aislamiento real entre clientes                                                                          | ✅ Hecho (cubierto dentro del commit de Fase 2, `96a8f53`)                   | —                    |
+| 5 — Excluir copias de cliente de listados de biblioteca                                                              | ✅ Hecho                                                                     | `9ec785b`            |
+| 6 — Comando `programs:backfill-clones` (dry-run/`--apply`)                                                           | ✅ Hecho, **nunca ejecutado contra datos reales**                            | `37afbbd`            |
+| 7 — Cutover en producción                                                                                            | ❌ Pendiente — requiere acceso al VPS y decisión humana, ver checklist abajo | —                    |
+| 8 — Frontend (`bstronger-admin`): deduplicar asignación + aviso de plantilla compartida                              | ✅ Hecho                                                                     | `accca33`            |
+| 9 — "Sincronizar cambios de plantilla" (mejora opcional)                                                             | Fuera de alcance, no iniciado                                                | —                    |
 
 **Validación**: `php artisan test` en verde — 81 passed (302 assertions), los 13 fallos restantes son scaffolding de Laravel Breeze pre-existente y no relacionado (`UserFactory` inexistente en este backend de API), confirmados como pre-existentes antes de tocar nada de este plan.
 
@@ -46,7 +46,7 @@ No confundir con el item `0f` en sí (que queda resuelto cuando este plan se eje
 ### 1.1 Esquema actual y por qué existe el bug
 
 - `training_programs` es la plantilla reutilizable (desde la migración `2026_07_16_120001`, que hizo `client_id` nullable **a propósito** para que un programa se pudiera compartir).
-- `program_client_assignments` es solo un pivote cliente↔`training_program_id` — **no clona nada**, por diseño explícito (comentario literal en su migración: *"sin duplicar la plantilla"*).
+- `program_client_assignments` es solo un pivote cliente↔`training_program_id` — **no clona nada**, por diseño explícito (comentario literal en su migración: _"sin duplicar la plantilla"_).
 - `program_day_assignments` (los días del calendario) cuelga de `training_program_id`, no de la asignación por cliente, y apunta a un `workout_template_id` también compartido.
 - `ClientExerciseOverride` ya resuelve la personalización de **valores** (peso/reps/notas) por cliente sin tocar la plantilla — es el único mecanismo de aislamiento que existe hoy, y solo cubre eso.
 - `ProgramCalendarGeneratorService` (el servicio que generó el diseño V2 actual) documenta en su propio docblock que **reemplazó a propósito** a un generador anterior que sí clonaba (`TrainingProgramGeneratorService`, sistema V1 legacy). Es decir: el proyecto clonaba antes, y decidió dejar de hacerlo al construir V2. Este plan revierte esa decisión de forma controlada.
@@ -55,13 +55,13 @@ No confundir con el item `0f` en sí (que queda resuelto cuando este plan se eje
 
 Todos comparten el mismo sub-patrón (`existing = ProgramClientAssignment::where(...)->first(); update() : create()`), lo cual es una ventaja: un único servicio nuevo los reemplaza a los 5, no hay que reimplementar la lógica cinco veces.
 
-| # | Sitio | Cuándo se dispara |
-|---|---|---|
-| 1 | `TrainingProgramController::assignClient()` | Coach asigna manualmente desde el panel |
-| 2 | `ClientProfileCalendarController::importProgram()` | "Importar programa completo" al calendario combinado del cliente (2 UIs distintas del admin llaman aquí: `ClientCalendarView.tsx` y `UserDetailView.tsx`) |
-| 3 | `PackageFulfillmentService::assignTrainingProgram()` | Automático al fulfillar una `Subscription` (Package legacy) |
-| 4 | `PlanFulfillmentService::assignTrainingProgram()` | Automático al fulfillar un `PlanSubscription` (sistema nuevo, el que tiene caller real hoy) |
-| 5 | `AssignProgramClientCommand` (`programs:assign-client`) | Comando SSH manual, documentado como "misma lógica que el panel" |
+| #   | Sitio                                                   | Cuándo se dispara                                                                                                                                         |
+| --- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `TrainingProgramController::assignClient()`             | Coach asigna manualmente desde el panel                                                                                                                   |
+| 2   | `ClientProfileCalendarController::importProgram()`      | "Importar programa completo" al calendario combinado del cliente (2 UIs distintas del admin llaman aquí: `ClientCalendarView.tsx` y `UserDetailView.tsx`) |
+| 3   | `PackageFulfillmentService::assignTrainingProgram()`    | Automático al fulfillar una `Subscription` (Package legacy)                                                                                               |
+| 4   | `PlanFulfillmentService::assignTrainingProgram()`       | Automático al fulfillar un `PlanSubscription` (sistema nuevo, el que tiene caller real hoy)                                                               |
+| 5   | `AssignProgramClientCommand` (`programs:assign-client`) | Comando SSH manual, documentado como "misma lógica que el panel"                                                                                          |
 
 ### 1.3 Ya existe base de clonado reutilizable
 

@@ -52,6 +52,11 @@ on:
         required: false
         type: boolean
         default: false
+      dev_tools:
+        description: 'Incluir las herramientas de desarrollo (Screen Explorer / Revisar pantalla) -- solo builds internos/QA. Builds de tienda: dejar en false. Ver docs/BUILD_IPA.md.'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -299,6 +304,12 @@ jobs:
           USE_SIGNING: ${{ inputs.use_signing }}
           CONFIGURATION: ${{ inputs.configuration }}
           EXPORT_METHOD: ${{ inputs.export_method }}
+          # constants/featureFlags.ts::DEV_TOOLS_ENABLED (2026-09-24). Expo
+          # inlina los EXPO_PUBLIC_* al generar el bundle JS, y ese bundle se
+          # genera DENTRO de este paso (fase "Bundle React Native code and
+          # images" de xcodebuild, que hereda el entorno de este proceso y
+          # ejecuta Metro con --reset-cache). Vacío = herramientas fuera.
+          EXPO_PUBLIC_DEV_TOOLS: ${{ inputs.dev_tools && '1' || '' }}
         run: |
           set -e
 
@@ -640,6 +651,7 @@ jobs:
           CONFIGURATION: ${{ inputs.configuration }}
           EXPORT_METHOD: ${{ inputs.export_method }}
           UPLOAD_TO_APP_STORE: ${{ inputs.upload_to_app_store }}
+          DEV_TOOLS: ${{ inputs.dev_tools }}
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -653,6 +665,11 @@ jobs:
             echo "- **Signing:** Signed (${EXPORT_METHOD:-development})" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Signing:** Unsigned (sign locally with AltStore/Sideloadly)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "$DEV_TOOLS" = "true" ]; then
+            echo "- **Dev tools:** INCLUIDAS (build interno/QA -- no subir a la tienda)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Dev tools:** no incluidas" >> $GITHUB_STEP_SUMMARY
           fi
           if [ "$UPLOAD_TO_APP_STORE" = "true" ]; then
             echo "- **App Store Connect upload:** requested (ver el paso 'Upload to App Store Connect' arriba para el resultado real)" >> $GITHUB_STEP_SUMMARY

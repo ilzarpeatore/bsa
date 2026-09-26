@@ -30,6 +30,7 @@ import {  workoutHistoryApi, CompletedSessionItem  } from '../../api/workoutHist
 import {  adaptiveWeekPlansApi  } from '../../api/adaptiveWeekPlans';
 import {  checkinsApi, checkinTypeLabel, CheckInAssignment  } from '../../api/checkins';
 import {  customWorkoutsApi  } from '../../api/customWorkouts';
+import {  getActiveWorkoutSession  } from '../../helper/workoutSessionBus';
 
 interface CalendarWorkout {
   title?: string;
@@ -50,6 +51,7 @@ interface CalendarWorkout {
   // (entrenamiento personalizado: badge + borrable con pulsación larga).
   trainingProgramId?: number;
   isCustom?: boolean;
+  isRepeating?: boolean;
 }
 
 // Respaldo SOLO para cuando el coach no ha subido una imagen real a la
@@ -254,6 +256,11 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   const programTitle: string | undefined = route?.params?.programTitle;
   const initialViewMode: 'calendar' | 'list' = route?.params?.initialViewMode === 'list' ? 'list' : 'calendar';
   const initialPeriodMode: 'week' | 'month' = route?.params?.initialPeriodMode === 'week' ? 'week' : 'month';
+  // AÑADIDO (2026-09-24): la tarjeta "Plan de tu entrenador" de Home abre
+  // el calendario personal del cliente (programId = su programa personal)
+  // pero solo con lo que le ha asignado el coach -- excludeCustom quita los
+  // entrenamientos que se ha creado el propio cliente en ese calendario.
+  const excludeCustom: boolean = route?.params?.excludeCustom === true;
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
   const today = toDateOnly(new Date());
@@ -475,6 +482,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         inMonth: !!d.in_month,
         workouts: (d.workouts ?? [])
           .filter((w: any) => programId == null || w.training_program_id === programId)
+          .filter((w: any) => !excludeCustom || !w?.is_custom)
           .map((w: any) => ({
             title: w.title,
             assignmentId: w.assignment_id,
@@ -483,6 +491,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
             image: w.image || null,
             trainingProgramId: w.training_program_id,
             isCustom: !!w.is_custom,
+            isRepeating: !!w.is_repeating,
           })),
       }));
       setMDays(mapped);
@@ -507,7 +516,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
         setScheduledTasksByDate(grouped);
       })
       .catch(() => setScheduledTasksByDate({}));
-  }, [programId]);
+  }, [programId, excludeCustom]);
 
   useEffect(() => {
     if (ym === loadedYm) return;
@@ -753,22 +762,63 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
   // Pulsación larga sobre un entrenamiento que creó el propio cliente (nunca
   // sobre lo que asignó el coach, ni sobre uno ya completado -- el backend
   // también lo impide).
+  // El que está en curso (minimizado) no se puede ni editar ni eliminar.
+  const isCustomInProgress = (assignmentId: number) => {
+    const active = getActiveWorkoutSession();
+    return active?.programDayAssignmentId === assignmentId || active?.identityKey === `pda:${assignmentId}`;
+  };
+
+  // Pulsación larga (2026-09-24): primero se elige Editar / Eliminar.
+  const onLongPressCustom = (w: CalendarWorkout) => {
+    if (w.assignmentId == null) return;
+    const assignmentId = w.assignmentId;
+    if (isCustomInProgress(assignmentId)) {
+      showToast('Entrenamiento en curso', {
+        description: 'Termina o descarta la sesión en curso antes de editarlo o eliminarlo.',
+        variant: 'warning',
+      });
+      return;
+    }
+    Alert.alert(w.title || 'Entrenamiento personalizado', '¿Qué quieres hacer con este entrenamiento?', [
+      {
+        text: 'Editar',
+        onPress: () => navigation?.navigate('MigratedCustomWorkoutBuilder', { editAssignmentId: assignmentId }),
+      },
+      { text: 'Eliminar', style: 'destructive', onPress: () => confirmDeleteCustom(w) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
   const confirmDeleteCustom = (w: CalendarWorkout) => {
     if (w.assignmentId == null) return;
     const assignmentId = w.assignmentId;
-    Alert.alert(
-      'Eliminar entrenamiento',
-      `¿Quieres quitar "${w.title || 'este entrenamiento'}" de tu calendario?`,
-      [
+    // Borrar el entrenamiento que está en curso (minimizado) dejaría la
+    // barra flotante y la sesión guardada apuntando a un día que ya no
+    // existe -- al volver a abrirla solo daría error.
+    if (isCustomInProgress(assignmentId)) {
+      showToast('Entrenamiento en curso', {
+        description: 'Termina o descarta la sesión en curso antes de eliminarlo.',
+        variant: 'warning',
+      });
+      return;
+    }
+    const title = `¿Quieres quitar "${w.title || 'este entrenamiento'}" de tu calendario?`;
+    if (!w.isRepeating) {
+      Alert.alert('Eliminar entrenamiento', title, [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Solo este día', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
-        {
-          text: 'Este y los siguientes',
-          style: 'destructive',
-          onPress: () => deleteCustomWorkout(assignmentId, 'following'),
-        },
-      ]
-    );
+        { text: 'Eliminar', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
+      ]);
+      return;
+    }
+    Alert.alert('Eliminar entrenamiento', `${title}\n\nSe repite cada semana.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Solo este día', style: 'destructive', onPress: () => deleteCustomWorkout(assignmentId, 'single') },
+      {
+        text: 'Este y los siguientes',
+        style: 'destructive',
+        onPress: () => deleteCustomWorkout(assignmentId, 'following'),
+      },
+    ]);
   };
 
   const renderCreateCustomButton = (dateKey: string) =>
@@ -810,7 +860,7 @@ export default function MyProgramCalendarScreen(props: MyProgramCalendarScreenPr
       >
         <Pressable
           onPress={() => (reorderMode ? (canMove && selectWorkoutToMove(w, dateKey)) : goToWorkout(w, dateKey))}
-          onLongPress={w.isCustom && !completed && !reorderMode && !selectionMode ? () => confirmDeleteCustom(w) : undefined}
+          onLongPress={w.isCustom && !completed && !reorderMode && !selectionMode ? () => onLongPressCustom(w) : undefined}
           disabled={reorderMode && !canMove}
         >
           <Card

@@ -825,8 +825,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         // Overlay oscuro sobre RESOURCES_SEE_ALL_BG -- la ilustración es clara
         // (mint/blanco) y el icono de flecha va en blanco, sin esto se pierde
         // el contraste que sí tenía sobre el fondo de color liso.
+        // StyleSheet.absoluteFill (2026-09-24): antes absoluteFillObject, que
+        // en RN 0.86 ya no existe (ni en tipos ni en runtime: el spread no
+        // añadía nada y el overlay/las imagenes de fondo no cubrian la
+        // tarjeta). absoluteFill es un objeto plano congelado, se puede
+        // pasar tal cual o expandir.
         seeAllImageOverlay: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           backgroundColor: 'rgba(0,0,0,0.18)',
         },
         // Banner de la Guía de autogestión -- a diferencia de blogCard, el
@@ -991,7 +996,18 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
       // sección Entrenamientos solo muestra el botón de crear.
       customWorkoutsApi
         .getActivePrograms()
-        .then((res) => setActivePrograms(res.data?.data ?? []))
+        .then((res) => {
+          const list = res.data?.data;
+          // Nunca dejar un no-array en el estado: el .map() del render
+          // tumbaría el Home entero.
+          // Programas primero y "Plan de tu entrenador" (kind
+          // 'coach_calendar', 2026-09-24) después; sin kind (backend
+          // anterior) = programa. sort estable: respeta el orden del backend
+          // dentro de cada grupo.
+          const valid = Array.isArray(list) ? list.filter((p) => p && p.training_program_id != null) : [];
+          const rank = (p: ActiveProgram) => (p.kind === 'coach_calendar' ? 1 : 0);
+          setActivePrograms([...valid].sort((a, b) => rank(a) - rank(b)));
+        })
         .catch(() => {});
 
       const [
@@ -1861,28 +1877,39 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
           <Text style={styles.sectionTitle}>Entrenamientos</Text>
         </HStack>
         <Card variant="glass" className="mx-5 p-4" style={{ marginBottom: r(4) }}>
-          {activePrograms.map((p) => {
-            const subtitle =
-              p.current_week > 0
+          {activePrograms.map((p, idx) => {
+            const isCoachCalendar = p.kind === 'coach_calendar';
+            // "Plan de tu entrenador" (2026-09-24): sin semanas de programa,
+            // solo las sesiones sueltas que le ha puesto su coach esta semana.
+            const sessionsThisWeek = Number(p.sessions_this_week) || 0;
+            const completedThisWeek = Number(p.completed_this_week) || 0;
+            const subtitle = isCoachCalendar
+              ? sessionsThisWeek > 0
+                ? `${completedThisWeek}/${sessionsThisWeek} sesiones esta semana`
+                : 'Sesiones de tu entrenador esta semana'
+              : p.current_week > 0
                 ? `Semana ${p.current_week} de ${p.num_weeks}` +
                   (p.sessions_this_week > 0
                     ? ` · ${p.completed_this_week}/${p.sessions_this_week} sesiones esta semana`
                     : '')
-                : `Empieza el ${p.start_date.split('-').reverse().slice(0, 2).join('/')}`;
+                : p.start_date
+                  ? `Empieza el ${String(p.start_date).split('-').reverse().slice(0, 2).join('/')}`
+                  : 'Pendiente de empezar';
             return (
-              <React.Fragment key={p.program_client_assignment_id}>
+              <React.Fragment key={`${isCoachCalendar ? 'coach' : 'program'}-${p.program_client_assignment_id ?? idx}`}>
                 <Pressable
                   onPress={() =>
                     navigation?.navigate('MigratedMyProgramCalendar', {
                       programId: p.training_program_id,
-                      programTitle: p.title,
+                      programTitle: p.title || (isCoachCalendar ? 'Plan de tu entrenador' : 'Mi programa'),
                       initialViewMode: 'list',
                       initialPeriodMode: 'week',
+                      ...(isCoachCalendar ? { excludeCustom: true } : {}),
                     })
                   }>
                   <HStack space="md" className="items-center">
                     <AppIcon
-                      name="barbell-outline"
+                      name={isCoachCalendar ? 'calendar-outline' : 'barbell-outline'}
                       size={20}
                       color={C.orange}
                       bg={C.orange10}
@@ -1891,7 +1918,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                     />
                     <VStack className="flex-1">
                       <Text style={styles.todayWorkoutTitle} numberOfLines={2}>
-                        {p.title}
+                        {p.title || (isCoachCalendar ? 'Plan de tu entrenador' : 'Mi programa')}
                       </Text>
                       <Text style={styles.todayWorkoutSub}>{subtitle}</Text>
                     </VStack>
@@ -2212,7 +2239,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
                 <Box style={[styles.blogImage, styles.seeAllImage]}>
                   <ExpoImage
                     source={RESOURCES_SEE_ALL_BG}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                     contentFit="cover"
                     cachePolicy="memory-disk"
                     transition={200}
@@ -2387,7 +2414,7 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Box style={[styles.blogImage, styles.seeAllImage]}>
                 <ExpoImage
                   source={BLOG_SEE_ALL_BG}
-                  style={StyleSheet.absoluteFillObject}
+                  style={StyleSheet.absoluteFill}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   transition={200}

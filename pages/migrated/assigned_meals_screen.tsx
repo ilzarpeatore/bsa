@@ -539,7 +539,7 @@ export default function AssignedMealsScreen(props: any) {
                   </HStack>
 
                   {fsRecipeTypes.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10, flexGrow: 0, flexShrink: 0 }}>
                       <HStack space="xs">
                         {fsRecipeTypes.map((t) => (
                           <Pressable

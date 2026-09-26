@@ -65,10 +65,19 @@ Por eso el step llama a `.github/scripts/android-inject-release-signing.py`, que
 
 `app.json` ya define `android.versionCode: 1` e `ios.buildNumber: "1"` (añadido 2026-08-28, antes no existían — sin ellos, Expo asumía `1` en cada build de forma silenciosa). **Google Play rechaza subir dos `.aab` con el mismo `versionCode`** — hay que incrementar `android.versionCode` en `app.json` a mano antes de cada build que se vaya a subir a Play Console (mismo criterio que subir `expo.version`/`ios.buildNumber` para App Store).
 
+## Herramientas de desarrollo por build (`dev_tools`, 2026-09-24)
+
+`constants/featureFlags.ts::DEV_TOOLS_ENABLED` (Screen Explorer / "Revisar pantalla", montadas en `App.tsx`) ya no se cambia a mano: vale `process.env.EXPO_PUBLIC_DEV_TOOLS === '1'`, y Expo inlina los `EXPO_PUBLIC_*` en el bundle JS al generarlo. El workflow tiene un input `dev_tools` (bool, default `false`) que exporta `EXPO_PUBLIC_DEV_TOOLS=1` en el paso "Build Android" — el bundle se genera dentro de ese mismo paso (la tarea `createBundleReleaseJsAndAssets` de Gradle lanza Metro con `--reset-cache` heredando el entorno de `gradlew`; `android/` se regenera con `expo prebuild` en cada run, no hay bundle cacheado), así que el valor llega al bundle. El resumen del build muestra `Dev tools: INCLUIDAS / no incluidas`.
+
+- **Builds internos/QA**: `"dev_tools": true`.
+- **Builds de tienda (Play Console)**: no pasarlo (o `false`). Por defecto quedan fuera, así que un build de tienda ya no puede llevarlas por olvido.
+- **Local** (`npm start`): `EXPO_PUBLIC_DEV_TOOLS=1 npx expo start --clear` (o `EXPO_PUBLIC_DEV_TOOLS=1` en un `.env.local`, ya ignorado por git). Sin la variable, arranca sin ellas.
+
 ## Resumen — checklist antes de lanzar un build "de verdad"
 
 - [ ] `build_id` único
 - [ ] `build_format: "aab"` si es para subir a Play Console (`"apk"` sirve para probar en un dispositivo)
 - [ ] `use_signing: true` + los 4 secrets configurados, si el build es para Play Console
+- [ ] `dev_tools`: `true` solo para builds internos/QA (Screen Explorer); **build de tienda → sin `dev_tools` (false)**, y comprobar `Dev tools: no incluidas` en el resumen
 - [ ] `android.versionCode` subido en `app.json` respecto al último build ya subido a Play Console
 - [ ] Primera ejecución real: revisar el log completo del step de firma/build, no solo el resumen en verde

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
+  Alert,
   ScrollView,
   TextInput,
   Platform,
@@ -14,7 +15,7 @@ import {
   BackHandler,
 } from 'react-native';
 import {  Image  } from 'expo-image';
-import {  SafeAreaView, useSafeAreaInsets  } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {  Gesture, GestureDetector  } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
@@ -62,6 +63,8 @@ import {
   getActiveWorkoutSession,
   ActiveWorkoutSession,
 } from '../../helper/workoutSessionBus';
+import { discardActiveWorkoutSession } from '../../helper/discardWorkoutSession';
+import WorkoutInProgressConflict from '../../components/WorkoutInProgressConflict';
 import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
@@ -81,6 +84,18 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Mismas keys que usa el resto de la app (ver exercise_info_screen.tsx,
 // prioridad ['series','carga','reps','rir','rpe','tiempo']) — se elige
 // 'rir' como default único entre "rir o rpe" que pide la nota.
+// Diálogo "Salir del entrenamiento" (onClose). Compartido tal cual con
+// "Cancelar entrenamiento en curso" de la pantalla de conflicto
+// (2026-09-24, pedido explícito: el MISMO diálogo, no otro distinto).
+const EXIT_SESSION_DIALOG = {
+  icon: 'log-out-outline' as const,
+  title: 'Salir del entrenamiento',
+  message:
+    'Todavía no has finalizado esta sesión. Si sales ahora se perderá la duración y el feedback (las series ya marcadas quedan guardadas).',
+  confirmText: 'Salir sin finalizar',
+  cancelText: 'Seguir entrenando',
+};
+
 const ADHOC_DEFAULT_METRICS = ['carga', 'reps', 'descanso', 'rir'];
 const ADHOC_DEFAULT_SERIES = 3;
 // Orden pedido explícitamente por el usuario (2026-08-26): series,
@@ -160,6 +175,58 @@ interface PersistedSession {
   blocks: SessionBlock[];
   activeIndexByBlock: Record<number, number>;
   mTitle?: string;
+  // Claves (exerciseSyncKey) de los ejercicios de los que ya se ha enviado
+  // al menos una serie al backend en esta sesion (2026-09-24). Opcional:
+  // sesiones persistidas por versiones anteriores de la app no lo traen --
+  // en ese caso se deduce de las filas completadas (ver seedSyncedKeys).
+  syncedExerciseKeys?: string[];
+}
+
+/**
+ * Identidad de un ejercicio tal y como la ve el backend en
+ * my-calendar-log-sets: workout_template_exercise_id para los prescritos por
+ * el coach, exercise_id para los añadidos ad-hoc (2026-09-24). Se usa para
+ * recordar qué ejercicios ya tienen series enviadas en esta sesión.
+ */
+function exerciseSyncKey(ex: SessionExercise): string {
+  return ex.isAdhoc ? `e:${ex.exerciseId}` : `t:${ex.id}`;
+}
+
+/**
+ * Semilla del registro de "ejercicios ya sincronizados" al retomar una
+ * sesión persistida (2026-09-24): usa la lista guardada si existe y, por si
+ * la sesión la guardó una versión anterior de la app (sin ese campo), añade
+ * cualquier ejercicio que tuviera alguna serie completada -- esas series ya
+ * se enviaron al marcarlas. Todo defensivo: datos de AsyncStorage pueden
+ * venir malformados.
+ */
+function seedSyncedKeys(persisted: PersistedSession | null): Set<string> {
+  const keys = new Set<string>();
+  if (!persisted) return keys;
+  if (Array.isArray(persisted.syncedExerciseKeys)) {
+    persisted.syncedExerciseKeys.forEach((k) => {
+      if (typeof k === 'string') keys.add(k);
+    });
+  }
+  (Array.isArray(persisted.blocks) ? persisted.blocks : []).forEach((b) => {
+    (Array.isArray(b?.exercises) ? b.exercises : []).forEach((ex) => {
+      if (Array.isArray(ex?.rows) && ex.rows.some((r) => r?.completed)) keys.add(exerciseSyncKey(ex));
+    });
+  });
+  return keys;
+}
+
+/**
+ * session_key de my-calendar-log-sets (2026-09-24): id estable de ESTA
+ * sesión concreta = identityKey + timestamp real de inicio. sessionStartedAt
+ * se restaura desde AsyncStorage al retomar tras reiniciar la app, así que
+ * la clave sobrevive a reinicios. El backend solo acepta [A-Za-z0-9_:-] y
+ * máximo 64 caracteres -- se sanea por si acaso.
+ */
+function buildSessionKey(identityKey: string | null, startedAt: number): string | undefined {
+  if (!identityKey || !Number.isFinite(startedAt)) return undefined;
+  const key = `${identityKey}:${Math.round(startedAt)}`.replace(/[^A-Za-z0-9_:-]/g, '').slice(0, 64);
+  return key || undefined;
 }
 
 /**
@@ -286,6 +353,64 @@ interface WorkoutExercisePlayerProps {
 // y desmontarse entero con el Modal que lo envuelve, nunca llamarse
 // condicionalmente dentro del componente padre (que ya tiene decenas de
 // hooks propios y sigue vivo aunque el reproductor esté cerrado).
+// Ancho de la columna "SERIE" (número/botón de completar) -- el mismo en
+// cabecera y filas para que todo quede alineado.
+const SET_NUMBER_COL_WIDTH = 38;
+
+/**
+ * Número de la serie = botón de completarla (2026-09-24, pedido explícito
+ * con captura de iPhone: con reps + carga + RIR/RPE + descanso, el check de
+ * la derecha quedaba fuera de la pantalla y había que deslizar para verlo).
+ * Ya no hay columna de check: se toca el propio número. Pendiente = círculo
+ * con el número; hecha = círculo relleno verde (mismo color que el check
+ * "completado" de antes) con ✓ blanco. Solo cambia DÓNDE se pulsa: onPress
+ * es el mismo toggle de siempre (toggleRowComplete / onToggleRowComplete).
+ */
+function SetNumberToggle({
+  index,
+  completed,
+  onPress,
+  C,
+}: {
+  index: number;
+  completed: boolean;
+  onPress: () => void;
+  C: ReturnType<typeof useAppColorMode>['colors'];
+}) {
+  const n = index + 1;
+  return (
+    <Pressable
+      onPress={onPress}
+      // 28 + 8 por lado = 44 pt de zona táctil.
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={completed ? `Desmarcar serie ${n}` : `Marcar serie ${n} como hecha`}
+      accessibilityState={{ checked: completed }}
+      style={{ width: SET_NUMBER_COL_WIDTH, alignItems: 'center', marginTop: 2 }}
+    >
+      <Box
+        className="items-center justify-center"
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          borderWidth: completed ? 0 : 1.5,
+          borderColor: C.border,
+          backgroundColor: completed ? C.success : 'transparent',
+        }}
+      >
+        {completed ? (
+          <Icon name="checkmark" size={16} color="#FFFFFF" />
+        ) : (
+          <Text weight="semibold" className="text-foreground" style={{ fontSize: 12, lineHeight: 16 }}>
+            {n}
+          </Text>
+        )}
+      </Box>
+    </Pressable>
+  );
+}
+
 function WorkoutExercisePlayer({
   ex,
   exercisePositionLabel,
@@ -531,10 +656,22 @@ function WorkoutExercisePlayer({
                   modernización, captura de referencia) -- puramente
                   informativa, no sustituye a la columna "Descanso" editable
                   si el ejercicio la tiene habilitada. */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20 }}>
+              {/* 2026-09-24: sin columna de check (se completa tocando el
+                  número, ver SetNumberToggle) y columnas de métricas a flex
+                  en vez de 72 px fijos -- con 4-5 métricas todo cabe sin
+                  scroll horizontal, que ya no hace falta. Cabecera, casilla
+                  y "Obj: X" comparten la misma columna flex, así que siguen
+                  alineados. Etiquetas de cabecera hasta 2 líneas: la
+                  cabecera crece, no se solapa con los inputs. */}
+              <Box style={{ marginTop: 20 }}>
                 <Box className="px-5">
-                  <HStack className="items-center" style={{ marginBottom: 8 }}>
-                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                  <HStack style={{ marginBottom: 8, alignItems: 'flex-end' }}>
+                    <Text
+                      weight="semibold"
+                      muted
+                      className="text-center"
+                      style={{ fontSize: 11, lineHeight: 13, width: SET_NUMBER_COL_WIDTH }}
+                    >
                       SERIE
                     </Text>
                     {displayMetrics.map((key) => {
@@ -544,11 +681,8 @@ function WorkoutExercisePlayer({
                           weight="semibold"
                           muted={!isIntensity}
                           className="text-center"
-                          style={[
-                            { fontSize: 11, width: 72, marginHorizontal: 2 },
-                            isIntensity && { color: C.blue },
-                          ]}
-                          numberOfLines={1}
+                          style={[{ fontSize: 11, lineHeight: 13 }, isIntensity && { color: C.blue }]}
+                          numberOfLines={2}
                         >
                           {metricLabel(key)}
                         </Text>
@@ -556,6 +690,7 @@ function WorkoutExercisePlayer({
                       return isIntensity ? (
                         <Pressable
                           key={key}
+                          style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}
                           onPress={onToggleIntensityMode}
                           hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
                           accessibilityRole="button"
@@ -564,10 +699,11 @@ function WorkoutExercisePlayer({
                           {label}
                         </Pressable>
                       ) : (
-                        <Box key={key}>{label}</Box>
+                        <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
+                          {label}
+                        </Box>
                       );
                     })}
-                    <Box style={{ width: 34 }} />
                   </HStack>
 
                   {ex.rows.map((row, rowIdx) => (
@@ -580,23 +716,21 @@ function WorkoutExercisePlayer({
                           backgroundColor: row.completed ? C.success5 : 'transparent',
                         }}
                       >
-                        <Box
-                          className="items-center justify-center"
-                          style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, marginHorizontal: 5, marginTop: 4 }}
-                        >
-                          <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                            {rowIdx + 1}
-                          </Text>
-                        </Box>
+                        <SetNumberToggle
+                          index={rowIdx}
+                          completed={row.completed}
+                          onPress={() => onToggleRowComplete(rowIdx)}
+                          C={C}
+                        />
                         {displayMetrics.map((key) => {
                           const suggestedValue = key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
                           const hasSuggestion = suggestedValue != null;
                           const target = hasSuggestion ? suggestedValue : ex.prescribed?.[key];
                           return (
-                            <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
+                            <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
                               <TextInput
                                 className="bg-card rounded-sm text-foreground"
-                                style={{ paddingVertical: 8, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
+                                style={{ paddingVertical: 8, paddingHorizontal: 2, fontFamily: FONT.regular, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: C.border }}
                                 value={row.values[key] ?? ''}
                                 onChangeText={(t) => onChangeCell(rowIdx, key, t)}
                                 keyboardType={metricInputType(key) === 'number' ? 'numeric' : 'default'}
@@ -620,25 +754,6 @@ function WorkoutExercisePlayer({
                             </Box>
                           );
                         })}
-                        <Pressable
-                          className="items-center justify-center"
-                          style={{ width: 34, marginTop: 3 }}
-                          onPress={() => onToggleRowComplete(rowIdx)}
-                        >
-                          <Box
-                            className="items-center justify-center"
-                            style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: 7,
-                              backgroundColor: row.completed ? C.success : 'transparent',
-                              borderWidth: row.completed ? 0 : 1.5,
-                              borderColor: C.border,
-                            }}
-                          >
-                            {row.completed && <Icon name="checkmark" size={16} color="#FFFFFF" />}
-                          </Box>
-                        </Pressable>
                       </HStack>
 
                       {ex.prescribed?.descanso && rowIdx < ex.rows.length - 1 ? (
@@ -653,7 +768,7 @@ function WorkoutExercisePlayer({
                     </React.Fragment>
                   ))}
                 </Box>
-              </ScrollView>
+              </Box>
 
               {/* Añadir serie (acción principal) y marcar todas (secundaria)
                   -- notas/progreso/dolor ya subieron junto al título, así
@@ -710,9 +825,25 @@ export default function WorkoutSessionScreen(props: Props) {
   const { state } = useAuth();
   const { reportAction } = useTutorial();
   const insets = useSafeAreaInsets();
-  const programDayAssignmentId: number | undefined = route?.params?.programDayAssignmentId;
-  const workoutTemplateId: number | undefined = route?.params?.workoutTemplateId;
-  const mTitle: string | undefined = route?.params?.mTitle;
+  // Qué entrenamiento es esta instancia: por defecto el de route.params,
+  // pero la pantalla de conflicto ("Ya tienes un entrenamiento en curso")
+  // puede convertir ESTA MISMA instancia en el entrenamiento en curso
+  // (sessionTarget) sin navegar -- ver continueActiveSession más abajo.
+  const [sessionTarget, setSessionTarget] = useState<{
+    programDayAssignmentId?: number;
+    workoutTemplateId?: number;
+    mTitle?: string;
+  } | null>(null);
+  const programDayAssignmentId: number | undefined = sessionTarget
+    ? sessionTarget.programDayAssignmentId
+    : route?.params?.programDayAssignmentId;
+  const workoutTemplateId: number | undefined = sessionTarget
+    ? sessionTarget.workoutTemplateId
+    : route?.params?.workoutTemplateId;
+  const mTitle: string | undefined = sessionTarget ? sessionTarget.mTitle : route?.params?.mTitle;
+  // Sube cada vez que hay que (re)arrancar el flujo de montaje (retomar /
+  // empezar + load) en esta misma instancia.
+  const [bootSeq, setBootSeq] = useState(0);
 
   // Misma fuente de verdad que ya usan logSets()/finishSession() en el
   // backend para identificar esta sesion: program_day_assignment_id por
@@ -723,6 +854,16 @@ export default function WorkoutSessionScreen(props: Props) {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  // 'gone' = el entrenamiento ya no existe o ya no es de este cliente (404/
+  // 403: el coach lo quitó o movió del calendario) -> se descarta la sesión
+  // guardada, reintentar no serviría de nada. 'network' = cualquier otro
+  // fallo (sin conexión, 5xx) -> se conserva para poder reintentar.
+  const [loadErrorKind, setLoadErrorKind] = useState<'gone' | 'network' | null>(null);
+  const persistedRef = useRef<PersistedSession | null>(null);
+  // Ejercicios (exerciseSyncKey) de los que ya se ha enviado alguna serie
+  // en esta sesión -- necesario para mandar logged_sets: [] cuando el
+  // cliente desmarca TODAS las series de uno (2026-09-24), y solo de esos.
+  const syncedExerciseKeysRef = useRef<Set<string>>(new Set());
   const [blocks, setBlocks] = useState<SessionBlock[]>([]);
   const [activeIndexByBlock, setActiveIndexByBlock] = useState<Record<number, number>>({});
   const [pageIndex, setPageIndex] = useState(0);
@@ -876,6 +1017,7 @@ export default function WorkoutSessionScreen(props: Props) {
     async (persisted?: PersistedSession | null) => {
       setIsLoading(true);
       setError(false);
+      setLoadErrorKind(null);
       try {
         const [data, catalog] = await Promise.all([
           fetchUnifiedWorkout({ programDayAssignmentId, workoutTemplateId, fallbackTitle: mTitle }),
@@ -899,13 +1041,20 @@ export default function WorkoutSessionScreen(props: Props) {
         setBlocks(mappedBlocks);
         setActiveIndexByBlock(initialActiveIndex);
         setPageIndex(0);
-      } catch (e) {
+      } catch (e: any) {
+        const status = e?.response?.status;
+        const gone = status === 404 || status === 403;
+        setLoadErrorKind(gone ? 'gone' : 'network');
+        // Si era la sesión minimizada, deja de estarlo: si no, la barra
+        // flotante seguiría llevando aquí para siempre y bloquearía empezar
+        // cualquier otro entrenamiento.
+        if (gone) discardActiveWorkoutSession(identityKey).catch(() => {});
         setError(true);
       } finally {
         setIsLoading(false);
       }
     },
-    [programDayAssignmentId, workoutTemplateId, mTitle]
+    [programDayAssignmentId, workoutTemplateId, mTitle, identityKey]
   );
 
   // Punto 4: al entrar en esta pantalla, mira si ya habia una sesion sin
@@ -944,15 +1093,48 @@ export default function WorkoutSessionScreen(props: Props) {
       const startedAt = persisted?.startedAt ?? Date.now();
       setSessionStartedAt(startedAt);
       setNowTick(Date.now());
+      persistedRef.current = persisted;
+      syncedExerciseKeysRef.current = seedSyncedKeys(persisted);
       load(persisted);
     })();
     return () => {
       cancelled = true;
     };
-    // Solo al montar esta instancia de pantalla -- identityKey/load no
-    // cambian durante la vida de esta pantalla (vienen de route.params).
+    // Al montar y cada vez que la pantalla de conflicto pide rearrancar
+    // (bootSeq) -- identityKey/load ya son los del nuevo objetivo en ese
+    // render (sessionTarget se fija en el mismo lote que bootSeq).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [bootSeq]);
+
+  // Rearranca esta misma instancia (sale del modo conflicto) para el
+  // entrenamiento indicado -- null = el de route.params.
+  const rebootAs = useCallback(
+    (target: { programDayAssignmentId?: number; workoutTemplateId?: number; mTitle?: string } | null) => {
+      setSessionTarget(target);
+      setConflictingSession(null);
+      setIsLoading(true);
+      setBootSeq((n) => n + 1);
+    },
+    []
+  );
+
+  // Bug real (2026-09-24, captura de iPhone): en la pantalla de conflicto
+  // tocar la barra flotante del entrenamiento en curso no hacía nada. La
+  // barra navega a 'MigratedWorkoutSession' con los params del en curso, y
+  // en React Navigation 7 navigate() a una ruta con el MISMO nombre que la
+  // actual solo actualiza sus params (StackRouter: "If the route matches
+  // the current one, then navigate to it") -- no se monta otra instancia,
+  // y esta seguía en modo conflicto porque el arranque solo corría al
+  // montar. Ahora, si cambian los params mientras se muestra el conflicto,
+  // se rearranca con ellos.
+  // (Patrón de React "ajustar estado cuando cambia una prop", durante el
+  // render y con guarda, en vez de un efecto.)
+  const routeIdentity = `${route?.params?.programDayAssignmentId ?? ''}|${route?.params?.workoutTemplateId ?? ''}`;
+  const [prevRouteIdentity, setPrevRouteIdentity] = useState(routeIdentity);
+  if (prevRouteIdentity !== routeIdentity) {
+    setPrevRouteIdentity(routeIdentity);
+    if (conflictingSession) rebootAs(null);
+  }
 
   // Persiste la sesion en curso (debounced) cada vez que cambia algo
   // relevante -- asi si la app se mata sin previo aviso (no hay evento
@@ -966,6 +1148,7 @@ export default function WorkoutSessionScreen(props: Props) {
       blocks,
       activeIndexByBlock,
       mTitle,
+      syncedExerciseKeys: Array.from(syncedExerciseKeysRef.current),
     };
     const t = setTimeout(() => {
       AsyncStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(payload)).catch(() => {});
@@ -1129,7 +1312,18 @@ export default function WorkoutSessionScreen(props: Props) {
       // nunca al entrenador. Ahora también se envía si hay nota, aunque
       // logged_sets vaya vacío -- solo se corta de verdad cuando no hay
       // absolutamente nada que guardar.
-      if (loggedSets.length === 0 && !note) return;
+      //
+      // Bug real (2026-09-24): si el cliente desmarcaba TODAS las series de
+      // un ejercicio que ya había enviado, se cortaba aquí y el backend se
+      // quedaba con la última foto (con series) -- el entrenador veía como
+      // hechas series que el cliente había deshecho. Ahora, si ese
+      // ejercicio ya tenía series enviadas en esta sesión, se manda
+      // logged_sets: [] para que la última foto quede vacía. Los que nunca
+      // se enviaron siguen sin generar ninguna petición.
+      const syncKey = exerciseSyncKey(ex);
+      const wasSynced = syncedExerciseKeysRef.current.has(syncKey);
+      if (loggedSets.length === 0 && !note && !wasSynced) return;
+      if (loggedSets.length > 0) syncedExerciseKeysRef.current.add(syncKey);
       workoutHistoryApi
         .logCalendarSets({
           workout_template_exercise_id: ex.isAdhoc ? undefined : ex.id,
@@ -1137,10 +1331,11 @@ export default function WorkoutSessionScreen(props: Props) {
           logged_sets: loggedSets,
           program_day_assignment_id: programDayAssignmentId ?? null,
           notes: note || undefined,
+          session_key: buildSessionKey(identityKey, sessionStartedAt),
         })
         .catch(() => {});
     },
-    [programDayAssignmentId]
+    [programDayAssignmentId, identityKey, sessionStartedAt]
   );
 
   const updateExercise = (
@@ -1494,6 +1689,7 @@ export default function WorkoutSessionScreen(props: Props) {
         enabledMetrics: ADHOC_DEFAULT_METRICS,
         coachNotes: null,
         lastPerformance: null,
+        loadSuggestion: null,
         sequence: (blocks[targetBlockIdx]?.exercises.length ?? 0) + 1,
       };
       const newExercise: SessionExercise = {
@@ -1633,49 +1829,67 @@ export default function WorkoutSessionScreen(props: Props) {
     transform: [{ translateY: dragY.value }],
   }));
 
+  // Conflicto -> "Continuar entrenamiento en curso": esta misma instancia
+  // pasa a ser la sesión en curso (lee su sesión guardada y la carga, igual
+  // que al abrirla desde la barra). Sin navegar: nada que pueda quedarse a
+  // medias entre pestañas/instancias.
+  const continueActiveSession = () => {
+    const active = getActiveWorkoutSession() ?? conflictingSession;
+    if (!active) {
+      // Ya no hay nada en curso (se descartó desde la barra): se empieza el
+      // que se había abierto.
+      rebootAs(null);
+      return;
+    }
+    const [kind, rawId] = String(active.identityKey || '').split(':');
+    const parsedId = Number(rawId);
+    const hasParsedId = Number.isFinite(parsedId) && parsedId > 0;
+    rebootAs({
+      programDayAssignmentId:
+        active.programDayAssignmentId ?? (kind === 'pda' && hasParsedId ? parsedId : undefined),
+      workoutTemplateId: active.workoutTemplateId ?? (kind === 'wt' && hasParsedId ? parsedId : undefined),
+      mTitle: active.mTitle,
+    });
+  };
+
+  // Conflicto -> "Cancelar entrenamiento en curso" (tras el mismo diálogo
+  // que "Salir del entrenamiento"): descarta el que estaba en curso
+  // (AsyncStorage + barra + Live Activity) y arranca aquí el que se quería
+  // empezar, en vez de dejar una pantalla vacía.
+  const discardActiveAndStartThis = () => {
+    setCloseConfirmVisible(false);
+    const activeKey = (getActiveWorkoutSession() ?? conflictingSession)?.identityKey ?? null;
+    discardActiveWorkoutSession(activeKey)
+      .catch(() => {})
+      .finally(() => rebootAs(null));
+  };
+
   // Punto (e): ya hay OTRO workout en curso -- se bloquea el arranque de
   // este por completo (nunca se llegó a llamar load()) y se ofrece
   // continuar con el que ya estaba activo, en vez de arrancar dos sesiones
   // en paralelo.
   if (conflictingSession) {
+    // Pantalla de conflicto rehecha (2026-09-24, reportado con captura de
+    // iPhone: ningún botón hacía nada). Ya no depende de navegar a otra
+    // instancia de esta misma ruta para nada: "Continuar" convierte ESTA
+    // instancia en el entrenamiento en curso y "Cancelar entrenamiento en
+    // curso" lo descarta y arranca aquí mismo el que se quería empezar.
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
-        <Box
-          className="flex-row items-center px-5"
-          style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
-        >
-          <Pressable onPress={() => navigation?.goBack()} accessibilityRole="button" accessibilityLabel="Cerrar">
-            <Icon name="close" size={26} color={C.textPrimary} />
-          </Pressable>
-        </Box>
-        <Box className="flex-1 items-center justify-center px-8">
-          <Icon name="alert-circle-outline" size={44} color={C.warning60} />
-          <Heading size="md" className="text-center" style={{ marginTop: 16 }}>
-            Ya tienes un entrenamiento en curso
-          </Heading>
-          <Text muted className="text-center" style={{ marginTop: 8, fontSize: 14 }}>
-            Termina o continúa &ldquo;{conflictingSession.mTitle || 'tu entrenamiento'}&rdquo; antes de empezar uno nuevo.
-          </Text>
-          <Button
-            radius="pill"
-            style={{ marginTop: 24, alignSelf: 'stretch' }}
-            onPress={() => {
-              const params = {
-                programDayAssignmentId: conflictingSession.programDayAssignmentId,
-                workoutTemplateId: conflictingSession.workoutTemplateId,
-                mTitle: conflictingSession.mTitle,
-              };
-              if (navigation?.replace) navigation.replace('MigratedWorkoutSession', params);
-              else navigation?.navigate('MigratedWorkoutSession', params);
-            }}
-          >
-            <ButtonText>Continuar con ese entrenamiento</ButtonText>
-          </Button>
-          <Pressable style={{ marginTop: 16 }} onPress={() => navigation?.goBack()}>
-            <Text muted style={{ fontSize: 13 }}>Cancelar</Text>
-          </Pressable>
-        </Box>
-      </SafeAreaView>
+      <>
+        <WorkoutInProgressConflict
+          activeTitle={conflictingSession.mTitle}
+          onContinue={continueActiveSession}
+          onCancelActive={() => setCloseConfirmVisible(true)}
+          onBack={() => navigation?.goBack()}
+        />
+        <ConfirmDialogMem
+          visible={closeConfirmVisible}
+          {...EXIT_SESSION_DIALOG}
+          destructive
+          onCancel={() => setCloseConfirmVisible(false)}
+          onConfirm={discardActiveAndStartThis}
+        />
+      </>
     );
   }
 
@@ -1690,6 +1904,25 @@ export default function WorkoutSessionScreen(props: Props) {
   }
 
   if (error || blocks.length === 0) {
+    const gone = loadErrorKind === 'gone';
+    const empty = !error && blocks.length === 0;
+    const confirmDiscard = () =>
+      Alert.alert(
+        'Descartar entrenamiento',
+        'Se cerrará este entrenamiento sin finalizarlo. Las series que ya marcaste siguen guardadas.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Descartar',
+            style: 'destructive',
+            onPress: () => {
+              discardActiveWorkoutSession(identityKey)
+                .catch(() => {})
+                .finally(() => navigation?.goBack());
+            },
+          },
+        ]
+      );
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
         <Box
@@ -1700,14 +1933,45 @@ export default function WorkoutSessionScreen(props: Props) {
             <Icon name="close" size={26} color={C.textPrimary} />
           </Pressable>
         </Box>
-        <Box className="flex-1 items-center justify-center">
-          <Text muted className="text-center px-6" style={{ fontSize: 15 }}>
-            No se pudo cargar el entrenamiento.
+        <Box className="flex-1 items-center justify-center px-8">
+          <Icon name={gone ? 'calendar-clear-outline' : 'cloud-offline-outline'} size={44} color={C.warning60} />
+          <Heading size="md" className="text-center" style={{ marginTop: 16 }}>
+            {gone
+              ? 'Este entrenamiento ya no está disponible'
+              : empty
+                ? 'Este entrenamiento no tiene ejercicios'
+                : 'No se pudo cargar el entrenamiento'}
+          </Heading>
+          <Text muted className="text-center" style={{ marginTop: 8, fontSize: 14 }}>
+            {gone
+              ? 'Tu entrenador lo ha quitado o cambiado de día en tu calendario. Las series que ya marcaste siguen guardadas.'
+              : empty
+                ? 'Consulta con tu entrenador o elige otro entrenamiento.'
+                : 'Revisa tu conexión e inténtalo de nuevo.'}
           </Text>
+          {!gone && !empty && (
+            <Button
+              radius="pill"
+              style={{ marginTop: 24, alignSelf: 'stretch' }}
+              onPress={() => load(persistedRef.current)}
+            >
+              <ButtonText>Reintentar</ButtonText>
+            </Button>
+          )}
+          {gone ? (
+            <Button radius="pill" style={{ marginTop: 24, alignSelf: 'stretch' }} onPress={() => navigation?.goBack()}>
+              <ButtonText>Volver</ButtonText>
+            </Button>
+          ) : (
+            <Pressable style={{ marginTop: 16 }} onPress={confirmDiscard}>
+              <Text style={{ fontSize: 13, color: C.destructive }}>Descartar entrenamiento</Text>
+            </Pressable>
+          )}
         </Box>
       </SafeAreaView>
     );
   }
+
 
   // Extraído para reutilizarse tal cual dentro del reproductor a pantalla
   // completa (WorkoutExercisePlayer, ver Modal más abajo) -- mismo
@@ -1850,11 +2114,24 @@ export default function WorkoutSessionScreen(props: Props) {
                   explícito 2026-08-26. La columna RIR/RPE es tocable: son
                   la misma "casilla" de intensidad intercambiable
                   (getIntensityMode/toggleIntensityMode), el cliente elige
-                  cuál rellenar tocando su título. */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  cuál rellenar tocando su título.
+                  2026-09-24 (pedido explícito, captura de iPhone): con reps +
+                  carga + RIR/RPE + descanso, el check de la derecha quedaba
+                  fuera de la pantalla y había que deslizar. Ahora se completa
+                  tocando el número de la serie (SetNumberToggle), sin columna
+                  de check, y las métricas se reparten el ancho con flex en
+                  vez de 72 px fijos: con 4-5 métricas todo cabe y el scroll
+                  horizontal deja de hacer falta. Etiquetas de cabecera hasta
+                  2 líneas (la cabecera crece, no pisa los inputs). */}
+              <Box>
                 <Box style={{ marginTop: 16 }}>
-                  <HStack className="items-center" style={{ marginBottom: 8 }}>
-                    <Text weight="semibold" muted className="text-center" style={{ fontSize: 11, width: 34 }}>
+                  <HStack style={{ marginBottom: 8, alignItems: 'flex-end' }}>
+                    <Text
+                      weight="semibold"
+                      muted
+                      className="text-center"
+                      style={{ fontSize: 11, lineHeight: 13, width: SET_NUMBER_COL_WIDTH }}
+                    >
                       SERIE
                     </Text>
                     {getDisplayMetrics(ex).map((key) => {
@@ -1864,11 +2141,8 @@ export default function WorkoutSessionScreen(props: Props) {
                           weight="semibold"
                           muted={!isIntensity}
                           className="text-center"
-                          style={[
-                            { fontSize: 11, width: 72, marginHorizontal: 2 },
-                            isIntensity && { color: C.blue },
-                          ]}
-                          numberOfLines={1}
+                          style={[{ fontSize: 11, lineHeight: 13 }, isIntensity && { color: C.blue }]}
+                          numberOfLines={2}
                         >
                           {metricLabel(key)}
                         </Text>
@@ -1876,6 +2150,7 @@ export default function WorkoutSessionScreen(props: Props) {
                       return isIntensity ? (
                         <Pressable
                           key={key}
+                          style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}
                           onPress={() => toggleIntensityMode(ex.exerciseId, key as IntensityMetric)}
                           hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
                           accessibilityRole="button"
@@ -1884,10 +2159,11 @@ export default function WorkoutSessionScreen(props: Props) {
                           {label}
                         </Pressable>
                       ) : (
-                        <Box key={key}>{label}</Box>
+                        <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
+                          {label}
+                        </Box>
                       );
                     })}
-                    <Box style={{ width: 34 }} />
                   </HStack>
 
                   {ex.rows.map((row, rowIdx) => (
@@ -1901,32 +2177,36 @@ export default function WorkoutSessionScreen(props: Props) {
                       }}
                     >
                       {/* items-start (no items-center) en el HStack de arriba
-                          -- las celdas de métrica son más altas que este
-                          círculo y el check de más abajo porque llevan
-                          debajo el texto "Obj: X" (ver más abajo); con
-                          items-center, el círculo/check se centraban contra
-                          esa altura TOTAL (input + texto) en vez de contra
-                          el propio recuadro del input, y quedaban más abajo
-                          de lo que tocaba (reportado con captura,
-                          2026-08-26). marginTop aquí los alinea contra la
-                          altura real del TextInput (paddingVertical:8 +
-                          fontSize:13 ≈ 32px). */}
-                      <Box
-                        className="items-center justify-center"
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          borderWidth: 1.5,
-                          borderColor: C.border,
-                          marginHorizontal: 5,
-                          marginTop: 4,
-                        }}
-                      >
-                        <Text weight="semibold" className="text-foreground" style={{ fontSize: 12 }}>
-                          {rowIdx + 1}
-                        </Text>
-                      </Box>
+                          -- las celdas de métrica son más altas que el
+                          círculo del número porque llevan debajo el texto
+                          "Obj: X"; el marginTop de SetNumberToggle lo alinea
+                          contra el propio recuadro del input (reportado con
+                          captura, 2026-08-26). El número ES el botón de
+                          completar (2026-09-24) -- el TutorialTarget del
+                          paso "Marca una serie como hecha" pasa aquí desde
+                          el antiguo check de la derecha. */}
+                      {(() => {
+                        const toggleBtn = (
+                          <SetNumberToggle
+                            index={rowIdx}
+                            completed={row.completed}
+                            onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
+                            C={C}
+                          />
+                        );
+                        // exIdx === 0 añadido (auditoría 2026-08-29): sin
+                        // esto, con más de un ejercicio en el bloque 0 este
+                        // mismo id se registraba en la fila 0 de CADA
+                        // ejercicio de ese bloque (se pisaban entre sí en
+                        // targetsRef, ver store/TutorialContext.tsx
+                        // registerTarget) -- mismo criterio que ya usa
+                        // isTutorialMetric más abajo para las métricas.
+                        return blockIdx === 0 && exIdx === 0 && rowIdx === 0 ? (
+                          <TutorialTarget id="workout-session-first-set-toggle">{toggleBtn}</TutorialTarget>
+                        ) : (
+                          toggleBtn
+                        );
+                      })()}
                       {getDisplayMetrics(ex).map((key) => {
                         // Punto 1 (Motor de Auto-Regulacion de Carga): si hay una
                         // sugerencia PENDIENTE del motor para este ejercicio, esa
@@ -1949,11 +2229,12 @@ export default function WorkoutSessionScreen(props: Props) {
                           rowIdx === 0 &&
                           ['reps', 'carga', 'descanso', 'rir', 'rpe'].includes(key);
                         const cell = (
-                          <Box key={key} style={{ width: 72, marginHorizontal: 2 }}>
+                          <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
                             <TextInput
                               className="bg-card rounded-sm text-foreground"
                               style={{
                                 paddingVertical: 8,
+                                paddingHorizontal: 2,
                                 fontFamily: FONT.regular,
                                 fontSize: 13,
                                 textAlign: 'center',
@@ -1991,37 +2272,10 @@ export default function WorkoutSessionScreen(props: Props) {
                           cell
                         );
                       })}
-                      {(() => {
-                        const toggleBtn = (
-                          <Pressable
-                            className="items-center"
-                            style={{ width: 34, marginTop: 3 }}
-                            onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
-                          >
-                            <Icon
-                              name={row.completed ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                              size={26}
-                              color={row.completed ? C.success : C.textSecondary}
-                            />
-                          </Pressable>
-                        );
-                        // exIdx === 0 añadido (auditoría 2026-08-29): sin
-                        // esto, con más de un ejercicio en el bloque 0 este
-                        // mismo id se registraba en la fila 0 de CADA
-                        // ejercicio de ese bloque (se pisaban entre sí en
-                        // targetsRef, ver store/TutorialContext.tsx
-                        // registerTarget) -- mismo criterio que ya usa
-                        // isTutorialMetric más arriba para las métricas.
-                        return blockIdx === 0 && exIdx === 0 && rowIdx === 0 ? (
-                          <TutorialTarget id="workout-session-first-set-toggle">{toggleBtn}</TutorialTarget>
-                        ) : (
-                          toggleBtn
-                        );
-                      })()}
                     </HStack>
                   ))}
                 </Box>
-              </ScrollView>
+              </Box>
 
               {/* Fila de acciones modernizada (pedido explícito 2026-08-26):
                   "Progreso" abre el análisis histórico de ESTE ejercicio
@@ -2237,12 +2491,23 @@ export default function WorkoutSessionScreen(props: Props) {
         animationType="slide"
         onRequestClose={() => setIsPickerVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+        {/* SafeAreaProvider propio dentro del Modal (2026-09-24): un <Modal>
+            de RN es una ventana nativa aparte en iOS y el SafeAreaView de
+            dentro no recibía los insets del provider raíz -- la cabecera
+            quedaba detrás de la hora y la X no se podía pulsar (mismo bug
+            reportado en ExercisePickerModal). */}
+        <SafeAreaProvider>
+        <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: C.bg }}>
           <Box
             className="flex-row items-center justify-between px-5"
             style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
           >
-            <Pressable onPress={() => setIsPickerVisible(false)} accessibilityRole="button" accessibilityLabel="Cerrar">
+            <Pressable
+              onPress={() => setIsPickerVisible(false)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar"
+            >
               <Icon name="close" size={26} className="text-foreground" />
             </Pressable>
             <Heading size="sm">Añadir ejercicio</Heading>
@@ -2262,6 +2527,12 @@ export default function WorkoutSessionScreen(props: Props) {
               aire real por los 4 lados sin cambiar el resto (gap:8 entre
               píldoras y paddingHorizontal:20 del scroll, ya consistentes
               con el buscador y la lista de debajo, se quedan igual). */}
+          {/* flexGrow/flexShrink 0 (2026-09-24, bug real con captura de
+              iPhone: las píldoras salían cortadas a media altura). Este
+              ScrollView no tenía ni flexGrow: 0 y, como la FlatList de
+              debajo no llevaba flex: 1, al desbordar la columna Yoga encogía
+              esta fila (flexShrink: 1 por defecto en ScrollView). Ahora la
+              fila mide siempre su contenido y la lista ocupa el resto. */}
           {bodyParts.length > 0 && (
             // Bug 2026-09-24 (captura iPhone): sin flexGrow:0 este ScrollView
             // horizontal ocupaba media pantalla en vertical (es hermano de un
@@ -2271,7 +2542,7 @@ export default function WorkoutSessionScreen(props: Props) {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={{ flexGrow: 0 }}
+              style={{ flexGrow: 0, flexShrink: 0 }}
               contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: 'flex-start' }}
             >
               <Pressable
@@ -2281,7 +2552,12 @@ export default function WorkoutSessionScreen(props: Props) {
               >
                 <Text
                   weight="semibold"
-                  style={{ fontSize: 12.5, color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary }}
+                  style={{
+                    fontSize: 12.5,
+                    // lineHeight explícito: Gilroy semibold sin él se recorta en iOS.
+                    lineHeight: 16,
+                    color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary,
+                  }}
                 >
                   Todos
                 </Text>
@@ -2295,7 +2571,11 @@ export default function WorkoutSessionScreen(props: Props) {
                 >
                   <Text
                     weight="semibold"
-                    style={{ fontSize: 12.5, color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary }}
+                    style={{
+                      fontSize: 12.5,
+                      lineHeight: 16,
+                      color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary,
+                    }}
                   >
                     {bp.title}
                   </Text>
@@ -2310,6 +2590,7 @@ export default function WorkoutSessionScreen(props: Props) {
           ) : (
             <FlatList
               data={pickerResults}
+              style={{ flex: 1 }}
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
               onEndReached={onPickerEndReached}
@@ -2329,6 +2610,7 @@ export default function WorkoutSessionScreen(props: Props) {
             />
           )}
         </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       {/* Modo guiado a pantalla completa (pedido explícito 2026-08-27) --
@@ -2391,12 +2673,8 @@ export default function WorkoutSessionScreen(props: Props) {
 
       <ConfirmDialogMem
         visible={closeConfirmVisible}
-        icon="log-out-outline"
+        {...EXIT_SESSION_DIALOG}
         destructive
-        title="Salir del entrenamiento"
-        message="Todavía no has finalizado esta sesión. Si sales ahora se perderá la duración y el feedback (las series ya marcadas quedan guardadas)."
-        confirmText="Salir sin finalizar"
-        cancelText="Seguir entrenando"
         onCancel={() => setCloseConfirmVisible(false)}
         onConfirm={() => {
           setCloseConfirmVisible(false);

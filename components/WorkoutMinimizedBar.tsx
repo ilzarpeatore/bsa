@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {  Platform  } from 'react-native';
+import {  Alert, Platform  } from 'react-native';
 import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  Box  } from '@components/ui/box';
 import {  HStack  } from '@components/ui/hstack';
@@ -9,6 +9,7 @@ import {  Icon  } from '@components/ui/icon';
 import {  GlassView, isGlassEffectAPIAvailable  } from '@components/ui/glass-view';
 import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
 import {  subscribeWorkoutSession, ActiveWorkoutSession  } from '../helper/workoutSessionBus';
+import {  discardActiveWorkoutSession  } from '../helper/discardWorkoutSession';
 import {  RADIUS  } from '../pages/migrated/theme';
 
 interface Props {
@@ -96,6 +97,27 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
     }, 800);
   };
 
+  // Salida de emergencia (2026-09-24): antes la barra solo podía restaurar
+  // la sesión. Si esa sesión ya no se puede abrir (el coach quitó el
+  // entrenamiento del calendario, datos corruptos...), el cliente quedaba
+  // bloqueado sin poder empezar ningún otro entrenamiento.
+  const confirmDiscard = () => {
+    Alert.alert(
+      'Descartar entrenamiento',
+      `Se cerrará "${session.mTitle || 'este entrenamiento'}" sin finalizarlo. Las series que ya marcaste siguen guardadas.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Descartar',
+          style: 'destructive',
+          onPress: () => {
+            discardActiveWorkoutSession(session.identityKey).catch(() => {});
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Box
       pointerEvents="box-none"
@@ -165,7 +187,17 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
                 </Text>
               </Box>
             </HStack>
-            <Icon name="chevron-up-circle" size={26} color="#FFFFFF" />
+            <HStack space="sm" className="items-center">
+              <Pressable
+                onPress={confirmDiscard}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Descartar entrenamiento en curso"
+              >
+                <Icon name="close-circle-outline" size={24} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+              <Icon name="chevron-up-circle" size={26} color="#FFFFFF" />
+            </HStack>
           </HStack>
           <Box style={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 10, overflow: 'hidden' }}>
             <Box style={{ height: 3, borderRadius: 2, width: `${Math.round(progress * 100)}%`, backgroundColor: '#34C759' }} />

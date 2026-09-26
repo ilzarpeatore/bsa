@@ -39,8 +39,13 @@ interface PostData {
 
 export default function PostDetailsScreen(props: any) {
   const { colors: C } = useAppColorMode();
+  // Antes `const { user: authUser } = useAuth()` -- AuthContextType no tiene
+  // `user` (vive en state.user), así que authUser era SIEMPRE undefined (y un
+  // error de tsc): isOwnComment nunca era true y en tus propios comentarios
+  // salían "Reportar comentario" / "Bloquearte a ti mismo". Corregido
+  // 2026-09-24.
   const { state: authState } = useAuth();
-  const authUser = authState.user;
+  const authUser = authState?.user ?? null;
   const postData: PostData | undefined = props.route?.params?.postData;
   const isFromLink: boolean = props.route?.params?.isFromLink ?? false;
 

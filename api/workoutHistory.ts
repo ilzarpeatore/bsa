@@ -52,6 +52,9 @@ export interface CalendarMonthWorkout {
   training_program_id?: number;
   is_personal?: boolean;
   is_custom?: boolean;
+  // true si forma parte de una serie semanal de más de una ocurrencia
+  // ("repetir todos los lunes") -- solo entonces se ofrece "este y los siguientes".
+  is_repeating?: boolean;
 }
 
 export interface CalendarMonthDay {
@@ -231,6 +234,9 @@ export const workoutHistoryApi = {
     logged_sets: Record<string, any>[];
     program_day_assignment_id?: number | null;
     notes?: string;
+    // Id estable de la sesión en curso (2026-09-24): `${identityKey}:${startedAt}`,
+    // saneado a [A-Za-z0-9_:-], máx. 64. Opcional -- backends anteriores lo ignoran.
+    session_key?: string;
   }) => apiClient.post<ApiMessageResponse>('v1/my-calendar-log-sets', payload),
 
   finishCalendarSession: (payload: {

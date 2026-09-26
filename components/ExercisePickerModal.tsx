@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
 import { HStack } from '@components/ui/hstack';
@@ -40,6 +40,12 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
+// La API a veces devuelve null/objeto en vez de lista (catálogo vacío,
+// error manejado en backend): nunca dejar que un .map() reviente la pantalla.
+function asList<T extends { id: unknown }>(raw: unknown): T[] {
+  return Array.isArray(raw) ? (raw as T[]).filter((it) => it != null && (it as any).id != null) : [];
+}
+
 // Catálogos (grupos musculares/equipo/nivel) cacheados en memoria durante
 // la sesión: no cambian mientras se usa la app y el picker se abre muchas
 // veces seguidas al montar un entrenamiento.
@@ -70,6 +76,14 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
   // Selección en el orden en que se tocan (así se añaden en ese orden).
   const [selected, setSelected] = useState<ExerciseItem[]>([]);
   const selectedIds = useMemo(() => new Set(selected.map((s) => s.id)), [selected]);
+  // Doble toque en "Añadir N ejercicios" antes de que el padre desmonte el
+  // modal: añadiría la misma selección dos veces.
+  const confirmedRef = useRef(false);
+  const confirm = () => {
+    if (confirmedRef.current || selected.length === 0) return;
+    confirmedRef.current = true;
+    onConfirm(selected);
+  };
 
   // Quien lo usa lo monta solo mientras está abierto (ver
   // custom_workout_builder_screen.tsx), así que cada apertura empieza con
@@ -77,9 +91,9 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
   useEffect(() => {
     if (!catalogCache) {
       Promise.all([
-        exercisesApi.getBodyParts(1).then((r) => r.data?.data ?? []).catch(() => [] as BodyPartItem[]),
-        exercisesApi.getEquipment(1).then((r) => r.data?.data ?? []).catch(() => [] as EquipmentItem[]),
-        exercisesApi.getLevels(1).then((r) => r.data?.data ?? []).catch(() => [] as LevelItem[]),
+        exercisesApi.getBodyParts(1).then((r) => asList<BodyPartItem>(r.data?.data)).catch(() => [] as BodyPartItem[]),
+        exercisesApi.getEquipment(1).then((r) => asList<EquipmentItem>(r.data?.data)).catch(() => [] as EquipmentItem[]),
+        exercisesApi.getLevels(1).then((r) => asList<LevelItem>(r.data?.data)).catch(() => [] as LevelItem[]),
       ]).then(([bp, eq, lv]) => {
         if (bp.length || eq.length || lv.length) catalogCache = { bodyParts: bp, equipment: eq, levels: lv };
         setBodyParts(bp);
@@ -105,8 +119,15 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           per_page: PAGE_SIZE,
         });
         if (requestId !== requestIdRef.current) return; // respuesta obsoleta
-        const items = res.data?.data ?? [];
-        setResults((prev) => (page === 1 ? items : [...prev, ...items]));
+        const raw = res.data?.data;
+        const items = (Array.isArray(raw) ? raw : []).filter((it) => it && typeof it.id === 'number');
+        // Si el catálogo cambia entre página y página el mismo ejercicio
+        // puede venir dos veces -- claves duplicadas en la FlatList.
+        setResults((prev) => {
+          if (page === 1) return items;
+          const seen = new Set(prev.map((p) => p.id));
+          return [...prev, ...items.filter((it) => !seen.has(it.id))];
+        });
         const totalPages = res.data?.pagination?.totalPages ?? 1;
         isLastPageRef.current = page >= totalPages;
       } catch {
@@ -158,7 +179,12 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
       style={{ backgroundColor: active ? C.accentBlack : C.surfaceLight }}
       onPress={onPress}
     >
-      <Text weight="semibold" style={{ fontSize: 12.5, color: active ? C.accentBlackForeground : C.textSecondary }}>
+      {/* lineHeight explícito (2026-09-24): Gilroy semibold sin lineHeight
+          recorta el glifo en iOS (patrón ya documentado en el repo). */}
+      <Text
+        weight="semibold"
+        style={{ fontSize: 12.5, lineHeight: 16, color: active ? C.accentBlackForeground : C.textSecondary }}
+      >
         {label}
       </Text>
     </Pressable>
@@ -175,7 +201,10 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
   const renderItem = ({ item }: { item: ExerciseItem }) => {
     const isSelected = selectedIds.has(item.id);
-    const subtitle = [item.bodypart_name?.map((b) => b.title).join(', '), item.equipment_title].filter(Boolean).join(' · ');
+    const bodyPartNames = Array.isArray(item.bodypart_name)
+      ? item.bodypart_name.map((b) => b?.title).filter(Boolean).join(', ')
+      : '';
+    const subtitle = [bodyPartNames, item.equipment_title].filter(Boolean).join(' · ');
     return (
       <Pressable className="flex-row items-center py-2.5" onPress={() => toggle(item)}>
         {item.exercise_image ? (
@@ -185,7 +214,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
         )}
         <Box style={{ flex: 1, marginRight: 8 }}>
           <Text weight="semibold" className="text-foreground" style={{ fontSize: 14 }} numberOfLines={2}>
-            {item.title}
+            {item.title || 'Ejercicio sin nombre'}
           </Text>
           {!!subtitle && (
             <Text style={styles.resultSubtitle} numberOfLines={1}>
@@ -204,12 +233,19 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+      {/* SafeAreaProvider propio DENTRO del Modal (2026-09-24, bug real con
+          captura de iPhone: la X y el título quedaban detrás de la hora y la
+          X no se podía pulsar). Un <Modal> de RN es una ventana nativa aparte
+          en iOS y el SafeAreaView de dentro no recibía los insets del
+          SafeAreaProvider raíz (quedaba con inset 0). Es el arreglo que
+          recomienda react-native-safe-area-context para Modals. */}
+      <SafeAreaProvider>
+      <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: C.bg }}>
         <Box
           className="flex-row items-center justify-between px-5"
           style={{ paddingTop: Platform.OS === 'ios' ? 12 : 16, paddingBottom: 12 }}
         >
-          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Cerrar">
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Cerrar">
             <Icon name="close" size={26} className="text-foreground" />
           </Pressable>
           <Heading size="sm">{title}</Heading>
@@ -232,7 +268,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
+            style={styles.chipRow}
             contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 10 }}
           >
             {renderChip('Todos', bodyPartId === null, () => setBodyPartId(null), 'all')}
@@ -253,7 +289,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
             >
               <Text
                 weight="semibold"
-                style={{ fontSize: 12.5, color: filterActive(key) ? C.accentBlackForeground : C.textPrimary }}
+                style={{ fontSize: 12.5, lineHeight: 16, color: filterActive(key) ? C.accentBlackForeground : C.textPrimary }}
                 numberOfLines={1}
               >
                 {filterLabel(key)}
@@ -275,7 +311,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
               }}
               style={styles.clearFiltersBtn}
             >
-              <Text style={{ fontSize: 12.5, color: C.textSecondary, fontFamily: FONT.medium }}>Limpiar</Text>
+              <Text style={{ fontSize: 12.5, lineHeight: 16, color: C.textSecondary, fontFamily: FONT.medium }}>Limpiar</Text>
             </Pressable>
           )}
         </HStack>
@@ -283,7 +319,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
+            style={styles.chipRow}
             contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
           >
             {renderChip('Cualquiera', openFilterValue == null, () => setOpenFilterValue(null), 'any')}
@@ -300,7 +336,10 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
         ) : (
           <FlatList
             data={results}
-            keyExtractor={(item) => item.id.toString()}
+            // flex: 1 (2026-09-24): ver styles.chipRow -- la lista es la
+            // que debe ocupar (y ceder) el alto restante, no las filas de chips.
+            style={{ flex: 1 }}
+            keyExtractor={(item) => String(item.id)}
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
             onEndReached={onEndReached}
@@ -320,7 +359,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
         {selected.length > 0 && (
           <Box style={styles.footer}>
-            <Button radius="pill" style={styles.confirmBtn as any} onPress={() => onConfirm(selected)}>
+            <Button radius="pill" style={styles.confirmBtn as any} onPress={confirm}>
               <ButtonText style={styles.confirmText}>
                 Añadir {selected.length} ejercicio{selected.length !== 1 ? 's' : ''}
               </ButtonText>
@@ -328,12 +367,21 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           </Box>
         )}
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
 
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
+    // Filas horizontales de chips (2026-09-24, bug real con captura de
+    // iPhone: solo se veía la mitad superior de cada píldora). ScrollView y
+    // FlatList llevan por defecto flexShrink: 1, y la FlatList de debajo no
+    // tenía flex: 1 -- su alto "natural" es el de todos sus resultados, la
+    // columna desbordaba y Yoga encogía también estas filas (la fila de
+    // Equipo/Nivel/Tipo es un HStack normal, flexShrink 0, por eso esa no se
+    // cortaba). flexGrow/flexShrink 0 = siempre a su alto de contenido.
+    chipRow: { flexGrow: 0, flexShrink: 0 },
     resultImage: { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 },
     resultSubtitle: { fontSize: 12, color: C.textSecondary, fontFamily: FONT.regular, marginTop: 2 },
     filterChip: {
