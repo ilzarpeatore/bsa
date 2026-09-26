@@ -105,15 +105,30 @@ private struct SegmentedProgressBar: View {
     let total: Int
     var height: CGFloat = 4
 
+    // BUG REAL visto en dispositivo (captura, 2026-09-27): esta barra se
+    // veía como una esquirla diminuta en la esquina en vez de franjas
+    // completas. Causa: cada segmento solo llevaba `.frame(height:)`, sin
+    // ningún ancho -- un Shape (RoundedRectangle) sin `.frame(width:)` NI
+    // `.frame(maxWidth:)` no tiene tamaño intrínseco propio, así que en un
+    // HStack normal (y más aún dentro del motor de layout de WidgetKit,
+    // más estricto que el de una app) colapsa a un ancho mínimo/cero en vez
+    // de repartirse el espacio disponible. `.frame(maxWidth: .infinity)`
+    // por segmento -- técnica estándar para una barra segmentada de anchos
+    // iguales -- y la propia barra pide todo el ancho que le sobre a su
+    // padre (ver LockScreenLiveActivityView: ya no compite con un Spacer
+    // contra un ancho indefinido, es ella la que se declara "voraz" y el
+    // reloj de al lado queda con su tamaño natural en el borde derecho).
     var body: some View {
         HStack(spacing: 4) {
             ForEach(0..<max(total, 1), id: \.self) { i in
                 RoundedRectangle(cornerRadius: height / 2)
                     .fill(i < index ? brandTeal : Color.white.opacity(0.18))
+                    .frame(maxWidth: .infinity)
                     .frame(height: height)
                     .shadow(color: i == index - 1 ? brandTeal.opacity(0.6) : .clear, radius: 3)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -204,9 +219,13 @@ private struct LockScreenLiveActivityView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
+            HStack(alignment: .top, spacing: 8) {
+                // SegmentedProgressBar ya se declara `.frame(maxWidth:
+                // .infinity)` a sí misma -- es ella la que reclama el hueco
+                // disponible en vez de dejarlo a un Spacer compitiendo
+                // contra un ancho que antes no existía (ver el comentario
+                // del bug real en la propia barra).
                 SegmentedProgressBar(index: context.state.exerciseIndex, total: context.state.totalExercises)
-                Spacer(minLength: 8)
                 // Tiempo total transcurrido -- antes competía en tamaño con
                 // "Entrenamiento"/"Ejercicio N/M" en la misma línea; ahora es
                 // el dato menos accionable de la tarjeta, así que se queda
@@ -215,6 +234,7 @@ private struct LockScreenLiveActivityView: View {
                     .font(.caption2)
                     .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.35))
+                    .fixedSize()
             }
 
             HStack(spacing: 12) {
