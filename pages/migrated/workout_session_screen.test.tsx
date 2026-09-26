@@ -19,6 +19,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import WorkoutSessionScreen from './workout_session_screen';
 import { fetchUnifiedWorkout } from './workoutViewShared';
 import { workoutHistoryApi } from '../../api/workoutHistory';
+import { showToast } from '@helper/toast';
 import {
   clearActiveWorkoutSession,
   getActiveWorkoutSession,
@@ -78,6 +79,7 @@ jest.mock('@helper/liveActivity', () => ({
 }));
 jest.mock('@helper/haptics', () => ({ hapticLight: jest.fn(), hapticSuccess: jest.fn() }));
 jest.mock('@helper/toast', () => ({ showToast: jest.fn() }));
+jest.mock('@helper/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn(), log: jest.fn() } }));
 jest.mock('@helper/useAppColorMode', () => ({
   useAppColorMode: () => ({ colors: new Proxy({}, { get: () => '#000000' }), mode: 'light' }),
 }));
@@ -118,7 +120,17 @@ jest.mock('../../components/ConfirmDialog', () => {
   return { __esModule: true, default: Dialog, ConfirmDialogMem: Dialog };
 });
 jest.mock('../../components/ExerciseThumb', () => ({ ExerciseThumbMem: () => null }));
-jest.mock('../../components/IntensityCheckSheet', () => ({ __esModule: true, default: () => null }));
+// Doble de la hoja de RIR/RPE: solo pinta un botón que elige "2" cuando está visible.
+jest.mock('../../components/IntensityCheckSheet', () => {
+  const RN = require('react-native');
+  const Sheet = ({ visible, onRegister }: any) =>
+    visible ? (
+      <RN.Pressable onPress={() => onRegister('2')}>
+        <RN.Text>Elegir intensidad 2</RN.Text>
+      </RN.Pressable>
+    ) : null;
+  return { __esModule: true, default: Sheet };
+});
 jest.mock('../../components/PainReportSheet', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../components/WorkoutNoteSheet', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../api/workoutHistory', () => ({
@@ -324,4 +336,111 @@ test('tocar el número de la serie la marca/desmarca y sincroniza con el backend
   expect(logMock).toHaveBeenCalledTimes(2);
   expect(logMock.mock.calls[1][0].logged_sets).toEqual([]);
   expect(logMock.mock.calls[1][0].session_key).toBe(payload.session_key);
+});
+
+
+// ── Caso Ayoub (2026-09-21..24): series rellenadas pero nunca marcadas ──────
+async function renderSquat() {
+  clearActiveWorkoutSession();
+  const logMock = workoutHistoryApi.logCalendarSets as jest.Mock;
+  logMock.mockReset();
+  logMock.mockResolvedValue({ data: {} });
+  (showToast as jest.Mock).mockClear();
+  fetchMock.mockResolvedValueOnce({
+    blocks: [
+      {
+        id: 10,
+        title: 'Bloque',
+        exercises: [
+          {
+            id: 100,
+            exerciseId: 7,
+            title: 'Sentadilla',
+            image: null,
+            bodyPartId: null,
+            videoUrl: null,
+            prescribed: { series: '2', reps: '10', carga: '60', rir: '2' },
+            enabledMetrics: ['reps', 'carga', 'rir'],
+            coachNotes: null,
+            lastPerformance: null,
+            sequence: 1,
+            loadSuggestion: null,
+          },
+        ],
+      },
+    ],
+  });
+  const navigation = { goBack: jest.fn(), replace: jest.fn(), navigate: jest.fn(), dispatch: jest.fn() };
+  await render(
+    <WorkoutSessionScreen navigation={navigation} route={{ params: { programDayAssignmentId: 5, mTitle: 'Pierna' } }} />
+  );
+  await screen.findByLabelText('Marcar serie 1 como hecha');
+  return { logMock, navigation };
+}
+
+test('elegir el RIR en la hoja completa la serie y la envía (no hay que volver a pulsar)', async () => {
+  const { logMock } = await renderSquat();
+  const inputs = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(inputs[0], '10');
+  await fireEvent.changeText(inputs[1], '60');
+
+  // Sin RIR: no se marca, abre la hoja.
+  await fireEvent.press(screen.getByLabelText('Marcar serie 1 como hecha'));
+  expect(screen.getByLabelText('Marcar serie 1 como hecha')).toBeTruthy();
+  expect(logMock).not.toHaveBeenCalled();
+
+  await fireEvent.press(screen.getByText('Elegir intensidad 2'));
+
+  expect(screen.getByLabelText('Desmarcar serie 1')).toBeTruthy();
+  expect(logMock).toHaveBeenCalledTimes(1);
+  expect(logMock.mock.calls[0][0].logged_sets[0]).toMatchObject({ reps: 10, carga: 60, rir: '2' });
+});
+
+test('finalizar con series rellenadas sin marcar avisa en vez de cerrar la sesión vacía', async () => {
+  const { navigation } = await renderSquat();
+  const inputs = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(inputs[0], '10');
+  await fireEvent.changeText(inputs[1], '60');
+  await fireEvent.changeText(inputs[2], '2'); // RIR puesto, serie NO marcada
+
+  await fireEvent.press(screen.getByText('✓ FINALIZAR ENTRENAMIENTO'));
+
+  expect(screen.getByText('Tienes series sin marcar')).toBeTruthy();
+  expect(screen.queryByText('No has registrado ninguna serie')).toBeNull();
+  expect(navigation.navigate).not.toHaveBeenCalled();
+
+  await fireEvent.press(screen.getByText('Revisar series'));
+  expect(screen.queryByText('Tienes series sin marcar')).toBeNull();
+});
+
+test('si el guardado de la serie falla se avisa (ya no se traga el error)', async () => {
+  const { logMock } = await renderSquat();
+  logMock.mockRejectedValueOnce(new Error('Network Error'));
+  const inputs = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(inputs[0], '10');
+  await fireEvent.changeText(inputs[1], '60');
+  await fireEvent.changeText(inputs[2], '2');
+
+  await fireEvent.press(screen.getByLabelText('Marcar serie 1 como hecha'));
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+
+  expect(showToast).toHaveBeenCalledWith('No se pudo guardar la serie', expect.objectContaining({ variant: 'error' }));
+});
+
+test('si el cliente cambia a RPE, el RPE tecleado se envía (antes se descartaba)', async () => {
+  const { logMock } = await renderSquat();
+  await fireEvent.press(screen.getByLabelText('Cambiar entre RIR y RPE (actual: RIR)'));
+  const inputs = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(inputs[0], '10');
+  await fireEvent.changeText(inputs[1], '60');
+  await fireEvent.changeText(inputs[2], '8'); // ahora la columna es RPE
+
+  await fireEvent.press(screen.getByLabelText('Marcar serie 1 como hecha'));
+
+  expect(logMock).toHaveBeenCalledTimes(1);
+  const set = logMock.mock.calls[0][0].logged_sets[0];
+  expect(set.rpe).toBe('8');
+  expect(set.rir).toBeUndefined();
 });

@@ -33,6 +33,7 @@ import { FONT, RADIUS } from './theme';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { hapticLight, hapticSuccess } from '@helper/haptics';
 import { showToast } from '@helper/toast';
+import { logger } from '@helper/logger';
 import {
   startWorkoutLiveActivity,
   updateWorkoutLiveActivity,
@@ -869,6 +870,11 @@ export default function WorkoutSessionScreen(props: Props) {
   // en esta sesión -- necesario para mandar logged_sets: [] cuando el
   // cliente desmarca TODAS las series de uno (2026-09-24), y solo de esos.
   const syncedExerciseKeysRef = useRef<Set<string>>(new Set());
+  // Ejercicios cuyo último guardado de series falló (sin red, 5xx...): se
+  // reintentan al marcar otra serie del mismo ejercicio y, en cualquier caso,
+  // al finalizar (ver retryFailedSyncs).
+  const failedSyncKeysRef = useRef<Set<string>>(new Set());
+  const [unmarkedFinishCount, setUnmarkedFinishCount] = useState(0);
   const [blocks, setBlocks] = useState<SessionBlock[]>([]);
   const [activeIndexByBlock, setActiveIndexByBlock] = useState<Record<number, number>>({});
   const [pageIndex, setPageIndex] = useState(0);
@@ -1285,10 +1291,29 @@ export default function WorkoutSessionScreen(props: Props) {
 
   const syncExerciseLog = useCallback(
     (ex: SessionExercise) => {
+      // RIR y RPE son una única columna de intensidad intercambiable (ver
+      // intensityModeOverride). Bug latente (auditoría 2026-09-26): aquí se
+      // recorría ex.enabledMetrics tal cual, así que si la plantilla traía
+      // 'rir' y el cliente cambiaba a RPE, el RPE tecleado se descartaba y el
+      // servidor rechazaba la serie (RIR/RPE es obligatorio) sin que se
+      // notase. Ahora se envía UNA sola intensidad por serie: la del modo
+      // activo si tiene valor, y si no, la otra.
+      const intensityOverride = intensityModeOverride[ex.exerciseId];
+      const activeIntensity: IntensityMetric =
+        intensityOverride ?? (ex.enabledMetrics.includes('rir') ? 'rir' : ex.enabledMetrics.includes('rpe') ? 'rpe' : 'rir');
+      const otherIntensity: IntensityMetric = activeIntensity === 'rir' ? 'rpe' : 'rir';
+      const hasValue = (v: unknown) => v != null && v !== '';
       const loggedSets = ex.rows.reduce<Record<string, any>[]>((acc, r) => {
         if (!r.completed) return acc;
         const clean: Record<string, any> = {};
+        const intensityKey = hasValue(r.values[activeIntensity])
+          ? activeIntensity
+          : hasValue(r.values[otherIntensity])
+            ? otherIntensity
+            : null;
+        if (intensityKey) clean[intensityKey] = r.values[intensityKey];
         ex.enabledMetrics.forEach((key) => {
+          if (key === 'rir' || key === 'rpe') return;
           if (r.values[key] == null || r.values[key] === '') return;
           if (key === 'reps' || key === 'carga') {
             // Bug real (2026-09-17): si el cliente marca la serie sin editar
@@ -1340,9 +1365,27 @@ export default function WorkoutSessionScreen(props: Props) {
           notes: note || undefined,
           session_key: buildSessionKey(identityKey, sessionStartedAt),
         })
-        .catch(() => {});
+        .then(() => {
+          failedSyncKeysRef.current.delete(syncKey);
+        })
+        .catch((e) => {
+          // Antes se tragaba en silencio (.catch(() => {})): si el guardado
+          // fallaba, la serie parecía hecha en el móvil pero el entrenador
+          // nunca la recibía y nadie se enteraba.
+          logger.error('[WorkoutSession] No se pudieron guardar las series de', ex.title, e);
+          const firstTime = !failedSyncKeysRef.current.has(syncKey);
+          failedSyncKeysRef.current.add(syncKey);
+          if (firstTime) {
+            showToast('No se pudo guardar la serie', {
+              description: 'Revisa tu conexión. Se volverá a intentar al marcar otra serie y al finalizar.',
+              variant: 'error',
+              duration: 6000,
+            });
+          }
+        });
     },
-    [programDayAssignmentId, identityKey, sessionStartedAt]
+     
+    [programDayAssignmentId, identityKey, sessionStartedAt, intensityModeOverride]
   );
 
   const updateExercise = (
@@ -1480,9 +1523,23 @@ export default function WorkoutSessionScreen(props: Props) {
     if (state) updateWorkoutLiveActivity(state);
   }, [buildLiveActivityState]);
 
-  const toggleRowComplete = (blockIdx: number, exIdx: number, rowIndex: number) => {
+  // extraValues: valores que se acaban de elegir y aún no están en `blocks`
+  // (el estado se actualiza en el siguiente render) -- lo usa la hoja de RIR/RPE
+  // para guardar el valor Y completar la serie de una vez.
+  const toggleRowComplete = (
+    blockIdx: number,
+    exIdx: number,
+    rowIndex: number,
+    extraValues?: Record<string, string>
+  ) => {
     currentFocusRef.current = { blockIdx, exIdx };
-    const currentEx = blocks[blockIdx].exercises[exIdx];
+    const baseEx = blocks[blockIdx].exercises[exIdx];
+    const currentEx = extraValues
+      ? {
+          ...baseEx,
+          rows: baseEx.rows.map((r, i) => (i === rowIndex ? { ...r, values: { ...r.values, ...extraValues } } : r)),
+        }
+      : baseEx;
     const wasCompleted = currentEx.rows[rowIndex].completed;
 
     // RIR/RPE es obligatorio (uno u otro) al registrar una serie -- igual
@@ -1505,6 +1562,11 @@ export default function WorkoutSessionScreen(props: Props) {
         });
         if (!targetValues[intensityMetric]) {
           setIntensityCheckTarget({ blockIdx, exIdx, rowIndex, metric: intensityMetric });
+        }
+        // Lo que sí se acaba de elegir (RIR/RPE desde la hoja) se conserva
+        // aunque falte otro dato: no se pierde lo tecleado.
+        if (extraValues) {
+          Object.entries(extraValues).forEach(([k, v]) => setCellValue(blockIdx, exIdx, rowIndex, k, v));
         }
         return;
       }
@@ -1745,6 +1807,7 @@ export default function WorkoutSessionScreen(props: Props) {
   };
 
   const navigateToFeedback = () => {
+    retryFailedSyncs();
     // El cliente ya pulso "Finalizar" -> a partir de aqui la sesion pasa a
     // la pantalla de Feedback (que hara el POST real de finishSession), asi
     // que deja de ser una "sesion sin guardar" que haya que retomar.
@@ -1773,8 +1836,30 @@ export default function WorkoutSessionScreen(props: Props) {
     });
   };
 
+  // Reintenta los guardados de series que fallaron antes (ver
+  // failedSyncKeysRef): al finalizar se vuelve a enviar la última foto de
+  // cada ejercicio afectado.
+  const retryFailedSyncs = () => {
+    if (failedSyncKeysRef.current.size === 0) return;
+    allExercises.forEach((ex) => {
+      if (failedSyncKeysRef.current.has(exerciseSyncKey(ex))) syncExerciseLog(ex);
+    });
+  };
+
   const onFinish = () => {
     const completedSets = allExercises.reduce((sum, ex) => sum + ex.rows.filter((r) => r.completed).length, 0);
+    // Caso real (Ayoub, 2026-09-21..24): 4 sesiones "finalizadas" con todas
+    // las series rellenadas pero NINGUNA marcada con el ✓ -- 0 series, volumen
+    // 0, nada enviado. RIR/RPE nunca llega precargado, así que una fila sin
+    // marcar con RIR/RPE puesto es señal clara de "la rellené y no la marqué".
+    const unmarkedFilled = allExercises.reduce(
+      (sum, ex) => sum + ex.rows.filter((r) => !r.completed && (r.values.rir || r.values.rpe)).length,
+      0
+    );
+    if (unmarkedFilled > 0) {
+      setUnmarkedFinishCount(unmarkedFilled);
+      return;
+    }
     if (completedSets === 0) {
       setEmptyFinishConfirmVisible(true);
       return;
@@ -2642,6 +2727,21 @@ export default function WorkoutSessionScreen(props: Props) {
       />
 
       <ConfirmDialogMem
+        visible={unmarkedFinishCount > 0}
+        icon="alert-circle-outline"
+        destructive
+        title="Tienes series sin marcar"
+        message={`Has rellenado ${unmarkedFinishCount} ${unmarkedFinishCount === 1 ? 'serie' : 'series'} pero no ${unmarkedFinishCount === 1 ? 'está marcada' : 'están marcadas'} como hecha${unmarkedFinishCount === 1 ? '' : 's'} (toca el número de la serie). Si finalizas ahora, no se guardará${unmarkedFinishCount === 1 ? '' : 'n'}.`}
+        confirmText="Finalizar igualmente"
+        cancelText="Revisar series"
+        onCancel={() => setUnmarkedFinishCount(0)}
+        onConfirm={() => {
+          setUnmarkedFinishCount(0);
+          navigateToFeedback();
+        }}
+      />
+
+      <ConfirmDialogMem
         visible={emptyFinishConfirmVisible}
         icon="alert-circle-outline"
         destructive
@@ -2683,14 +2783,13 @@ export default function WorkoutSessionScreen(props: Props) {
         onClose={() => setIntensityCheckTarget(null)}
         onRegister={(value) => {
           if (!intensityCheckTarget) return;
-          setCellValue(
-            intensityCheckTarget.blockIdx,
-            intensityCheckTarget.exIdx,
-            intensityCheckTarget.rowIndex,
-            intensityCheckTarget.metric,
-            value
-          );
+          const { blockIdx, exIdx, rowIndex, metric } = intensityCheckTarget;
           setIntensityCheckTarget(null);
+          // Guarda el RIR/RPE Y completa la serie de una vez (2026-09-26): antes
+          // solo guardaba el valor y cerraba la hoja, y el cliente tenía que
+          // volver a pulsar el número de la serie -- si no lo hacía, la serie
+          // quedaba rellena pero sin marcar y NUNCA se enviaba (caso Ayoub).
+          toggleRowComplete(blockIdx, exIdx, rowIndex, { [metric]: value });
         }}
         setLabel={(() => {
           if (!intensityCheckTarget) return '';
