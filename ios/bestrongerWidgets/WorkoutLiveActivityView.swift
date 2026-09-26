@@ -50,19 +50,20 @@ struct WorkoutLiveActivityWidget: Widget {
                     ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 32)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    // TrailingStatus muestra "Serie N/M" completo (puede
-                    // llegar a "Serie 12/15") -- ya vimos que ese mismo
-                    // texto no cabía en compactTrailing (44pt, ver
-                    // CompactTrailingStatus) y tocó acortarlo ahí. Esta
-                    // región expandida suele tener más sitio, pero no hay
-                    // forma de comprobar el ancho exacto que reserva el
-                    // sistema sin un dispositivo -- minimumScaleFactor como
-                    // red de seguridad: si no cabe, encoge el texto en vez
-                    // de cortarlo a medias como pasaba antes.
-                    TrailingStatus(state: context.state)
+                    // BUG REAL visto en dispositivo (captura, 2026-09-27):
+                    // con TrailingStatus aquí, "Serie 1/4" salía DUPLICADO
+                    // -- una vez en esta esquina y otra vez abajo (la línea
+                    // de .bottom, ver targetSummaryLine), porque para un
+                    // ejercicio sin reps/carga/RIR (p.ej. "Dominada", peso
+                    // corporal) esa línea de abajo se queda solo con
+                    // setLabel, idéntico al de aquí. Se usa
+                    // CompactTrailingStatus en su lugar (mismo componente
+                    // que ya usa compactTrailing): arriba se ve "en qué
+                    // ejercicio del entreno vas" (o la cuenta atrás si
+                    // descansas), abajo se ve el detalle de la serie -- dos
+                    // datos distintos en vez de uno repetido.
+                    CompactTrailingStatus(state: context.state)
                         .foregroundStyle(.white)
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.state.exerciseName)
@@ -143,24 +144,6 @@ private struct SegmentedProgressBar: View {
             }
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// Solo para el estado EXPANDIDO de la Dynamic Island (hay sitio real):
-// cuenta atrás del descanso, o "Serie N/M" completo. NO usar en
-// compactTrailing -- ver CompactTrailingStatus, ese hueco es demasiado
-// estrecho para un texto con palabra + número.
-private struct TrailingStatus: View {
-    let state: WorkoutActivityAttributes.ContentState
-
-    var body: some View {
-        if state.isResting, let end = state.restEndDate {
-            Text(timerInterval: Date.now...end, countsDown: true)
-                .monospacedDigit()
-        } else {
-            Text(state.setLabel)
-                .lineLimit(1)
-        }
     }
 }
 
