@@ -239,7 +239,7 @@ private struct MetricChip: View {
             .fontWeight(.semibold)
             .foregroundStyle(.white)
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.vertical, 4)
             .background(
                 Capsule().strokeBorder(brandTeal.opacity(0.6), lineWidth: 1)
             )
@@ -255,8 +255,20 @@ private struct MetricChip: View {
 private struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<WorkoutActivityAttributes>
 
+    // BUG REAL reportado (2026-09-27): el botón "Serie hecha" aparecía
+    // cortado. Las Live Activities de la pantalla bloqueada tienen un
+    // límite práctico de alto que impone el sistema (guía de Apple: en
+    // torno a 160pt) -- si el contenido se pasa, el sistema RECORTA lo que
+    // sobra por abajo (sin avisar, sin error), que es justo donde vive el
+    // botón al ser el último elemento. Con los tamaños/espacios originales
+    // (padding 16, spacing 12 entre filas, miniatura 56pt, nombre en
+    // .headline a 2 líneas) la suma se iba muy por encima de ese margen.
+    // Se reduce aire vertical en varios sitios a la vez (aquí, en la
+    // miniatura, en el nombre, en los chips y en el propio botón) para
+    // dejar margen real de sobra en vez de ajustar al límite exacto, que
+    // no se puede medir sin un dispositivo.
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 8) {
                 // SegmentedProgressBar ya se declara `.frame(maxWidth:
                 // .infinity)` a sí misma -- es ella la que reclama el hueco
@@ -275,12 +287,12 @@ private struct LockScreenLiveActivityView: View {
                     .fixedSize()
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Link(destination: DeepLink.focus("exercise") ?? URL(string: "com.pfndesign.bestronger://")!) {
-                    ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 56)
+                    ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 40)
                 }
                 Text(context.state.exerciseName)
-                    .font(.headline)
+                    .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                     .lineLimit(2)
@@ -310,12 +322,12 @@ private struct LockScreenLiveActivityView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(Color.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8)
                         .background(brandTeal, in: Capsule())
                 }
             }
         }
-        .padding(16)
+        .padding(12)
     }
 }
 
@@ -329,8 +341,16 @@ private struct RestingView: View {
     let state: WorkoutActivityAttributes.ContentState
     let end: Date
 
+    // Mismo motivo que el recorte de LockScreenLiveActivityView (ver el
+    // comentario de bug real ahí): este anillo con frame(height: 90) +
+    // fuente de 32pt para el número + la línea de "Siguiente" debajo, sumado
+    // a la cabecera y la fila de miniatura/nombre que comparte con el otro
+    // estado, se pasaba con margen del límite práctico de alto de una Live
+    // Activity de pantalla bloqueada -- mismo riesgo de recorte, aunque
+    // todavía no reportado en este estado en concreto. Se reduce el anillo
+    // y la tipografía en proporción, no solo el alto del frame.
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             ZStack {
                 ProgressView(
                     timerInterval: Date.now...end,
@@ -340,14 +360,14 @@ private struct RestingView: View {
                 )
                 .progressViewStyle(.circular)
                 .tint(brandTeal)
-                .scaleEffect(2.6)
+                .scaleEffect(1.7)
 
                 Text(timerInterval: Date.now...end, countsDown: true)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)
             }
-            .frame(height: 90)
+            .frame(height: 56)
             .frame(maxWidth: .infinity)
 
             (Text("Siguiente: ").foregroundStyle(brandTeal).fontWeight(.semibold)
