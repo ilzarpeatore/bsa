@@ -32,7 +32,7 @@ jest.mock('@components/ui/icon', () => ({ Icon: () => null }));
 jest.mock('@components/ScreenHeader', () => ({ __esModule: true, default: () => null }));
 jest.mock('@components/WorkoutMinimizedBar', () => ({ WORKOUT_MINIBAR_CLEARANCE: 0 }));
 jest.mock('../../api/habits', () => ({
-  habitsApi: { getLibrary: jest.fn(), adopt: jest.fn(), createPersonal: jest.fn() },
+  habitsApi: { getLibrary: jest.fn(), getMyList: jest.fn(), adopt: jest.fn(), createPersonal: jest.fn() },
 }));
 
 const api = habitsApi as unknown as Record<string, jest.Mock>;
@@ -40,6 +40,7 @@ const api = habitsApi as unknown as Record<string, jest.Mock>;
 beforeEach(() => {
   jest.clearAllMocks();
   api.getLibrary.mockResolvedValue({ data: { data: [] } });
+  api.getMyList.mockResolvedValue({ data: { data: [] } });
 });
 
 test('crear un hábito propio llama a la API y navega al detalle', async () => {
@@ -100,4 +101,86 @@ test('un doble toque rápido crea el hábito una sola vez', async () => {
 
   await waitFor(() => expect(navigation.replace).toHaveBeenCalledTimes(1));
   expect(api.createPersonal).toHaveBeenCalledTimes(1);
+});
+
+
+// ── Biblioteca: buscador, categorías y "Creados por mí" ──────────────────────
+const TEMPLATES = [
+  { id: 15, title: 'Beber agua', icon: 'water', category: 'Salud y fitness', target_value: 8, target_unit: 'vasos', frequency: 'daily' },
+  { id: 8, title: 'Despertarse temprano', icon: 'sun', category: 'Mañana', target_value: null, target_unit: null, frequency: 'daily' },
+  { id: 30, title: 'Gratitud', icon: 'mood', category: 'Bienestar mental', target_value: null, target_unit: null, frequency: 'daily' },
+];
+const MY_HABITS = [
+  { id: 6, title: 'Yoga en casa', icon: 'fitness', target_value: 10, target_unit: 'min', frequency: 'daily', source_type: 'personal', current_streak: 0, logs: [] },
+  { id: 7, title: 'Adoptado del coach', icon: 'water', target_value: null, target_unit: null, frequency: 'daily', source_type: 'library', current_streak: 0, logs: [] },
+];
+
+async function renderLibrary(navigation: any = { goBack: jest.fn(), replace: jest.fn(), navigate: jest.fn() }) {
+  api.getLibrary.mockResolvedValue({ data: { data: TEMPLATES } });
+  api.getMyList.mockResolvedValue({ data: { data: MY_HABITS } });
+  await render(<HabitAddScreen navigation={navigation} />);
+  await screen.findByText('Gratitud');
+  return navigation;
+}
+
+test('la biblioteca agrupa por categoría y muestra los hábitos propios en "Creados por mí"', async () => {
+  await renderLibrary();
+
+  // Cabeceras de sección (mayúsculas por CSS, aquí llegan tal cual) y chips de categoría.
+  expect(screen.getAllByText('Creados por mí').length).toBeGreaterThanOrEqual(2); // chip + sección
+  expect(screen.getByText('Yoga en casa')).toBeTruthy();
+  expect(screen.getByText('Creado por ti · ya está en tu lista')).toBeTruthy();
+  // Los adoptados de la biblioteca no se duplican como "propios".
+  expect(screen.queryByText('Adoptado del coach')).toBeNull();
+  expect(screen.getAllByText('Mañana')).toHaveLength(2); // chip + cabecera de sección
+});
+
+test('el buscador filtra sin acentos ni mayúsculas, también entre los propios', async () => {
+  await renderLibrary();
+
+  await fireEvent.changeText(screen.getByLabelText('Buscar hábito'), 'GRATITÚD');
+  expect(screen.getByText('Gratitud')).toBeTruthy();
+  expect(screen.queryByText('Beber agua')).toBeNull();
+
+  await fireEvent.changeText(screen.getByLabelText('Buscar hábito'), 'yoga');
+  expect(screen.getByText('Yoga en casa')).toBeTruthy();
+  expect(screen.queryByText('Gratitud')).toBeNull();
+
+  await fireEvent.changeText(screen.getByLabelText('Buscar hábito'), 'zzzzzz');
+  expect(screen.getByText(/No hay hábitos que coincidan/)).toBeTruthy();
+
+  await fireEvent.press(screen.getByLabelText('Borrar búsqueda'));
+  expect(screen.getByText('Gratitud')).toBeTruthy();
+});
+
+test('elegir una categoría deja solo sus hábitos', async () => {
+  await renderLibrary();
+
+  // El chip "Mañana" (no la cabecera de sección: con "Todos" hay un único "Mañana" por chip + sección).
+  await fireEvent.press(screen.getAllByText('Mañana')[0]);
+
+  expect(screen.getByText('Despertarse temprano')).toBeTruthy();
+  expect(screen.queryByText('Gratitud')).toBeNull();
+  expect(screen.queryByText('Yoga en casa')).toBeNull();
+});
+
+test('tocar un hábito propio lo abre; tocar una plantilla la añade', async () => {
+  api.adopt.mockResolvedValue({ data: { data: { id: 99 } } });
+  const navigation = await renderLibrary();
+
+  await fireEvent.press(screen.getByLabelText('Abrir tu hábito Yoga en casa'));
+  expect(navigation.navigate).toHaveBeenCalledWith('MigratedHabitDetail', { habitId: 6 });
+
+  await fireEvent.press(screen.getByLabelText('Añadir hábito Gratitud'));
+  await waitFor(() => expect(api.adopt).toHaveBeenCalledWith(30));
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith('MigratedHabitDetail', { habitId: 99 }));
+});
+
+test('si falla la carga de mis hábitos la biblioteca se ve igual', async () => {
+  api.getLibrary.mockResolvedValue({ data: { data: TEMPLATES } });
+  api.getMyList.mockRejectedValue(new Error('Network Error'));
+  await render(<HabitAddScreen navigation={{ goBack: jest.fn(), replace: jest.fn(), navigate: jest.fn() }} />);
+
+  expect(await screen.findByText('Gratitud')).toBeTruthy();
+  expect(screen.queryByText('Yoga en casa')).toBeNull();
 });

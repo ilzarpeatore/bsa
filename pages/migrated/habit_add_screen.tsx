@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { ScrollView, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { ScrollView, SectionList, ActivityIndicator, KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Box } from '@components/ui/box';
@@ -13,9 +13,17 @@ import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
 import { logger } from '@helper/logger';
 import { showToast } from '@helper/toast';
-import { habitsApi, HabitTemplate, HabitFrequency } from '../../api/habits';
+import { habitsApi, Habit, HabitTemplate, HabitFrequency } from '../../api/habits';
 import { HABIT_ICON_KEYS, habitIoniconFor } from '../../constants/habitIcons';
 import { FONT, RADIUS } from './theme';
+import {
+  ALL_CATEGORY,
+  LibraryEntry,
+  buildEntries,
+  categoryChips,
+  filterEntries,
+  groupEntries,
+} from './habitLibrary';
 
 const GOAL_UNITS = ['veces', 'min', 'horas', 'vasos', 'km', 'pasos', 'sesiones', 'páginas'];
 
@@ -282,6 +290,11 @@ function HabitAddScreenInner(props: Props) {
   const [tab, setTab] = useState<'library' | 'create'>('library');
 
   const [templates, setTemplates] = useState<HabitTemplate[]>([]);
+  // Hábitos que el propio cliente creó: se muestran también en la biblioteca
+  // (sección "Creados por mí") para encontrarlos y abrirlos desde aquí.
+  const [ownHabits, setOwnHabits] = useState<Habit[]>([]);
+  const [query, setQuery] = useState('');
+  const [categoryId, setCategoryId] = useState<string>(ALL_CATEGORY);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
   const [errorLibrary, setErrorLibrary] = useState(false);
   const [adoptingId, setAdoptingId] = useState<number | null>(null);
@@ -299,6 +312,15 @@ function HabitAddScreenInner(props: Props) {
       // — se filtra aqui para que un dato malformado nunca sea la causa de
       // un crash de pantalla completa.
       setTemplates(Array.isArray(raw) ? raw.filter((t): t is HabitTemplate => !!t && typeof t === 'object') : []);
+      // Los hábitos propios son un extra: si falla, la biblioteca se muestra igual.
+      try {
+        const mine = await habitsApi.getMyList(1);
+        const list = mine.data?.data;
+        setOwnHabits(Array.isArray(list) ? list.filter((h): h is Habit => !!h && typeof h === 'object') : []);
+      } catch (e) {
+        logger.error('[HabitAdd] Error cargando mis hábitos:', e);
+        setOwnHabits([]);
+      }
     } catch (e) {
       logger.error('[HabitAdd] Error cargando biblioteca de hábitos:', e);
       setErrorLibrary(true);
@@ -330,35 +352,65 @@ function HabitAddScreenInner(props: Props) {
     }
   }, [adoptingId, navigation, reportAction]);
 
-  const renderTemplateItem = useCallback(
-    ({ item: t }: { item: HabitTemplate }) => (
-      <Box
-        className="flex-row items-center bg-card rounded-md"
-        style={{ gap: 12, padding: 12, marginBottom: 10 }}
-      >
-        <Box className="items-center justify-center" style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: C.bg }}>
-          <Icon name={habitIoniconFor(t.icon)} size={20} className="text-foreground" />
-        </Box>
-        <Box className="flex-1">
-          <Text weight="bold" size="sm">{t.title}</Text>
-          {t.target_value && t.target_unit && (
-            <Text size="xs" muted style={{ marginTop: 2 }}>{t.target_value} {t.target_unit} / {t.frequency === 'daily' ? 'día' : 'semana'}</Text>
-          )}
-        </Box>
-        <Pressable
-          className="items-center justify-center rounded-pill"
-          style={{ width: 34, height: 34, backgroundColor: C.accentBlack }}
-          onPress={() => adopt(t)}
-          disabled={adoptingId === t.id}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel={`Añadir hábito ${t.title ?? ''}`.trim()}
+  const entries = useMemo(() => buildEntries(templates, ownHabits), [templates, ownHabits]);
+  const chips = useMemo(() => categoryChips(entries), [entries]);
+  const sections = useMemo(
+    () => groupEntries(filterEntries(entries, query, categoryId)),
+    [entries, query, categoryId]
+  );
+
+  const openOwnHabit = useCallback(
+    (habitId: number) => navigation?.navigate('MigratedHabitDetail', { habitId }),
+    [navigation]
+  );
+
+  const renderEntry = useCallback(
+    ({ item }: { item: LibraryEntry }) => {
+      const isMine = item.kind === 'mine';
+      const template = isMine ? null : templates.find((t) => t.id === item.id) ?? null;
+      const busy = adoptingId === item.id && !isMine;
+      return (
+        <Box
+          className="flex-row items-center bg-card rounded-md"
+          style={{ gap: 12, padding: 12, marginBottom: 10 }}
         >
-          {adoptingId === t.id ? <ActivityIndicator size="small" color={C.accentBlackForeground} /> : <Icon name="add" size={20} color={C.accentBlackForeground} />}
-        </Pressable>
-      </Box>
-    ),
-    [adopt, adoptingId, C]
+          <Box className="items-center justify-center" style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: C.bg }}>
+            <Icon name={habitIoniconFor(item.icon)} size={20} className="text-foreground" />
+          </Box>
+          <Box className="flex-1">
+            <Text weight="bold" size="sm">{item.title}</Text>
+            {item.targetValue && item.targetUnit ? (
+              <Text size="xs" muted style={{ marginTop: 2 }}>
+                {item.targetValue} {item.targetUnit} / {item.frequency === 'daily' ? 'día' : 'semana'}
+              </Text>
+            ) : null}
+            {isMine ? (
+              <Text size="xs" muted style={{ marginTop: 2 }}>Creado por ti · ya está en tu lista</Text>
+            ) : null}
+          </Box>
+          <Pressable
+            className="items-center justify-center rounded-pill"
+            style={{ width: 34, height: 34, backgroundColor: isMine ? C.surface : C.accentBlack }}
+            onPress={() => (isMine ? openOwnHabit(item.id) : template && adopt(template))}
+            disabled={busy}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={isMine ? `Abrir tu hábito ${item.title}` : `Añadir hábito ${item.title}`}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color={C.accentBlackForeground} />
+            ) : (
+              <Icon
+                name={isMine ? 'chevron-forward' : 'add'}
+                size={20}
+                color={isMine ? C.textPrimary : C.accentBlackForeground}
+              />
+            )}
+          </Pressable>
+        </Box>
+      );
+    },
+    [adopt, adoptingId, C, openOwnHabit, templates]
   );
 
   return (
@@ -410,7 +462,7 @@ function HabitAddScreenInner(props: Props) {
           <Box className="flex-1 items-center justify-center">
             <Text size="sm" muted className="text-center">No se pudo cargar la biblioteca.</Text>
           </Box>
-        ) : templates.length === 0 ? (
+        ) : entries.length === 0 ? (
           <Box className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32 }}>
             <Icon name="library-outline" size={36} className="text-muted-foreground" />
             <Text size="sm" muted className="text-center" style={{ marginTop: 12 }}>
@@ -418,13 +470,108 @@ function HabitAddScreenInner(props: Props) {
             </Text>
           </Box>
         ) : (
-          <FlatList
-            data={templates}
-            keyExtractor={(t) => String(t.id)}
-            renderItem={renderTemplateItem}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}
-            showsVerticalScrollIndicator={false}
-          />
+          <View style={{ flex: 1 }}>
+            {/* Buscador: sin acentos ni mayúsculas y tolerante a erratas; busca en
+                el nombre y en la categoría, también entre tus hábitos. */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginHorizontal: 16,
+                marginBottom: 10,
+                paddingHorizontal: 12,
+                height: 44,
+                borderRadius: RADIUS.pill,
+                backgroundColor: C.surface,
+                gap: 8,
+              }}
+            >
+              <Icon name="search" size={18} color={C.textSecondary} />
+              <TextInput
+                style={{ flex: 1, height: 44, color: C.textPrimary, fontFamily: FONT.regular, fontSize: 15 }}
+                placeholder="Buscar hábito..."
+                placeholderTextColor={C.textSecondary}
+                value={query}
+                onChangeText={setQuery}
+                autoCorrect={false}
+                returnKeyType="search"
+                accessibilityLabel="Buscar hábito"
+              />
+              {query.length > 0 ? (
+                <Pressable
+                  onPress={() => setQuery('')}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Borrar búsqueda"
+                >
+                  <Icon name="close-circle" size={18} color={C.textSecondary} />
+                </Pressable>
+              ) : null}
+            </View>
+
+            {/* Categorías. flexGrow/flexShrink 0: la lista de abajo es la que cede alto. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ flexGrow: 0, flexShrink: 0 }}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 12, alignItems: 'flex-start' }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {chips.map((chip) => {
+                const active = categoryId === chip.id;
+                return (
+                  <Pressable
+                    key={chip.id}
+                    className="px-4 py-2 rounded-pill"
+                    style={{ backgroundColor: active ? C.accentBlack : C.surface }}
+                    onPress={() => setCategoryId(chip.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text
+                      weight="semibold"
+                      style={{ fontSize: 12.5, lineHeight: 16, color: active ? C.accentBlackForeground : C.textSecondary }}
+                    >
+                      {chip.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {sections.length === 0 ? (
+              <Box className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32 }}>
+                <Icon name="search-outline" size={32} className="text-muted-foreground" />
+                <Text size="sm" muted className="text-center" style={{ marginTop: 10 }}>
+                  No hay hábitos que coincidan. Prueba otra palabra o crea el tuyo desde «Crear el mío».
+                </Text>
+              </Box>
+            ) : (
+              <SectionList
+                sections={sections}
+                keyExtractor={(e) => e.key}
+                renderItem={renderEntry}
+                renderSectionHeader={({ section }) => (
+                  <Text
+                    weight="bold"
+                    size="xs"
+                    muted
+                    className="uppercase"
+                    style={{ letterSpacing: 0.3, paddingTop: 6, paddingBottom: 8, backgroundColor: C.bg }}
+                  >
+                    {section.title}
+                  </Text>
+                )}
+                stickySectionHeadersEnabled={false}
+                // Biblioteca de ~40 filas pequeñas: se pintan de una vez (por defecto solo 10).
+                initialNumToRender={60}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </View>
         )
       ) : (
         <PersonalHabitForm navigation={navigation} />
