@@ -28,6 +28,8 @@ export interface ShoppingListItemDetail {
   measurement_unit_id: number | null;
   display_unit_title: string | null;
   display_unit_symbol: string | null;
+  /** Unidad en texto libre de las líneas de FatSecret ("tazas", "cucharada"...); sin unidad del catálogo. */
+  unit_label?: string | null;
   is_checked: boolean;
   manually_added: boolean;
   created_at: string;
