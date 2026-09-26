@@ -92,3 +92,20 @@ export function pickReferenceSet(
   if (inRangeSets.length === 0) return undefined;
   return inRangeSets[Math.min(rowIndex, inRangeSets.length - 1)];
 }
+
+/**
+ * Fila "rellenada pero sin marcar": no completada y con RIR/RPE (nunca viene
+ * precargado) o con reps/carga que el cliente tecleó (`edited`). Al finalizar
+ * la sesión, esas series no se guardan -- caso Ayoub (2026-09-21..24).
+ */
+export function isFilledButUnmarked(row: {
+  completed: boolean;
+  edited?: boolean;
+  values: Record<string, string>;
+}): boolean {
+  if (row.completed) return false;
+  const filled = (v: unknown) => v != null && String(v).trim() !== '';
+  const v = row.values ?? {};
+  if (filled(v.rir) || filled(v.rpe)) return true;
+  return !!row.edited && (filled(v.reps) || filled(v.carga));
+}
