@@ -1,7 +1,7 @@
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { View } from 'react-native';
-import React, { useCallback, useEffect, useState, Suspense } from 'react';
+import { View, Linking } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
 import {
@@ -19,7 +19,8 @@ import TutorialOverlay from '@components/tutorial/TutorialOverlay';
 import ToastHost from '@components/ToastHost';
 import { DEV_TOOLS_ENABLED } from '@constants/featureFlags';
 import { TutorialProvider } from '@store/TutorialContext';
-import { hydratePersistedWorkoutSession } from '@helper/workoutSessionBus';
+import { hydratePersistedWorkoutSession, getActiveWorkoutSession } from '@helper/workoutSessionBus';
+import { showToast } from '@helper/toast';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableScreens } from 'react-native-screens';
@@ -455,6 +456,89 @@ export default function App() {
   // esperar a que el cliente vuelva a entrar manualmente a esa pantalla.
   useEffect(() => {
     hydratePersistedWorkoutSession();
+  }, []);
+
+  // Deep link de vuelta desde la Live Activity del entreno (rediseño
+  // 2026-09-26, ver ios/bestrongerWidgets/WorkoutLiveActivityView.swift):
+  // los chips de reps/carga y "Serie hecha" abren
+  // com.pfndesign.bestronger://workout/focus?field=reps|carga|done -- un
+  // solo parámetro, sin id de sesión ni de serie, porque
+  // workout_session_screen.tsx ya sabe resolver sola "la serie pendiente de
+  // la sesión activa" (mismo patrón que WorkoutMinimizedBar.restore(), que
+  // retoma la sesión activa sin pasar ningún id). Si no hay ninguna sesión
+  // activa (el entreno ya terminó, o la Live Activity quedó obsoleta), no
+  // tiene sentido navegar con params vacíos -- se avisa con un toast en vez
+  // de aterrizar en una pantalla de sesión rota.
+  //
+  // navigationRef puede no estar listo todavía si la app arranca en frío
+  // desde este mismo link (el sistema entrega la URL antes de que el primer
+  // NavigationContainer termine de montar) -- se reintenta con un intervalo
+  // corto, mismo problema que ya resuelve restoringRef en
+  // WorkoutMinimizedBar.restore() pero aquí con reintento en vez de
+  // descartar el toque.
+  const pendingDeepLinkFieldRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Parseo manual, sin `new URL()`/`URLSearchParams`: son un esquema
+    // propio (`com.pfndesign.bestronger://…`), no http(s) -- otras
+    // pantallas de esta app ya usan `new URL(...).origin/.hostname` pero
+    // solo sobre URLs web reales; no hay garantía de que el URL de Hermes
+    // trate igual un esquema personalizado, y no hay simulador aquí para
+    // comprobarlo. El formato es fijo y lo controlamos en los dos lados
+    // (este parser y WorkoutLiveActivityView.swift), así que un split de
+    // strings es más robusto que fiarse de un polyfill parcial.
+    const PREFIX = 'com.pfndesign.bestronger://workout/focus?';
+
+    function handleUrl(url: string | null) {
+      if (!url || !url.startsWith(PREFIX)) return;
+      const query = url.slice(PREFIX.length);
+      const field = query
+        .split('&')
+        .map((pair) => pair.split('='))
+        .find(([key]) => key === 'field')?.[1];
+      if (!field) return;
+      pendingDeepLinkFieldRef.current = decodeURIComponent(field);
+      flushPendingDeepLink();
+    }
+
+    function flushPendingDeepLink() {
+      const field = pendingDeepLinkFieldRef.current;
+      if (!field) return;
+      if (!screenReviewNavigationRef.current?.isReady?.()) return;
+      pendingDeepLinkFieldRef.current = null;
+      const session = getActiveWorkoutSession();
+      if (!session) {
+        showToast('Info', { description: 'Ese entrenamiento ya no está activo.', variant: 'info' });
+        return;
+      }
+      screenReviewNavigationRef.current.navigate('MigratedWorkoutSession', {
+        programDayAssignmentId: session.programDayAssignmentId,
+        workoutTemplateId: session.workoutTemplateId,
+        mTitle: session.mTitle,
+        focusField: field,
+        // Token único por toque (no solo el nombre del campo): si el
+        // usuario toca el mismo chip dos veces seguidas ("carga" otra vez
+        // tras corregir), focusField no cambia de valor -- un efecto en
+        // workout_session_screen.tsx que dependa solo de focusField no
+        // volvería a dispararse en el segundo toque aunque sí llegó un
+        // navigate() nuevo.
+        focusToken: Date.now(),
+      });
+    }
+
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    Linking.getInitialURL().then(handleUrl);
+
+    // Reintento corto: cubre la ventana entre "llegó la URL" y "el
+    // NavigationContainer ya está listo" en un arranque en frío.
+    const retryId = setInterval(flushPendingDeepLink, 200);
+    const retryTimeout = setTimeout(() => clearInterval(retryId), 4000);
+
+    return () => {
+      sub.remove();
+      clearInterval(retryId);
+      clearTimeout(retryTimeout);
+    };
   }, []);
 
   useEffect(() => {
