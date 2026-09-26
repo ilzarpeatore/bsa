@@ -71,8 +71,11 @@ struct WorkoutLiveActivityWidget: Widget {
             } compactLeading: {
                 Image(systemName: "figure.strengthtraining.traditional")
             } compactTrailing: {
-                TrailingStatus(state: context.state)
-                    .frame(width: 44)
+                // Sin .frame(width: 44) -- ese ancho fijo fue justo lo que
+                // forzaba el corte a "Seri..." (ver CompactTrailingStatus);
+                // el contenido ya es corto de por sí, se deja que el
+                // sistema le dé el tamaño natural que necesita.
+                CompactTrailingStatus(state: context.state)
             } minimal: {
                 Image(systemName: "figure.strengthtraining.traditional")
             }
@@ -132,6 +135,10 @@ private struct SegmentedProgressBar: View {
     }
 }
 
+// Solo para el estado EXPANDIDO de la Dynamic Island (hay sitio real):
+// cuenta atrás del descanso, o "Serie N/M" completo. NO usar en
+// compactTrailing -- ver CompactTrailingStatus, ese hueco es demasiado
+// estrecho para un texto con palabra + número.
 private struct TrailingStatus: View {
     let state: WorkoutActivityAttributes.ContentState
 
@@ -141,6 +148,37 @@ private struct TrailingStatus: View {
                 .monospacedDigit()
         } else {
             Text(state.setLabel)
+                .lineLimit(1)
+        }
+    }
+}
+
+// BUG REAL visto en dispositivo (captura, 2026-09-27): compactTrailing
+// usaba TrailingStatus (el mismo componente del estado expandido, con
+// texto "Serie N/M") forzado dentro de `.frame(width: 44)`. "Serie 1/4"
+// no cabe en 44pt y quedaba cortado a "Seri...". Ese hueco -- el estado
+// COMPACTO de la Dynamic Island -- es demasiado estrecho para palabra +
+// número; solo debe llevar el dato más corto posible.
+//
+// Descansando: la cuenta atrás ya es corta de por sí ("1:12") y cabe
+// bien, se mantiene igual. Sin descansar: en vez de "Serie N/M" (puede
+// llegar a "Serie 12/15", 11 caracteres) se muestra solo la fracción de
+// EJERCICIO dentro del entreno ("2/4", sin la palabra) -- mismo dato que
+// ya cuenta SegmentedProgressBar, consistente con el resto de la tarjeta,
+// y siempre corto (como mucho "12/15", 5 caracteres).
+private struct CompactTrailingStatus: View {
+    let state: WorkoutActivityAttributes.ContentState
+
+    var body: some View {
+        if state.isResting, let end = state.restEndDate {
+            Text(timerInterval: Date.now...end, countsDown: true)
+                .monospacedDigit()
+                .font(.caption2)
+        } else {
+            Text("\(state.exerciseIndex)/\(state.totalExercises)")
+                .monospacedDigit()
+                .font(.caption2)
+                .fontWeight(.semibold)
                 .lineLimit(1)
         }
     }
