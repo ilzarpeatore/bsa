@@ -35,6 +35,7 @@ import { hapticLight, hapticSuccess } from '@helper/haptics';
 import { showToast } from '@helper/toast';
 import {
   findSetsInRange,
+  isFilledButUnmarked,
   isNumericValue,
   parseRepRange,
   performanceSessions,
@@ -165,6 +166,11 @@ interface Props {
 interface SetRow {
   values: Record<string, string>;
   completed: boolean;
+  // true en cuanto el cliente teclea algo en esta fila (a diferencia de lo
+  // precargado): permite avisar de "series rellenadas sin marcar" al
+  // finalizar aunque reps/carga vengan precargados. Opcional: sesiones
+  // persistidas por versiones anteriores no lo traen.
+  edited?: boolean;
 }
 
 interface SessionExercise extends UnifiedExercise {
@@ -1450,7 +1456,7 @@ export default function WorkoutSessionScreen(props: Props) {
   const setCellValue = (blockIdx: number, exIdx: number, rowIndex: number, key: string, value: string) => {
     updateExercise(blockIdx, exIdx, (ex) => {
       const rows = [...ex.rows];
-      rows[rowIndex] = { ...rows[rowIndex], values: { ...rows[rowIndex].values, [key]: value } };
+      rows[rowIndex] = { ...rows[rowIndex], values: { ...rows[rowIndex].values, [key]: value }, edited: true };
       return { ...ex, rows };
     });
   };
@@ -1935,10 +1941,11 @@ export default function WorkoutSessionScreen(props: Props) {
     const completedSets = allExercises.reduce((sum, ex) => sum + ex.rows.filter((r) => r.completed).length, 0);
     // Caso real (Ayoub, 2026-09-21..24): 4 sesiones "finalizadas" con todas
     // las series rellenadas pero NINGUNA marcada con el ✓ -- 0 series, volumen
-    // 0, nada enviado. RIR/RPE nunca llega precargado, así que una fila sin
-    // marcar con RIR/RPE puesto es señal clara de "la rellené y no la marqué".
+    // 0, nada enviado. Una fila sin marcar con RIR/RPE puesto (nunca llega
+    // precargado) o con reps/carga que el cliente ha tecleado (row.edited) es
+    // señal clara de "la rellené y no la marqué".
     const unmarkedFilled = allExercises.reduce(
-      (sum, ex) => sum + ex.rows.filter((r) => !r.completed && (r.values.rir || r.values.rpe)).length,
+      (sum, ex) => sum + ex.rows.filter(isFilledButUnmarked).length,
       0
     );
     if (unmarkedFilled > 0) {

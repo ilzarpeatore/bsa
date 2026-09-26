@@ -566,3 +566,24 @@ test('sin recent_performance (backend antiguo) usa solo la última sesión', asy
 
   expect(screen.getAllByDisplayValue('40')).toHaveLength(2);
 });
+
+test('finalizar con solo reps/carga tecleadas (sin RIR) y sin marcar avisa "Tienes series sin marcar"', async () => {
+  const { navigation } = await renderSquat();
+  const inputs = screen.getAllByPlaceholderText('-');
+  await fireEvent.changeText(inputs[0], '12'); // reps tecleadas
+  await fireEvent.changeText(inputs[1], '55'); // carga tecleada
+
+  await fireEvent.press(screen.getByText('✓ FINALIZAR ENTRENAMIENTO'));
+
+  expect(screen.getByText('Tienes series sin marcar')).toBeTruthy();
+  expect(navigation.navigate).not.toHaveBeenCalled();
+});
+
+test('finalizar sin haber tocado nada sigue mostrando "No has registrado ninguna serie" (lo precargado no cuenta)', async () => {
+  await renderSquat();
+
+  await fireEvent.press(screen.getByText('✓ FINALIZAR ENTRENAMIENTO'));
+
+  expect(screen.queryByText('Tienes series sin marcar')).toBeNull();
+  expect(screen.getByText('No has registrado ninguna serie')).toBeTruthy();
+});

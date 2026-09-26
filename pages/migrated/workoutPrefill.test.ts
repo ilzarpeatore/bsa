@@ -1,5 +1,6 @@
 import {
   findSetsInRange,
+  isFilledButUnmarked,
   isNumericValue,
   parseRepRange,
   performanceSessions,
@@ -82,5 +83,24 @@ describe('pickReferenceSet', () => {
     expect(pickReferenceSet(sets, 2)).toEqual({ carga: 50 });
     expect(pickReferenceSet(sets, 5)).toEqual({ carga: 50 });
     expect(pickReferenceSet([], 0)).toBeUndefined();
+  });
+});
+
+describe('isFilledButUnmarked', () => {
+  const row = (over: any) => ({ completed: false, values: {}, ...over });
+
+  test('una fila marcada nunca cuenta', () => {
+    expect(isFilledButUnmarked(row({ completed: true, values: { rir: '2' }, edited: true }))).toBe(false);
+  });
+  test('RIR/RPE puesto sin marcar cuenta (nunca viene precargado)', () => {
+    expect(isFilledButUnmarked(row({ values: { rir: '2' } }))).toBe(true);
+    expect(isFilledButUnmarked(row({ values: { rpe: '8' } }))).toBe(true);
+  });
+  test('reps/carga precargados sin tocar NO cuentan; tecleados por el cliente sí', () => {
+    expect(isFilledButUnmarked(row({ values: { reps: '10', carga: '60' } }))).toBe(false);
+    expect(isFilledButUnmarked(row({ values: { reps: '10', carga: '60' }, edited: true }))).toBe(true);
+  });
+  test('tocar un campo y dejarlo vacío no cuenta', () => {
+    expect(isFilledButUnmarked(row({ values: { reps: '  ', carga: '' }, edited: true }))).toBe(false);
   });
 });
