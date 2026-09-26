@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { ScrollView, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { ScrollView, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Box } from '@components/ui/box';
@@ -7,9 +7,7 @@ import { Text } from '@components/ui/text';
 import { Button, ButtonText } from '@components/ui/button';
 import { Pressable } from '@components/ui/pressable';
 import { Icon } from '@components/ui/icon';
-import { Input, InputField } from '@components/ui/input';
 import ScreenHeader from '@components/ScreenHeader';
-import GlassSegmentedBar from '@components/GlassSegmentedBar';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { useTutorial } from '@store/TutorialContext';
 import { useAppColorMode } from '@helper/useAppColorMode';
@@ -17,6 +15,7 @@ import { logger } from '@helper/logger';
 import { showToast } from '@helper/toast';
 import { habitsApi, HabitTemplate, HabitFrequency } from '../../api/habits';
 import { HABIT_ICON_KEYS, habitIoniconFor } from '../../constants/habitIcons';
+import { FONT, RADIUS } from './theme';
 
 const GOAL_UNITS = ['veces', 'min', 'horas', 'vasos', 'km', 'pasos', 'sesiones', 'páginas'];
 
@@ -69,6 +68,214 @@ class HabitAddErrorBoundary extends React.Component<
   }
 }
 
+// Formulario "Crear el mío", reconstruido con componentes básicos de React
+// Native (TextInput/Pressable/View) en vez de Input/Button de gluestack y sin
+// KeyboardAvoidingView anidado dentro de un ScrollView: en el dispositivo real
+// la pestaña dejaba de permitir crear hábitos propios (adoptar de la
+// biblioteca sí funcionaba y en la base de datos no hay ningún hábito
+// personal desde el 2026-08-04; causa exacta no reproducible fuera del
+// iPhone). El botón de crear queda FIJO abajo, fuera del scroll -- siempre
+// visible y pulsable, sin depender de hacer scroll ni de la barra minimizada
+// del entrenamiento -- y cualquier fallo se muestra también dentro de la
+// propia pantalla, no solo en un toast.
+function PersonalHabitForm({ navigation }: { navigation?: any }) {
+  const { colors: C } = useAppColorMode();
+  const { reportAction } = useTutorial();
+  const [icon, setIcon] = useState<string>('fitness');
+  const [title, setTitle] = useState('');
+  const [targetValue, setTargetValue] = useState('');
+  const [targetUnit, setTargetUnit] = useState('veces');
+  const [frequency, setFrequency] = useState<HabitFrequency>('daily');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+
+  const labelStyle = { marginBottom: 8, marginTop: 16, letterSpacing: 0.3 } as const;
+  const chip = (active: boolean) => ({
+    backgroundColor: active ? C.accentBlack : C.surface,
+  });
+  const chipText = (active: boolean) => ({ color: active ? C.accentBlackForeground : C.textSecondary });
+
+  const submit = async () => {
+    if (submittingRef.current) return;
+    if (!title.trim()) {
+      setFormError('Ponle un nombre a tu hábito.');
+      return;
+    }
+    submittingRef.current = true;
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const res = await habitsApi.createPersonal({
+        title: title.trim(),
+        icon,
+        target_value: targetValue ? Number(targetValue) : null,
+        target_unit: targetValue ? targetUnit : null,
+        frequency,
+      });
+      const newId = res.data?.data?.id;
+      reportAction('habit_added');
+      if (newId) {
+        navigation?.replace
+          ? navigation.replace('MigratedHabitDetail', { habitId: newId })
+          : navigation?.navigate('MigratedHabitDetail', { habitId: newId });
+      } else {
+        navigation?.goBack();
+      }
+    } catch (e: any) {
+      // Se muestra el motivo real del backend (validación...) igual que en
+      // adopt(); logger.error deja rastro en "Enviar registros al
+      // desarrollador" (Ajustes).
+      logger.error('[HabitAdd] Error creando hábito personal:', e);
+      const firstFieldError = e?.response?.data?.errors
+        ? (Object.values(e.response.data.errors)[0] as string[] | undefined)?.[0]
+        : undefined;
+      const msg =
+        firstFieldError ||
+        e?.response?.data?.message ||
+        (e?.response
+          ? `No se pudo crear el hábito (error ${e.response.status}).`
+          : 'Sin conexión con el servidor. Inténtalo de nuevo.');
+      setFormError(msg);
+      showToast('Error', { description: msg, variant: 'error' });
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <Text weight="bold" size="xs" muted className="uppercase" style={labelStyle}>Icono</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {HABIT_ICON_KEYS.map((key) => (
+            <Pressable
+              key={key}
+              style={{ width: 40, height: 40, borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center', ...chip(icon === key) }}
+              onPress={() => setIcon(key)}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Icono ${key}`}
+              accessibilityState={{ selected: icon === key }}
+            >
+              <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? C.accentBlackForeground : C.textSecondary} />
+            </Pressable>
+          ))}
+        </View>
+
+        <Text weight="bold" size="xs" muted className="uppercase" style={labelStyle}>Nombre</Text>
+        <TextInput
+          style={{
+            height: 48,
+            paddingHorizontal: 14,
+            borderRadius: RADIUS.sm,
+            backgroundColor: C.surface,
+            color: C.textPrimary,
+            fontFamily: FONT.regular,
+            fontSize: 16,
+          }}
+          placeholder="p. ej. Beber agua"
+          placeholderTextColor={C.textSecondary}
+          value={title}
+          onChangeText={(t) => {
+            setTitle(t);
+            if (formError) setFormError(null);
+          }}
+          maxLength={50}
+          returnKeyType="done"
+          accessibilityLabel="Nombre del hábito"
+        />
+
+        <Text weight="bold" size="xs" muted className="uppercase" style={labelStyle}>Objetivo (opcional)</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TextInput
+            style={{
+              width: 72,
+              height: 48,
+              borderRadius: RADIUS.sm,
+              backgroundColor: C.surface,
+              color: C.textPrimary,
+              fontFamily: FONT.regular,
+              fontSize: 16,
+              textAlign: 'center',
+            }}
+            placeholder="8"
+            placeholderTextColor={C.textSecondary}
+            value={targetValue}
+            onChangeText={(t) => setTargetValue(t.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            maxLength={5}
+            accessibilityLabel="Valor del objetivo"
+          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {GOAL_UNITS.map((u) => (
+                <Pressable
+                  key={u}
+                  style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: RADIUS.pill, ...chip(targetUnit === u) }}
+                  onPress={() => setTargetUnit(u)}
+                >
+                  <Text weight="semibold" size="sm" style={chipText(targetUnit === u)}>{u}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        <Text weight="bold" size="xs" muted className="uppercase" style={labelStyle}>Frecuencia</Text>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {(['daily', 'weekly'] as HabitFrequency[]).map((f) => (
+            <Pressable
+              key={f}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: RADIUS.sm, ...chip(frequency === f) }}
+              onPress={() => setFrequency(f)}
+            >
+              <Text weight="bold" size="sm" style={chipText(frequency === f)}>{f === 'daily' ? 'Diario' : 'Semanal'}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: C.bg }}>
+        {formError ? (
+          <Text size="sm" className="text-center" style={{ color: C.destructive50, marginBottom: 8 }}>
+            {formError}
+          </Text>
+        ) : null}
+        <Pressable
+          onPress={submit}
+          disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Crear hábito"
+          style={({ pressed }) => ({
+            height: 52,
+            borderRadius: RADIUS.pill,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: C.accentBlack,
+            opacity: submitting ? 0.6 : pressed ? 0.85 : 1,
+          })}
+        >
+          {submitting ? (
+            <ActivityIndicator size="small" color={C.accentBlackForeground} />
+          ) : (
+            <Text weight="bold" style={{ letterSpacing: 0.5, color: C.accentBlackForeground, fontSize: 15 }}>
+              CREAR HÁBITO
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
 function HabitAddScreenInner(props: Props) {
   const { colors: C } = useAppColorMode();
   const { navigation } = props;
@@ -79,13 +286,6 @@ function HabitAddScreenInner(props: Props) {
   const [errorLibrary, setErrorLibrary] = useState(false);
   const [adoptingId, setAdoptingId] = useState<number | null>(null);
   const { reportAction } = useTutorial();
-
-  const [icon, setIcon] = useState<string>('fitness');
-  const [title, setTitle] = useState('');
-  const [targetValue, setTargetValue] = useState('');
-  const [targetUnit, setTargetUnit] = useState('veces');
-  const [frequency, setFrequency] = useState<HabitFrequency>('daily');
-  const [submitting, setSubmitting] = useState(false);
 
   const loadLibrary = useCallback(async () => {
     setLoadingLibrary(true);
@@ -161,69 +361,45 @@ function HabitAddScreenInner(props: Props) {
     [adopt, adoptingId, C]
   );
 
-  const submitPersonal = async () => {
-    if (!title.trim()) {
-      showToast('Falta el nombre', { description: 'Ponle un nombre a tu hábito.', variant: 'warning' });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await habitsApi.createPersonal({
-        title: title.trim(),
-        icon,
-        target_value: targetValue ? Number(targetValue) : null,
-        target_unit: targetValue ? targetUnit : null,
-        frequency,
-      });
-      const newId = res.data?.data?.id;
-      reportAction('habit_added');
-      if (newId) {
-        navigation?.replace ? navigation.replace('MigratedHabitDetail', { habitId: newId }) : navigation?.navigate('MigratedHabitDetail', { habitId: newId });
-      } else {
-        navigation?.goBack();
-      }
-    } catch (e: any) {
-      // Antes se mostraba siempre el mismo mensaje genérico, descartando el
-      // motivo real que devuelve el backend (p. ej. un campo inválido) --
-      // mismo patrón ya usado en adopt() más arriba, para que un fallo de
-      // creación deje de ser una caja negra tanto para el cliente como para
-      // el diagnóstico posterior (logger.error, ver "Enviar registros al
-      // desarrollador" en Ajustes).
-      logger.error('[HabitAdd] Error creando hábito personal:', e);
-      const msg = e?.response?.data?.message || 'No se pudo crear el hábito. Inténtalo de nuevo.';
-      showToast('Error', { description: msg, variant: 'error' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <ScreenHeader title="Añadir hábito" onBack={() => navigation?.goBack()} />
 
-      {/* Liquid Glass real en iOS 26+ (pedido explícito 2026-08-29) --
-          bg-card se saca del className porque GlassSegmentedBar necesita
-          controlar el fondo por `style` para poder anularlo cuando hay
-          glass real (ver el propio componente). */}
-      <GlassSegmentedBar
-        className="flex-row rounded-md"
-        style={{ padding: 4, marginHorizontal: 20, marginTop: 16, marginBottom: 14, backgroundColor: C.surface }}
+      {/* Selector de pestañas con View/Pressable básicos (antes
+          GlassSegmentedBar, Liquid Glass en iOS 26+): la pestaña "Crear el
+          mío" no respondía en el dispositivo real y esta es la pieza
+          nativa más frágil entre la pantalla y el formulario. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 4,
+          marginHorizontal: 20,
+          marginTop: 16,
+          marginBottom: 14,
+          borderRadius: RADIUS.md,
+          backgroundColor: C.surface,
+        }}
       >
-        <Pressable
-          className="flex-1 rounded-sm items-center"
-          style={{ paddingVertical: 10, backgroundColor: tab === 'library' ? C.accentBlack : 'transparent' }}
-          onPress={() => setTab('library')}
-        >
-          <Text weight="semibold" size="sm" style={{ color: tab === 'library' ? C.accentBlackForeground : C.textSecondary }}>Biblioteca</Text>
-        </Pressable>
-        <Pressable
-          className="flex-1 rounded-sm items-center"
-          style={{ paddingVertical: 10, backgroundColor: tab === 'create' ? C.accentBlack : 'transparent' }}
-          onPress={() => setTab('create')}
-        >
-          <Text weight="semibold" size="sm" style={{ color: tab === 'create' ? C.accentBlackForeground : C.textSecondary }}>Crear el mío</Text>
-        </Pressable>
-      </GlassSegmentedBar>
+        {([['library', 'Biblioteca'], ['create', 'Crear el mío']] as const).map(([key, label]) => (
+          <Pressable
+            key={key}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              paddingVertical: 10,
+              borderRadius: RADIUS.sm,
+              backgroundColor: tab === key ? C.accentBlack : 'transparent',
+            }}
+            onPress={() => setTab(key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === key }}
+          >
+            <Text weight="semibold" size="sm" style={{ color: tab === key ? C.accentBlackForeground : C.textSecondary }}>
+              {label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
       {tab === 'library' ? (
         loadingLibrary ? (
@@ -251,82 +427,7 @@ function HabitAddScreenInner(props: Props) {
           />
         )
       ) : (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <Text weight="bold" size="xs" muted className="uppercase" style={{ marginBottom: 8, marginTop: 16, letterSpacing: 0.3 }}>Icono</Text>
-            <Box className="flex-row flex-wrap" style={{ gap: 8 }}>
-              {HABIT_ICON_KEYS.map((key) => (
-                <Pressable
-                  key={key}
-                  className="items-center justify-center bg-card rounded-sm"
-                  style={{ width: 40, height: 40, backgroundColor: icon === key ? C.accentBlack : C.surface }}
-                  onPress={() => setIcon(key)}
-                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Icono ${key}`}
-                  accessibilityState={{ selected: icon === key }}
-                >
-                  <Icon name={habitIoniconFor(key)} size={19} color={icon === key ? C.accentBlackForeground : C.textSecondary} />
-                </Pressable>
-              ))}
-            </Box>
-
-            <Text weight="bold" size="xs" muted className="uppercase" style={{ marginBottom: 8, marginTop: 16, letterSpacing: 0.3 }}>Nombre</Text>
-            <Input className="rounded-sm" size="lg">
-              <InputField
-                placeholder="p. ej. Beber agua"
-                value={title}
-                onChangeText={setTitle}
-                maxLength={50}
-              />
-            </Input>
-
-            <Text weight="bold" size="xs" muted className="uppercase" style={{ marginBottom: 8, marginTop: 16, letterSpacing: 0.3 }}>Objetivo (opcional)</Text>
-            <Box className="flex-row items-center" style={{ gap: 10 }}>
-              <Input className="rounded-sm" size="lg" style={{ width: 72 }}>
-                <InputField
-                  placeholder="8"
-                  value={targetValue}
-                  onChangeText={(t) => setTargetValue(t.replace(/[^0-9]/g, ''))}
-                  keyboardType="number-pad"
-                  className="text-center"
-                />
-              </Input>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-                <Box className="flex-row" style={{ gap: 8 }}>
-                  {GOAL_UNITS.map((u) => (
-                    <Pressable
-                      key={u}
-                      className="rounded-pill"
-                      style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: targetUnit === u ? C.accentBlack : C.surface }}
-                      onPress={() => setTargetUnit(u)}
-                    >
-                      <Text weight="semibold" size="sm" style={{ color: targetUnit === u ? C.accentBlackForeground : C.textSecondary }}>{u}</Text>
-                    </Pressable>
-                  ))}
-                </Box>
-              </ScrollView>
-            </Box>
-
-            <Text weight="bold" size="xs" muted className="uppercase" style={{ marginBottom: 8, marginTop: 16, letterSpacing: 0.3 }}>Frecuencia</Text>
-            <Box className="flex-row" style={{ gap: 10 }}>
-              {(['daily', 'weekly'] as HabitFrequency[]).map((f) => (
-                <Pressable
-                  key={f}
-                  className="flex-1 items-center rounded-sm"
-                  style={{ paddingVertical: 12, backgroundColor: frequency === f ? C.accentBlack : C.surface }}
-                  onPress={() => setFrequency(f)}
-                >
-                  <Text weight="bold" size="sm" style={{ color: frequency === f ? C.accentBlackForeground : C.textSecondary }}>{f === 'daily' ? 'Diario' : 'Semanal'}</Text>
-                </Pressable>
-              ))}
-            </Box>
-
-            <Button radius="pill" className="py-4" style={{ marginTop: 28 }} onPress={submitPersonal} disabled={submitting}>
-              {submitting ? <ActivityIndicator size="small" color={C.accentBlackForeground} /> : <ButtonText style={{ letterSpacing: 0.5 }}>CREAR HÁBITO</ButtonText>}
-            </Button>
-          </ScrollView>
-        </KeyboardAvoidingView>
+        <PersonalHabitForm navigation={navigation} />
       )}
     </SafeAreaView>
   );

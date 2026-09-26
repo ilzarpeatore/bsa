@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {  Alert, Platform  } from 'react-native';
+import {  Platform  } from 'react-native';
 import {  useSafeAreaInsets  } from 'react-native-safe-area-context';
 import {  Box  } from '@components/ui/box';
 import {  HStack  } from '@components/ui/hstack';
@@ -10,6 +10,7 @@ import {  GlassView, isGlassEffectAPIAvailable  } from '@components/ui/glass-vie
 import {  TAB_BAR_CLEARANCE  } from '@components/NavigationTab';
 import {  subscribeWorkoutSession, ActiveWorkoutSession  } from '../helper/workoutSessionBus';
 import {  discardActiveWorkoutSession  } from '../helper/discardWorkoutSession';
+import {  ConfirmDialogMem  } from './ConfirmDialog';
 import {  RADIUS  } from '../pages/migrated/theme';
 
 interface Props {
@@ -51,10 +52,16 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
   const [session, setSession] = useState<ActiveWorkoutSession | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  // Diálogo propio (ConfirmDialog, el mismo estilo que "Salir del
+  // entrenamiento" en la pantalla de la sesión) en vez de Alert.alert, que en
+  // iOS sale con el diseño nativo del sistema (reportado con captura,
+  // 2026-09-26). Declarado ANTES del early-return: regla de orden de Hooks.
+  const [discardConfirmVisible, setDiscardConfirmVisible] = useState(false);
 
   useEffect(() => subscribeWorkoutSession((s, m) => {
     setSession(s);
     setMinimized(m);
+    if (!s) setDiscardConfirmVisible(false);
   }), []);
 
   useEffect(() => {
@@ -101,24 +108,10 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
   // la sesión. Si esa sesión ya no se puede abrir (el coach quitó el
   // entrenamiento del calendario, datos corruptos...), el cliente quedaba
   // bloqueado sin poder empezar ningún otro entrenamiento.
-  const confirmDiscard = () => {
-    Alert.alert(
-      'Descartar entrenamiento',
-      `Se cerrará "${session.mTitle || 'este entrenamiento'}" sin finalizarlo. Las series que ya marcaste siguen guardadas.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Descartar',
-          style: 'destructive',
-          onPress: () => {
-            discardActiveWorkoutSession(session.identityKey).catch(() => {});
-          },
-        },
-      ]
-    );
-  };
+  const confirmDiscard = () => setDiscardConfirmVisible(true);
 
   return (
+    <>
     <Box
       pointerEvents="box-none"
       style={{
@@ -206,5 +199,20 @@ export default function WorkoutMinimizedBar({ navigationRef }: Props) {
         </Box>
       </Pressable>
     </Box>
+    <ConfirmDialogMem
+      visible={discardConfirmVisible}
+      icon="close-circle-outline"
+      destructive
+      title="Descartar entrenamiento"
+      message={`Se cerrará "${session.mTitle || 'este entrenamiento'}" sin finalizarlo. Las series que ya marcaste siguen guardadas.`}
+      confirmText="Descartar"
+      cancelText="Cancelar"
+      onCancel={() => setDiscardConfirmVisible(false)}
+      onConfirm={() => {
+        setDiscardConfirmVisible(false);
+        discardActiveWorkoutSession(session.identityKey).catch(() => {});
+      }}
+    />
+    </>
   );
 }

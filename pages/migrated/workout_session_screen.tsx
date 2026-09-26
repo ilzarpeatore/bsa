@@ -53,7 +53,12 @@ import { GlassView } from '@components/ui/glass-view';
 import {  useAuth  } from '../../store/AuthContext';
 import {  workoutHistoryApi  } from '../../api/workoutHistory';
 import {  MetricCatalogItem  } from '../../api/workoutTemplate';
-import {  exercisesApi, ExerciseItem, BodyPartItem  } from '../../api/exercises';
+import {  exercisesApi, ExerciseItem  } from '../../api/exercises';
+import ExerciseFilterBar, {
+  EMPTY_EXERCISE_FILTERS,
+  ExerciseFilters,
+  useExerciseFilterCatalog,
+} from '../../components/ExerciseFilterBar';
 import {  loadSuggestionApi, pickPendingSuggestion, LoadSuggestion  } from '../../api/loadSuggestion';
 import {
   ACTIVE_SESSION_STORAGE_KEY,
@@ -875,8 +880,10 @@ export default function WorkoutSessionScreen(props: Props) {
   const [pickerLoadingMore, setPickerLoadingMore] = useState(false);
   const pickerPageRef = useRef(1);
   const pickerIsLastPageRef = useRef(false);
-  const [bodyParts, setBodyParts] = useState<BodyPartItem[]>([]);
-  const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(null);
+  // Filtros del buscador: grupo muscular + equipo + nivel + tipo (todo lo que
+  // filtra GET exercise-list), ver components/ExerciseFilterBar.tsx.
+  const [pickerFilters, setPickerFilters] = useState<ExerciseFilters>(EMPTY_EXERCISE_FILTERS);
+  const pickerCatalog = useExerciseFilterCatalog(isPickerVisible);
   const [closeConfirmVisible, setCloseConfirmVisible] = useState(false);
   const [emptyFinishConfirmVisible, setEmptyFinishConfirmVisible] = useState(false);
   const [painReportTarget, setPainReportTarget] = useState<SessionExercise | null>(null);
@@ -1618,13 +1625,16 @@ export default function WorkoutSessionScreen(props: Props) {
   }, [isLoading, blocks.length]);
 
   // ─────────────────────── Picker "Añadir ejercicio" ───────────────────────
-  const runPickerSearch = useCallback(async (query: string, bodyPartId: number | null, page: number) => {
+  const runPickerSearch = useCallback(async (query: string, filters: ExerciseFilters, page: number) => {
     if (page === 1) setPickerLoading(true);
     else setPickerLoadingMore(true);
     try {
       const res = await exercisesApi.getFilteredList({
         title: query.trim() || undefined,
-        bodypart_id: bodyPartId ?? undefined,
+        bodypart_id: filters.bodyPartId ?? undefined,
+        equipment_id: filters.equipmentId ?? undefined,
+        level_ids: filters.levelId ?? undefined,
+        exercise_type: filters.exerciseType ?? undefined,
         page,
         per_page: 20,
       });
@@ -1642,17 +1652,11 @@ export default function WorkoutSessionScreen(props: Props) {
 
   const openExercisePicker = () => {
     setPickerQuery('');
-    setSelectedBodyPartId(null);
+    setPickerFilters(EMPTY_EXERCISE_FILTERS);
     pickerPageRef.current = 1;
     pickerIsLastPageRef.current = false;
     setIsPickerVisible(true);
-    runPickerSearch('', null, 1);
-    if (bodyParts.length === 0) {
-      exercisesApi
-        .getBodyParts(1)
-        .then((res) => setBodyParts(res.data?.data ?? []))
-        .catch(() => {});
-    }
+    runPickerSearch('', EMPTY_EXERCISE_FILTERS, 1);
   };
 
   useEffect(() => {
@@ -1660,17 +1664,17 @@ export default function WorkoutSessionScreen(props: Props) {
     const timeout = setTimeout(() => {
       pickerPageRef.current = 1;
       pickerIsLastPageRef.current = false;
-      runPickerSearch(pickerQuery, selectedBodyPartId, 1);
+      runPickerSearch(pickerQuery, pickerFilters, 1);
     }, 350);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickerQuery, selectedBodyPartId, isPickerVisible]);
+  }, [pickerQuery, pickerFilters, isPickerVisible]);
 
   const onPickerEndReached = () => {
     if (pickerIsLastPageRef.current || pickerLoading || pickerLoadingMore) return;
     const nextPage = pickerPageRef.current + 1;
     pickerPageRef.current = nextPage;
-    runPickerSearch(pickerQuery, selectedBodyPartId, nextPage);
+    runPickerSearch(pickerQuery, pickerFilters, nextPage);
   };
 
   const onAddExercise = useCallback(
@@ -2228,8 +2232,17 @@ export default function WorkoutSessionScreen(props: Props) {
                           exIdx === 0 &&
                           rowIdx === 0 &&
                           ['reps', 'carga', 'descanso', 'rir', 'rpe'].includes(key);
+                        // Con TutorialTarget el View wrapper pasa a ser el hijo
+                        // directo del HStack: sin flex propio se encogía al
+                        // contenido y la 1a serie salía con las celdas
+                        // aplastadas (reportado con captura, IPA 2026-09-26;
+                        // las series 2+ no llevan wrapper y se veían bien).
+                        // El flex/margen vive en el wrapper y la celda lo llena.
                         const cell = (
-                          <Box key={key} style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}>
+                          <Box
+                            key={key}
+                            style={isTutorialMetric ? { width: '100%' } : { flex: 1, minWidth: 0, marginHorizontal: 2 }}
+                          >
                             <TextInput
                               className="bg-card rounded-sm text-foreground"
                               style={{
@@ -2265,7 +2278,11 @@ export default function WorkoutSessionScreen(props: Props) {
                           </Box>
                         );
                         return isTutorialMetric ? (
-                          <TutorialTarget key={key} id={`workout-session-metric-${key}`}>
+                          <TutorialTarget
+                            key={key}
+                            id={`workout-session-metric-${key}`}
+                            style={{ flex: 1, minWidth: 0, marginHorizontal: 2 }}
+                          >
                             {cell}
                           </TutorialTarget>
                         ) : (
@@ -2521,68 +2538,9 @@ export default function WorkoutSessionScreen(props: Props) {
             value={pickerQuery}
             onChangeText={setPickerQuery}
           />
-          {/* Chips de categoría (Todos + bodyParts) -- px-3.5/py-1.5 original
-              dejaba el texto casi tocando el borde de la píldora, sobre
-              todo verticalmente (reportado con captura). px-4/py-2 le da
-              aire real por los 4 lados sin cambiar el resto (gap:8 entre
-              píldoras y paddingHorizontal:20 del scroll, ya consistentes
-              con el buscador y la lista de debajo, se quedan igual). */}
-          {/* flexGrow/flexShrink 0 (2026-09-24, bug real con captura de
-              iPhone: las píldoras salían cortadas a media altura). Este
-              ScrollView no tenía ni flexGrow: 0 y, como la FlatList de
-              debajo no llevaba flex: 1, al desbordar la columna Yoga encogía
-              esta fila (flexShrink: 1 por defecto en ScrollView). Ahora la
-              fila mide siempre su contenido y la lista ocupa el resto. */}
-          {bodyParts.length > 0 && (
-            // Bug 2026-09-24 (captura iPhone): sin flexGrow:0 este ScrollView
-            // horizontal ocupaba media pantalla en vertical (es hermano de un
-            // FlatList flex:1) y las píldoras se estiraban a ~750 px de alto;
-            // flexGrow:0 lo ajusta a su contenido y alignItems evita que las
-            // píldoras se estiren al alto del contenedor.
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ flexGrow: 0, flexShrink: 0 }}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12, alignItems: 'flex-start' }}
-            >
-              <Pressable
-                className="px-4 py-2 rounded-pill"
-                style={{ backgroundColor: selectedBodyPartId === null ? C.accentBlack : C.surfaceLight }}
-                onPress={() => setSelectedBodyPartId(null)}
-              >
-                <Text
-                  weight="semibold"
-                  style={{
-                    fontSize: 12.5,
-                    // lineHeight explícito: Gilroy semibold sin él se recorta en iOS.
-                    lineHeight: 16,
-                    color: selectedBodyPartId === null ? C.accentBlackForeground : C.textSecondary,
-                  }}
-                >
-                  Todos
-                </Text>
-              </Pressable>
-              {bodyParts.map((bp) => (
-                <Pressable
-                  key={bp.id}
-                  className="px-4 py-2 rounded-pill"
-                  style={{ backgroundColor: selectedBodyPartId === bp.id ? C.accentBlack : C.surfaceLight }}
-                  onPress={() => setSelectedBodyPartId(selectedBodyPartId === bp.id ? null : bp.id)}
-                >
-                  <Text
-                    weight="semibold"
-                    style={{
-                      fontSize: 12.5,
-                      lineHeight: 16,
-                      color: selectedBodyPartId === bp.id ? C.accentBlackForeground : C.textSecondary,
-                    }}
-                  >
-                    {bp.title}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
+          {/* Filtros: grupo muscular (chips) + equipo / nivel / tipo
+              (desplegables) -- ver components/ExerciseFilterBar.tsx. */}
+          <ExerciseFilterBar filters={pickerFilters} onChange={setPickerFilters} catalog={pickerCatalog} />
           {pickerLoading ? (
             <Box className="flex-1 items-center justify-center">
               <Spinner size="large" color={C.textPrimary} />

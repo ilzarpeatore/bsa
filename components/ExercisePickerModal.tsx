@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Modal, Platform, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { FlatList, Modal, Platform, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Box } from '@components/ui/box';
-import { HStack } from '@components/ui/hstack';
 import { Text } from '@components/ui/text';
 import { Heading } from '@components/ui/heading';
 import { Pressable } from '@components/ui/pressable';
@@ -13,23 +12,18 @@ import { Divider } from '@components/ui/divider';
 import { Button, ButtonText } from '@components/ui/button';
 import { FONT, RADIUS } from '../pages/migrated/theme';
 import { useAppColorMode } from '@helper/useAppColorMode';
-import {
-  exercisesApi,
-  ExerciseItem,
-  BodyPartItem,
-  EquipmentItem,
-  LevelItem,
-  EXERCISE_TYPES,
-} from '../api/exercises';
+import { exercisesApi, ExerciseItem } from '../api/exercises';
+import ExerciseFilterBar, {
+  EMPTY_EXERCISE_FILTERS,
+  ExerciseFilters,
+  useExerciseFilterCatalog,
+} from './ExerciseFilterBar';
 
-// Buscador de ejercicios con TODOS los filtros que ya soporta
-// GET exercise-list (título, grupo muscular, equipo, nivel, tipo), con
-// selección múltiple -- usado por el creador de entrenamientos
-// personalizados (custom_workout_builder_screen.tsx). El buscador en vivo de
-// workout_session_screen.tsx tiene el suyo propio (uno a uno, solo grupo
-// muscular) y no se toca.
-
-type FilterKey = 'equipment' | 'level' | 'type';
+// Buscador de ejercicios con selección múltiple -- usado por el creador de
+// entrenamientos personalizados (custom_workout_builder_screen.tsx). Los
+// filtros (grupo muscular, equipo, nivel, tipo) son los MISMOS que en el
+// buscador de la sesión en curso (workout_session_screen.tsx): ambos usan
+// components/ExerciseFilterBar.tsx.
 
 interface Props {
   visible: boolean;
@@ -40,31 +34,13 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
-// La API a veces devuelve null/objeto en vez de lista (catálogo vacío,
-// error manejado en backend): nunca dejar que un .map() reviente la pantalla.
-function asList<T extends { id: unknown }>(raw: unknown): T[] {
-  return Array.isArray(raw) ? (raw as T[]).filter((it) => it != null && (it as any).id != null) : [];
-}
-
-// Catálogos (grupos musculares/equipo/nivel) cacheados en memoria durante
-// la sesión: no cambian mientras se usa la app y el picker se abre muchas
-// veces seguidas al montar un entrenamiento.
-let catalogCache: { bodyParts: BodyPartItem[]; equipment: EquipmentItem[]; levels: LevelItem[] } | null = null;
-
 export default function ExercisePickerModal({ visible, title = 'Añadir ejercicios', onClose, onConfirm }: Props) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
 
   const [query, setQuery] = useState('');
-  const [bodyPartId, setBodyPartId] = useState<number | null>(null);
-  const [equipmentId, setEquipmentId] = useState<number | null>(null);
-  const [levelId, setLevelId] = useState<number | null>(null);
-  const [exerciseType, setExerciseType] = useState<string | null>(null);
-  const [openFilter, setOpenFilter] = useState<FilterKey | null>(null);
-
-  const [bodyParts, setBodyParts] = useState<BodyPartItem[]>(catalogCache?.bodyParts ?? []);
-  const [equipment, setEquipment] = useState<EquipmentItem[]>(catalogCache?.equipment ?? []);
-  const [levels, setLevels] = useState<LevelItem[]>(catalogCache?.levels ?? []);
+  const [filters, setFilters] = useState<ExerciseFilters>(EMPTY_EXERCISE_FILTERS);
+  const catalog = useExerciseFilterCatalog(visible);
 
   const [results, setResults] = useState<ExerciseItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -88,21 +64,6 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
   // Quien lo usa lo monta solo mientras está abierto (ver
   // custom_workout_builder_screen.tsx), así que cada apertura empieza con
   // búsqueda/filtros/selección limpios sin tener que resetearlos a mano.
-  useEffect(() => {
-    if (!catalogCache) {
-      Promise.all([
-        exercisesApi.getBodyParts(1).then((r) => asList<BodyPartItem>(r.data?.data)).catch(() => [] as BodyPartItem[]),
-        exercisesApi.getEquipment(1).then((r) => asList<EquipmentItem>(r.data?.data)).catch(() => [] as EquipmentItem[]),
-        exercisesApi.getLevels(1).then((r) => asList<LevelItem>(r.data?.data)).catch(() => [] as LevelItem[]),
-      ]).then(([bp, eq, lv]) => {
-        if (bp.length || eq.length || lv.length) catalogCache = { bodyParts: bp, equipment: eq, levels: lv };
-        setBodyParts(bp);
-        setEquipment(eq);
-        setLevels(lv);
-      });
-    }
-  }, []);
-
   const runSearch = useCallback(
     async (page: number) => {
       const requestId = ++requestIdRef.current;
@@ -111,10 +72,10 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
       try {
         const res = await exercisesApi.getFilteredList({
           title: query.trim() || undefined,
-          bodypart_id: bodyPartId ?? undefined,
-          equipment_id: equipmentId ?? undefined,
-          level_ids: levelId ?? undefined,
-          exercise_type: exerciseType ?? undefined,
+          bodypart_id: filters.bodyPartId ?? undefined,
+          equipment_id: filters.equipmentId ?? undefined,
+          level_ids: filters.levelId ?? undefined,
+          exercise_type: filters.exerciseType ?? undefined,
           page,
           per_page: PAGE_SIZE,
         });
@@ -139,7 +100,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
         }
       }
     },
-    [query, bodyPartId, equipmentId, levelId, exerciseType]
+    [query, filters]
   );
 
   useEffect(() => {
@@ -160,43 +121,6 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
   const toggle = (item: ExerciseItem) => {
     setSelected((prev) => (prev.some((p) => p.id === item.id) ? prev.filter((p) => p.id !== item.id) : [...prev, item]));
-  };
-
-  const activeFilterCount = [equipmentId, levelId, exerciseType].filter((v) => v != null).length;
-
-  const filterLabel = (key: FilterKey): string => {
-    if (key === 'equipment') return equipment.find((e) => e.id === equipmentId)?.title ?? 'Equipo';
-    if (key === 'level') return levels.find((l) => l.id === levelId)?.title ?? 'Nivel';
-    return EXERCISE_TYPES.find((t) => t.id === exerciseType)?.title ?? 'Tipo';
-  };
-  const filterActive = (key: FilterKey) =>
-    key === 'equipment' ? equipmentId != null : key === 'level' ? levelId != null : exerciseType != null;
-
-  const renderChip = (label: string, active: boolean, onPress: () => void, key: string | number) => (
-    <Pressable
-      key={key}
-      className="px-4 py-2 rounded-pill"
-      style={{ backgroundColor: active ? C.accentBlack : C.surfaceLight }}
-      onPress={onPress}
-    >
-      {/* lineHeight explícito (2026-09-24): Gilroy semibold sin lineHeight
-          recorta el glifo en iOS (patrón ya documentado en el repo). */}
-      <Text
-        weight="semibold"
-        style={{ fontSize: 12.5, lineHeight: 16, color: active ? C.accentBlackForeground : C.textSecondary }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-
-  const openFilterOptions: { id: number | string; title: string }[] =
-    openFilter === 'equipment' ? equipment : openFilter === 'level' ? levels : openFilter === 'type' ? EXERCISE_TYPES : [];
-  const openFilterValue = openFilter === 'equipment' ? equipmentId : openFilter === 'level' ? levelId : exerciseType;
-  const setOpenFilterValue = (v: number | string | null) => {
-    if (openFilter === 'equipment') setEquipmentId(v as number | null);
-    else if (openFilter === 'level') setLevelId(v as number | null);
-    else if (openFilter === 'type') setExerciseType(v as string | null);
   };
 
   const renderItem = ({ item }: { item: ExerciseItem }) => {
@@ -263,71 +187,7 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
           returnKeyType="search"
         />
 
-        {/* Grupo muscular: fila de chips siempre visible (el filtro más usado). */}
-        {bodyParts.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipRow}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 10 }}
-          >
-            {renderChip('Todos', bodyPartId === null, () => setBodyPartId(null), 'all')}
-            {bodyParts.map((bp) =>
-              renderChip(bp.title, bodyPartId === bp.id, () => setBodyPartId(bodyPartId === bp.id ? null : bp.id), bp.id)
-            )}
-          </ScrollView>
-        )}
-
-        {/* Equipo / Nivel / Tipo: chips desplegables -- al tocar uno se abre
-            debajo su fila de opciones. */}
-        <HStack style={{ paddingHorizontal: 20, gap: 8, paddingBottom: 10, flexWrap: 'wrap' }}>
-          {(['equipment', 'level', 'type'] as FilterKey[]).map((key) => (
-            <Pressable
-              key={key}
-              onPress={() => setOpenFilter(openFilter === key ? null : key)}
-              style={[styles.filterChip, (filterActive(key) || openFilter === key) && styles.filterChipActive]}
-            >
-              <Text
-                weight="semibold"
-                style={{ fontSize: 12.5, lineHeight: 16, color: filterActive(key) ? C.accentBlackForeground : C.textPrimary }}
-                numberOfLines={1}
-              >
-                {filterLabel(key)}
-              </Text>
-              <Icon
-                name={openFilter === key ? 'chevron-up' : 'chevron-down'}
-                size={14}
-                color={filterActive(key) ? C.accentBlackForeground : C.textSecondary}
-              />
-            </Pressable>
-          ))}
-          {activeFilterCount > 0 && (
-            <Pressable
-              onPress={() => {
-                setEquipmentId(null);
-                setLevelId(null);
-                setExerciseType(null);
-                setOpenFilter(null);
-              }}
-              style={styles.clearFiltersBtn}
-            >
-              <Text style={{ fontSize: 12.5, lineHeight: 16, color: C.textSecondary, fontFamily: FONT.medium }}>Limpiar</Text>
-            </Pressable>
-          )}
-        </HStack>
-        {openFilter && openFilterOptions.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipRow}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingBottom: 12 }}
-          >
-            {renderChip('Cualquiera', openFilterValue == null, () => setOpenFilterValue(null), 'any')}
-            {openFilterOptions.map((o) =>
-              renderChip(o.title, openFilterValue === o.id, () => setOpenFilterValue(openFilterValue === o.id ? null : o.id), o.id)
-            )}
-          </ScrollView>
-        )}
+        <ExerciseFilterBar filters={filters} onChange={setFilters} catalog={catalog} />
 
         {loading ? (
           <Box className="flex-1 items-center justify-center">
@@ -374,30 +234,8 @@ export default function ExercisePickerModal({ visible, title = 'Añadir ejercici
 
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
-    // Filas horizontales de chips (2026-09-24, bug real con captura de
-    // iPhone: solo se veía la mitad superior de cada píldora). ScrollView y
-    // FlatList llevan por defecto flexShrink: 1, y la FlatList de debajo no
-    // tenía flex: 1 -- su alto "natural" es el de todos sus resultados, la
-    // columna desbordaba y Yoga encogía también estas filas (la fila de
-    // Equipo/Nivel/Tipo es un HStack normal, flexShrink 0, por eso esa no se
-    // cortaba). flexGrow/flexShrink 0 = siempre a su alto de contenido.
-    chipRow: { flexGrow: 0, flexShrink: 0 },
     resultImage: { width: 44, height: 44, borderRadius: RADIUS.xs, marginRight: 12 },
     resultSubtitle: { fontSize: 12, color: C.textSecondary, fontFamily: FONT.regular, marginTop: 2 },
-    filterChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: RADIUS.pill,
-      backgroundColor: C.surfaceLight,
-      borderWidth: 1,
-      borderColor: C.border,
-      maxWidth: 160,
-    },
-    filterChipActive: { backgroundColor: C.accentBlack, borderColor: C.accentBlack },
-    clearFiltersBtn: { paddingHorizontal: 8, paddingVertical: 8, justifyContent: 'center' },
     footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, backgroundColor: C.bg },
     confirmBtn: { backgroundColor: C.accentBlack, height: 50 },
     confirmText: { color: C.accentBlackForeground, fontFamily: FONT.bold, fontSize: 15 },

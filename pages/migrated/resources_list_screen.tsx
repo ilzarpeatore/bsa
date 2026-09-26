@@ -181,7 +181,7 @@ export default function ResourcesListScreen(props: Props) {
               <Icon name="folder-open-outline" size={40} className="text-muted-foreground" />
               <Text muted className="text-center px-8" style={{ marginTop: 12 }}>
                 {activeTab === 'mine'
-                  ? 'Todavía no tienes recursos asignados.'
+                  ? 'Aquí aparecerán los recursos personalizados para ti.'
                   : 'Aún no hay recursos compartidos.'}
               </Text>
             </Box>
