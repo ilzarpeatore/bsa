@@ -10,9 +10,15 @@ export interface StepsGoalItem {
   updated_at: string;
 }
 
-export interface StepsGraphItem {
-  id: number;
-  value: string;
+// Respuesta real de `v1/user-daily-steps-goal-list` (ver
+// UserDailyGoalController::getV1DailyStepGoalList en Bckbs): una fila por
+// día ya resuelta (MAX(id) de ese día), con el objetivo vigente ese día
+// (`today_goal`) y los pasos acumulados registrados ese día (`value`). No
+// lleva `id` -- este tipo antes copiaba una forma que este endpoint no
+// devuelve (ver mismo fix en api/water.ts, WaterGoalDaySummary).
+export interface StepsGoalDaySummary {
+  today_goal: number;
+  value: number;
   date: string;
 }
 
@@ -22,13 +28,16 @@ export interface StepsGraphItem {
 // sin ningún estado ni llamada a la API). Mismo mecanismo genérico de
 // histórico que water_track (ver UserGraphController::saveGraphData): cada
 // registro crea una fila nueva con el total ACUMULADO del día, la última
-// fila por fecha es el valor vigente.
+// fila por fecha es el valor vigente. `created_at` (con hora real) es lo
+// único que sirve para reconstruir un historial de registros del día --
+// `date` en user_graphs es solo la fecha (columna DATE, sin hora).
 export interface StepsLogEntry {
   id: number;
   value: number | string;
   type: string;
   date: string;
   unit: string | null;
+  created_at: string;
 }
 
 export const stepsApi = {
@@ -40,14 +49,17 @@ export const stepsApi = {
       params: date ? { date } : undefined,
     }),
 
-  getGoalListV1: () =>
-    apiClient.get<{ data: StepsGraphItem[] }>('v1/user-daily-steps-goal-list'),
+  // `filter` -- 'week' | 'month' | 'year' | 'every' (ver DailyStepsGoal::scopeFilter).
+  getGoalListV1: (filter: 'week' | 'month' | 'year' | 'every' = 'week') =>
+    apiClient.get<{ data: StepsGoalDaySummary[] }>('v1/user-daily-steps-goal-list', {
+      params: { filter },
+    }),
 
   logSteps: (value: number, date: string) =>
     apiClient.post<ApiMessageResponse>('usergraph-save', { type: 'step_track', value, date }),
 
   getTodayLog: (date: string) =>
     apiClient.get<{ data: StepsLogEntry[] }>('usergraph-list', {
-      params: { type: 'step_track', date, per_page: 50, orderby: 'desc' },
+      params: { type: 'step_track', date, per_page: 50, orderby: 'asc' },
     }),
 };
