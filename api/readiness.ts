@@ -36,10 +36,23 @@ export interface ReadinessScoreLatestResponse {
   data: ReadinessScoreLatest;
 }
 
+// Una fila del historial propio de readiness diario (backend ReadinessController::history).
+export interface ReadinessHistoryItem {
+  id: number;
+  date: string; // YYYY-MM-DD
+  sleep_quality: number | null; // 1-5
+  soreness_level: number | null; // 1-10
+  energy_level: number | null; // 1-5
+  stress_level: number | null; // 1-5
+}
+
 export const readinessApi = {
   getToday: () => apiClient.get<ReadinessTodayResponse>('v1/readiness-today'),
 
   submit: (values: ReadinessValues) => apiClient.post<ApiMessageResponse>('v1/readiness-store', values),
 
   getLatest: () => apiClient.get<ReadinessScoreLatestResponse>('v1/readiness-scores-latest'),
+
+  getHistory: (limit = 60) =>
+    apiClient.get<{ data: ReadinessHistoryItem[] }>('v1/readiness-history', { params: { limit } }),
 };

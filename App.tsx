@@ -82,6 +82,8 @@ const MyProgramCalendarScreen = React.lazy(
   () => import('@pages/migrated/my_program_calendar_screen'),
 );
 const NotificationScreen = React.lazy(() => import('@pages/migrated/notification_screen'));
+const PrivacySettingsScreen = React.lazy(() => import('@pages/migrated/privacy_settings_screen'));
+const CheckInHistoryScreen = React.lazy(() => import('@pages/migrated/checkin_history_screen'));
 const NotificationSettingsScreen = React.lazy(
   () => import('@pages/migrated/notification_settings_screen'),
 );
@@ -276,6 +278,8 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
       <MStack.Screen name="MigratedMuscleProgress" component={MuscleProgressScreen} />
       <MStack.Screen name="MigratedMyProgramCalendar" component={MyProgramCalendarScreen} />
       <MStack.Screen name="MigratedNotification" component={NotificationScreen} />
+      <MStack.Screen name="MigratedPrivacySettings" component={PrivacySettingsScreen} />
+      <MStack.Screen name="MigratedCheckInHistory" component={CheckInHistoryScreen} />
       {/* Distinto de MigratedNotification de arriba (esa es el buzón/feed de
           notificaciones ya recibidas, notification_screen.tsx) -- esta es el
           ajuste de permiso de notificaciones push, pedido explícito con

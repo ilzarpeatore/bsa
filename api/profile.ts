@@ -89,9 +89,31 @@ export interface UserSocialStats {
   workout_count: number;
 }
 
+// Estadisticas publicas opt-in de un usuario (backend PrivacyStatsController). Solo agregados:
+// nunca cargas, peso, salud ni fechas. `visible: false` = su dueño no las comparte (o hay bloqueo).
+export interface UserPublicStats {
+  workouts_last_30_days: number;
+  records_count: number;
+  avg_duration_minutes: number | null;
+  week_streak: number;
+}
+
+export interface UserPublicStatsResponse {
+  data: { visible: boolean; stats?: UserPublicStats };
+}
+
 export const profileApi = {
   getUserDetail: (id: number) =>
     apiClient.get<UserResponse>(`user-detail?id=${id}`),
+
+  getPublicStats: (userId: number) =>
+    apiClient.get<UserPublicStatsResponse>(`v1/user-public-stats?user_id=${userId}`),
+
+  getPrivacySettings: () =>
+    apiClient.get<{ data: { show_public_stats: boolean } }>('v1/my-privacy-settings'),
+
+  setPrivacySettings: (showPublicStats: boolean) =>
+    apiClient.post<{ data: { show_public_stats: boolean } }>('v1/my-privacy-settings', { show_public_stats: showPublicStats }),
 
   getSocialStats: (userId: number) =>
     apiClient.get<{ data: UserSocialStats }>(`user-social-stats?user_id=${userId}`),

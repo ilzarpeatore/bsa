@@ -216,7 +216,20 @@ export default function CheckInsListScreen(props: Props) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['bottom']}>
       <Box className="flex-1">
-        <ScreenHeader title="Check-ins y formularios" onBack={() => navigation?.goBack()} />
+        <ScreenHeader
+          title="Check-ins y formularios"
+          onBack={() => navigation?.goBack()}
+          rightAction={
+            <Pressable
+              onPress={() => navigation?.navigate('MigratedCheckInHistory')}
+              className="p-2"
+              accessibilityRole="button"
+              accessibilityLabel="Ver historial"
+            >
+              <Icon name="time-outline" size={22} className="text-foreground" />
+            </Pressable>
+          }
+        />
 
         {isLoading ? (
           <Box className="flex-1 items-center justify-center">

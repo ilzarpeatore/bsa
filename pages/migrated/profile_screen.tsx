@@ -78,6 +78,7 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
         // completo en vez de dejar un "Próximamente" -- ver mismo criterio en
         // home_screen_modern_v2.tsx ("Salud y dispositivos").
         { icon: 'notifications-outline', title: 'Notificaciones', route: 'MigratedNotification', iconColor: C.warning60, iconBg: C.warning10 },
+        { icon: 'lock-closed-outline', title: 'Privacidad', subtitle: 'Quién ve tus estadísticas', route: 'MigratedPrivacySettings', iconColor: C.textPrimary, iconBg: C.brand10 },
       ],
     },
     {

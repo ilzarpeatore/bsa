@@ -12,7 +12,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import {  useAppColorMode  } from '@helper/useAppColorMode';
 import {  postsApi  } from '../../api/posts';
-import {  profileApi, UserSocialStats  } from '../../api/profile';
+import {  profileApi, UserPublicStats, UserSocialStats  } from '../../api/profile';
 import { userBlockApi } from '../../api/userBlock';
 import { showToast } from '@helper/toast';
 import logger from '@helper/logger';
@@ -38,44 +38,53 @@ interface PostData {
   createdAt?: string;
 }
 
+// Estadisticas publicas: undefined = cargando, 'hidden' = el dueño no las comparte,
+// 'error' = fallo de red/servidor, objeto = agregados visibles.
+type PublicStatsState = UserPublicStats | 'hidden' | 'error' | undefined;
+
 export default function OtherUserProfileScreen(props: any) {
   const { colors: C } = useAppColorMode();
   const { height: windowHeight } = useWindowDimensions();
+  // Bug real (2026-09-24, nota de la revision de pantallas): al pulsar el nombre/foto del
+  // autor de un post la pantalla salia en blanco. Se abria con navigate(), que reutiliza
+  // una instancia ya visitada sin refrescar de forma fiable los params anidados (mismo
+  // fallo que MigratedPostDetails, commit abd5a11) -- ahora los llamadores usan push() y
+  // ademas la pantalla nunca se queda en blanco: si faltan datos los completa desde las
+  // publicaciones del propio usuario y, si no hay id, muestra un error explicito.
   const userDetails: UserDetails = props.route?.params?.userDetails ?? {};
+  const userId = userDetails.id;
 
-  const firstName = userDetails.firstName ?? '';
-  const lastName = userDetails.lastName ?? '';
-  const profileImg = userDetails.profileImage ?? '';
+  const [identity, setIdentity] = useState<UserDetails>(userDetails);
+  const firstName = identity.firstName ?? '';
+  const lastName = identity.lastName ?? '';
+  const displayName = `${firstName} ${lastName}`.trim() || 'Usuario';
+  const profileImg = identity.profileImage ?? '';
   const [postList, setPostList] = useState<PostData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [postsError, setPostsError] = useState(false);
   const pageRef = useRef(1);
   const numPageRef = useRef(1);
   const [stats, setStats] = useState<UserSocialStats | null>(null);
+  const [publicStats, setPublicStats] = useState<PublicStatsState>(undefined);
   const [isBlocked, setIsBlocked] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  useEffect(() => {
-    getPostList(1);
-    getStats();
-    checkIfBlocked();
-  }, [userDetails.id]);
-
   const checkIfBlocked = useCallback(async () => {
-    if (!userDetails.id) return;
+    if (!userId) return;
     try {
       const res = await userBlockApi.getMyBlockedUsers();
-      setIsBlocked((res.data.data ?? []).some((u) => u.id === userDetails.id));
+      setIsBlocked((res.data.data ?? []).some((u) => u.id === userId));
     } catch (e) {
       logger.error('Error checking blocked users', e);
     }
-  }, [userDetails.id]);
+  }, [userId]);
 
   const toggleBlockUser = async () => {
-    if (!userDetails.id) return;
-    const name = `${firstName} ${lastName}`.trim() || 'este usuario';
+    if (!userId) return;
+    const name = displayName === 'Usuario' ? 'este usuario' : displayName;
     if (isBlocked) {
       try {
-        await userBlockApi.unblock(userDetails.id);
+        await userBlockApi.unblock(userId);
         setIsBlocked(false);
         showToast('Usuario desbloqueado', { description: `Ya puedes ver el contenido de ${name} de nuevo.`, variant: 'success' });
       } catch (e) {
@@ -92,7 +101,7 @@ export default function OtherUserProfileScreen(props: any) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await userBlockApi.block(userDetails.id!);
+            await userBlockApi.block(userId);
             setIsBlocked(true);
             showToast('Usuario bloqueado', { description: `Ya no verás publicaciones ni comentarios de ${name}.`, variant: 'success' });
           } catch (e) {
@@ -112,23 +121,38 @@ export default function OtherUserProfileScreen(props: any) {
   };
 
   const getStats = useCallback(async () => {
-    if (!userDetails.id) return;
+    if (!userId) return;
     try {
-      const res = await profileApi.getSocialStats(userDetails.id);
+      const res = await profileApi.getSocialStats(userId);
       setStats(res.data.data);
     } catch (e) {
       logger.error('Error fetching user social stats', e);
     }
-  }, [userDetails.id]);
+  }, [userId]);
+
+  const getPublicStats = useCallback(async () => {
+    if (!userId) return;
+    setPublicStats(undefined);
+    try {
+      const res = await profileApi.getPublicStats(userId);
+      const d = res.data?.data;
+      setPublicStats(d?.visible && d.stats ? d.stats : 'hidden');
+    } catch (e) {
+      logger.error('Error fetching user public stats', e);
+      setPublicStats('error');
+    }
+  }, [userId]);
 
   const getPostList = useCallback(
     async (pageNum: number = 1) => {
-      if (!userDetails.id) return;
+      if (!userId) return;
       setIsLoading(true);
+      setPostsError(false);
       try {
-        const res = await postsApi.getList(pageNum, userDetails.id);
+        const res = await postsApi.getList(pageNum, userId);
         numPageRef.current = res.data.pagination?.totalPages ?? 1;
-        const list: PostData[] = (res.data.data ?? []).map((p: any) => ({
+        const rows: any[] = res.data.data ?? [];
+        const list: PostData[] = rows.map((p: any) => ({
           id: p.id,
           content: p.description,
           images: p.posting_media_array?.map((m: any) => m.media_url) ?? [],
@@ -140,14 +164,35 @@ export default function OtherUserProfileScreen(props: any) {
         }));
         setPostList((prev) => (pageNum === 1 ? list : [...prev, ...list]));
         pageRef.current = pageNum;
+        // Si el llamador no traia nombre/foto, se completan con los del autor de sus posts.
+        const author = rows.find((p: any) => p.users)?.users;
+        if (author) {
+          setIdentity((prev) => ({
+            ...prev,
+            firstName: prev.firstName && prev.firstName !== 'Usuario' ? prev.firstName : (author.display_name ?? prev.firstName),
+            profileImage: prev.profileImage || author.profile_image,
+          }));
+        }
       } catch (e) {
         logger.error('Error fetching user posts', e);
+        setPostsError(true);
       } finally {
         setIsLoading(false);
       }
     },
-    [userDetails.id],
+    [userId],
   );
+
+  useEffect(() => {
+    setIdentity(userDetails);
+    setPostList([]);
+    getPostList(1);
+    getStats();
+    getPublicStats();
+    checkIfBlocked();
+    // userDetails viene de los params: solo cambia cuando cambia el usuario (userId).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const toggleLike = (item: PostData) => {
     if (!item.id) return;
@@ -180,7 +225,7 @@ export default function OtherUserProfileScreen(props: any) {
         images: item.images ?? [],
         canEdit: item.canEdit,
         users: {
-          id: userDetails.id,
+          id: userId,
           firstName,
           lastName,
           profileImage: profileImg,
@@ -215,7 +260,7 @@ export default function OtherUserProfileScreen(props: any) {
         )}
         <Box className="flex-1" style={{ marginLeft: 12 }}>
           <Text weight="semibold" size="sm">
-            {firstName} {lastName}
+            {displayName}
           </Text>
           <Text size="xs" style={{ color: C.gray40 }}>
             Publicación
@@ -273,6 +318,57 @@ export default function OtherUserProfileScreen(props: any) {
     </Pressable>
   );
 
+  const renderStatTile = (value: string, label: string) => (
+    <VStack className="items-center" style={{ width: '50%', paddingVertical: 10 }}>
+      <Text weight="bold" size="lg">
+        {value}
+      </Text>
+      <Text size="xs" style={{ color: C.gray40, marginTop: 2, textAlign: 'center' }}>
+        {label}
+      </Text>
+    </VStack>
+  );
+
+  const renderPublicStats = () => {
+    if (publicStats === undefined) {
+      return <ActivityIndicator size="small" color={C.orange} style={{ marginTop: 16 }} />;
+    }
+    if (publicStats === 'hidden' || publicStats === 'error') {
+      return (
+        <Text size="xs" style={{ color: C.gray40, marginTop: 16, paddingHorizontal: 24, textAlign: 'center' }}>
+          {publicStats === 'hidden'
+            ? 'Este usuario no comparte sus estadísticas.'
+            : 'No se pudieron cargar las estadísticas.'}
+        </Text>
+      );
+    }
+    return (
+      <HStack className="flex-wrap border-t border-border" style={{ marginTop: 16, paddingTop: 8, width: '100%' }}>
+        {renderStatTile(String(publicStats.workouts_last_30_days), 'Entrenos el último mes')}
+        {renderStatTile(String(publicStats.records_count), 'Récords logrados')}
+        {renderStatTile(publicStats.avg_duration_minutes !== null ? `${publicStats.avg_duration_minutes} min` : '-', 'Duración media')}
+        {renderStatTile(
+          `${publicStats.week_streak} ${publicStats.week_streak === 1 ? 'semana' : 'semanas'}`,
+          'Racha actual',
+        )}
+      </HStack>
+    );
+  };
+
+  if (!userId) {
+    return (
+      <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
+        <ScreenHeader title="Perfil" onBack={() => props.navigation?.goBack()} />
+        <Box className="flex-1 items-center justify-center" style={{ paddingHorizontal: 32 }}>
+          <Icon name="alert-circle-outline" size={48} color={C.gray40} />
+          <Text weight="medium" style={{ color: C.gray40, marginTop: 12, textAlign: 'center' }}>
+            No se pudo abrir este perfil.
+          </Text>
+        </Box>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: C.bg }} edges={['bottom']}>
       <Box
@@ -308,7 +404,7 @@ export default function OtherUserProfileScreen(props: any) {
             </Box>
           </Box>
           <Text weight="bold" size="xl" style={{ marginTop: 8 }}>
-            {firstName} {lastName}
+            {displayName}
           </Text>
           <HStack className="items-center" style={{ marginTop: 16 }}>
             <VStack className="items-center" style={{ paddingHorizontal: 24 }}>
@@ -329,10 +425,23 @@ export default function OtherUserProfileScreen(props: any) {
               </Text>
             </VStack>
           </HStack>
+          {renderPublicStats()}
         </Box>
         <Box style={{ paddingHorizontal: 6, paddingTop: 16, paddingBottom: 24 + WORKOUT_MINIBAR_CLEARANCE }}>
           {postList.length > 0 ? (
             postList.map((item) => renderPostItem(item))
+          ) : postsError ? (
+            <Box className="items-center justify-center" style={{ paddingVertical: 48 }}>
+              <Icon name="cloud-offline-outline" size={48} color={C.gray50} />
+              <Text weight="medium" style={{ color: C.gray40, marginTop: 12 }}>
+                No se pudieron cargar las publicaciones
+              </Text>
+              <Pressable onPress={() => getPostList(1)} style={{ marginTop: 12 }} accessibilityRole="button">
+                <Text weight="semibold" style={{ color: C.orange }}>
+                  Reintentar
+                </Text>
+              </Pressable>
+            </Box>
           ) : !isLoading ? (
             <Box className="items-center justify-center" style={{ paddingVertical: 48 }}>
               <Icon name="document-text-outline" size={64} color={C.gray50} />
