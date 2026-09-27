@@ -68,12 +68,28 @@ export interface MetricCatalogItem {
   order: number;
 }
 
+/** Técnica especial del catálogo (Bckbs App\Support\TrainingTechniques). */
+export interface TrainingTechniqueItem {
+  key: string;
+  label: string;
+  description: string;
+  /** Paso a paso para el cliente. */
+  steps?: string[];
+  /** Errores comunes y seguridad. */
+  mistakes?: string[];
+  /** Cómo apuntar esa serie en la app. */
+  logging?: string;
+}
+
 export const workoutTemplateApi = {
   getClientDetail: (id: number) =>
     apiClient.get<{ data: WorkoutTemplateDetailData }>('v1/workout-template-detail', { params: { id } }),
 
   getMetricsCatalog: () =>
     apiClient.get<{ data: MetricCatalogItem[] }>('v1/metrics-catalog-list'),
+
+  getTrainingTechniques: () =>
+    apiClient.get<{ data: TrainingTechniqueItem[] }>('v1/training-technique-list'),
 
   getList: (page: number, perPage = 20) =>
     apiClient.get<WorkoutTemplateListResponse>('v1/workout-template-list', { params: { page, per_page: perPage } }),

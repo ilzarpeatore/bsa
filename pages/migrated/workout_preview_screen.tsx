@@ -31,9 +31,13 @@ import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
   pickWorkoutFallbackImage,
+  getTrainingTechniques,
   UnifiedWorkout,
   UnifiedExercise,
 } from './workoutViewShared';
+import { resolveTechnique } from './workoutTechnique';
+import TechniqueChip from '../../components/TechniqueChip';
+import type { TrainingTechniqueItem } from '../../api/workoutTemplate';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -122,6 +126,18 @@ export default function WorkoutPreviewScreen(props: Props) {
       setIsLoading(false);
     }
   }, [programDayAssignmentId, workoutTemplateId, fallbackTitle]);
+
+  // Catálogo de técnicas especiales (rest-pause, drop sets...) -- no bloquea la pantalla.
+  const [techniques, setTechniques] = useState<TrainingTechniqueItem[]>([]);
+  useEffect(() => {
+    let alive = true;
+    getTrainingTechniques().then((list) => {
+      if (alive && list.length) setTechniques(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     load();
@@ -350,6 +366,7 @@ export default function WorkoutPreviewScreen(props: Props) {
                               {formatPrescribedSubtitle(ex.prescribed)}
                             </Text>
                           </HStack>
+                          <TechniqueChip variant="compact" info={resolveTechnique(ex.prescribed, techniques)} exerciseTitle={ex.title} style={{ marginTop: 5 }} />
                         </Box>
                       </HStack>
                     </Pressable>

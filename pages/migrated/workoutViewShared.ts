@@ -1,4 +1,4 @@
-import { workoutTemplateApi, MetricCatalogItem } from '../../api/workoutTemplate';
+import { workoutTemplateApi, MetricCatalogItem, TrainingTechniqueItem } from '../../api/workoutTemplate';
 import { workoutHistoryApi, LoadSuggestionDetail } from '../../api/workoutHistory';
 
 // Pantallas de Workout (Preview + Sesión en marcha) — lógica compartida
@@ -207,4 +207,34 @@ export async function getMetricsCatalog(): Promise<MetricCatalogItem[]> {
       });
   }
   return metricsCatalogPromise;
+}
+
+// ---------------------------------------------------------------------------
+// Técnicas especiales (cluster, rest-pause, drop sets...) que el coach marca
+// por ejercicio y semana en el `prescribed`: tecnica (clave del catálogo u
+// 'otra'), tecnica_series ('todas' | 'ultima') y tecnica_otra (texto si es
+// 'otra'). El catálogo (etiqueta + explicación) viene del backend,
+// v1/training-technique-list, igual que el de métricas.
+// ---------------------------------------------------------------------------
+
+let techniquesCache: TrainingTechniqueItem[] | null = null;
+let techniquesPromise: Promise<TrainingTechniqueItem[]> | null = null;
+
+export async function getTrainingTechniques(): Promise<TrainingTechniqueItem[]> {
+  if (techniquesCache) return techniquesCache;
+  if (!techniquesPromise) {
+    techniquesPromise = workoutTemplateApi
+      .getTrainingTechniques()
+      .then((res) => {
+        const list = Array.isArray(res.data?.data) ? res.data.data : [];
+        if (list.length) techniquesCache = list;
+        else techniquesPromise = null;
+        return list;
+      })
+      .catch(() => {
+        techniquesPromise = null;
+        return [];
+      });
+  }
+  return techniquesPromise;
 }
