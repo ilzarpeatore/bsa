@@ -525,7 +525,9 @@ export default function App() {
         showToast('Info', { description: 'Ese entrenamiento ya no está activo.', variant: 'info' });
         return;
       }
-      screenReviewNavigationRef.current.navigate('MigratedWorkoutSession', {
+      // El ref no lleva tipos de rutas (createNavigationContainerRef() sin
+      // parámetro): mismo criterio que WorkoutMinimizedBar, navegación sin tipar.
+      (screenReviewNavigationRef.current as any).navigate('MigratedWorkoutSession', {
         programDayAssignmentId: session.programDayAssignmentId,
         workoutTemplateId: session.workoutTemplateId,
         mTitle: session.mTitle,
