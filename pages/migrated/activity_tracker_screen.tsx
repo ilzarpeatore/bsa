@@ -4,6 +4,7 @@ import { showToast } from '@helper/toast';
 import { hapticLight } from '@helper/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import ScreenHeader from '@components/ScreenHeader';
 import ArcGauge from '@components/ArcGauge';
 import SmoothAreaChart from '@components/SmoothAreaChart';
 import SimpleBottomSheet from '@components/SimpleBottomSheet';
@@ -219,14 +220,8 @@ export default function ActivityTrackerScreen(props: any) {
     [...week].reverse().find((d) => d.today_goal > 0)?.today_goal ?? (dailyGoal > 0 ? dailyGoal : null);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => props.navigation?.goBack()} style={({ pressed }) => pressed && { opacity: 0.2 }}>
-          <Ionicons name="chevron-back" size={24} color={C.textPrimary} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Pasos</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader title="Pasos" onBack={() => props.navigation?.goBack()} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {dailyGoal === 0 ? (
@@ -443,21 +438,6 @@ export default function ActivityTrackerScreen(props: any) {
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  headerTitle: {
-    fontFamily: FONT.semiBold,
-    fontSize: 20,
-    color: C.textPrimary,
-  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 30 + WORKOUT_MINIBAR_CLEARANCE,

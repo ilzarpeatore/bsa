@@ -4,6 +4,7 @@ import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import ScreenHeader from '@components/ScreenHeader';
 import WaveFillCircle from '@components/WaveFillCircle';
 import SmoothAreaChart from '@components/SmoothAreaChart';
 import SimpleBottomSheet from '@components/SimpleBottomSheet';
@@ -297,18 +298,12 @@ export default function WaterTrackerScreen(props: any) {
     [...weekSummary].reverse().find((d) => Number(d.today_goal) > 0)?.today_goal ?? (dailyGoalMl > 0 ? dailyGoalMl : null);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => props.navigation?.goBack()} style={({ pressed }) => pressed && { opacity: 0.2 }}>
-          <Ionicons name="chevron-back" size={24} color={C.textPrimary} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Agua</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader title="Agua" onBack={() => props.navigation?.goBack()} />
 
       {isLoading ? (
         <View style={styles.loaderCenter}>
-          <ActivityIndicator size="large" color={C.blue} />
+          <ActivityIndicator size="large" color={C.orange} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -317,7 +312,7 @@ export default function WaterTrackerScreen(props: any) {
             // tarjeta que diga "0 mL" (parecía roto), se muestra una
             // invitación clara a elegir uno como primer contenido.
             <View style={styles.welcomeCard}>
-              <Ionicons name="water" size={36} color={C.blue} />
+              <Ionicons name="water" size={36} color={C.orange} />
               <Text style={styles.welcomeTitle}>Elige tu objetivo diario de agua</Text>
               <Text style={styles.welcomeSubtitle}>Así podremos mostrarte tu progreso del día</Text>
               <View style={styles.chipsRow}>
@@ -341,7 +336,7 @@ export default function WaterTrackerScreen(props: any) {
                   animado y dinámico" que el anillo plano de AnimatedRing),
                   dibujado a mano con SVG + Reanimated en WaveFillCircle. */}
               <View style={styles.progressContainer}>
-                <WaveFillCircle size={220} percent={progress * 100} color={C.blue} colorDark={C.blue50}>
+                <WaveFillCircle size={220} percent={progress * 100} color={C.orange}>
                   <View style={styles.progressInner}>
                     <Text style={[styles.consumedValue, styles.progressLabelOnWave]}>{formatLiters(consumedMl)}</Text>
                     <Text style={[styles.goalOfLabel, styles.progressLabelOnWave]}>de {formatLiters(dailyGoalMl)}</Text>
@@ -354,7 +349,7 @@ export default function WaterTrackerScreen(props: any) {
                   <Ionicons
                     name={remainingMl <= 0 ? 'checkmark-circle' : 'water-outline'}
                     size={18}
-                    color={remainingMl <= 0 ? C.success : C.blue}
+                    color={remainingMl <= 0 ? C.success : C.orange}
                   />
                   <Text style={[styles.bannerText, remainingMl <= 0 && { color: C.success }]}>{statusText}</Text>
                 </View>
@@ -373,10 +368,10 @@ export default function WaterTrackerScreen(props: any) {
                 disabled={loggingAmount !== null}
               >
                 {loggingAmount === amt ? (
-                  <ActivityIndicator size="small" color={C.blue} />
+                  <ActivityIndicator size="small" color={C.orange} />
                 ) : (
                   <>
-                    <Ionicons name="water" size={22} color={C.blue} />
+                    <Ionicons name="water" size={22} color={C.orange} />
                     <Text style={styles.quickTileText}>{amt} mL</Text>
                   </>
                 )}
@@ -397,7 +392,7 @@ export default function WaterTrackerScreen(props: any) {
 
           {undoState && (
             <Pressable style={({ pressed }) => [styles.undoBar, pressed && { opacity: 0.7 }]} onPress={handleUndo}>
-              <Ionicons name="arrow-undo" size={16} color={C.blue} />
+              <Ionicons name="arrow-undo" size={16} color={C.orange} />
               <Text style={styles.undoText}>Deshacer último registro</Text>
             </Pressable>
           )}
@@ -423,7 +418,7 @@ export default function WaterTrackerScreen(props: any) {
                   };
                 })}
                 goalValue={weekGoalForChart}
-                color={C.blue}
+                color={C.orange}
                 achievedColor={C.success}
                 labelColor={C.textSecondary}
               />
@@ -439,7 +434,7 @@ export default function WaterTrackerScreen(props: any) {
               history.map((h, idx) => (
                 <View key={h.id} style={[styles.historyRow, idx > 0 && styles.historyRowBorder]}>
                   <View style={styles.historyLeft}>
-                    <Ionicons name="water" size={16} color={C.blue} />
+                    <Ionicons name="water" size={16} color={C.orange} />
                     <Text style={styles.historyAmount}>{h.deltaMl} mL</Text>
                   </View>
                   <Text style={styles.historyTime}>{formatTime(h.createdAt)}</Text>
@@ -454,7 +449,7 @@ export default function WaterTrackerScreen(props: any) {
               <Text style={styles.sectionTitle}>Objetivo diario</Text>
               <View style={styles.goalCard}>
                 <View style={styles.goalCardLeft}>
-                  <Ionicons name="flag" size={20} color={C.blue} />
+                  <Ionicons name="flag" size={20} color={C.orange} />
                   <Text style={styles.goalCardValue}>{formatLiters(dailyGoalMl)}</Text>
                 </View>
                 <Pressable onPress={openGoalSheet} style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.5 }]}>
@@ -526,21 +521,6 @@ export default function WaterTrackerScreen(props: any) {
 function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      backgroundColor: C.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: C.border,
-    },
-    headerTitle: {
-      fontFamily: FONT.semiBold,
-      fontSize: 20,
-      color: C.textPrimary,
-    },
     loaderCenter: {
       flex: 1,
       justifyContent: 'center',
@@ -579,7 +559,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     linkBtnText: {
       fontFamily: FONT.medium,
       fontSize: 14,
-      color: C.blue,
+      color: C.orange60,
     },
     progressContainer: {
       width: 220,
@@ -618,7 +598,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       alignItems: 'center',
       gap: 8,
       padding: 12,
-      backgroundColor: C.blue5,
+      backgroundColor: C.orange10,
       borderRadius: RADIUS.sm,
       marginTop: 16,
       alignSelf: 'center',
@@ -666,13 +646,13 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       gap: 6,
       marginTop: 12,
       paddingVertical: 10,
-      backgroundColor: C.blue5,
+      backgroundColor: C.orange10,
       borderRadius: RADIUS.sm,
     },
     undoText: {
       fontFamily: FONT.medium,
       fontSize: 13,
-      color: C.blue,
+      color: C.orange60,
     },
     weekCard: {
       backgroundColor: C.surface,
@@ -748,12 +728,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: RADIUS.pill,
-      backgroundColor: C.blue5,
+      backgroundColor: C.orange10,
     },
     chipText: {
       fontFamily: FONT.medium,
       fontSize: 13,
-      color: C.blue,
+      color: C.orange60,
     },
     sheetContent: {
       paddingHorizontal: 20,
@@ -774,7 +754,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       color: C.textPrimary,
     },
     sheetSaveBtn: {
-      backgroundColor: C.blue,
+      backgroundColor: C.orange,
       borderRadius: RADIUS.sm,
       paddingVertical: 14,
       alignItems: 'center',
