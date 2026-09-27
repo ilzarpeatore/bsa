@@ -1562,6 +1562,12 @@ export default function WorkoutSessionScreen(props: Props) {
       exerciseIndex,
       totalExercises,
       setLabel: targetRowIdx >= 0 ? `Serie ${targetRowIdx + 1}/${targetEx.rows.length}` : 'Última serie',
+      // Mismos números que setLabel, sueltos -- el hueco compacto de la
+      // Dynamic Island los necesita sin la palabra "Serie" (ver
+      // WorkoutActivityAttributes.swift, CompactSetStatus). null en el
+      // mismo caso especial que "Última serie" (sin fila objetivo válida).
+      setIndex: targetRowIdx >= 0 ? targetRowIdx + 1 : null,
+      totalSets: targetRowIdx >= 0 ? targetEx.rows.length : null,
       reps: targetRow?.values.reps || null,
       load: targetRow?.values.carga ? (cargaUnit ? `${targetRow.values.carga} ${cargaUnit}` : targetRow.values.carga) : null,
       intensityLabel: intensityMode ? intensityMode.toUpperCase() : null,

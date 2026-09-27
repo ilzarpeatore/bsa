@@ -14,6 +14,14 @@ export interface WorkoutActivityState {
   /** "Serie N/M" de la próxima serie por hacer (sirve tanto sin descansar
    * -- lo que toca ahora -- como descansando -- lo que viene después). */
   setLabel: string;
+  /** Los mismos números que ya forman setLabel, sueltos -- el hueco
+   * COMPACTO de la Dynamic Island (lado nativo, ver
+   * WorkoutActivityAttributes.swift) necesita "N/M" sin la palabra
+   * "Serie", y parsear setLabel en español sería frágil. null cuando no
+   * hay una fila objetivo válida (mismo caso que "Última serie" en
+   * setLabel). */
+  setIndex?: number | null;
+  totalSets?: number | null;
   reps?: string | null;
   load?: string | null;
   /** "RIR" | "RPE", según cuál tenga activo el ejercicio (nunca los dos). */

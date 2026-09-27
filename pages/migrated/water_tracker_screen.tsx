@@ -4,7 +4,8 @@ import { showToast } from '@helper/toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import AnimatedRing from '@components/AnimatedRing';
+import WaveFillCircle from '@components/WaveFillCircle';
+import SmoothAreaChart from '@components/SmoothAreaChart';
 import SimpleBottomSheet from '@components/SimpleBottomSheet';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import { FONT, RADIUS, SPACING } from './theme';
@@ -288,7 +289,12 @@ export default function WaterTrackerScreen(props: any) {
   };
   const statusText = getStatusText();
 
-  const maxWeekValue = Math.max(1, ...weekSummary.map((d) => Number(d.value) || 0), ...weekSummary.map((d) => Number(d.today_goal) || 0));
+  // Línea de referencia del gráfico semanal: el objetivo vigente más
+  // reciente dentro de la semana (SmoothAreaChart solo admite un valor de
+  // referencia, no uno por día) -- si esa semana no trae ninguno, se cae al
+  // objetivo de hoy.
+  const weekGoalForChart =
+    [...weekSummary].reverse().find((d) => Number(d.today_goal) > 0)?.today_goal ?? (dailyGoalMl > 0 ? dailyGoalMl : null);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -331,14 +337,16 @@ export default function WaterTrackerScreen(props: any) {
             </View>
           ) : (
             <>
-              {/* Hero */}
+              {/* Hero -- círculo con ola animada (pedido explícito: "más
+                  animado y dinámico" que el anillo plano de AnimatedRing),
+                  dibujado a mano con SVG + Reanimated en WaveFillCircle. */}
               <View style={styles.progressContainer}>
-                <AnimatedRing size={220} strokeWidth={16} percent={progress * 100} color={C.blue} trackColor={C.gray10}>
+                <WaveFillCircle size={220} percent={progress * 100} color={C.blue} colorDark={C.blue50}>
                   <View style={styles.progressInner}>
-                    <Text style={styles.consumedValue}>{formatLiters(consumedMl)}</Text>
-                    <Text style={styles.goalOfLabel}>de {formatLiters(dailyGoalMl)}</Text>
+                    <Text style={[styles.consumedValue, styles.progressLabelOnWave]}>{formatLiters(consumedMl)}</Text>
+                    <Text style={[styles.goalOfLabel, styles.progressLabelOnWave]}>de {formatLiters(dailyGoalMl)}</Text>
                   </View>
-                </AnimatedRing>
+                </WaveFillCircle>
               </View>
 
               {statusText && (
@@ -394,35 +402,31 @@ export default function WaterTrackerScreen(props: any) {
             </Pressable>
           )}
 
-          {/* Esta semana */}
+          {/* Esta semana -- curva suave dibujada a mano (Catmull-Rom, ver
+              SmoothAreaChart) en vez de barras planas, pedido explícito para
+              que se sienta "más animada y dinámica". */}
           <Text style={styles.sectionTitle}>Esta semana</Text>
           <View style={styles.weekCard}>
             {weekSummary.length === 0 ? (
               <Text style={styles.emptyText}>Todavía no hay datos de esta semana.</Text>
             ) : (
-              <View style={styles.weekBarsRow}>
-                {weekSummary.map((d, idx) => {
+              <SmoothAreaChart
+                data={weekSummary.map((d) => {
                   const value = Number(d.value) || 0;
                   const goal = Number(d.today_goal) || 0;
-                  const hitGoal = goal > 0 && value >= goal;
-                  const barHeight = Math.max(4, (value / maxWeekValue) * 90);
                   const dayIdx = new Date(`${d.date}T00:00:00`).getDay();
-                  const label = isNaN(dayIdx) ? '' : DAY_LABELS[dayIdx];
-                  return (
-                    <View key={`${d.date}-${idx}`} style={styles.weekBarCol}>
-                      <View style={styles.weekBarTrack}>
-                        <View
-                          style={[
-                            styles.weekBarFill,
-                            { height: barHeight, backgroundColor: hitGoal ? C.success : C.blue },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.weekBarLabel}>{label}</Text>
-                    </View>
-                  );
+                  return {
+                    label: isNaN(dayIdx) ? '' : DAY_LABELS[dayIdx],
+                    value,
+                    achieved: goal > 0 && value >= goal,
+                    isToday: d.date === todayDateKey(),
+                  };
                 })}
-              </View>
+                goalValue={weekGoalForChart}
+                color={C.blue}
+                achievedColor={C.success}
+                labelColor={C.textSecondary}
+              />
             )}
           </View>
 
@@ -589,6 +593,15 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    // Sombra sutil -- el número puede quedar sobre la ola de agua (fondo
+    // azul medio) o sobre el hueco vacío (fondo claro/oscuro del tema)
+    // según el nivel; una sombra ligera mantiene la lectura en los dos
+    // casos sin tener que recalcular el color según el % de llenado.
+    progressLabelOnWave: {
+      textShadowColor: 'rgba(0,0,0,0.25)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
+    },
     consumedValue: {
       fontFamily: FONT.bold,
       fontSize: 34,
@@ -665,35 +678,6 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
       backgroundColor: C.surface,
       borderRadius: RADIUS.md,
       padding: 16,
-    },
-    weekBarsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-end',
-      height: 120,
-    },
-    weekBarCol: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      gap: 8,
-    },
-    weekBarTrack: {
-      width: 14,
-      height: 90,
-      justifyContent: 'flex-end',
-      borderRadius: 7,
-      backgroundColor: C.gray10,
-      overflow: 'hidden',
-    },
-    weekBarFill: {
-      width: '100%',
-      borderRadius: 7,
-    },
-    weekBarLabel: {
-      fontFamily: FONT.medium,
-      fontSize: 12,
-      color: C.textSecondary,
     },
     historyCard: {
       backgroundColor: C.surface,

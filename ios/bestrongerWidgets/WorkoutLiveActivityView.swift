@@ -50,7 +50,19 @@ struct WorkoutLiveActivityWidget: Widget {
                     ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 32)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    TrailingStatus(state: context.state)
+                    // BUG REAL visto en dispositivo (captura, 2026-09-27):
+                    // con TrailingStatus aquí, "Serie 1/4" salía DUPLICADO
+                    // -- una vez en esta esquina y otra vez abajo (la línea
+                    // de .bottom, ver targetSummaryLine), porque para un
+                    // ejercicio sin reps/carga/RIR (p.ej. "Dominada", peso
+                    // corporal) esa línea de abajo se queda solo con
+                    // setLabel, idéntico al de aquí. Se usa
+                    // CompactTrailingStatus en su lugar (mismo componente
+                    // que ya usa compactTrailing): arriba se ve "en qué
+                    // ejercicio del entreno vas" (o la cuenta atrás si
+                    // descansas), abajo se ve el detalle de la serie -- dos
+                    // datos distintos en vez de uno repetido.
+                    CompactTrailingStatus(state: context.state)
                         .foregroundStyle(.white)
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -71,8 +83,18 @@ struct WorkoutLiveActivityWidget: Widget {
             } compactLeading: {
                 Image(systemName: "figure.strengthtraining.traditional")
             } compactTrailing: {
-                TrailingStatus(state: context.state)
-                    .frame(width: 44)
+                // Sin .frame(width: 44) -- ese ancho fijo fue justo lo que
+                // forzaba el corte a "Seri..." (ver CompactSetStatus);
+                // el contenido ya es corto de por sí, se deja que el
+                // sistema le dé el tamaño natural que necesita.
+                //
+                // Pedido explícito 2026-09-27: aquí va la fracción de SERIE
+                // ("1/4" = serie 1 de 4 del ejercicio actual), no la de
+                // ejercicio -- CompactSetStatus (distinto de
+                // CompactTrailingStatus, que sigue usando la fracción de
+                // ejercicio en el expandido para no duplicar texto, ver
+                // DynamicIslandExpandedRegion(.trailing) arriba).
+                CompactSetStatus(state: context.state)
             } minimal: {
                 Image(systemName: "figure.strengthtraining.traditional")
             }
@@ -105,27 +127,95 @@ private struct SegmentedProgressBar: View {
     let total: Int
     var height: CGFloat = 4
 
+    // BUG REAL visto en dispositivo (captura, 2026-09-27): esta barra se
+    // veía como una esquirla diminuta en la esquina en vez de franjas
+    // completas. Causa: cada segmento solo llevaba `.frame(height:)`, sin
+    // ningún ancho -- un Shape (RoundedRectangle) sin `.frame(width:)` NI
+    // `.frame(maxWidth:)` no tiene tamaño intrínseco propio, así que en un
+    // HStack normal (y más aún dentro del motor de layout de WidgetKit,
+    // más estricto que el de una app) colapsa a un ancho mínimo/cero en vez
+    // de repartirse el espacio disponible. `.frame(maxWidth: .infinity)`
+    // por segmento -- técnica estándar para una barra segmentada de anchos
+    // iguales -- y la propia barra pide todo el ancho que le sobre a su
+    // padre (ver LockScreenLiveActivityView: ya no compite con un Spacer
+    // contra un ancho indefinido, es ella la que se declara "voraz" y el
+    // reloj de al lado queda con su tamaño natural en el borde derecho).
     var body: some View {
         HStack(spacing: 4) {
             ForEach(0..<max(total, 1), id: \.self) { i in
                 RoundedRectangle(cornerRadius: height / 2)
                     .fill(i < index ? brandTeal : Color.white.opacity(0.18))
+                    .frame(maxWidth: .infinity)
                     .frame(height: height)
                     .shadow(color: i == index - 1 ? brandTeal.opacity(0.6) : .clear, radius: 3)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
-private struct TrailingStatus: View {
+// BUG REAL visto en dispositivo (captura, 2026-09-27): compactTrailing
+// usaba TrailingStatus (el mismo componente del estado expandido, con
+// texto "Serie N/M") forzado dentro de `.frame(width: 44)`. "Serie 1/4"
+// no cabe en 44pt y quedaba cortado a "Seri...". Ese hueco -- el estado
+// COMPACTO de la Dynamic Island -- es demasiado estrecho para palabra +
+// número; solo debe llevar el dato más corto posible.
+//
+// Descansando: la cuenta atrás ya es corta de por sí ("1:12") y cabe
+// bien, se mantiene igual. Sin descansar: en vez de "Serie N/M" (puede
+// llegar a "Serie 12/15", 11 caracteres) se muestra solo la fracción de
+// EJERCICIO dentro del entreno ("2/4", sin la palabra) -- mismo dato que
+// ya cuenta SegmentedProgressBar, consistente con el resto de la tarjeta,
+// y siempre corto (como mucho "12/15", 5 caracteres).
+private struct CompactTrailingStatus: View {
     let state: WorkoutActivityAttributes.ContentState
 
     var body: some View {
         if state.isResting, let end = state.restEndDate {
             Text(timerInterval: Date.now...end, countsDown: true)
                 .monospacedDigit()
+                .font(.caption2)
         } else {
-            Text(state.setLabel)
+            Text("\(state.exerciseIndex)/\(state.totalExercises)")
+                .monospacedDigit()
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+        }
+    }
+}
+
+// Pedido explícito 2026-09-27 (con captura de referencia): en el hueco
+// COMPACTO de la Dynamic Island, "1/4" debe significar "serie 1 de 4 del
+// ejercicio actual" (setIndex/totalSets), no "ejercicio 1 de 4 del
+// entreno" -- lo que mostraba CompactTrailingStatus, que ahora queda solo
+// para el expandido (ver DynamicIslandExpandedRegion(.trailing) arriba,
+// donde justo se necesita el dato CONTRARIO para no duplicar el detalle de
+// serie que ya aparece en la línea de .bottom).
+//
+// setIndex/totalSets llegan nil en el mismo caso especial que setLabel =
+// "Última serie" (sin fila objetivo válida, ver
+// WorkoutActivityAttributes.swift) -- ahí se cae a la fracción de
+// ejercicio en vez de dejar el hueco vacío.
+private struct CompactSetStatus: View {
+    let state: WorkoutActivityAttributes.ContentState
+
+    var body: some View {
+        if state.isResting, let end = state.restEndDate {
+            Text(timerInterval: Date.now...end, countsDown: true)
+                .monospacedDigit()
+                .font(.caption2)
+        } else if let setIndex = state.setIndex, let totalSets = state.totalSets {
+            Text("\(setIndex)/\(totalSets)")
+                .monospacedDigit()
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+        } else {
+            Text("\(state.exerciseIndex)/\(state.totalExercises)")
+                .monospacedDigit()
+                .font(.caption2)
+                .fontWeight(.semibold)
                 .lineLimit(1)
         }
     }
@@ -186,7 +276,7 @@ private struct MetricChip: View {
             .fontWeight(.semibold)
             .foregroundStyle(.white)
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.vertical, 4)
             .background(
                 Capsule().strokeBorder(brandTeal.opacity(0.6), lineWidth: 1)
             )
@@ -202,11 +292,27 @@ private struct MetricChip: View {
 private struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<WorkoutActivityAttributes>
 
+    // BUG REAL reportado (2026-09-27): el botón "Serie hecha" aparecía
+    // cortado. Las Live Activities de la pantalla bloqueada tienen un
+    // límite práctico de alto que impone el sistema (guía de Apple: en
+    // torno a 160pt) -- si el contenido se pasa, el sistema RECORTA lo que
+    // sobra por abajo (sin avisar, sin error), que es justo donde vive el
+    // botón al ser el último elemento. Con los tamaños/espacios originales
+    // (padding 16, spacing 12 entre filas, miniatura 56pt, nombre en
+    // .headline a 2 líneas) la suma se iba muy por encima de ese margen.
+    // Se reduce aire vertical en varios sitios a la vez (aquí, en la
+    // miniatura, en el nombre, en los chips y en el propio botón) para
+    // dejar margen real de sobra en vez de ajustar al límite exacto, que
+    // no se puede medir sin un dispositivo.
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                // SegmentedProgressBar ya se declara `.frame(maxWidth:
+                // .infinity)` a sí misma -- es ella la que reclama el hueco
+                // disponible en vez de dejarlo a un Spacer compitiendo
+                // contra un ancho que antes no existía (ver el comentario
+                // del bug real en la propia barra).
                 SegmentedProgressBar(index: context.state.exerciseIndex, total: context.state.totalExercises)
-                Spacer(minLength: 8)
                 // Tiempo total transcurrido -- antes competía en tamaño con
                 // "Entrenamiento"/"Ejercicio N/M" en la misma línea; ahora es
                 // el dato menos accionable de la tarjeta, así que se queda
@@ -215,14 +321,15 @@ private struct LockScreenLiveActivityView: View {
                     .font(.caption2)
                     .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.35))
+                    .fixedSize()
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Link(destination: DeepLink.focus("exercise") ?? URL(string: "com.pfndesign.bestronger://")!) {
-                    ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 56)
+                    ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 40)
                 }
                 Text(context.state.exerciseName)
-                    .font(.headline)
+                    .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                     .lineLimit(2)
@@ -252,12 +359,12 @@ private struct LockScreenLiveActivityView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(Color.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8)
                         .background(brandTeal, in: Capsule())
                 }
             }
         }
-        .padding(16)
+        .padding(12)
     }
 }
 
@@ -271,8 +378,16 @@ private struct RestingView: View {
     let state: WorkoutActivityAttributes.ContentState
     let end: Date
 
+    // Mismo motivo que el recorte de LockScreenLiveActivityView (ver el
+    // comentario de bug real ahí): este anillo con frame(height: 90) +
+    // fuente de 32pt para el número + la línea de "Siguiente" debajo, sumado
+    // a la cabecera y la fila de miniatura/nombre que comparte con el otro
+    // estado, se pasaba con margen del límite práctico de alto de una Live
+    // Activity de pantalla bloqueada -- mismo riesgo de recorte, aunque
+    // todavía no reportado en este estado en concreto. Se reduce el anillo
+    // y la tipografía en proporción, no solo el alto del frame.
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             ZStack {
                 ProgressView(
                     timerInterval: Date.now...end,
@@ -282,14 +397,14 @@ private struct RestingView: View {
                 )
                 .progressViewStyle(.circular)
                 .tint(brandTeal)
-                .scaleEffect(2.6)
+                .scaleEffect(1.7)
 
                 Text(timerInterval: Date.now...end, countsDown: true)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)
             }
-            .frame(height: 90)
+            .frame(height: 56)
             .frame(maxWidth: .infinity)
 
             // foregroundColor (no foregroundStyle) en los Text que se concatenan con `+`:

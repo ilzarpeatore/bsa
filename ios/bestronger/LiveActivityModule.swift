@@ -68,6 +68,8 @@ class LiveActivityModule: NSObject {
         let exerciseIndex = (params["exerciseIndex"] as? NSNumber)?.intValue ?? 1
         let totalExercises = (params["totalExercises"] as? NSNumber)?.intValue ?? 1
         let setLabel = params["setLabel"] as? String ?? ""
+        let setIndex = (params["setIndex"] as? NSNumber)?.intValue
+        let totalSets = (params["totalSets"] as? NSNumber)?.intValue
         let reps = params["reps"] as? String
         let load = params["load"] as? String
         let intensityLabel = params["intensityLabel"] as? String
@@ -84,6 +86,8 @@ class LiveActivityModule: NSObject {
             exerciseIndex: exerciseIndex,
             totalExercises: totalExercises,
             setLabel: setLabel,
+            setIndex: setIndex,
+            totalSets: totalSets,
             reps: reps,
             load: load,
             intensityLabel: intensityLabel,
