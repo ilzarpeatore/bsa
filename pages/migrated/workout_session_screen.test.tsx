@@ -133,6 +133,7 @@ jest.mock('../../components/IntensityCheckSheet', () => {
 });
 jest.mock('../../components/PainReportSheet', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../components/WorkoutNoteSheet', () => ({ __esModule: true, default: () => null }));
+jest.mock('../../components/TechniqueChip', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../api/workoutHistory', () => ({
   workoutHistoryApi: { logCalendarSets: jest.fn(async () => ({ data: {} })) },
 }));
@@ -143,6 +144,7 @@ jest.mock('./workoutViewShared', () => ({
   fetchUnifiedWorkout: jest.fn(async () => ({ blocks: [] })),
   formatPrescribedSubtitle: () => '',
   getMetricsCatalog: jest.fn(async () => []),
+  getTrainingTechniques: jest.fn(async () => []),
 }));
 jest.mock('./theme', () => ({
   FONT: new Proxy({}, { get: () => 'System' }),

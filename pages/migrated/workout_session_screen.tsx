@@ -83,8 +83,12 @@ import {
   fetchUnifiedWorkout,
   formatPrescribedSubtitle,
   getMetricsCatalog,
+  getTrainingTechniques,
   UnifiedExercise,
 } from './workoutViewShared';
+import { resolveTechnique, TechniqueInfo } from './workoutTechnique';
+import TechniqueChip from '../../components/TechniqueChip';
+import type { TrainingTechniqueItem } from '../../api/workoutTemplate';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Petición 2026-08-19: al añadir un ejercicio nuevo con "Añadir ejercicio +"
@@ -397,6 +401,8 @@ interface WorkoutExercisePlayerProps {
   canGoBack: boolean;
   canGoNext: boolean;
   restBar: React.ReactNode;
+  /** Técnica especial de este ejercicio (null = ninguna). */
+  technique?: TechniqueInfo | null;
 }
 
 // Modo guiado a pantalla completa por ejercicio (pedido explícito
@@ -426,11 +432,14 @@ function SetNumberToggle({
   completed,
   onPress,
   C,
+  techniqueLabel,
 }: {
   index: number;
   completed: boolean;
   onPress: () => void;
   C: ReturnType<typeof useAppColorMode>['colors'];
+  /** Técnica especial que va en ESTA serie (solo la última, si el coach lo marcó así). */
+  techniqueLabel?: string | null;
 }) {
   const n = index + 1;
   return (
@@ -439,7 +448,7 @@ function SetNumberToggle({
       // 28 + 8 por lado = 44 pt de zona táctil.
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel={completed ? `Desmarcar serie ${n}` : `Marcar serie ${n} como hecha`}
+      accessibilityLabel={`${completed ? `Desmarcar serie ${n}` : `Marcar serie ${n} como hecha`}${techniqueLabel ? ` (con ${techniqueLabel})` : ''}`}
       accessibilityState={{ checked: completed }}
       style={{ width: SET_NUMBER_COL_WIDTH, alignItems: 'center', marginTop: 2 }}
     >
@@ -461,9 +470,22 @@ function SetNumberToggle({
             {n}
           </Text>
         )}
+        {techniqueLabel ? (
+          <Box
+            className="items-center justify-center"
+            style={{ position: 'absolute', right: -5, top: -5, width: 15, height: 15, borderRadius: 8, backgroundColor: C.orange }}
+          >
+            <Icon name="flash" size={9} color="#FFFFFF" />
+          </Box>
+        ) : null}
       </Box>
     </Pressable>
   );
+}
+
+/** Etiqueta de técnica para la serie `rowIdx` (solo la última si la técnica es de última serie). */
+function rowTechniqueLabel(info: TechniqueInfo | null, rowIdx: number, rowCount: number): string | null {
+  return info?.lastSetOnly && rowIdx === rowCount - 1 ? info.label : null;
 }
 
 function WorkoutExercisePlayer({
@@ -491,6 +513,7 @@ function WorkoutExercisePlayer({
   canGoBack,
   canGoNext,
   restBar,
+  technique,
 }: WorkoutExercisePlayerProps) {
   const { colors: C } = useAppColorMode();
   const insets = useSafeAreaInsets();
@@ -667,6 +690,7 @@ function WorkoutExercisePlayer({
                   <Text muted style={{ fontSize: 13, marginTop: 4 }}>
                     {formatPrescribedSubtitle(ex.prescribed)}
                   </Text>
+                  <TechniqueChip info={technique ?? null} exerciseTitle={ex.title} />
                 </Box>
                 <HStack space="xs" style={{ marginTop: 2 }}>
                   <Pressable
@@ -776,6 +800,7 @@ function WorkoutExercisePlayer({
                           completed={row.completed}
                           onPress={() => onToggleRowComplete(rowIdx)}
                           C={C}
+                          techniqueLabel={rowTechniqueLabel(technique ?? null, rowIdx, ex.rows.length)}
                         />
                         {displayMetrics.map((key) => {
                           const suggestedValue = key === 'carga' ? suggestion?.weight : key === 'reps' ? suggestion?.reps : null;
@@ -810,6 +835,10 @@ function WorkoutExercisePlayer({
                           );
                         })}
                       </HStack>
+
+                      {rowTechniqueLabel(technique ?? null, rowIdx, ex.rows.length) ? (
+                        <TechniqueChip variant="row" info={technique ?? null} exerciseTitle={ex.title} />
+                      ) : null}
 
                       {ex.prescribed?.descanso && rowIdx < ex.rows.length - 1 ? (
                         <HStack className="items-center" style={{ marginBottom: 8 }} space="sm">
@@ -940,6 +969,18 @@ export default function WorkoutSessionScreen(props: Props) {
   const [activeIndexByBlock, setActiveIndexByBlock] = useState<Record<number, number>>({});
   const [pageIndex, setPageIndex] = useState(0);
   const [metricsCatalog, setMetricsCatalog] = useState<MetricCatalogItem[]>([]);
+  // Catálogo de técnicas especiales: no bloquea la carga de la sesión; sin él
+  // la técnica se muestra igual con su clave legible (ver resolveTechnique).
+  const [techniques, setTechniques] = useState<TrainingTechniqueItem[]>([]);
+  useEffect(() => {
+    let alive = true;
+    getTrainingTechniques().then((list) => {
+      if (alive && list.length) setTechniques(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [pickerQuery, setPickerQuery] = useState('');
   const [pickerResults, setPickerResults] = useState<ExerciseItem[]>([]);
@@ -2343,6 +2384,7 @@ export default function WorkoutSessionScreen(props: Props) {
                     <Text muted style={{ fontSize: 13, marginTop: 4 }}>
                       {formatPrescribedSubtitle(ex.prescribed)}
                     </Text>
+                    <TechniqueChip info={resolveTechnique(ex.prescribed, techniques)} exerciseTitle={ex.title} />
                   </Box>
                 </Pressable>
                 {/* Nota para el entrenador (pedido explícito 2026-08-27):
@@ -2482,8 +2524,8 @@ export default function WorkoutSessionScreen(props: Props) {
                   </HStack>
 
                   {ex.rows.map((row, rowIdx) => (
+                    <React.Fragment key={rowIdx}>
                     <HStack
-                      key={rowIdx}
                       className="items-start rounded-sm"
                       style={{
                         marginBottom: 8,
@@ -2507,6 +2549,7 @@ export default function WorkoutSessionScreen(props: Props) {
                             completed={row.completed}
                             onPress={() => toggleRowComplete(blockIdx, exIdx, rowIdx)}
                             C={C}
+                            techniqueLabel={rowTechniqueLabel(resolveTechnique(ex.prescribed, techniques), rowIdx, ex.rows.length)}
                           />
                         );
                         // exIdx === 0 añadido (auditoría 2026-08-29): sin
@@ -2604,6 +2647,11 @@ export default function WorkoutSessionScreen(props: Props) {
                         );
                       })}
                     </HStack>
+                    {/* Técnica de última serie: aviso justo en la serie donde toca */}
+                    {rowTechniqueLabel(resolveTechnique(ex.prescribed, techniques), rowIdx, ex.rows.length) ? (
+                      <TechniqueChip variant="row" info={resolveTechnique(ex.prescribed, techniques)} exerciseTitle={ex.title} />
+                    ) : null}
+                    </React.Fragment>
                   ))}
                 </Box>
               </Box>
@@ -2673,6 +2721,7 @@ export default function WorkoutSessionScreen(props: Props) {
                 <Text muted style={{ fontSize: 12, marginTop: 3 }}>
                   {formatPrescribedSubtitle(ex.prescribed)}
                 </Text>
+                <TechniqueChip variant="compact" info={resolveTechnique(ex.prescribed, techniques)} exerciseTitle={ex.title} />
               </Box>
               {/* Punto 2: el boton de reportar dolor solo se ve con el
                   acordeon del ejercicio abierto (tarjeta activa, arriba) --
@@ -2939,6 +2988,7 @@ export default function WorkoutSessionScreen(props: Props) {
             canGoBack={canGoToPreviousExercise}
             canGoNext={canGoToNextExercise}
             restBar={renderRestCountdownBar()}
+            technique={resolveTechnique(playerEx.prescribed, techniques)}
           />
         </View>
       )}
