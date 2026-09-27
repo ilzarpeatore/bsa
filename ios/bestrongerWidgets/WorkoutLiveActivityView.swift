@@ -84,10 +84,17 @@ struct WorkoutLiveActivityWidget: Widget {
                 Image(systemName: "figure.strengthtraining.traditional")
             } compactTrailing: {
                 // Sin .frame(width: 44) -- ese ancho fijo fue justo lo que
-                // forzaba el corte a "Seri..." (ver CompactTrailingStatus);
+                // forzaba el corte a "Seri..." (ver CompactSetStatus);
                 // el contenido ya es corto de por sí, se deja que el
                 // sistema le dé el tamaño natural que necesita.
-                CompactTrailingStatus(state: context.state)
+                //
+                // Pedido explícito 2026-09-27: aquí va la fracción de SERIE
+                // ("1/4" = serie 1 de 4 del ejercicio actual), no la de
+                // ejercicio -- CompactSetStatus (distinto de
+                // CompactTrailingStatus, que sigue usando la fracción de
+                // ejercicio en el expandido para no duplicar texto, ver
+                // DynamicIslandExpandedRegion(.trailing) arriba).
+                CompactSetStatus(state: context.state)
             } minimal: {
                 Image(systemName: "figure.strengthtraining.traditional")
             }
@@ -168,6 +175,42 @@ private struct CompactTrailingStatus: View {
             Text(timerInterval: Date.now...end, countsDown: true)
                 .monospacedDigit()
                 .font(.caption2)
+        } else {
+            Text("\(state.exerciseIndex)/\(state.totalExercises)")
+                .monospacedDigit()
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+        }
+    }
+}
+
+// Pedido explícito 2026-09-27 (con captura de referencia): en el hueco
+// COMPACTO de la Dynamic Island, "1/4" debe significar "serie 1 de 4 del
+// ejercicio actual" (setIndex/totalSets), no "ejercicio 1 de 4 del
+// entreno" -- lo que mostraba CompactTrailingStatus, que ahora queda solo
+// para el expandido (ver DynamicIslandExpandedRegion(.trailing) arriba,
+// donde justo se necesita el dato CONTRARIO para no duplicar el detalle de
+// serie que ya aparece en la línea de .bottom).
+//
+// setIndex/totalSets llegan nil en el mismo caso especial que setLabel =
+// "Última serie" (sin fila objetivo válida, ver
+// WorkoutActivityAttributes.swift) -- ahí se cae a la fracción de
+// ejercicio en vez de dejar el hueco vacío.
+private struct CompactSetStatus: View {
+    let state: WorkoutActivityAttributes.ContentState
+
+    var body: some View {
+        if state.isResting, let end = state.restEndDate {
+            Text(timerInterval: Date.now...end, countsDown: true)
+                .monospacedDigit()
+                .font(.caption2)
+        } else if let setIndex = state.setIndex, let totalSets = state.totalSets {
+            Text("\(setIndex)/\(totalSets)")
+                .monospacedDigit()
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .lineLimit(1)
         } else {
             Text("\(state.exerciseIndex)/\(state.totalExercises)")
                 .monospacedDigit()

@@ -26,6 +26,15 @@ public struct WorkoutActivityAttributes: ActivityAttributes {
         // activo el ejercicio -- nunca los dos a la vez (ver
         // getIntensityMode en workout_session_screen.tsx).
         public var setLabel: String
+        // Los mismos números que ya forman `setLabel` ("Serie N/M"), sueltos
+        // -- pedido explícito 2026-09-27: el hueco COMPACTO de la Dynamic
+        // Island (ver CompactSetStatus en el widget) necesita mostrar solo
+        // "N/M" sin la palabra "Serie", y parsear ese string en español
+        // (o el caso especial "Última serie", sin números) sería frágil.
+        // nil en ese caso especial -- no siempre hay una fila objetivo
+        // válida (p.ej. entreno entero sin series pendientes).
+        public var setIndex: Int?
+        public var totalSets: Int?
         public var reps: String?
         public var load: String?
         public var intensityLabel: String?
@@ -44,6 +53,8 @@ public struct WorkoutActivityAttributes: ActivityAttributes {
             exerciseIndex: Int,
             totalExercises: Int,
             setLabel: String,
+            setIndex: Int?,
+            totalSets: Int?,
             reps: String?,
             load: String?,
             intensityLabel: String?,
@@ -57,6 +68,8 @@ public struct WorkoutActivityAttributes: ActivityAttributes {
             self.exerciseIndex = exerciseIndex
             self.totalExercises = totalExercises
             self.setLabel = setLabel
+            self.setIndex = setIndex
+            self.totalSets = totalSets
             self.reps = reps
             self.load = load
             self.intensityLabel = intensityLabel
