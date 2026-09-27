@@ -72,8 +72,24 @@ struct WorkoutLiveActivityWidget: Widget {
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
+                    // BUG REAL reportado con captura (2026-09-27): con 3 series
+                    // hechas de 4 en "Dominada", la barra solo marcaba 1 segmento
+                    // -- porque aquí llevaba index/total de EJERCICIO (1 de 4
+                    // ejercicios del entreno), justo debajo de un texto que dice
+                    // "Serie 3/4". Los dos "/4" coincidiendo por casualidad hacía
+                    // parecer que la barra debía representar la serie. Esta barra
+                    // vive pegada al detalle de la serie (línea de abajo), así que
+                    // ahora usa setIndex/totalSets (series del ejercicio actual) en
+                    // vez de exerciseIndex/totalExercises -- la fracción de
+                    // ejercicio-del-entreno ya se ve aparte en CompactTrailingStatus
+                    // (esquina superior derecha). Cae a la fracción de ejercicio
+                    // si no hay fila objetivo válida (mismo caso que "Última serie").
                     VStack(alignment: .leading, spacing: 6) {
-                        SegmentedProgressBar(index: context.state.exerciseIndex, total: context.state.totalExercises, height: 3)
+                        SegmentedProgressBar(
+                            index: context.state.setIndex ?? context.state.exerciseIndex,
+                            total: context.state.totalSets ?? context.state.totalExercises,
+                            height: 3
+                        )
                         Text(context.state.isResting ? context.state.restNextLine : context.state.targetSummaryLine)
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.85))
