@@ -62,9 +62,15 @@ private struct TrailingStatus: View {
         if state.isResting, let end = state.restEndDate {
             Text(timerInterval: restTimerRange(until: end), countsDown: true)
                 .monospacedDigit()
+        } else if let index = state.setIndex, let total = state.totalSets {
+            // En la Dynamic Island solo cabe «1/4»: «Serie 1/4» salía «Seri…».
+            Text("\(index)/\(total)")
+                .monospacedDigit()
+                .lineLimit(1)
         } else {
             Text(state.setLabel)
                 .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
     }
 }
