@@ -40,7 +40,8 @@ type NativeLiveActivityModule = {
   startActivity: (params: { workoutTitle: string } & WorkoutActivityState) => void;
   updateActivity: (params: WorkoutActivityState) => void;
   endActivity: () => void;
-  diagnose?: () => Promise<{ enabled: boolean; activeCount: number; lastStartResult: string }>;
+  diagnose?: () => Promise<{ enabled: boolean; activeCount: number; lastStartResult: string; classicLayout?: boolean }>;
+  setClassicLayout?: (classic: boolean) => void;
   testActivity?: () => Promise<{ ok: boolean; id?: string; error?: string }>;
 };
 
@@ -105,6 +106,9 @@ export async function diagnoseLiveActivity(): Promise<string> {
     lines.push(d.enabled ? '✅ iOS permite Live Activities para la app.' : '❌ iOS NO permite Live Activities para la app (Ajustes → Be Stronger → Live Activities).');
     lines.push(`Live Activities de entreno activas ahora: ${d.activeCount}`);
     lines.push(`Último arranque en un entreno: ${d.lastStartResult}`);
+    if (typeof d.classicLayout === 'boolean') {
+      lines.push(`Diseño: ${d.classicLayout ? 'clásico (1.0.1)' : 'nuevo'}`);
+    }
   } catch (e) {
     lines.push(`❌ diagnose() falló: ${String(e)}`);
   }
@@ -112,7 +116,7 @@ export async function diagnoseLiveActivity(): Promise<string> {
     const t = await native.testActivity();
     lines.push(
       t.ok
-        ? '✅ Live Activity de prueba creada (dura 20 s). Sal YA a la pantalla de inicio: en la Dynamic Island y en la pantalla de bloqueo debe verse el ejercicio «Prueba» con «Serie 1/1». Mientras la app está abierta iOS la oculta.'
+        ? '✅ Live Activity de prueba creada (dura 20 s). Sal YA a la pantalla de inicio: en la Dynamic Island y en la pantalla de bloqueo debe verse el ejercicio «Prueba», «Serie 2/4» y «8 reps · 40 kg · RIR 2»; a los 6 s pasa a un descanso de 12 s con cuenta atrás. Mientras la app está abierta iOS la oculta.'
         : `❌ La Live Activity de prueba no se pudo crear: ${t.error}`,
     );
   } catch (e) {
@@ -121,4 +125,24 @@ export async function diagnoseLiveActivity(): Promise<string> {
   const text = lines.join('\n');
   logger.warn(`[LiveActivity] diagnóstico:\n${text}`);
   return text;
+}
+
+/**
+ * Diseño de la Live Activity (Ajustes → Diagnóstico). null si esta build no
+ * tiene el interruptor (módulo antiguo o no iOS).
+ */
+export async function getLiveActivityClassicLayout(): Promise<boolean | null> {
+  if (!native?.diagnose || !native.setClassicLayout) return null;
+  try {
+    const d = await native.diagnose();
+    return typeof d.classicLayout === 'boolean' ? d.classicLayout : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Se aplica a la siguiente Live Activity que se cree (no a la que ya está en pantalla). */
+export function setLiveActivityClassicLayout(classic: boolean): void {
+  native?.setClassicLayout?.(classic);
+  logger.info(`[LiveActivity] diseño ${classic ? 'clásico' : 'nuevo'}`);
 }

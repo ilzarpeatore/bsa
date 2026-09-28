@@ -30,7 +30,7 @@ class LiveActivityModule: NSObject {
         endCurrentActivity()
 
         let workoutTitle = params["workoutTitle"] as? String ?? "Entrenamiento"
-        let attributes = WorkoutActivityAttributes(workoutTitle: workoutTitle, startDate: Date())
+        let attributes = WorkoutActivityAttributes(workoutTitle: workoutTitle, startDate: Date(), layout: Self.layout)
         let state = Self.contentState(from: params)
 
         do {
@@ -68,28 +68,49 @@ class LiveActivityModule: NSObject {
             "enabled": info.areActivitiesEnabled,
             "activeCount": Activity<WorkoutActivityAttributes>.activities.count,
             "lastStartResult": Self.lastStartResult,
+            "classicLayout": Self.layout == "classic",
         ])
     }
 
+    // Diseño de la Live Activity (Ajustes → Diagnóstico): se guarda en el
+    // propio dispositivo y se aplica a la siguiente actividad que se cree.
+    @objc
+    func setClassicLayout(_ classic: Bool) {
+        UserDefaults.standard.set(classic, forKey: Self.classicLayoutKey)
+    }
+
+    private static let classicLayoutKey = "liveActivityClassicLayout"
+
+    private static var layout: String {
+        UserDefaults.standard.bool(forKey: classicLayoutKey) ? "classic" : "new"
+    }
+
     // Lanza una Live Activity de prueba (se cierra sola a los 20 s) y
-    // devuelve el resultado real de Activity.request.
+    // devuelve el resultado real de Activity.request. A los 6 s pasa a
+    // descanso de 12 s, que vence antes del cierre: así se ven los dos
+    // estados y el descanso ya vencido sin tener que hacer un entreno.
     @objc(testActivity:rejecter:)
     func testActivity(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             resolve(["ok": false, "error": "Live Activities desactivadas para la app (areActivitiesEnabled = false)"])
             return
         }
-        let attributes = WorkoutActivityAttributes(workoutTitle: "Prueba Live Activity", startDate: Date())
+        let attributes = WorkoutActivityAttributes(workoutTitle: "Prueba Live Activity", startDate: Date(), layout: Self.layout)
         let state = WorkoutActivityAttributes.ContentState(
-            exerciseName: "Prueba", exerciseImageURL: nil, exerciseIndex: 1, totalExercises: 1,
-            setLabel: "Serie 1/1", setIndex: 1, totalSets: 1, reps: "10", load: nil,
-            intensityLabel: nil, intensityValue: nil, isResting: false, restEndDate: nil, nextExerciseName: nil
+            exerciseName: "Prueba", exerciseImageURL: nil, exerciseIndex: 1, totalExercises: 5,
+            setLabel: "Serie 2/4", setIndex: 2, totalSets: 4, reps: "8", load: "40 kg",
+            intensityLabel: "RIR", intensityValue: "2", isResting: false, restEndDate: nil, nextExerciseName: nil
         )
         do {
             let activity = try Activity.request(attributes: attributes, content: ActivityContent(state: state, staleDate: nil))
             resolve(["ok": true, "id": activity.id])
             Task {
-                try? await Task.sleep(nanoseconds: 20_000_000_000)
+                try? await Task.sleep(nanoseconds: 6_000_000_000)
+                var resting = state
+                resting.isResting = true
+                resting.restEndDate = Date().addingTimeInterval(12)
+                await activity.update(Self.content(for: resting))
+                try? await Task.sleep(nanoseconds: 14_000_000_000)
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
         } catch {

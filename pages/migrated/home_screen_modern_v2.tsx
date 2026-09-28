@@ -66,7 +66,11 @@ import {
   setDiagnosticsEnabled,
   getDiagnosticsReportText,
 } from '@helper/logger';
-import { diagnoseLiveActivity } from '@helper/liveActivity';
+import {
+  diagnoseLiveActivity,
+  getLiveActivityClassicLayout,
+  setLiveActivityClassicLayout,
+} from '@helper/liveActivity';
 import { showToast } from '@helper/toast';
 import {
   dashboardApi,
@@ -385,9 +389,28 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
   // «Probar Live Activity» (2026-09-28): la Live Activity del entreno no
   // aparecía nunca y los fallos eran silenciosos -- esto muestra qué eslabón
   // falla (módulo nativo, permiso de iOS, creación) y lanza una de prueba.
+  // Desde el diagnóstico también se puede cambiar entre el diseño nuevo y el
+  // clásico (1.0.1) sin sacar otra build, por si el nuevo falla en algún móvil.
   const handleTestLiveActivity = useCallback(async () => {
     const report = await diagnoseLiveActivity();
-    Alert.alert('Live Activity', report);
+    const classic = await getLiveActivityClassicLayout();
+    if (classic === null) {
+      Alert.alert('Live Activity', report);
+      return;
+    }
+    Alert.alert('Live Activity', report, [
+      { text: 'OK', style: 'cancel' },
+      {
+        text: classic ? 'Usar diseño nuevo' : 'Usar diseño clásico',
+        onPress: () => {
+          setLiveActivityClassicLayout(!classic);
+          Alert.alert(
+            'Live Activity',
+            `Diseño ${classic ? 'nuevo' : 'clásico'} activado. Se verá en el próximo entreno o en la próxima prueba.`,
+          );
+        },
+      },
+    ]);
   }, []);
   const handleSendLogs = useCallback(async () => {
     const report = getDiagnosticsReportText();

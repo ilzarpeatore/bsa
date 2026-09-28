@@ -82,9 +82,15 @@ public struct WorkoutActivityAttributes: ActivityAttributes {
 
     public var workoutTitle: String
     public var startDate: Date
+    // Diseño de la vista (2026-09-28): nil / "new" = diseño nuevo, "classic" =
+    // el de la 1.0.1. Lo elige la app al crear la actividad (Ajustes →
+    // Diagnóstico) para poder volver al clásico sin sacar otra build si el
+    // nuevo diera problemas en algún dispositivo.
+    public var layout: String?
 
-    public init(workoutTitle: String, startDate: Date) {
+    public init(workoutTitle: String, startDate: Date, layout: String? = nil) {
         self.workoutTitle = workoutTitle
         self.startDate = startDate
+        self.layout = layout
     }
 }
