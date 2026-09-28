@@ -112,7 +112,7 @@ export async function diagnoseLiveActivity(): Promise<string> {
     const t = await native.testActivity();
     lines.push(
       t.ok
-        ? '✅ Live Activity de prueba creada (dura 20 s). Sal YA a la pantalla de inicio: la Dynamic Island debe mostrar «BS · OK»; bloqueando el móvil, «Be Stronger · Live Activity de prueba OK». Mientras la app está abierta iOS la oculta.'
+        ? '✅ Live Activity de prueba creada (dura 20 s). Sal YA a la pantalla de inicio: en la Dynamic Island y en la pantalla de bloqueo debe verse el ejercicio «Prueba» con «Serie 1/1». Mientras la app está abierta iOS la oculta.'
         : `❌ La Live Activity de prueba no se pudo crear: ${t.error}`,
     );
   } catch (e) {
