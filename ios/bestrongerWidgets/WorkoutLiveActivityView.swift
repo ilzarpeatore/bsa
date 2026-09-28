@@ -51,14 +51,49 @@ private func restTimerRange(until end: Date) -> ClosedRange<Date> {
     return now...max(now, end)
 }
 
+// Diagnóstico (2026-09-28, iPhone 16 Pro / iOS 26.5.2): la app crea la Live
+// Activity (Activity.request OK) pero no se ve nada. La de «Probar Live
+// Activity» (LiveActivityModule.testActivity) usa este título y se dibuja
+// con una vista MÍNIMA, solo texto: si esa aparece y la del entreno no, el
+// fallo está en la vista completa; si tampoco aparece, es de registro/sistema.
+private let diagnosticActivityTitle = "Prueba Live Activity"
+
+private struct MinimalDiagnosticView: View {
+    var body: some View {
+        Text("Be Stronger · Live Activity de prueba OK")
+            .font(.headline)
+            .foregroundColor(.white)
+            .padding()
+    }
+}
+
 struct WorkoutLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            LockScreenLiveActivityView(context: context)
-                .activityBackgroundTint(Color.black)
-                .activitySystemActionForegroundColor(Color.white)
+            if context.attributes.workoutTitle == diagnosticActivityTitle {
+                MinimalDiagnosticView()
+                    .activityBackgroundTint(Color.black)
+                    .activitySystemActionForegroundColor(Color.white)
+            } else {
+                LockScreenLiveActivityView(context: context)
+                    .activityBackgroundTint(Color.black)
+                    .activitySystemActionForegroundColor(Color.white)
+            }
         } dynamicIsland: { context in
-            DynamicIsland {
+            if context.attributes.workoutTitle == diagnosticActivityTitle {
+                return DynamicIsland {
+                    DynamicIslandExpandedRegion(.center) {
+                        Text("Be Stronger · prueba OK").foregroundColor(.white)
+                    }
+                } compactLeading: {
+                    Text("BS").foregroundColor(brandTeal)
+                } compactTrailing: {
+                    Text("OK").foregroundColor(.white)
+                } minimal: {
+                    Text("BS").foregroundColor(brandTeal)
+                }
+            }
+            return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     ExerciseThumbnail(urlString: context.state.exerciseImageURL, size: 32)
                 }
@@ -455,13 +490,20 @@ private struct RestingView: View {
 private struct WStack: Layout {
     var spacing: CGFloat = 6
 
+    // Devolvía `proposal.width ?? .infinity` tal cual: cuando SwiftUI mide
+    // con una propuesta sin ancho (nil) o infinita, el layout declaraba un
+    // ancho INFINITO, tamaño inválido que puede hacer que WidgetKit no llegue
+    // a dibujar la Live Activity. Ahora el ancho es siempre finito: el
+    // propuesto si es finito, si no el de la fila más ancha.
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var (currentRowWidth, totalHeight, rowHeight): (CGFloat, CGFloat, CGFloat) = (0, 0, 0)
+        let proposed = proposal.width ?? .infinity
+        let maxWidth = proposed.isFinite ? proposed : .greatestFiniteMagnitude
+        var (currentRowWidth, totalHeight, rowHeight, widestRow): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if currentRowWidth + size.width > maxWidth, currentRowWidth > 0 {
                 totalHeight += rowHeight + spacing
+                widestRow = max(widestRow, currentRowWidth - spacing)
                 currentRowWidth = 0
                 rowHeight = 0
             }
@@ -469,7 +511,8 @@ private struct WStack: Layout {
             rowHeight = max(rowHeight, size.height)
         }
         totalHeight += rowHeight
-        return CGSize(width: maxWidth, height: totalHeight)
+        widestRow = max(widestRow, currentRowWidth - spacing, 0)
+        return CGSize(width: proposed.isFinite ? proposed : widestRow, height: totalHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
