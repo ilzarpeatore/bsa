@@ -1069,6 +1069,7 @@ export default function WorkoutSessionScreen(props: Props) {
   // la señal más reciente y real de foco, más fiable que asumir el bloque 0.
   const currentFocusRef = useRef<{ blockIdx: number; exIdx: number }>({ blockIdx: 0, exIdx: 0 });
   const liveActivityStartedRef = useRef(false);
+  const lastLiveActivityPayloadRef = useRef<string | null>(null);
   // Motor de Auto-Regulacion: sugerencia de carga PENDIENTE (aun no
   // aprobada por el coach) por exerciseId, cargada bajo demanda solo para
   // el ejercicio activo/expandido (ver fetchLoadSuggestion). Las ya
@@ -1628,14 +1629,24 @@ export default function WorkoutSessionScreen(props: Props) {
     const initial = buildLiveActivityState();
     if (!initial) return;
     liveActivityStartedRef.current = true;
+    lastLiveActivityPayloadRef.current = JSON.stringify(initial);
     startWorkoutLiveActivity(mTitle || 'Entrenamiento', initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, blocks.length]);
 
+  // Solo se manda a iOS cuando el estado cambia de verdad: durante el
+  // descanso buildLiveActivityState se recrea cada segundo (restCountdown),
+  // pero el estado enviado es idéntico, y ActivityKit limita la frecuencia de
+  // actualizaciones -- mandarlo cada segundo gastaba ese cupo y podía hacer
+  // que iOS descartara las actualizaciones que sí importan.
   useEffect(() => {
     if (!liveActivityStartedRef.current) return;
     const state = buildLiveActivityState();
-    if (state) updateWorkoutLiveActivity(state);
+    if (!state) return;
+    const payload = JSON.stringify(state);
+    if (payload === lastLiveActivityPayloadRef.current) return;
+    lastLiveActivityPayloadRef.current = payload;
+    updateWorkoutLiveActivity(state);
   }, [buildLiveActivityState]);
 
   // extraValues: valores que se acaban de elegir y aún no están en `blocks`

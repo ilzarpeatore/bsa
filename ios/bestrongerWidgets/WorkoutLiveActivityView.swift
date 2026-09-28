@@ -38,6 +38,19 @@ import WidgetKit
 // no evita desbloquear el móvil. El AppIntent ya escrito, listo para
 // activar esa capacidad y cambiar el Link por un Button(intent:), queda
 // comentado al final de este fichero.
+// BUG REAL (1.0.2, 2026-09-28): `Date.now...end` aborta la extensión
+// ("Range requires lowerBound <= upperBound") si el descanso ya ha
+// terminado cuando el sistema vuelve a pintar la Live Activity -- pasa
+// siempre que el descanso acaba con la app en segundo plano, porque JS no
+// puede mandar la actualización de "ya no descansa". La extensión caída
+// deja la Live Activity en blanco o la quita. Rango siempre válido: si
+// `end` ya pasó, el temporizador se queda en 0:00, y además las vistas de
+// descanso solo se usan mientras `end` está en el futuro.
+private func restTimerRange(until end: Date) -> ClosedRange<Date> {
+    let now = Date.now
+    return now...max(now, end)
+}
+
 struct WorkoutLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
@@ -187,8 +200,8 @@ private struct CompactTrailingStatus: View {
     let state: WorkoutActivityAttributes.ContentState
 
     var body: some View {
-        if state.isResting, let end = state.restEndDate {
-            Text(timerInterval: Date.now...end, countsDown: true)
+        if state.isResting, let end = state.restEndDate, end > Date.now {
+            Text(timerInterval: restTimerRange(until: end), countsDown: true)
                 .monospacedDigit()
                 .font(.caption2)
         } else {
@@ -217,8 +230,8 @@ private struct CompactSetStatus: View {
     let state: WorkoutActivityAttributes.ContentState
 
     var body: some View {
-        if state.isResting, let end = state.restEndDate {
-            Text(timerInterval: Date.now...end, countsDown: true)
+        if state.isResting, let end = state.restEndDate, end > Date.now {
+            Text(timerInterval: restTimerRange(until: end), countsDown: true)
                 .monospacedDigit()
                 .font(.caption2)
         } else if let setIndex = state.setIndex, let totalSets = state.totalSets {
@@ -353,7 +366,7 @@ private struct LockScreenLiveActivityView: View {
                 Spacer(minLength: 0)
             }
 
-            if context.state.isResting, let end = context.state.restEndDate {
+            if context.state.isResting, let end = context.state.restEndDate, end > Date.now {
                 RestingView(state: context.state, end: end)
             } else {
                 WStack {
@@ -406,7 +419,7 @@ private struct RestingView: View {
         VStack(spacing: 4) {
             ZStack {
                 ProgressView(
-                    timerInterval: Date.now...end,
+                    timerInterval: restTimerRange(until: end),
                     countsDown: true,
                     label: { EmptyView() },
                     currentValueLabel: { EmptyView() }
@@ -415,7 +428,7 @@ private struct RestingView: View {
                 .tint(brandTeal)
                 .scaleEffect(1.7)
 
-                Text(timerInterval: Date.now...end, countsDown: true)
+                Text(timerInterval: restTimerRange(until: end), countsDown: true)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white)

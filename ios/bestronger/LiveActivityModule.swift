@@ -27,7 +27,7 @@ class LiveActivityModule: NSObject {
         do {
             currentActivity = try Activity.request(
                 attributes: attributes,
-                content: ActivityContent(state: state, staleDate: nil)
+                content: Self.content(for: state)
             )
         } catch {
             NSLog("[LiveActivityModule] startActivity failed: \(error)")
@@ -40,7 +40,7 @@ class LiveActivityModule: NSObject {
         currentActivity = activity
         let state = Self.contentState(from: params)
         Task {
-            await activity.update(ActivityContent(state: state, staleDate: nil))
+            await activity.update(Self.content(for: state))
         }
     }
 
@@ -60,6 +60,14 @@ class LiveActivityModule: NSObject {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
         }
+    }
+
+    // staleDate = fin del descanso: si el descanso acaba con la app en
+    // segundo plano (JS no puede actualizar), el sistema vuelve a pintar la
+    // Live Activity en ese momento y la vista, al ver el descanso ya
+    // vencido, muestra la próxima serie en vez del temporizador a 0:00.
+    private static func content(for state: WorkoutActivityAttributes.ContentState) -> ActivityContent<WorkoutActivityAttributes.ContentState> {
+        ActivityContent(state: state, staleDate: state.isResting ? state.restEndDate : nil)
     }
 
     private static func contentState(from params: NSDictionary) -> WorkoutActivityAttributes.ContentState {
