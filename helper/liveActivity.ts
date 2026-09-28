@@ -1,4 +1,5 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import { logger } from './logger';
 
 /**
  * Puente a LiveActivityModule (ios/bestronger/LiveActivityModule.swift). Solo
@@ -39,13 +40,39 @@ type NativeLiveActivityModule = {
   startActivity: (params: { workoutTitle: string } & WorkoutActivityState) => void;
   updateActivity: (params: WorkoutActivityState) => void;
   endActivity: () => void;
+  diagnose?: () => Promise<{ enabled: boolean; activeCount: number; lastStartResult: string }>;
+  testActivity?: () => Promise<{ ok: boolean; id?: string; error?: string }>;
 };
 
-const native: NativeLiveActivityModule | undefined =
-  Platform.OS === 'ios' ? NativeModules.LiveActivityModule : undefined;
+// La Live Activity no aparecía nunca (2026-09-28). RN 0.86 corre siempre en
+// la nueva arquitectura (bridgeless): un módulo nativo "legacy"
+// (RCT_EXTERN_MODULE) puede no aparecer en NativeModules y sí en
+// TurboModuleRegistry (capa de interoperabilidad). Antes, si faltaba, cada
+// llamada era un no-op silencioso por el `native?.`; ahora se busca por las
+// dos vías y se deja constancia en el log de diagnóstico.
+function resolveNative(): { module: NativeLiveActivityModule | undefined; source: string } {
+  if (Platform.OS !== 'ios') return { module: undefined, source: 'no-ios' };
+  const fromNativeModules = NativeModules.LiveActivityModule as NativeLiveActivityModule | undefined;
+  if (fromNativeModules) return { module: fromNativeModules, source: 'NativeModules' };
+  try {
+    const fromTurbo = TurboModuleRegistry.get('LiveActivityModule') as unknown as NativeLiveActivityModule | null;
+    if (fromTurbo) return { module: fromTurbo, source: 'TurboModuleRegistry' };
+  } catch {
+    // TurboModuleRegistry.get no debería lanzar, pero no puede tumbar el entreno
+  }
+  return { module: undefined, source: 'no-disponible' };
+}
+
+const resolved = resolveNative();
+const native = resolved.module;
 
 export function startWorkoutLiveActivity(workoutTitle: string, state: WorkoutActivityState): void {
-  native?.startActivity({ workoutTitle, ...state });
+  if (!native) {
+    if (Platform.OS === 'ios') logger.warn('[LiveActivity] módulo nativo LiveActivityModule no disponible: no se puede iniciar');
+    return;
+  }
+  logger.info(`[LiveActivity] startActivity (módulo vía ${resolved.source})`);
+  native.startActivity({ workoutTitle, ...state });
 }
 
 export function updateWorkoutLiveActivity(state: WorkoutActivityState): void {
@@ -54,4 +81,44 @@ export function updateWorkoutLiveActivity(state: WorkoutActivityState): void {
 
 export function endWorkoutLiveActivity(): void {
   native?.endActivity();
+}
+
+/**
+ * Ajustes → Diagnóstico → «Probar Live Activity»: texto con cada eslabón
+ * de la cadena (módulo nativo, permiso, último arranque real, prueba).
+ */
+export async function diagnoseLiveActivity(): Promise<string> {
+  if (Platform.OS !== 'ios') return 'Las Live Activities solo existen en iOS.';
+  const lines: string[] = [];
+  if (!native) {
+    lines.push('❌ Módulo nativo LiveActivityModule NO disponible en esta build (ni en NativeModules ni en TurboModuleRegistry).');
+    lines.push('La app no puede crear la Live Activity: el fallo es de registro del módulo nativo.');
+    return lines.join('\n');
+  }
+  lines.push(`✅ Módulo nativo disponible (vía ${resolved.source}).`);
+  if (!native.diagnose || !native.testActivity) {
+    lines.push('⚠️ Esta build no incluye los métodos de diagnóstico del módulo.');
+    return lines.join('\n');
+  }
+  try {
+    const d = await native.diagnose();
+    lines.push(d.enabled ? '✅ iOS permite Live Activities para la app.' : '❌ iOS NO permite Live Activities para la app (Ajustes → Be Stronger → Live Activities).');
+    lines.push(`Live Activities de entreno activas ahora: ${d.activeCount}`);
+    lines.push(`Último arranque en un entreno: ${d.lastStartResult}`);
+  } catch (e) {
+    lines.push(`❌ diagnose() falló: ${String(e)}`);
+  }
+  try {
+    const t = await native.testActivity();
+    lines.push(
+      t.ok
+        ? '✅ Live Activity de prueba creada: bloquea el móvil o mira la Dynamic Island (se cierra sola en 20 s). Si no la ves, el fallo está en la extensión que la pinta.'
+        : `❌ La Live Activity de prueba no se pudo crear: ${t.error}`,
+    );
+  } catch (e) {
+    lines.push(`❌ testActivity() falló: ${String(e)}`);
+  }
+  const text = lines.join('\n');
+  logger.warn(`[LiveActivity] diagnóstico:\n${text}`);
+  return text;
 }
