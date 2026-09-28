@@ -8,39 +8,54 @@ updates:
     labels:
       - 'dependencies'
     groups:
-      # Parches del SDK de Expo juntos: los módulos expo-* de un mismo SDK se
-      # publican coordinados y deben ir a la par.
-      expo-sdk:
-        patterns: ['expo', 'expo-*', '@expo/*', 'jest-expo']
       npm-minor-patch:
         update-types: ['minor', 'patch']
     ignore:
-      # Un salto de versión mayor de expo-* ES una migración de SDK completa
-      # (se hace a mano con `npx expo install expo@^N --fix` + build y prueba
-      # en dispositivo), nunca paquete a paquete: mezclar módulos de SDK 58 con
-      # un SDK 57 duplica expo-constants y rompe la app (PRs #31/#33/#39/#40).
+      # Todo lo que fija el SDK de Expo NO se actualiza con Dependabot, sino con
+      # `npx expo install --check` / `npx expo install <paquete>`, que elige la
+      # versión exacta validada para el SDK instalado. Dependabot propone "la
+      # última", que puede no ser la del SDK (PR #46 mezclaba expo-*,
+      # react-native y react). Un salto mayor de expo es una migración de SDK
+      # completa (`npx expo install expo@^N --fix` + build y prueba en
+      # dispositivo): mezclar módulos de SDK 58 con un SDK 57 rompe la app
+      # (PRs #31/#33/#39/#40).
       - dependency-name: 'expo'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'expo-*'
-        update-types: ['version-update:semver-major']
       - dependency-name: '@expo/*'
-        update-types: ['version-update:semver-major']
       - dependency-name: 'jest-expo'
-        update-types: ['version-update:semver-major']
-      # React Native, sus paquetes y react/react-dom los fija el SDK de Expo:
-      # se actualizan solo junto con la migración de SDK (PR #34).
+      - dependency-name: 'eslint-config-expo'
+      - dependency-name: 'babel-preset-expo'
       - dependency-name: 'react-native'
-        update-types: ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: '@react-native/*'
-        update-types: ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: 'react'
-        update-types: ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: 'react-dom'
-        update-types: ['version-update:semver-major', 'version-update:semver-minor']
-      # eslint 10 rompe eslint-plugin-react (y con él el hook de pre-commit,
-      # PR #41) hasta que el plugin lo soporte.
+      # Módulos nativos: una versión mayor cambia código nativo y tiene que ser
+      # compatible con la versión de React Native del SDK (PRs #51/#52/#53).
+      - dependency-name: 'react-native-*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@react-native-*/*'
+        update-types: ['version-update:semver-major']
+      # Herramientas que Expo 57 todavía no soporta en su versión mayor nueva:
+      # eslint 10 rompe eslint-plugin-react y el hook de pre-commit (PR #41),
+      # TypeScript 7 no lo soporta typescript-eslint (PR #50), Babel 8 y jest 30
+      # no son los que usan babel-preset-expo / jest-expo 57 (PRs #47/#48).
       - dependency-name: 'eslint'
         update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@babel/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'jest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/jest'
+        update-types: ['version-update:semver-major']
+      # tailwind-variants: @gluestack-ui/utils fija 0.1.20 para tva(); un salto
+      # mayor en la app no lo usaría gluestack y rompería la coherencia de
+      # estilos (PR #49). nativewind 5 sigue en pre-release: se actualiza a mano
+      # junto con gluestack (PR #54).
+      - dependency-name: 'tailwind-variants'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'nativewind'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
