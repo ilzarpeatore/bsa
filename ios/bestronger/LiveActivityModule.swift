@@ -12,12 +12,21 @@ class LiveActivityModule: NSObject {
 
     private var currentActivity: Activity<WorkoutActivityAttributes>?
 
+    // Diagnóstico (2026-09-28): la Live Activity no llegaba a aparecer nunca
+    // y los fallos eran silenciosos (return/NSLog). Se guarda el último
+    // resultado de startActivity para poder consultarlo desde Ajustes →
+    // Diagnóstico → «Probar Live Activity».
+    private static var lastStartResult: String = "startActivity no se ha llamado todavía en esta ejecución"
+
     @objc
     static func requiresMainQueueSetup() -> Bool { return false }
 
     @objc
     func startActivity(_ params: NSDictionary) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            Self.lastStartResult = "startActivity: Live Activities desactivadas (areActivitiesEnabled = false)"
+            return
+        }
         endCurrentActivity()
 
         let workoutTitle = params["workoutTitle"] as? String ?? "Entrenamiento"
@@ -25,11 +34,14 @@ class LiveActivityModule: NSObject {
         let state = Self.contentState(from: params)
 
         do {
-            currentActivity = try Activity.request(
+            let activity = try Activity.request(
                 attributes: attributes,
                 content: Self.content(for: state)
             )
+            currentActivity = activity
+            Self.lastStartResult = "startActivity OK (id \(activity.id))"
         } catch {
+            Self.lastStartResult = "startActivity falló: \(error)"
             NSLog("[LiveActivityModule] startActivity failed: \(error)")
         }
     }
@@ -47,6 +59,42 @@ class LiveActivityModule: NSObject {
     @objc
     func endActivity() {
         endCurrentActivity()
+    }
+
+    @objc(diagnose:rejecter:)
+    func diagnose(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+        let info = ActivityAuthorizationInfo()
+        resolve([
+            "enabled": info.areActivitiesEnabled,
+            "activeCount": Activity<WorkoutActivityAttributes>.activities.count,
+            "lastStartResult": Self.lastStartResult,
+        ])
+    }
+
+    // Lanza una Live Activity de prueba (se cierra sola a los 20 s) y
+    // devuelve el resultado real de Activity.request.
+    @objc(testActivity:rejecter:)
+    func testActivity(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            resolve(["ok": false, "error": "Live Activities desactivadas para la app (areActivitiesEnabled = false)"])
+            return
+        }
+        let attributes = WorkoutActivityAttributes(workoutTitle: "Prueba Live Activity", startDate: Date())
+        let state = WorkoutActivityAttributes.ContentState(
+            exerciseName: "Prueba", exerciseImageURL: nil, exerciseIndex: 1, totalExercises: 1,
+            setLabel: "Serie 1/1", setIndex: 1, totalSets: 1, reps: "10", load: nil,
+            intensityLabel: nil, intensityValue: nil, isResting: false, restEndDate: nil, nextExerciseName: nil
+        )
+        do {
+            let activity = try Activity.request(attributes: attributes, content: ActivityContent(state: state, staleDate: nil))
+            resolve(["ok": true, "id": activity.id])
+            Task {
+                try? await Task.sleep(nanoseconds: 20_000_000_000)
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        } catch {
+            resolve(["ok": false, "error": "\(error)"])
+        }
     }
 
     // Termina TODAS las Live Activities de entrenamiento, no solo la que

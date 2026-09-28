@@ -66,6 +66,7 @@ import {
   setDiagnosticsEnabled,
   getDiagnosticsReportText,
 } from '@helper/logger';
+import { diagnoseLiveActivity } from '@helper/liveActivity';
 import { showToast } from '@helper/toast';
 import {
   dashboardApi,
@@ -380,6 +381,13 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
         Linking.openURL(`https://play.google.com/store/apps/details?id=${pkg}`),
       );
     }
+  }, []);
+  // «Probar Live Activity» (2026-09-28): la Live Activity del entreno no
+  // aparecía nunca y los fallos eran silenciosos -- esto muestra qué eslabón
+  // falla (módulo nativo, permiso de iOS, creación) y lanza una de prueba.
+  const handleTestLiveActivity = useCallback(async () => {
+    const report = await diagnoseLiveActivity();
+    Alert.alert('Live Activity', report);
   }, []);
   const handleSendLogs = useCallback(async () => {
     const report = getDiagnosticsReportText();
@@ -2824,6 +2832,11 @@ export default function HomeScreenModernV2(props: HomeScreenModernProps) {
               <Pressable style={styles.menuActionBtn} onPress={handleSendLogs}>
                 <Text style={styles.menuActionBtnText}>Enviar registros al desarrollador</Text>
               </Pressable>
+              {Platform.OS === 'ios' ? (
+                <Pressable style={styles.menuActionBtn} onPress={handleTestLiveActivity}>
+                  <Text style={styles.menuActionBtnText}>Probar Live Activity</Text>
+                </Pressable>
+              ) : null}
 
               {/* Redes sociales (pedido explícito) -- constants/appLinks.ts
                   no tiene handles reales todavía (SOCIAL_LINKS vacío), así
