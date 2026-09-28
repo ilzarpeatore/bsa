@@ -44,4 +44,19 @@ describe('liveActivity', () => {
     expect(report).toContain('vía NativeModules');
     expect(report).toContain('unsupportedTarget');
   });
+
+  test('diseño clásico/nuevo: lee el estado del módulo y lo cambia', async () => {
+    const mod = { ...fullModule(), diagnose: jest.fn(async () => ({ enabled: true, activeCount: 0, lastStartResult: 'x', classicLayout: false })), setClassicLayout: jest.fn() };
+    const la = load(mod, null);
+    expect(await la.getLiveActivityClassicLayout()).toBe(false);
+    expect(await la.diagnoseLiveActivity()).toContain('Diseño: nuevo');
+    la.setLiveActivityClassicLayout(true);
+    expect(mod.setClassicLayout).toHaveBeenCalledWith(true);
+  });
+
+  test('build sin interruptor de diseño: null y sin romper', async () => {
+    const la = load(fullModule(), null);
+    expect(await la.getLiveActivityClassicLayout()).toBeNull();
+    expect(() => la.setLiveActivityClassicLayout(true)).not.toThrow();
+  });
 });

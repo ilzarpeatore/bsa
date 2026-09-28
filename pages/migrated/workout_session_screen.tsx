@@ -938,7 +938,7 @@ export default function WorkoutSessionScreen(props: Props) {
   // SIEMPRE aunque focusField repita valor) -- se usa como dependencia del
   // efecto de abajo en vez de focusField para que un segundo toque al mismo
   // chip lo vuelva a disparar.
-  const focusField: 'reps' | 'carga' | 'done' | undefined = route?.params?.focusField;
+  const focusField: 'reps' | 'carga' | 'done' | 'open' | undefined = route?.params?.focusField;
   const focusToken: number | undefined = route?.params?.focusToken;
 
   // Misma fuente de verdad que ya usan logSets()/finishSession() en el
@@ -2065,6 +2065,9 @@ export default function WorkoutSessionScreen(props: Props) {
       prev[targetBlockIdx] === targetExIdx ? prev : { ...prev, [targetBlockIdx]: targetExIdx }
     );
     if (targetBlockIdx !== pageIndex) goToPage(targetBlockIdx);
+
+    // Tocar la Live Activity (widgetURL): solo lleva a la serie que toca.
+    if (focusField === 'open') return;
 
     if (focusField === 'done') {
       const row = targetEx.rows[rowIdx];
