@@ -3,7 +3,7 @@
     "name": "Be Stronger",
     "slug": "be-stronger",
     "description": "Be Stronger — entrenamiento y nutrición con tu coach personal",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/applogo.png",
     "splash": {
@@ -30,7 +30,7 @@
         "backgroundColor": "#1A1735"
       },
       "package": "com.pfndesign.bestronger",
-      "versionCode": 3
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png"
