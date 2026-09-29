@@ -5,7 +5,9 @@ import {  OnboardingOption  } from '../../types/onboardingV2';
 import { C, FONT, RADIUS } from '../../pages/migrated/theme';
 interface Props {
   options: OnboardingOption[];
-  value: string | undefined;
+  // string[] = selección múltiple (pregunta multi_choice): `onChange` recibe
+  // la opción pulsada y el padre decide si la añade o la quita.
+  value: string | string[] | undefined;
   onChange: (value: string) => void;
 }
 
@@ -19,7 +21,7 @@ export default function OptionCards({ options, value, onChange }: Props) {
   return (
     <View style={styles.list}>
       {options.map((option) => {
-        const selected = option.value === value;
+        const selected = Array.isArray(value) ? value.includes(option.value) : option.value === value;
         return (
           <Pressable
             key={option.value}

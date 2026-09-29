@@ -37,6 +37,8 @@ export interface OnboardingOption {
 export type OnboardingQuestionType =
   | 'name'
   | 'single_choice'
+  | 'multi_choice'
+  | 'strength_references'
   | 'ruler'
   | 'number_wheel'
   | 'scale'
@@ -58,6 +60,10 @@ interface OnboardingQuestionBase {
   // que ya recorre la pantalla -- ver el filtro de `questions` en
   // onboarding_v2_screen.tsx.
   showIf?: (answers: OnboardingAnswers) => boolean;
+  // Endpoint/etapa donde viaja la respuesta, si no es la misma etapa en la
+  // que se muestra (2026-09-29: `parq_goals` se pregunta en entrenamiento
+  // pero se guarda con el PAR-Q). Por defecto, `stage`. Ver payloadStageOf().
+  payloadStage?: OnboardingStageId;
 }
 
 export interface NameQuestion extends OnboardingQuestionBase {
@@ -68,6 +74,24 @@ export interface SingleChoiceQuestion extends OnboardingQuestionBase {
   type: 'single_choice';
   options: OnboardingOption[];
 }
+
+// Selección múltiple (2026-09-29, material disponible). La respuesta es un
+// string[]; una opción con `exclusive: true` (p. ej. "Nada") deselecciona las
+// demás y viceversa.
+export interface MultiChoiceQuestion extends OnboardingQuestionBase {
+  type: 'multi_choice';
+  options: (OnboardingOption & { exclusive?: boolean })[];
+}
+
+// Referencias de fuerza (2026-09-29): una sola pantalla con varios
+// ejercicios, cada uno con kg y repeticiones opcionales (vacío = no lo hace o
+// no lo sabe). La respuesta es un StrengthReferencesAnswer.
+export interface StrengthReferencesQuestion extends OnboardingQuestionBase {
+  type: 'strength_references';
+  exercises: { key: string; label: string; hint?: string }[];
+}
+
+export type StrengthReferencesAnswer = Record<string, { kg?: string; reps?: string }>;
 
 export interface RulerQuestion extends OnboardingQuestionBase {
   type: 'ruler';
@@ -116,6 +140,8 @@ export interface PasswordQuestion extends OnboardingQuestionBase {
 export type OnboardingQuestion =
   | NameQuestion
   | SingleChoiceQuestion
+  | MultiChoiceQuestion
+  | StrengthReferencesQuestion
   | RulerQuestion
   | NumberWheelQuestion
   | ScaleQuestion
@@ -130,6 +156,12 @@ export type OnboardingAnswerValue =
   | boolean
   | { first_name: string; last_name: string }
   | { value: number; unit: string }
+  | string[]
+  | StrengthReferencesAnswer
   | undefined;
 
 export type OnboardingAnswers = Record<string, OnboardingAnswerValue>;
+
+export function payloadStageOf(question: OnboardingQuestion): OnboardingStageId {
+  return question.payloadStage ?? question.stage;
+}

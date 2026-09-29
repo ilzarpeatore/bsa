@@ -19,6 +19,7 @@ import {
   OnboardingAnswers,
   OnboardingQuestion,
   RulerQuestion,
+  StrengthReferencesAnswer,
 } from '../../../types/onboardingV2';
 import OnboardingHeader from '../../../components/onboarding_v2/OnboardingHeader';
 import OptionCards from '../../../components/onboarding_v2/OptionCards';
@@ -74,6 +75,39 @@ function answersStorageKey(userId: number): string {
 // preguntar las 38 preguntas ya respondidas.
 const PENDING_RESULT_KEY = '@bestronger_onboarding_v2_pending_result';
 
+const QUESTION_BY_ID: Record<string, OnboardingQuestion> = Object.fromEntries(
+  ONBOARDING_QUESTIONS.map((q) => [q.id, q])
+);
+
+// Respuesta de una pregunta condicionada (showIf) solo si HOY sigue visible:
+// si el usuario contestó "Sí" a una puerta (p. ej. injury_has), rellenó los
+// detalles y luego volvió atrás y cambió a "No", los detalles siguen en
+// `answers` pero ya no aplican -- no se envían (el backend además los pone a
+// NULL cuando la puerta llega cerrada).
+function visibleAnswer(answers: OnboardingAnswers, id: string) {
+  const q = QUESTION_BY_ID[id];
+  if (q?.showIf && !q.showIf(answers)) return undefined;
+  return answers[id];
+}
+
+function yesNo(value: unknown): boolean | undefined {
+  if (value === 'yes') return true;
+  if (value === 'no') return false;
+  return undefined;
+}
+
+function optionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+// Referencias de fuerza: vacío o no numérico = null ("no lo hace / no lo sabe").
+// Acepta coma decimal (teclado español).
+function parseLoad(value: string | undefined, integer: boolean): number | null {
+  if (!value) return null;
+  const n = integer ? parseInt(value, 10) : parseFloat(value.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
   if (question.required === false) return true;
   const value = answers[question.id];
@@ -86,6 +120,9 @@ function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): b
   }
   if (question.type === 'email') {
     return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+  if (question.type === 'multi_choice') {
+    return Array.isArray(value) && value.length > 0;
   }
   if (typeof value === 'string') return value.trim().length > 0;
   return value !== undefined && value !== null;
@@ -289,6 +326,13 @@ export default function OnboardingV2Screen({ navigation }: any) {
             parq_fitness_level: Number(answers.parq_fitness_level) || 0,
             parq_medical_history: String(answers.parq_medical_history ?? ''),
             parq_goals: String(answers.parq_goals ?? ''),
+            injury_has: yesNo(answers.injury_has),
+            injury_zone: visibleAnswer(answers, 'injury_zone') as any,
+            injury_painful_movement: optionalText(visibleAnswer(answers, 'injury_painful_movement')),
+            injury_phase: visibleAnswer(answers, 'injury_phase') as any,
+            injury_worsens_with_impact: visibleAnswer(answers, 'injury_worsens_with_impact') as any,
+            injury_professional_clearance: visibleAnswer(answers, 'injury_professional_clearance') as any,
+            injury_other_notes: optionalText(visibleAnswer(answers, 'injury_other_notes')),
           });
         } else if (stageId === 'training_questionnaire') {
           await onboardingV2Api.submitTrainingQuestionnaire({
@@ -307,6 +351,38 @@ export default function OnboardingV2Screen({ navigation }: any) {
             weekly_split_preference: answers.weekly_split_preference as any,
             technique_level: Number(answers.technique_level) || 0,
             realistic_goal: String(answers.realistic_goal ?? ''),
+            practices_other_sport: yesNo(answers.practices_other_sport),
+            other_sport_description: optionalText(visibleAnswer(answers, 'other_sport_description')),
+            has_target_event: yesNo(answers.has_target_event),
+            target_event_description: optionalText(visibleAnswer(answers, 'target_event_description')),
+            // Se pregunta en semanas (no hay selector de fecha), el backend guarda la fecha.
+            target_event_date: (() => {
+              const weeks = Number(visibleAnswer(answers, 'target_event_weeks'));
+              return weeks > 0 ? new Date(Date.now() + weeks * 7 * 86400000).toISOString().slice(0, 10) : null;
+            })(),
+            work_schedule: answers.work_schedule as any,
+            training_time_of_day: answers.training_time_of_day as any,
+            sleep_hours: answers.sleep_hours !== undefined ? Number(answers.sleep_hours) : undefined,
+            sleep_regularity: answers.sleep_regularity as any,
+            stress_level: answers.stress_level !== undefined ? Number(answers.stress_level) : undefined,
+            training_location: answers.training_location as any,
+            // Gimnasio completo = no se pregunta material; se envía null para
+            // limpiar un material de una respuesta anterior.
+            home_equipment: (visibleAnswer(answers, 'home_equipment') as string[] | undefined) ?? null,
+            equipment_notes: optionalText(visibleAnswer(answers, 'equipment_notes')),
+            ...(() => {
+              const refs = (answers.strength_references as StrengthReferencesAnswer | undefined) ?? {};
+              return {
+                strength_squat_kg: parseLoad(refs.squat?.kg, false),
+                strength_squat_reps: parseLoad(refs.squat?.reps, true),
+                strength_deadlift_kg: parseLoad(refs.deadlift?.kg, false),
+                strength_deadlift_reps: parseLoad(refs.deadlift?.reps, true),
+                strength_db_bench_kg: parseLoad(refs.db_bench?.kg, false),
+                strength_db_bench_reps: parseLoad(refs.db_bench?.reps, true),
+                strength_db_row_kg: parseLoad(refs.db_row?.kg, false),
+                strength_db_row_reps: parseLoad(refs.db_row?.reps, true),
+              };
+            })(),
           });
         } else if (stageId === 'nutrition_questionnaire') {
           await onboardingV2Api.submitNutritionQuestionnaire({
@@ -325,6 +401,13 @@ export default function OnboardingV2Screen({ navigation }: any) {
             cooking_minutes_per_meal: Number(answers.cooking_minutes_per_meal) || 0,
             cooking_skill_level: answers.cooking_skill_level as 'beginner' | 'intermediate' | 'advanced',
             cooks_for_others: answers.cooks_for_others === 'yes',
+            weekly_food_budget: answers.weekly_food_budget as any,
+            meals_away_from_home: answers.meals_away_from_home as any,
+            meal_schedule: optionalText(answers.meal_schedule),
+            intermittent_fasting: yesNo(answers.intermittent_fasting),
+            alcohol_frequency: answers.alcohol_frequency as any,
+            water_intake: answers.water_intake as any,
+            previous_diets: optionalText(answers.previous_diets),
           });
         }
         return true;
@@ -647,6 +730,59 @@ function QuestionInput({
     );
   }
 
+  if (question.type === 'multi_choice') {
+    const selected = (answers[question.id] as string[] | undefined) ?? [];
+    const toggle = (v: string) => {
+      const option = question.options.find((o) => o.value === v);
+      if (selected.includes(v)) {
+        setAnswer(question.id, selected.filter((x) => x !== v));
+      } else if (option?.exclusive) {
+        setAnswer(question.id, [v]);
+      } else {
+        const exclusive = new Set(question.options.filter((o) => o.exclusive).map((o) => o.value));
+        setAnswer(question.id, [...selected.filter((x) => !exclusive.has(x)), v]);
+      }
+    };
+    return <OptionCards options={question.options} value={selected} onChange={toggle} />;
+  }
+
+  if (question.type === 'strength_references') {
+    const refs = (answers[question.id] as StrengthReferencesAnswer | undefined) ?? {};
+    const update = (key: string, field: 'kg' | 'reps', text: string) => {
+      const clean = field === 'kg' ? text.replace(/[^0-9.,]/g, '') : text.replace(/[^0-9]/g, '');
+      setAnswer(question.id, { ...refs, [key]: { ...refs[key], [field]: clean } });
+    };
+    return (
+      <View style={styles.strengthCard}>
+        {question.exercises.map((ex, i) => (
+          <View key={ex.key} style={[styles.strengthRow, i === question.exercises.length - 1 && styles.nameRowLast]}>
+            <Text style={styles.strengthLabel}>{ex.label}</Text>
+            {ex.hint ? <Text style={styles.strengthHint}>{ex.hint}</Text> : null}
+            <View style={styles.strengthInputs}>
+              <Input style={styles.strengthInput}>
+                <InputField
+                  placeholder="kg"
+                  keyboardType="decimal-pad"
+                  value={refs[ex.key]?.kg ?? ''}
+                  onChangeText={(t) => update(ex.key, 'kg', t)}
+                />
+              </Input>
+              <Text style={styles.strengthTimes}>×</Text>
+              <Input style={styles.strengthInput}>
+                <InputField
+                  placeholder="reps"
+                  keyboardType="number-pad"
+                  value={refs[ex.key]?.reps ?? ''}
+                  onChangeText={(t) => update(ex.key, 'reps', t)}
+                />
+              </Input>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
   if (question.type === 'scale') {
     return (
       <ScaleSelector
@@ -827,5 +963,12 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   nameRowLast: { borderBottomWidth: 0 },
   nameLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary, marginBottom: 4 },
   nameInput: { borderWidth: 0, height: 26, backgroundColor: 'transparent' },
+  strengthCard: { backgroundColor: C.surface, borderRadius: RADIUS.md },
+  strengthRow: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  strengthLabel: { fontFamily: FONT.bold, fontSize: 15, color: C.textPrimary },
+  strengthHint: { fontFamily: FONT.regular, fontSize: 12.5, color: C.textSecondary, marginTop: 2 },
+  strengthInputs: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  strengthInput: { flex: 1 },
+  strengthTimes: { fontFamily: FONT.bold, fontSize: 16, color: C.textSecondary },
   });
 }

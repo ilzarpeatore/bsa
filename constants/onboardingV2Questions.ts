@@ -15,6 +15,13 @@ const FT_DECIMAL_TO_CM = (ft: number) => Math.round(ft * 12 * 2.54);
 const KG_TO_LB = (kg: number) => Math.round(kg * 2.20462 * 10) / 10;
 const LB_TO_KG = (lb: number) => Math.round((lb / 2.20462) * 10) / 10;
 
+// Opciones Sí/No de las preguntas añadidas el 2026-09-29 (las anteriores
+// repiten el mismo array inline).
+const YES_NO = [
+  { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+  { value: 'no', label: 'No', icon: '❌', emoji: true },
+];
+
 export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   // ---------- Etapa 1: Datos personales ----------
   {
@@ -136,6 +143,89 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
       { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
   },
+  // Lesión/molestia principal, estructurada (2026-09-29): el agente de
+  // entrenamiento necesita zona, gesto que duele, fase y si empeora con
+  // impacto para sustituir ejercicios -- con solo el Sí/No de arriba y un
+  // texto libre se bloqueaba por datos ambiguos. Las 6 de detalle solo se
+  // muestran si `injury_has` es "Sí" (y solo se envían en ese caso, ver
+  // submitStage()).
+  {
+    id: 'injury_has',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿Tienes o has tenido alguna lesión o molestia que debamos tener en cuenta al entrenar?',
+    options: YES_NO,
+  },
+  {
+    id: 'injury_zone',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿Dónde está la lesión o molestia principal?',
+    subtitle: 'Si tienes varias, elige la que más te limita. Podrás contarnos el resto después',
+    showIf: (a) => a.injury_has === 'yes',
+    options: [
+      { value: 'neck', label: 'Cuello' },
+      { value: 'shoulder', label: 'Hombro' },
+      { value: 'elbow', label: 'Codo' },
+      { value: 'wrist_hand', label: 'Muñeca o mano' },
+      { value: 'upper_back', label: 'Espalda alta' },
+      { value: 'lower_back', label: 'Zona lumbar' },
+      { value: 'hip', label: 'Cadera' },
+      { value: 'knee', label: 'Rodilla' },
+      { value: 'ankle_foot', label: 'Tobillo o pie' },
+      { value: 'other', label: 'Otra' },
+    ],
+  },
+  {
+    id: 'injury_painful_movement',
+    stage: 'par_q',
+    type: 'textarea',
+    title: '¿Qué movimiento o gesto concreto te provoca dolor?',
+    placeholder: 'Ej. bajar en sentadilla profunda, levantar el brazo por encima de la cabeza, correr...',
+    showIf: (a) => a.injury_has === 'yes',
+  },
+  {
+    id: 'injury_phase',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿En qué momento está esa lesión?',
+    showIf: (a) => a.injury_has === 'yes',
+    options: [
+      { value: 'acute', label: 'Aguda', subtitle: 'Me duele ahora o es muy reciente', icon: '🔴', emoji: true },
+      { value: 'recovering', label: 'En recuperación', subtitle: 'Estoy en rehabilitación o volviendo a entrenar', icon: '🟡', emoji: true },
+      { value: 'chronic_controlled', label: 'Antigua o controlada', subtitle: 'No me limita en el día a día, pero quiero tenerla en cuenta', icon: '🟢', emoji: true },
+    ],
+  },
+  {
+    id: 'injury_worsens_with_impact',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿El dolor empeora con impacto o con la actividad?',
+    subtitle: 'Por ejemplo al correr, saltar o cambiar de dirección',
+    showIf: (a) => a.injury_has === 'yes',
+    options: [...YES_NO, { value: 'unknown', label: 'No lo sé', icon: '🤷', emoji: true }],
+  },
+  {
+    id: 'injury_professional_clearance',
+    stage: 'par_q',
+    type: 'single_choice',
+    title: '¿Algún médico o fisio te ha dado el visto bueno para entrenar?',
+    showIf: (a) => a.injury_has === 'yes',
+    options: [
+      { value: 'cleared', label: 'Sí, puedo entrenar con normalidad', icon: '✅', emoji: true },
+      { value: 'with_limits', label: 'Sí, pero con limitaciones', icon: '⚠️', emoji: true },
+      { value: 'not_consulted', label: 'No lo he consultado', icon: '❔', emoji: true },
+    ],
+  },
+  {
+    id: 'injury_other_notes',
+    stage: 'par_q',
+    type: 'textarea',
+    title: '¿Tienes alguna otra lesión o molestia?',
+    placeholder: 'Descríbela brevemente (o déjalo en blanco)',
+    required: false,
+    showIf: (a) => a.injury_has === 'yes',
+  },
   {
     id: 'parq_bp_or_heart_medication',
     stage: 'par_q',
@@ -241,9 +331,58 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   {
     id: 'parq_goals',
     stage: 'training_questionnaire',
+    payloadStage: 'par_q',
     type: 'textarea',
     title: 'Especifica más tus objetivos',
     placeholder: 'Ej. perder 5 kg de grasa, ganar fuerza en sentadilla, mejorar mi salud general...',
+  },
+  // Deporte concurrente y evento objetivo (2026-09-29): el agente necesita
+  // conocer la carga de otra actividad y, si hay fecha, periodizar hacia ella.
+  {
+    id: 'practices_other_sport',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿Practicas algún otro deporte además del gimnasio?',
+    subtitle: 'Running, fútbol, pádel, ciclismo...',
+    options: YES_NO,
+  },
+  {
+    id: 'other_sport_description',
+    stage: 'training_questionnaire',
+    type: 'textarea',
+    title: '¿Qué deporte practicas y cuánto?',
+    placeholder: 'Ej. running 3 días a la semana, unos 25 km; pádel los domingos',
+    showIf: (a) => a.practices_other_sport === 'yes',
+  },
+  {
+    id: 'has_target_event',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿Te estás preparando para alguna competición o fecha concreta?',
+    subtitle: 'Una carrera, un HYROX, unas oposiciones, una boda...',
+    options: YES_NO,
+  },
+  {
+    id: 'target_event_description',
+    stage: 'training_questionnaire',
+    type: 'text',
+    title: '¿Qué evento es?',
+    placeholder: 'Ej. HYROX Madrid, media maratón de Valencia...',
+    showIf: (a) => a.has_target_event === 'yes',
+  },
+  // El backend guarda una fecha (target_event_date); aquí se pregunta en
+  // semanas porque la app no tiene selector de fecha -- se convierte al
+  // enviar, ver submitStage() en onboarding_v2_screen.tsx.
+  {
+    id: 'target_event_weeks',
+    stage: 'training_questionnaire',
+    type: 'number_wheel',
+    title: '¿Cuántas semanas faltan, aproximadamente?',
+    showIf: (a) => a.has_target_event === 'yes',
+    min: 1,
+    max: 104,
+    defaultValue: 12,
+    suffix: 'semanas',
   },
   {
     id: 'activity_level',
@@ -272,6 +411,65 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
       { value: 'always_moving', label: 'En movimiento todo el día', subtitle: 'Trabajo físico o caminatas frecuentes', icon: '🏃', emoji: true },
       { value: 'heavy_labor', label: 'Trabajo físico intenso', subtitle: 'Labor pesada', icon: '👷', emoji: true },
     ],
+  },
+  // Contexto de vida (2026-09-29): horario, sueño y estrés condicionan el
+  // volumen tolerable y la recuperación (contexto_vida en el perfil del
+  // agente de entrenamiento).
+  {
+    id: 'work_schedule',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿Cómo es tu horario de trabajo o estudios?',
+    options: [
+      { value: 'morning', label: 'Fijo de mañana', icon: '🌅', emoji: true },
+      { value: 'afternoon', label: 'Fijo de tarde', icon: '🌇', emoji: true },
+      { value: 'split', label: 'Jornada partida', icon: '🕐', emoji: true },
+      { value: 'rotating_shifts', label: 'Turnos rotativos', icon: '🔄', emoji: true },
+      { value: 'night', label: 'Nocturno', icon: '🌙', emoji: true },
+      { value: 'flexible', label: 'Flexible', icon: '🧘', emoji: true },
+      { value: 'not_working', label: 'No trabajo ni estudio ahora', icon: '🏠', emoji: true },
+    ],
+  },
+  {
+    id: 'training_time_of_day',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿A qué hora del día sueles entrenar?',
+    options: [
+      { value: 'morning', label: 'Por la mañana', icon: '🌅', emoji: true },
+      { value: 'midday', label: 'A mediodía', icon: '☀️', emoji: true },
+      { value: 'afternoon', label: 'Por la tarde', icon: '🌇', emoji: true },
+      { value: 'evening', label: 'Por la noche', icon: '🌙', emoji: true },
+      { value: 'variable', label: 'Depende del día', icon: '🔀', emoji: true },
+    ],
+  },
+  {
+    id: 'sleep_hours',
+    stage: 'training_questionnaire',
+    type: 'number_wheel',
+    title: '¿Cuántas horas duermes normalmente?',
+    min: 3,
+    max: 12,
+    defaultValue: 7,
+    suffix: 'horas',
+  },
+  {
+    id: 'sleep_regularity',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿Tu horario de sueño es regular?',
+    options: [
+      { value: 'regular', label: 'Sí, regular', subtitle: 'Me acuesto y me levanto a horas parecidas', icon: '😴', emoji: true },
+      { value: 'irregular', label: 'No, irregular', subtitle: 'Turnos, horarios muy cambiantes o me acuesto muy tarde', icon: '🌀', emoji: true },
+    ],
+  },
+  {
+    id: 'stress_level',
+    stage: 'training_questionnaire',
+    type: 'scale',
+    title: 'Del 1 al 10, ¿cuánto estrés sueles tener en tu día a día?',
+    min: 1,
+    max: 10,
   },
   {
     // El campo real del backend (training_experience_months, ver
@@ -311,6 +509,51 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
       { value: '90', label: '90 minutos', icon: '🕜', emoji: true },
       { value: '90_plus', label: 'Más de 90 minutos', icon: '⏳', emoji: true },
     ],
+  },
+  // Dónde entrena y con qué (2026-09-29): sin esto no se pueden elegir
+  // ejercicios (material_disponible en el perfil del agente).
+  {
+    id: 'training_location',
+    stage: 'training_questionnaire',
+    type: 'single_choice',
+    title: '¿Dónde vas a entrenar?',
+    options: [
+      { value: 'full_gym', label: 'Gimnasio completo', subtitle: 'Máquinas, barras, mancuernas, poleas', icon: '🏋️', emoji: true },
+      { value: 'basic_gym', label: 'Gimnasio básico', subtitle: 'De comunidad, hotel o con poco material', icon: '🏢', emoji: true },
+      { value: 'home', label: 'En casa', icon: '🏠', emoji: true },
+      { value: 'outdoor', label: 'Al aire libre', subtitle: 'Parque, calistenia', icon: '🌳', emoji: true },
+      { value: 'mixed', label: 'Combino varios sitios', icon: '🔀', emoji: true },
+    ],
+  },
+  {
+    id: 'home_equipment',
+    stage: 'training_questionnaire',
+    type: 'multi_choice',
+    title: '¿Qué material tienes disponible?',
+    subtitle: 'Marca todo lo que tengas',
+    showIf: (a) => a.training_location !== undefined && a.training_location !== 'full_gym',
+    options: [
+      { value: 'dumbbells', label: 'Mancuernas' },
+      { value: 'barbell_plates', label: 'Barra y discos' },
+      { value: 'rack', label: 'Rack o jaula' },
+      { value: 'bench', label: 'Banco' },
+      { value: 'pullup_bar', label: 'Barra de dominadas' },
+      { value: 'kettlebells', label: 'Kettlebells' },
+      { value: 'bands', label: 'Bandas elásticas' },
+      { value: 'suspension', label: 'TRX o anillas' },
+      { value: 'cables', label: 'Poleas o máquinas' },
+      { value: 'cardio_machine', label: 'Máquina de cardio' },
+      { value: 'none', label: 'Nada, solo mi peso corporal', exclusive: true },
+    ],
+  },
+  {
+    id: 'equipment_notes',
+    stage: 'training_questionnaire',
+    type: 'textarea',
+    title: '¿Algún detalle del material?',
+    placeholder: 'Ej. mancuernas hasta 20 kg, bandas de 3 resistencias...',
+    required: false,
+    showIf: (a) => a.training_location !== undefined && a.training_location !== 'full_gym',
   },
   {
     id: 'training_mindset',
@@ -367,6 +610,23 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: 'Valora tu nivel (o percepción) de la técnica de ejecución de los ejercicios que realizas',
     min: 1,
     max: 10,
+  },
+  // Referencias de fuerza (2026-09-29): cargas de la primera semana sin
+  // adivinar. Opcional por ejercicio -- sin datos, el agente hace una semana
+  // de calibración (referencias_carga en su perfil).
+  {
+    id: 'strength_references',
+    stage: 'training_questionnaire',
+    type: 'strength_references',
+    title: '¿Cuánto peso mueves en estos ejercicios?',
+    subtitle: 'El peso con el que haces unas 8-10 repeticiones con buena técnica. Si no haces un ejercicio o no lo sabes, déjalo en blanco',
+    required: false,
+    exercises: [
+      { key: 'squat', label: 'Sentadilla con barra', hint: 'Peso total (barra + discos)' },
+      { key: 'deadlift', label: 'Peso muerto', hint: 'Peso total (barra + discos)' },
+      { key: 'db_bench', label: 'Press banca con mancuernas', hint: 'Peso de cada mancuerna' },
+      { key: 'db_row', label: 'Remo con mancuerna', hint: 'Peso de la mancuerna' },
+    ],
   },
   // Pedido explícito 2026-09-29: sustituye a "¿Cuál es tu objetivo
   // realista?" (el objetivo ya se detalla en parq_goals, arriba). Se reutiliza
@@ -450,6 +710,35 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     type: 'textarea',
     title: 'Explícame lo que comes durante un día entero (desayuno, comida, merienda y cena).',
   },
+  // Nutrición práctica (2026-09-29): horarios y dónde come condicionan qué
+  // plan es realista de seguir, no solo cuántas calorías.
+  {
+    id: 'meal_schedule',
+    stage: 'nutrition_questionnaire',
+    type: 'textarea',
+    title: '¿A qué horas sueles comer?',
+    placeholder: 'Ej. desayuno 7:30, comida 14:00, cena 21:30',
+    required: false,
+  },
+  {
+    id: 'intermittent_fasting',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: '¿Haces ayuno intermitente?',
+    options: YES_NO,
+  },
+  {
+    id: 'meals_away_from_home',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: 'Entre semana, ¿dónde sueles comer al mediodía?',
+    options: [
+      { value: 'home', label: 'En casa', icon: '🏠', emoji: true },
+      { value: 'tupper', label: 'Me llevo tupper', icon: '🥡', emoji: true },
+      { value: 'restaurant', label: 'Restaurante o menú del día', icon: '🍽️', emoji: true },
+      { value: 'mixed', label: 'Depende del día', icon: '🔀', emoji: true },
+    ],
+  },
   {
     id: 'favorite_meats',
     stage: 'nutrition_questionnaire',
@@ -514,6 +803,55 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
       { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
       { value: 'no', label: 'No', icon: '❌', emoji: true },
     ],
+  },
+  {
+    id: 'weekly_food_budget',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: '¿Cuánto sueles gastar a la semana en comida para ti?',
+    subtitle: 'Solo tu parte, aproximada',
+    options: [
+      { value: 'under_40', label: 'Menos de 40 €' },
+      { value: '40_70', label: 'Entre 40 y 70 €' },
+      { value: '70_100', label: 'Entre 70 y 100 €' },
+      { value: '100_150', label: 'Entre 100 y 150 €' },
+      { value: 'over_150', label: 'Más de 150 €' },
+      { value: 'unknown', label: 'No lo sé' },
+    ],
+  },
+  {
+    id: 'alcohol_frequency',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: '¿Con qué frecuencia tomas alcohol?',
+    options: [
+      { value: 'never', label: 'Nunca' },
+      { value: 'occasional', label: 'Ocasionalmente', subtitle: '1-2 veces al mes' },
+      { value: 'weekends', label: 'Los fines de semana' },
+      { value: 'several_per_week', label: 'Varias veces por semana' },
+      { value: 'daily', label: 'A diario' },
+    ],
+  },
+  {
+    id: 'water_intake',
+    stage: 'nutrition_questionnaire',
+    type: 'single_choice',
+    title: '¿Cuánta agua bebes al día?',
+    options: [
+      { value: 'under_1l', label: 'Menos de 1 litro' },
+      { value: '1_1_5l', label: 'Entre 1 y 1,5 litros' },
+      { value: '1_5_2l', label: 'Entre 1,5 y 2 litros' },
+      { value: '2_3l', label: 'Entre 2 y 3 litros' },
+      { value: 'over_3l', label: 'Más de 3 litros' },
+    ],
+  },
+  {
+    id: 'previous_diets',
+    stage: 'nutrition_questionnaire',
+    type: 'textarea',
+    title: '¿Has seguido alguna dieta antes? ¿Qué tal te fue?',
+    placeholder: 'Ej. keto 3 meses, perdí peso pero lo recuperé al dejarla...',
+    required: false,
   },
 
   // ---------- Etapa 5: Crear cuenta ----------
