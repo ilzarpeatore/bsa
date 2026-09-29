@@ -68,12 +68,14 @@ export interface TrainingQuestionnairePayload {
   training_experience_months: number;
   training_days_per_week: number; // 1-7
   session_duration_preference: '30' | '45' | '60' | '90' | '90_plus';
-  training_mindset: 'rushed' | 'calm' | 'motivated' | 'unmotivated';
-  previous_coaching: 'online_coach' | 'in_person_coach' | 'self_trained';
-  current_routine_style: 'improvised' | 'copied' | 'structured' | 'always_same' | 'very_varied';
-  weekly_split_preference: 'upper_lower' | 'push_pull' | 'full_body' | 'no_preference';
-  technique_level: number; // 1-10
-  realistic_goal: string;
+  // null si nunca ha entrenado (training_experience_months = 0): desde
+  // 2026-09-29 no se le preguntan y el backend solo las exige con experiencia.
+  training_mindset: 'rushed' | 'calm' | 'motivated' | 'unmotivated' | null;
+  previous_coaching: 'online_coach' | 'in_person_coach' | 'self_trained' | null;
+  current_routine_style: 'improvised' | 'copied' | 'structured' | 'always_same' | 'very_varied' | null;
+  weekly_split_preference: 'upper_lower' | 'push_pull' | 'full_body' | 'no_preference' | null;
+  technique_level: number | null; // 1-10
+  realistic_goal: string | null; // desde 2026-09-29: cómo entrenaba antes
   // Contexto ampliado (2026-09-29), todos opcionales en el backend.
   practices_other_sport?: boolean;
   other_sport_description?: string | null;
@@ -85,7 +87,19 @@ export interface TrainingQuestionnairePayload {
   sleep_hours?: number; // 3-12
   sleep_regularity?: 'regular' | 'irregular';
   stress_level?: number; // 1-10
-  training_location?: 'full_gym' | 'basic_gym' | 'home' | 'outdoor' | 'mixed';
+  // Lugar + material en una sola respuesta (2026-09-29). basic_gym/home/
+  // outdoor/mixed: valores de la primera versión, solo en datos antiguos.
+  training_location?:
+    | 'full_gym'
+    | 'gym_basic'
+    | 'gym_no_equipment'
+    | 'home_full'
+    | 'home_basic'
+    | 'home_none'
+    | 'basic_gym'
+    | 'home'
+    | 'outdoor'
+    | 'mixed';
   home_equipment?: string[] | null;
   equipment_notes?: string | null;
   // Referencias de fuerza: null = no lo hace / no lo sabe. Mancuernas: peso de cada una.
@@ -102,10 +116,10 @@ export interface TrainingQuestionnairePayload {
 export interface NutritionQuestionnairePayload {
   allergies_intolerances: string;
   // Opcionales (2026-09-25): si no se envían, el backend conserva lo ya guardado.
-  medications?: string;
-  supplements?: string;
+  medications?: string | null; // null = marcó que no toma
+  supplements?: string | null;
   disliked_foods: string;
-  liked_foods: string;
+  liked_foods?: string; // ya no se pregunta (2026-09-29): cubierto por los favoritos
   current_meals_per_day: number;
   desired_meals_per_day: number;
   typical_day_meals: string;

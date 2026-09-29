@@ -57,6 +57,39 @@ adelante). Esto es intencional: las etapas 2-4 llaman hoy a endpoints que
 404 hasta que se implementen — sin este best-effort, nadie podría completar
 el onboarding hoy mismo.
 
+## Rediseño 2026-09-29: secciones, introducciones y preguntas condicionales
+
+> **Lee esto primero.** Las tablas de más abajo describen los **campos del backend** por endpoint
+> (siguen válidas), pero el **orden y la forma de preguntarlos** cambió. Motivos, fuentes y
+> resultados en [`ONBOARDING_INVESTIGACION.md`](ONBOARDING_INVESTIGACION.md).
+
+- **Sección** (`section`, lo que ve el usuario en la barra) ≠ **etapa** (`stage`, el endpoint).
+  Orden de secciones: Tu objetivo → Nutrición → Entrenamiento → Salud → Tu día a día → Sobre ti →
+  Tu cuenta. Con cuenta ya creada (reanudando), cada endpoint se envía al pasar su última pregunta
+  visible; sin cuenta, todo junto al registrarse.
+- Cada sección abre con una pantalla `intro` (por qué preguntamos y cómo lo usa el entrenador).
+- **Preguntas solo de la app, sin columna** (se traducen al enviar, ver `submitStage()`):
+  - `parq_conditions`: checklist con las 10 preguntas Sí/No del PAR-Q (`PARQ_CONDITIONS`), una por
+    columna booleana. Las de mujer solo se ofrecen a `gender = female`.
+  - `has_allergies`: con «No» se envía `allergies_intolerances = "Ninguna"`.
+  - `meds_supps`: abre `medications` y/o `supplements` (si no, `null`).
+  - `has_previous_diets`: abre `previous_diets`.
+- **Condicionales por experiencia**: con `training_experience_years = 0` no se preguntan
+  `realistic_goal`, `strength_references`, `weekly_split_preference`, `previous_coaching`,
+  `current_routine_style`, `training_mindset` ni `technique_level`; se envían `null`. El backend
+  (migración `2026_09_29_110000_…`) las admite vacías solo si `training_experience_months = 0`.
+- **Fusionadas**: `training_location` pasa a 6 valores que incluyen el material (`full_gym`,
+  `gym_basic`, `gym_no_equipment`, `home_full`, `home_basic`, `home_none`); `home_equipment` ya
+  no se pregunta y `equipment_notes` solo con poco material. Favoritos en una pantalla
+  (`text_group`). Email + teléfono (`phone_number`, opcional, se envía al registro) en una
+  pantalla (`contact`).
+- **Ya no se preguntan**: `activity_level` (se deriva con `deriveActivityLevel()` de
+  `lifestyle_type` + días de entreno), `meal_schedule` (va dentro de `typical_day_meals`),
+  `liked_foods` (lo cubren los favoritos). Las columnas siguen existiendo.
+- **Dinámica**: `autoAdvance` en las preguntas de un toque (avanzan solas a los 320 ms), vibración
+  al elegir, transición animada, barra animada con «Sección · X de 7», botón «Omitir» en las
+  opcionales, y pantalla «Preparando tu resumen» antes del resultado.
+
 ## Las 4 etapas y sus preguntas
 
 ### Etapa 1 — Datos personales (`personal_data`)

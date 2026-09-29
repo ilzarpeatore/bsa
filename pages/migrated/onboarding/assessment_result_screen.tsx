@@ -1,4 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import {  View, ScrollView, StyleSheet  } from 'react-native';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Image  } from 'expo-image';
@@ -112,6 +114,44 @@ function mifflinStJeorBmr(weightKg: number, heightCm: number, age: number, gende
   return base - 78; // media de ambas fórmulas para "otro/prefiero no decirlo"
 }
 
+const BUILD_STEP_MS = 650;
+const BUILD_STEPS = [
+  'Analizando tu objetivo',
+  'Revisando tus respuestas de salud',
+  'Calculando tu gasto energético',
+  'Preparando tu resumen para tu entrenador',
+];
+
+function BuildingSummary({ styles, C }: { styles: ReturnType<typeof createStyles>; C: ReturnType<typeof useAppColorMode>['colors'] }) {
+  const [done, setDone] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setDone((d) => Math.min(d + 1, BUILD_STEPS.length)), BUILD_STEP_MS);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.buildingBox}>
+        <Animated.Text entering={ZoomIn.springify().damping(12)} style={styles.buildingEmoji}>
+          ⚙️
+        </Animated.Text>
+        <Animated.Text entering={FadeIn.delay(100)} style={styles.buildingTitle}>
+          Preparando tu resumen
+        </Animated.Text>
+        <View style={styles.buildingList}>
+          {BUILD_STEPS.map((step, i) => (
+            <Animated.View key={step} entering={FadeInDown.delay(i * BUILD_STEP_MS).duration(280)} style={styles.buildingRow}>
+              <View style={[styles.buildingDot, i < done && { backgroundColor: C.orange, borderColor: C.orange }]}>
+                {i < done ? <Icon name="checkmark" size={13} color="#FFFFFF" /> : null}
+              </View>
+              <Text style={[styles.buildingStep, i < done && { color: C.textPrimary }]}>{step}</Text>
+            </Animated.View>
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 function foodImageSource(seed: number, keyword: string) {
   return { uri: `https://loremflickr.com/300/300/${keyword}?lock=${seed}` };
 }
@@ -132,6 +172,19 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
   const trainingDaysPerWeek = answers.training_days_per_week;
   const sessionDuration = answers.session_duration_preference;
   const hasCoreData = !!(age && height && weight);
+
+  // "Preparando tu resumen" (2026-09-29, ver docs/ONBOARDING_INVESTIGACION.md):
+  // una pausa corta con los pasos que de verdad se hacen con sus respuestas
+  // hace que el resultado se perciba como trabajado para esa persona (Noom,
+  // Flo) en vez de genérico.
+  const [building, setBuilding] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuilding(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }, BUILD_STEPS.length * BUILD_STEP_MS + 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Pantalla "¡Todo listo!" (onboarding_complete_screen.tsx) eliminada por
   // ser un paso intermedio innecesario (pedido explícito) -- su única
@@ -156,6 +209,10 @@ export default function AssessmentResultScreen({ navigation, route }: any) {
     }
     navigation.replace('Home');
   };
+
+  if (building) {
+    return <BuildingSummary styles={localStyles} C={C} />;
+  }
 
   if (!hasCoreData) {
     return (
@@ -401,6 +458,21 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   // sobre fondo claro, prácticamente ilegible en modo oscuro. Mismo patrón
   // que ya usa el resto de onboarding_v2 (container: backgroundColor: C.bg).
   container: { flex: 1, backgroundColor: C.bg },
+  buildingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  buildingEmoji: { fontSize: 56, marginBottom: 16 },
+  buildingTitle: { fontFamily: FONT.extraBold, fontSize: 22, color: C.textPrimary, marginBottom: 24 },
+  buildingList: { alignSelf: 'stretch', gap: 14 },
+  buildingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  buildingDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buildingStep: { fontFamily: FONT.medium, fontSize: 15, color: C.textSecondary },
   scrollContent: { padding: 20, paddingBottom: 110 + WORKOUT_MINIBAR_CLEARANCE },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   emptyText: { fontFamily: FONT.regular, fontSize: 14, color: C.gray50, textAlign: 'center' },

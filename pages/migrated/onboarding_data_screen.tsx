@@ -20,8 +20,8 @@ import {
   TrainingQuestionnairePayload,
   NutritionQuestionnairePayload,
 } from '../../api/onboardingV2';
-import { ONBOARDING_QUESTIONS } from '../../constants/onboardingV2Questions';
-import { OnboardingAnswers, OnboardingQuestion, OnboardingOption, payloadStageOf } from '../../types/onboardingV2';
+import { ONBOARDING_QUESTIONS, PARQ_CONDITIONS } from '../../constants/onboardingV2Questions';
+import { OnboardingAnswers, OnboardingQuestion, OnboardingOption, OnboardingStageId, resolveText } from '../../types/onboardingV2';
 import { FONT, RADIUS } from './theme';
 
 // Pantalla nueva (2026-09-18, pedido explícito): "Cuenta" solo dejaba editar
@@ -95,8 +95,46 @@ function buildEmptyAnswers<T>(questions: OnboardingQuestion[]): T {
 // backend (fecha del evento y 8 columnas strength_*), se editan con sus
 // propias filas más abajo -- ver TrainingExtraRows.
 const TRAINING_SPECIAL_IDS = new Set(['training_experience_years', 'target_event_weeks', 'strength_references']);
-const TRAINING_QUESTIONS_FOR_NEW = ONBOARDING_QUESTIONS.filter(
-  (q) => payloadStageOf(q) === 'training_questionnaire' && !TRAINING_SPECIAL_IDS.has(q.id)
+
+// Preguntas del onboarding editables aquí, una fila por campo del backend
+// (rediseño 2026-09-29): el onboarding agrupa cosas en una sola pantalla que
+// aquí se despliegan -- el checklist del PAR-Q vuelve a ser un Sí/No por
+// condición, y los favoritos (text_group) un campo de texto cada uno. Las
+// pantallas sin campo propio (intros, puertas como has_allergies) no salen.
+const YES_NO_OPTIONS: OnboardingOption[] = [
+  { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+  { value: 'no', label: 'No', icon: '❌', emoji: true },
+];
+function editableQuestions(stage: OnboardingStageId): OnboardingQuestion[] {
+  const out: OnboardingQuestion[] = [];
+  if (stage === 'par_q') {
+    for (const c of PARQ_CONDITIONS) {
+      out.push({
+        id: c.id,
+        section: 'health',
+        stage: 'par_q',
+        type: 'single_choice',
+        title: c.label,
+        options: YES_NO_OPTIONS,
+        showIf: c.femaleOnly ? (a) => a.gender === 'female' : undefined,
+      });
+    }
+  }
+  for (const q of ONBOARDING_QUESTIONS) {
+    if (q.stage !== stage) continue;
+    if (q.type === 'text_group') {
+      for (const f of q.fields) {
+        out.push({ id: f.id, section: q.section, stage, type: 'text', title: f.label, placeholder: f.placeholder });
+      }
+    } else if (q.type !== 'intro' && q.type !== 'contact' && q.type !== 'password') {
+      out.push(q);
+    }
+  }
+  return out;
+}
+
+const TRAINING_QUESTIONS_FOR_NEW = editableQuestions('training_questionnaire').filter(
+  (q) => !TRAINING_SPECIAL_IDS.has(q.id)
 );
 
 // IDs de ONBOARDING_QUESTIONS cuyo valor es boolean en el backend pero se
@@ -124,7 +162,19 @@ const BOOLEAN_FIELDS = new Set([
 // onboarding ('yes'/'no', `gender`), no contra los datos del backend
 // (booleanos) -- se traduce el formulario a esa forma para evaluarlos.
 function toAnswerShape(form: object | null, gender?: string): OnboardingAnswers {
-  const out: OnboardingAnswers = { gender };
+  // Puertas que en el onboarding son preguntas propias sin columna en el
+  // backend (has_allergies, meds_supps, has_previous_diets, parq_conditions):
+  // aquí se dan por abiertas, para poder editar siempre el campo que
+  // controlan. Los años de experiencia salen de los meses guardados.
+  const months = Number((form as any)?.training_experience_months) || 0;
+  const out: OnboardingAnswers = {
+    gender,
+    has_allergies: 'yes',
+    meds_supps: ['medications', 'supplements'],
+    has_previous_diets: 'yes',
+    parq_conditions: ['any'],
+    training_experience_years: months / 12,
+  };
   for (const [k, v] of Object.entries(form ?? {})) {
     out[k] = BOOLEAN_FIELDS.has(k) && typeof v === 'boolean' ? (v ? 'yes' : 'no') : (v as any);
   }
@@ -193,7 +243,7 @@ function FieldRow({
 
   return (
     <Box style={styles.fieldRow}>
-      <Text style={styles.fieldTitle}>{question.title}</Text>
+      <Text style={styles.fieldTitle}>{resolveText(question.title, {})}</Text>
       {question.type === 'single_choice' &&
         (() => {
           const opts = (question as any).options as OnboardingOption[];
@@ -295,10 +345,10 @@ export default function OnboardingDataScreen(props: any) {
   const isNewTraining = !training?.id;
   const isNewNutrition = !nutrition?.id;
 
-  // Por etapa de ENVÍO (payloadStageOf), no de visualización: parq_goals se
+  // Por etapa de ENVÍO (`stage`), no por sección visible: parq_goals se
   // pregunta en entrenamiento durante el onboarding pero vive en el PAR-Q.
   // La visibilidad (showIf) se evalúa en el render, contra el formulario.
-  const parQQuestions = useMemo(() => ONBOARDING_QUESTIONS.filter((q) => payloadStageOf(q) === 'par_q'), []);
+  const parQQuestions = useMemo(() => editableQuestions('par_q'), []);
   // Formulario nuevo (nunca guardado): incluye también
   // training_days_per_week/session_duration_preference, que si no habría que
   // pedir en la pantalla de disponibilidad de entrenamiento -- pero esa
@@ -310,9 +360,8 @@ export default function OnboardingDataScreen(props: any) {
     () =>
       isNewTraining
         ? TRAINING_QUESTIONS_FOR_NEW
-        : ONBOARDING_QUESTIONS.filter(
+        : editableQuestions('training_questionnaire').filter(
             (q) =>
-              payloadStageOf(q) === 'training_questionnaire' &&
               q.id !== 'training_days_per_week' &&
               q.id !== 'session_duration_preference' &&
               !TRAINING_SPECIAL_IDS.has(q.id)
@@ -320,7 +369,7 @@ export default function OnboardingDataScreen(props: any) {
     [isNewTraining]
   );
   const nutritionQuestions = useMemo(
-    () => ONBOARDING_QUESTIONS.filter((q) => payloadStageOf(q) === 'nutrition_questionnaire'),
+    () => editableQuestions('nutrition_questionnaire'),
     []
   );
 
