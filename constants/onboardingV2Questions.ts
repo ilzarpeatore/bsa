@@ -1,6 +1,6 @@
 import { OnboardingQuestion } from '../types/onboardingV2';
 
-// Definición declarativa de las 36 preguntas del nuevo onboarding, agrupadas
+// Definición declarativa de las preguntas del nuevo onboarding, agrupadas
 // en las 4 etapas pedidas por el usuario (datos personales / PAR-Q /
 // cuestionario de entrenamiento / cuestionario de nutrición). Una única
 // screen genérica (onboarding_v2_screen.tsx) recorre este array y renderiza
@@ -211,13 +211,6 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     placeholder: 'Escribe aquí (o indica que no aplica)',
     required: false,
   },
-  {
-    id: 'parq_goals',
-    stage: 'par_q',
-    type: 'textarea',
-    title: '¿Cuáles son tus objetivos?',
-    placeholder: 'Ej. perder grasa, ganar músculo, mejorar mi salud general...',
-  },
 
   // ---------- Etapa 3: Cuestionario de entrenamiento ----------
   // Añadida 2026-08-23 (pedido explícito): antes no había ninguna pregunta
@@ -238,6 +231,19 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
       { value: 'recomposition', label: 'Recomposición corporal', icon: '⚖️', emoji: true },
       { value: 'maintain', label: 'Mantener mi forma física', icon: '🎯', emoji: true },
     ],
+  },
+  // Pedido explícito 2026-09-29: antes era la última pregunta del PAR-Q
+  // ("¿Cuáles son tus objetivos?"); ahora va justo después de goal_type para
+  // que el usuario detalle el objetivo que acaba de elegir. Se muestra en la
+  // etapa de entrenamiento pero se sigue ENVIANDO con el PAR-Q (campo
+  // `parq_goals` de POST v1/onboarding/par-q, obligatorio en el backend) --
+  // ver submitStage() y handleContinue() en onboarding_v2_screen.tsx.
+  {
+    id: 'parq_goals',
+    stage: 'training_questionnaire',
+    type: 'textarea',
+    title: 'Especifica más tus objetivos',
+    placeholder: 'Ej. perder 5 kg de grasa, ganar fuerza en sentadilla, mejorar mi salud general...',
   },
   {
     id: 'activity_level',
@@ -362,12 +368,18 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     min: 1,
     max: 10,
   },
+  // Pedido explícito 2026-09-29: sustituye a "¿Cuál es tu objetivo
+  // realista?" (el objetivo ya se detalla en parq_goals, arriba). Se reutiliza
+  // el campo del backend `realistic_goal` (training_questionnaire_answers) tal
+  // cual, sin migración -- solo cambia la pregunta; su contenido es ahora
+  // cómo entrenaba el usuario antes.
   {
     id: 'realistic_goal',
     stage: 'training_questionnaire',
     type: 'textarea',
-    title: '¿Cuál es tu objetivo realista?',
-    placeholder: 'Describe tu objetivo con tus propias palabras',
+    title: 'Describe cómo entrenabas anteriormente',
+    subtitle: 'Por ejemplo: cómo dividías los grupos musculares, qué tipos de ejercicios hacías, cómo los organizabas, etc.',
+    placeholder: 'Ej. 4 días torso-pierna, básicos con barra y algo de máquinas, sin una progresión fija...',
   },
 
   // ---------- Etapa 4: Cuestionario de nutrición ----------

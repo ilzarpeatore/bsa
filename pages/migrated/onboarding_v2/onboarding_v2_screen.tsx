@@ -406,10 +406,16 @@ export default function OnboardingV2Screen({ navigation }: any) {
     // justo después de crear la cuenta. La etapa 'credentials' (email +
     // contraseña) tampoco tiene submitStage propio -- ver su comentario en
     // types/onboardingV2.ts.
+    //
+    // `parq_goals` (2026-09-29) se pregunta en la etapa de entrenamiento pero
+    // viaja en el payload del PAR-Q, donde el backend lo exige -- así que el
+    // PAR-Q no se envía al acabar su propia etapa (todavía faltaría ese
+    // campo) sino junto con la de entrenamiento.
     let stageSubmitted = true;
-    if (isLastOfStage && question.stage !== 'credentials' && state.isAuthenticated) {
+    if (isLastOfStage && question.stage !== 'credentials' && question.stage !== 'par_q' && state.isAuthenticated) {
       setSubmitting(true);
-      stageSubmitted = await submitStage(question.stage);
+      const parqSubmitted = question.stage === 'training_questionnaire' ? await submitStage('par_q') : true;
+      stageSubmitted = (await submitStage(question.stage)) && parqSubmitted;
       setSubmitting(false);
     }
 

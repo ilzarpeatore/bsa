@@ -116,7 +116,7 @@ estándar cuyas preguntas 1-2 no se piden aquí).
 | `parq_reason_not_to_exercise`     | Sí/No                  | 9. ¿Conoce alguna razón por la cual no debería realizar actividad física?                  |
 | `parq_fitness_level`              | escala 1-10            | 10. ¿Cómo calificarías tu nivel de condición física actual?                                |
 | `parq_medical_history`            | texto libre (opcional) | 11. Indica cualquier historial médico relevante...                                         |
-| `parq_goals`                      | texto libre            | 12. ¿Cuáles son tus objetivos?                                                             |
+| `parq_goals`                      | texto libre            | "Especifica más tus objetivos" — desde 2026-09-29 se **muestra** en la etapa 3, justo después de `goal_type`, pero se sigue **enviando** en este endpoint (el cliente envía el PAR-Q junto con la etapa 3). |
 
 **Endpoint pendiente**: `POST v1/onboarding/par-q`
 
@@ -162,7 +162,7 @@ esta tarea), pero es el uso típico de un PAR-Q real.
 | `current_routine_style`       | selección única | `improvised` / `copied` / `structured` / `always_same` / `very_varied`                                                                                                                                                                                                                                 |
 | `weekly_split_preference`     | selección única | `upper_lower` (torso-pierna) / `push_pull` / `full_body` / `no_preference`                                                                                                                                                                                                                             |
 | `technique_level`             | escala 1-10     | Nivel de técnica percibido                                                                                                                                                                                                                                                                             |
-| `realistic_goal`              | texto libre     | Objetivo realista                                                                                                                                                                                                                                                                                      |
+| `realistic_goal`              | texto libre     | "Describe cómo entrenabas anteriormente" (división de grupos musculares, tipos de ejercicios, organización...). Hasta 2026-09-29 era "¿Cuál es tu objetivo realista?" — mismo campo del backend, sin migración; en usuarios antiguos contiene su objetivo. |
 
 **Nota de producto**: `activity_level` y `lifestyle_type` se pidieron como
 dos preguntas separadas en el encargo original, aunque conceptualmente se
@@ -188,7 +188,7 @@ de producto a tomar más adelante, no resuelta aquí.
   "current_routine_style": "structured",
   "weekly_split_preference": "upper_lower",
   "technique_level": 7,
-  "realistic_goal": "Subir 3kg de músculo en 6 meses"
+  "realistic_goal": "4 días torso-pierna, básicos con barra y máquinas, sin progresión fija"
 }
 ```
 
