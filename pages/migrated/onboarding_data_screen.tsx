@@ -20,7 +20,7 @@ import {
   TrainingQuestionnairePayload,
   NutritionQuestionnairePayload,
 } from '../../api/onboardingV2';
-import { ONBOARDING_QUESTIONS, PARQ_CONDITIONS } from '../../constants/onboardingV2Questions';
+import { deriveActivityLevel, ONBOARDING_QUESTIONS, PARQ_CONDITIONS } from '../../constants/onboardingV2Questions';
 import { OnboardingAnswers, OnboardingQuestion, OnboardingOption, OnboardingStageId, resolveText } from '../../types/onboardingV2';
 import { FONT, RADIUS } from './theme';
 
@@ -420,7 +420,12 @@ export default function OnboardingDataScreen(props: any) {
     if (!training) return;
     setSaving('training');
     try {
-      await onboardingV2Api.submitTrainingQuestionnaire(training as TrainingQuestionnairePayload);
+      // activity_level no se pregunta (se deriva de estilo de vida + días de
+      // entreno, ver deriveActivityLevel): se recalcula por si cambió alguno.
+      await onboardingV2Api.submitTrainingQuestionnaire({
+        ...training,
+        activity_level: deriveActivityLevel(training as OnboardingAnswers),
+      } as TrainingQuestionnairePayload);
       showToast(isNewTraining ? 'Cuestionario de entrenamiento guardado' : 'Cuestionario de entrenamiento actualizado', { variant: 'success' });
       await loadAnswers();
     } catch (e: any) {
