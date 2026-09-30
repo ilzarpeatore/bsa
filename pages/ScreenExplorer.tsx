@@ -182,6 +182,7 @@ const ALL_SCREENS: ScreenItem[] = [
 
   // === MIGRATED - AUTH ===
   { name: 'Change Pwd', route: 'MigratedChangePwd', category: 'Migrated - Auth', file: 'change_pwd_screen.tsx', gluestackMigrated: true },
+  { name: 'Redeem Code', route: 'MigratedRedeemCode', category: 'Migrated - Auth', file: 'redeem_code_screen.tsx', gluestackMigrated: true },
 
   // === MIGRATED - ONBOARDING ===
   { name: 'Assessment Result', route: 'MigratedAssessmentResult', category: 'Migrated - Onboarding', file: 'assessment_result_screen.tsx' },
