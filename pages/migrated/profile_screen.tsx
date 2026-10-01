@@ -57,6 +57,9 @@ function buildMenuSections(isSocial: boolean, C: ReturnType<typeof useAppColorMo
         // pages/migrated/onboarding_data_screen.tsx.
         { icon: 'list-outline', title: 'Mis respuestas del onboarding', subtitle: 'Cribado médico, entrenamiento y nutrición', route: 'MigratedOnboardingData', iconColor: C.success60, iconBg: C.success10 },
         { icon: 'key-outline', title: 'Cambiar contraseña', route: 'MigratedChangePwd', visible: !isSocial, iconColor: C.warning60, iconBg: C.warning10 },
+        // Canjear un código de programa (2026-09-30, ver redeem_code_screen.tsx).
+        // Sin hablar de compras ni precios (Apple 3.1.1/3.1.3).
+        { icon: 'ticket-outline', title: 'Tengo un código', subtitle: 'Añade un programa a tu cuenta', route: 'MigratedRedeemCode', iconColor: C.blue, iconBg: C.blue10 },
       ],
     },
     {

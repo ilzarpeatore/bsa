@@ -1,5 +1,9 @@
 name: Security Review
 
+# Requiere el secret ANTHROPIC_API_KEY (Settings -> Secrets and variables ->
+# Actions). Sin él la action fallaba en rojo sin llegar a revisar nada (PR #72,
+# 2026-10-01); ahora se omite con un aviso visible, igual que en Bckbs y
+# bstronger-admin. En cuanto se añada el secret vuelve a ejecutarse solo.
 permissions:
   pull-requests: write # Needed for leaving PR comments
   contents: read
@@ -11,12 +15,26 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
+      - name: Comprobar ANTHROPIC_API_KEY
+        id: key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Falta el secret ANTHROPIC_API_KEY en este repositorio: se omite la revisión de seguridad."
+          fi
+
       - uses: actions/checkout@v7
+        if: steps.key.outputs.present == 'true'
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 2
 
       - uses: anthropics/claude-code-security-review@main
+        if: steps.key.outputs.present == 'true'
         with:
           comment-pr: true
           claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}

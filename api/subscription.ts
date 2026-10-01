@@ -28,6 +28,18 @@ export interface MyPlanResponse {
   };
 }
 
+export interface RedeemCodeResponse {
+  message: string;
+  data: {
+    pack: string | null;
+    // true = ya asignado; false = se asigna al terminar el cuestionario inicial.
+    started: boolean;
+  };
+}
+
 export const subscriptionApi = {
   getMyPlan: () => apiClient.get<MyPlanResponse>('my-plan'),
+  // Canjea un código de programa (Bckbs PackController::redeem). La app solo
+  // pide el código: nada de precios ni enlaces de compra (Apple 3.1.1/3.1.3).
+  redeemCode: (code: string) => apiClient.post<RedeemCodeResponse>('v1/pack-redeem', { code }),
 };
