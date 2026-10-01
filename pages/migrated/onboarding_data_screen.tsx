@@ -20,8 +20,8 @@ import {
   TrainingQuestionnairePayload,
   NutritionQuestionnairePayload,
 } from '../../api/onboardingV2';
-import { ONBOARDING_QUESTIONS } from '../../constants/onboardingV2Questions';
-import { OnboardingQuestion, OnboardingOption } from '../../types/onboardingV2';
+import { deriveActivityLevel, ONBOARDING_QUESTIONS, PARQ_CONDITIONS } from '../../constants/onboardingV2Questions';
+import { OnboardingAnswers, OnboardingQuestion, OnboardingOption, OnboardingStageId, resolveText } from '../../types/onboardingV2';
 import { FONT, RADIUS } from './theme';
 
 // Pantalla nueva (2026-09-18, pedido explícito): "Cuenta" solo dejaba editar
@@ -91,8 +91,50 @@ function buildEmptyAnswers<T>(questions: OnboardingQuestion[]): T {
 // training_experience_years se excluye a propósito: el campo real
 // (training_experience_months) usa su propio input numérico más abajo, igual
 // en el caso nuevo que en el de edición.
-const TRAINING_QUESTIONS_FOR_NEW = ONBOARDING_QUESTIONS.filter(
-  (q) => q.stage === 'training_questionnaire' && q.id !== 'training_experience_years'
+// target_event_weeks y strength_references tampoco tienen un campo 1:1 en el
+// backend (fecha del evento y 8 columnas strength_*), se editan con sus
+// propias filas más abajo -- ver TrainingExtraRows.
+const TRAINING_SPECIAL_IDS = new Set(['training_experience_years', 'target_event_weeks', 'strength_references']);
+
+// Preguntas del onboarding editables aquí, una fila por campo del backend
+// (rediseño 2026-09-29): el onboarding agrupa cosas en una sola pantalla que
+// aquí se despliegan -- el checklist del PAR-Q vuelve a ser un Sí/No por
+// condición, y los favoritos (text_group) un campo de texto cada uno. Las
+// pantallas sin campo propio (intros, puertas como has_allergies) no salen.
+const YES_NO_OPTIONS: OnboardingOption[] = [
+  { value: 'yes', label: 'Sí', icon: '✅', emoji: true },
+  { value: 'no', label: 'No', icon: '❌', emoji: true },
+];
+function editableQuestions(stage: OnboardingStageId): OnboardingQuestion[] {
+  const out: OnboardingQuestion[] = [];
+  if (stage === 'par_q') {
+    for (const c of PARQ_CONDITIONS) {
+      out.push({
+        id: c.id,
+        section: 'health',
+        stage: 'par_q',
+        type: 'single_choice',
+        title: c.label,
+        options: YES_NO_OPTIONS,
+        showIf: c.femaleOnly ? (a) => a.gender === 'female' : undefined,
+      });
+    }
+  }
+  for (const q of ONBOARDING_QUESTIONS) {
+    if (q.stage !== stage) continue;
+    if (q.type === 'text_group') {
+      for (const f of q.fields) {
+        out.push({ id: f.id, section: q.section, stage, type: 'text', title: f.label, placeholder: f.placeholder });
+      }
+    } else if (q.type !== 'intro' && q.type !== 'contact' && q.type !== 'password') {
+      out.push(q);
+    }
+  }
+  return out;
+}
+
+const TRAINING_QUESTIONS_FOR_NEW = editableQuestions('training_questionnaire').filter(
+  (q) => !TRAINING_SPECIAL_IDS.has(q.id)
 );
 
 // IDs de ONBOARDING_QUESTIONS cuyo valor es boolean en el backend pero se
@@ -110,7 +152,47 @@ const BOOLEAN_FIELDS = new Set([
   'parq_menstrual_change_or_stress_fracture',
   'parq_eating_disorder_history',
   'cooks_for_others',
+  'injury_has',
+  'practices_other_sport',
+  'has_target_event',
+  'intermittent_fasting',
 ]);
+
+// Los `showIf` de ONBOARDING_QUESTIONS se escriben contra las respuestas del
+// onboarding ('yes'/'no', `gender`), no contra los datos del backend
+// (booleanos) -- se traduce el formulario a esa forma para evaluarlos.
+function toAnswerShape(form: object | null, gender?: string): OnboardingAnswers {
+  // Puertas que en el onboarding son preguntas propias sin columna en el
+  // backend (has_allergies, meds_supps, has_previous_diets, parq_conditions):
+  // aquí se dan por abiertas, para poder editar siempre el campo que
+  // controlan. Los años de experiencia salen de los meses guardados.
+  const months = Number((form as any)?.training_experience_months) || 0;
+  const out: OnboardingAnswers = {
+    gender,
+    has_allergies: 'yes',
+    meds_supps: ['medications', 'supplements'],
+    has_previous_diets: 'yes',
+    parq_conditions: ['any'],
+    training_experience_years: months / 12,
+  };
+  for (const [k, v] of Object.entries(form ?? {})) {
+    out[k] = BOOLEAN_FIELDS.has(k) && typeof v === 'boolean' ? (v ? 'yes' : 'no') : (v as any);
+  }
+  return out;
+}
+
+function isVisible(q: OnboardingQuestion, form: object | null, gender?: string): boolean {
+  return q.showIf === undefined || q.showIf(toAnswerShape(form, gender));
+}
+
+// Las 8 columnas strength_* del backend, agrupadas por ejercicio (en el
+// onboarding es una sola pregunta, strength_references).
+const STRENGTH_FIELDS = [
+  { label: 'Sentadilla con barra', kg: 'strength_squat_kg', reps: 'strength_squat_reps' },
+  { label: 'Peso muerto', kg: 'strength_deadlift_kg', reps: 'strength_deadlift_reps' },
+  { label: 'Press banca mancuernas (cada una)', kg: 'strength_db_bench_kg', reps: 'strength_db_bench_reps' },
+  { label: 'Remo con mancuerna', kg: 'strength_db_row_kg', reps: 'strength_db_row_reps' },
+] as const;
 
 function PillOptions({
   options,
@@ -152,8 +234,8 @@ function FieldRow({
   C,
 }: {
   question: OnboardingQuestion;
-  value: string | number | boolean | undefined;
-  onChange: (v: string | number | boolean) => void;
+  value: string | number | boolean | string[] | null | undefined;
+  onChange: (v: string | number | boolean | string[]) => void;
   C: ReturnType<typeof useAppColorMode>['colors'];
 }) {
   const styles = createStyles(C);
@@ -161,7 +243,7 @@ function FieldRow({
 
   return (
     <Box style={styles.fieldRow}>
-      <Text style={styles.fieldTitle}>{question.title}</Text>
+      <Text style={styles.fieldTitle}>{resolveText(question.title, {})}</Text>
       {question.type === 'single_choice' &&
         (() => {
           const opts = (question as any).options as OnboardingOption[];
@@ -179,6 +261,43 @@ function FieldRow({
             />
           );
         })()}
+      {question.type === 'multi_choice' &&
+        (() => {
+          const selected = Array.isArray(value) ? value : [];
+          return (
+            <Box style={styles.pillWrap}>
+              {question.options.map((opt) => {
+                const on = selected.includes(opt.value);
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() =>
+                      onChange(
+                        on
+                          ? selected.filter((x) => x !== opt.value)
+                          : opt.exclusive
+                            ? [opt.value]
+                            : [...selected.filter((x) => !question.options.find((o) => o.value === x)?.exclusive), opt.value]
+                      )
+                    }
+                    style={[styles.pill, on && { backgroundColor: `${C.orange}26`, borderColor: C.orange }]}
+                  >
+                    <Text style={[styles.pillText, on && { fontFamily: FONT.bold, color: C.textPrimary }]}>{opt.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </Box>
+          );
+        })()}
+      {question.type === 'text' && (
+        <Input style={styles.textInput}>
+          <InputField
+            value={String(value ?? '')}
+            onChangeText={(t) => onChange(t)}
+            placeholder={question.placeholder}
+          />
+        </Input>
+      )}
       {(question.type === 'scale' || question.type === 'number_wheel') && (
         <Input style={styles.numberInput}>
           <InputField
@@ -207,7 +326,7 @@ export default function OnboardingDataScreen(props: any) {
   const { colors: C } = useAppColorMode();
   const styles = useMemo(() => createStyles(C), [C]);
   const { state } = useAuth();
-  const isFemale = state.user?.gender === 'female';
+  const gender = state.user?.gender;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<null | 'par_q' | 'training' | 'nutrition'>(null);
@@ -226,11 +345,10 @@ export default function OnboardingDataScreen(props: any) {
   const isNewTraining = !training?.id;
   const isNewNutrition = !nutrition?.id;
 
-  const parQQuestions = useMemo(
-    () =>
-      ONBOARDING_QUESTIONS.filter((q) => q.stage === 'par_q' && (q.showIf === undefined || isFemale)),
-    [isFemale]
-  );
+  // Por etapa de ENVÍO (`stage`), no por sección visible: parq_goals se
+  // pregunta en entrenamiento durante el onboarding pero vive en el PAR-Q.
+  // La visibilidad (showIf) se evalúa en el render, contra el formulario.
+  const parQQuestions = useMemo(() => editableQuestions('par_q'), []);
   // Formulario nuevo (nunca guardado): incluye también
   // training_days_per_week/session_duration_preference, que si no habría que
   // pedir en la pantalla de disponibilidad de entrenamiento -- pero esa
@@ -242,16 +360,18 @@ export default function OnboardingDataScreen(props: any) {
     () =>
       isNewTraining
         ? TRAINING_QUESTIONS_FOR_NEW
-        : ONBOARDING_QUESTIONS.filter(
+        : editableQuestions('training_questionnaire').filter(
             (q) =>
-              q.stage === 'training_questionnaire' &&
               q.id !== 'training_days_per_week' &&
               q.id !== 'session_duration_preference' &&
-              q.id !== 'training_experience_years'
+              !TRAINING_SPECIAL_IDS.has(q.id)
           ),
     [isNewTraining]
   );
-  const nutritionQuestions = useMemo(() => ONBOARDING_QUESTIONS.filter((q) => q.stage === 'nutrition_questionnaire'), []);
+  const nutritionQuestions = useMemo(
+    () => editableQuestions('nutrition_questionnaire'),
+    []
+  );
 
   // Extraída para poder recargar tras cada guardado (no solo al entrar a la
   // pantalla): un formulario recién guardado por primera vez necesita el
@@ -300,7 +420,12 @@ export default function OnboardingDataScreen(props: any) {
     if (!training) return;
     setSaving('training');
     try {
-      await onboardingV2Api.submitTrainingQuestionnaire(training as TrainingQuestionnairePayload);
+      // activity_level no se pregunta (se deriva de estilo de vida + días de
+      // entreno, ver deriveActivityLevel): se recalcula por si cambió alguno.
+      await onboardingV2Api.submitTrainingQuestionnaire({
+        ...training,
+        activity_level: deriveActivityLevel(training as OnboardingAnswers),
+      } as TrainingQuestionnairePayload);
       showToast(isNewTraining ? 'Cuestionario de entrenamiento guardado' : 'Cuestionario de entrenamiento actualizado', { variant: 'success' });
       await loadAnswers();
     } catch (e: any) {
@@ -372,7 +497,7 @@ export default function OnboardingDataScreen(props: any) {
                 Todavía no has completado esta parte del onboarding -- rellénala y guarda para terminarla.
               </Text>
             )}
-            {parQQuestions.map((q) => (
+            {parQQuestions.filter((q) => isVisible(q, parQ, gender)).map((q) => (
               <FieldRow
                 key={q.id}
                 question={q}
@@ -403,7 +528,7 @@ export default function OnboardingDataScreen(props: any) {
                 Todavía no has completado esta parte del onboarding -- rellénala y guarda para terminarla.
               </Text>
             )}
-            {trainingQuestions.map((q) => (
+            {trainingQuestions.filter((q) => isVisible(q, training, gender)).map((q) => (
               <FieldRow
                 key={q.id}
                 question={q}
@@ -423,6 +548,47 @@ export default function OnboardingDataScreen(props: any) {
                   }
                 />
               </Input>
+            </Box>
+            {/* En el onboarding se pregunta en semanas (target_event_weeks); aquí
+                se edita directamente la fecha que guarda el backend. */}
+            {training.has_target_event && (
+              <Box style={styles.fieldRow}>
+                <Text style={styles.fieldTitle}>Fecha del evento (AAAA-MM-DD)</Text>
+                <Input style={styles.textInput}>
+                  <InputField
+                    placeholder="2027-03-14"
+                    value={String(training.target_event_date ?? '').slice(0, 10)}
+                    onChangeText={(t) => setTraining({ ...training, target_event_date: t.replace(/[^0-9-]/g, '') || null })}
+                  />
+                </Input>
+              </Box>
+            )}
+            <Box style={styles.fieldRow}>
+              <Text style={styles.fieldTitle}>Referencias de fuerza (kg × repeticiones)</Text>
+              {STRENGTH_FIELDS.map(({ label, kg, reps }) => (
+                <Box key={kg} style={styles.strengthRow}>
+                  <Text style={styles.strengthLabel}>{label}</Text>
+                  <Input style={styles.strengthInput}>
+                    <InputField
+                      placeholder="kg"
+                      keyboardType="decimal-pad"
+                      value={String(training[kg] ?? '')}
+                      onChangeText={(t) => {
+                        const n = parseFloat(t.replace(',', '.'));
+                        setTraining({ ...training, [kg]: Number.isFinite(n) && n > 0 ? n : null });
+                      }}
+                    />
+                  </Input>
+                  <Input style={styles.strengthInput}>
+                    <InputField
+                      placeholder="reps"
+                      keyboardType="number-pad"
+                      value={String(training[reps] ?? '')}
+                      onChangeText={(t) => setTraining({ ...training, [reps]: parseInt(t, 10) || null })}
+                    />
+                  </Input>
+                </Box>
+              ))}
             </Box>
             <Button size="lg" radius="pill" onPress={saveTraining} disabled={saving === 'training'} style={styles.saveButton}>
               {saving === 'training' ? (
@@ -446,7 +612,7 @@ export default function OnboardingDataScreen(props: any) {
                 Todavía no has completado esta parte del onboarding -- rellénala y guarda para terminarla.
               </Text>
             )}
-            {nutritionQuestions.map((q) => (
+            {nutritionQuestions.filter((q) => isVisible(q, nutrition, gender)).map((q) => (
               <FieldRow
                 key={q.id}
                 question={q}
@@ -515,6 +681,10 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     },
     pillText: { fontSize: 13, fontFamily: FONT.medium, color: C.textPrimary },
     numberInput: { maxWidth: 120 },
+    textInput: {},
+    strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+    strengthLabel: { flex: 1, fontSize: 13, fontFamily: FONT.medium, color: C.textPrimary },
+    strengthInput: { width: 80 },
     saveButton: { marginTop: 4 },
   });
 }

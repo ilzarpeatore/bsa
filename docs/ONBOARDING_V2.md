@@ -57,6 +57,39 @@ adelante). Esto es intencional: las etapas 2-4 llaman hoy a endpoints que
 404 hasta que se implementen — sin este best-effort, nadie podría completar
 el onboarding hoy mismo.
 
+## Rediseño 2026-09-29: secciones, introducciones y preguntas condicionales
+
+> **Lee esto primero.** Las tablas de más abajo describen los **campos del backend** por endpoint
+> (siguen válidas), pero el **orden y la forma de preguntarlos** cambió. Motivos, fuentes y
+> resultados en [`ONBOARDING_INVESTIGACION.md`](ONBOARDING_INVESTIGACION.md).
+
+- **Sección** (`section`, lo que ve el usuario en la barra) ≠ **etapa** (`stage`, el endpoint).
+  Orden de secciones: Tu objetivo → Nutrición → Entrenamiento → Salud → Tu día a día → Sobre ti →
+  Tu cuenta. Con cuenta ya creada (reanudando), cada endpoint se envía al pasar su última pregunta
+  visible; sin cuenta, todo junto al registrarse.
+- Cada sección abre con una pantalla `intro` (por qué preguntamos y cómo lo usa el entrenador).
+- **Preguntas solo de la app, sin columna** (se traducen al enviar, ver `submitStage()`):
+  - `parq_conditions`: checklist con las 10 preguntas Sí/No del PAR-Q (`PARQ_CONDITIONS`), una por
+    columna booleana. Las de mujer solo se ofrecen a `gender = female`.
+  - `has_allergies`: con «No» se envía `allergies_intolerances = "Ninguna"`.
+  - `meds_supps`: abre `medications` y/o `supplements` (si no, `null`).
+  - `has_previous_diets`: abre `previous_diets`.
+- **Condicionales por experiencia**: con `training_experience_years = 0` no se preguntan
+  `realistic_goal`, `strength_references`, `weekly_split_preference`, `previous_coaching`,
+  `current_routine_style`, `training_mindset` ni `technique_level`; se envían `null`. El backend
+  (migración `2026_09_29_110000_…`) las admite vacías solo si `training_experience_months = 0`.
+- **Fusionadas**: `training_location` pasa a 6 valores que incluyen el material (`full_gym`,
+  `gym_basic`, `gym_no_equipment`, `home_full`, `home_basic`, `home_none`); `home_equipment` ya
+  no se pregunta y `equipment_notes` solo con poco material. Favoritos en una pantalla
+  (`text_group`). Email + teléfono (`phone_number`, opcional, se envía al registro) en una
+  pantalla (`contact`).
+- **Ya no se preguntan**: `activity_level` (se deriva con `deriveActivityLevel()` de
+  `lifestyle_type` + días de entreno), `meal_schedule` (va dentro de `typical_day_meals`),
+  `liked_foods` (lo cubren los favoritos). Las columnas siguen existiendo.
+- **Dinámica**: `autoAdvance` en las preguntas de un toque (avanzan solas a los 320 ms), vibración
+  al elegir, transición animada, barra animada con «Sección · X de 7», botón «Omitir» en las
+  opcionales, y pantalla «Preparando tu resumen» antes del resultado.
+
 ## Las 4 etapas y sus preguntas
 
 ### Etapa 1 — Datos personales (`personal_data`)
@@ -116,7 +149,7 @@ estándar cuyas preguntas 1-2 no se piden aquí).
 | `parq_reason_not_to_exercise`     | Sí/No                  | 9. ¿Conoce alguna razón por la cual no debería realizar actividad física?                  |
 | `parq_fitness_level`              | escala 1-10            | 10. ¿Cómo calificarías tu nivel de condición física actual?                                |
 | `parq_medical_history`            | texto libre (opcional) | 11. Indica cualquier historial médico relevante...                                         |
-| `parq_goals`                      | texto libre            | 12. ¿Cuáles son tus objetivos?                                                             |
+| `parq_goals`                      | texto libre            | "Especifica más tus objetivos" — desde 2026-09-29 se **muestra** en la etapa 3, justo después de `goal_type`, pero se sigue **enviando** en este endpoint (el cliente envía el PAR-Q junto con la etapa 3). |
 
 **Endpoint pendiente**: `POST v1/onboarding/par-q`
 
@@ -162,7 +195,7 @@ esta tarea), pero es el uso típico de un PAR-Q real.
 | `current_routine_style`       | selección única | `improvised` / `copied` / `structured` / `always_same` / `very_varied`                                                                                                                                                                                                                                 |
 | `weekly_split_preference`     | selección única | `upper_lower` (torso-pierna) / `push_pull` / `full_body` / `no_preference`                                                                                                                                                                                                                             |
 | `technique_level`             | escala 1-10     | Nivel de técnica percibido                                                                                                                                                                                                                                                                             |
-| `realistic_goal`              | texto libre     | Objetivo realista                                                                                                                                                                                                                                                                                      |
+| `realistic_goal`              | texto libre     | "Describe cómo entrenabas anteriormente" (división de grupos musculares, tipos de ejercicios, organización...). Hasta 2026-09-29 era "¿Cuál es tu objetivo realista?" — mismo campo del backend, sin migración; en usuarios antiguos contiene su objetivo. |
 
 **Nota de producto**: `activity_level` y `lifestyle_type` se pidieron como
 dos preguntas separadas en el encargo original, aunque conceptualmente se
@@ -188,7 +221,7 @@ de producto a tomar más adelante, no resuelta aquí.
   "current_routine_style": "structured",
   "weekly_split_preference": "upper_lower",
   "technique_level": 7,
-  "realistic_goal": "Subir 3kg de músculo en 6 meses"
+  "realistic_goal": "4 días torso-pierna, básicos con barra y máquinas, sin progresión fija"
 }
 ```
 
@@ -235,6 +268,62 @@ pedirlo como texto libre.
 ```
 
 **Response esperada**: `{ "message": "OK", "status": true }`.
+
+### Preguntas añadidas el 2026-09-29 (lesión, contexto, material, fuerza, nutrición práctica)
+
+Datos que los agentes de programación (`AgenticdesignBS`, `perfil-cliente.schema.json`)
+necesitaban y el onboarding no recogía. Columnas en Bckbs: migración
+`2026_09_29_100000_add_extended_onboarding_fields`. **Todas opcionales en el backend**
+(y solo se escriben si vienen en la petición): una versión antigua de la app no las envía
+y no borra nada. En la app son obligatorias salvo las marcadas como opcionales.
+
+Preguntas condicionadas (`showIf`): solo se muestran si la pregunta "puerta" lo
+permite, y solo se envían si están visibles; el backend además pone a NULL los detalles
+cuando la puerta llega cerrada (`injury_has`, `practices_other_sport`,
+`has_target_event`; `training_location = full_gym` limpia el material).
+
+**PAR-Q** (`POST v1/onboarding/par-q`), justo después de `parq_bone_joint_problem`:
+
+| id | tipo | pregunta / valores |
+| --- | --- | --- |
+| `injury_has` | Sí/No (bool) | ¿Tienes o has tenido alguna lesión o molestia que debamos tener en cuenta al entrenar? |
+| `injury_zone` | selección, si lesión | `neck` / `shoulder` / `elbow` / `wrist_hand` / `upper_back` / `lower_back` / `hip` / `knee` / `ankle_foot` / `other` |
+| `injury_painful_movement` | texto, si lesión | Movimiento o gesto que provoca dolor |
+| `injury_phase` | selección, si lesión | `acute` / `recovering` / `chronic_controlled`. **`acute` marca al cliente para revisión** (`flagged_for_review`) |
+| `injury_worsens_with_impact` | selección, si lesión | `yes` / `no` / `unknown` |
+| `injury_professional_clearance` | selección, si lesión | `cleared` / `with_limits` / `not_consulted` |
+| `injury_other_notes` | texto opcional, si lesión | Otras lesiones o molestias |
+
+**Entrenamiento** (`POST v1/onboarding/training-questionnaire`):
+
+| id | tipo | pregunta / valores |
+| --- | --- | --- |
+| `practices_other_sport` | Sí/No (bool) | ¿Practicas otro deporte además del gimnasio? (tras `parq_goals`) |
+| `other_sport_description` | texto, si deporte | Qué deporte y cuánto |
+| `has_target_event` | Sí/No (bool) | ¿Te preparas para una competición o fecha concreta? |
+| `target_event_description` | texto, si evento | Qué evento es |
+| `target_event_weeks` → `target_event_date` | rueda 1-104 semanas, si evento | La app no tiene selector de fecha: pregunta semanas y envía la fecha (`YYYY-MM-DD`) |
+| `work_schedule` | selección | `morning` / `afternoon` / `split` / `rotating_shifts` / `night` / `flexible` / `not_working` (tras `lifestyle_type`) |
+| `training_time_of_day` | selección | `morning` / `midday` / `afternoon` / `evening` / `variable` |
+| `sleep_hours` | rueda 3-12 | Horas de sueño |
+| `sleep_regularity` | selección | `regular` / `irregular` |
+| `stress_level` | escala 1-10 | Estrés percibido |
+| `training_location` | selección | `full_gym` / `basic_gym` / `home` / `outdoor` / `mixed` (tras `session_duration_preference`) |
+| `home_equipment` | selección múltiple, si no es `full_gym` | Array de `dumbbells`, `barbell_plates`, `rack`, `bench`, `pullup_bar`, `kettlebells`, `bands`, `suspension`, `cables`, `cardio_machine`, `none` (excluyente) |
+| `equipment_notes` | texto opcional, si no es `full_gym` | Detalles (p. ej. mancuernas hasta 20 kg) |
+| `strength_references` → `strength_{squat,deadlift,db_bench,db_row}_{kg,reps}` | una pantalla, opcional (tras `technique_level`) | Peso para ~8-10 reps en sentadilla con barra, peso muerto, press banca con mancuernas (kg de cada una) y remo con mancuerna. Vacío = null |
+
+**Nutrición** (`POST v1/onboarding/nutrition-questionnaire`):
+
+| id | tipo | pregunta / valores |
+| --- | --- | --- |
+| `meal_schedule` | texto opcional | A qué horas suele comer (tras `typical_day_meals`) |
+| `intermittent_fasting` | Sí/No (bool) | ¿Haces ayuno intermitente? |
+| `meals_away_from_home` | selección | `home` / `tupper` / `restaurant` / `mixed` |
+| `weekly_food_budget` | selección | `under_40` / `40_70` / `70_100` / `100_150` / `over_150` / `unknown` (al final) |
+| `alcohol_frequency` | selección | `never` / `occasional` / `weekends` / `several_per_week` / `daily` |
+| `water_intake` | selección | `under_1l` / `1_1_5l` / `1_5_2l` / `2_3l` / `over_3l` |
+| `previous_diets` | texto opcional | ¿Has seguido alguna dieta antes? ¿Qué tal te fue? |
 
 ## Marcar onboarding completado server-side (2026-08-23, pendiente de backend)
 

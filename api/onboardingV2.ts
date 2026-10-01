@@ -50,6 +50,15 @@ export interface ParQPayload {
   parq_fitness_level: number; // 1-10
   parq_medical_history: string;
   parq_goals: string;
+  // Lesión/molestia principal (2026-09-29). Opcionales en el backend (versiones
+  // antiguas de la app no los envían); los detalles solo si injury_has=true.
+  injury_has?: boolean;
+  injury_zone?: 'neck' | 'shoulder' | 'elbow' | 'wrist_hand' | 'upper_back' | 'lower_back' | 'hip' | 'knee' | 'ankle_foot' | 'other' | null;
+  injury_painful_movement?: string | null;
+  injury_phase?: 'acute' | 'recovering' | 'chronic_controlled' | null;
+  injury_worsens_with_impact?: 'yes' | 'no' | 'unknown' | null;
+  injury_professional_clearance?: 'cleared' | 'with_limits' | 'not_consulted' | null;
+  injury_other_notes?: string | null;
 }
 
 export interface TrainingQuestionnairePayload {
@@ -59,21 +68,58 @@ export interface TrainingQuestionnairePayload {
   training_experience_months: number;
   training_days_per_week: number; // 1-7
   session_duration_preference: '30' | '45' | '60' | '90' | '90_plus';
-  training_mindset: 'rushed' | 'calm' | 'motivated' | 'unmotivated';
-  previous_coaching: 'online_coach' | 'in_person_coach' | 'self_trained';
-  current_routine_style: 'improvised' | 'copied' | 'structured' | 'always_same' | 'very_varied';
-  weekly_split_preference: 'upper_lower' | 'push_pull' | 'full_body' | 'no_preference';
-  technique_level: number; // 1-10
-  realistic_goal: string;
+  // null si nunca ha entrenado (training_experience_months = 0): desde
+  // 2026-09-29 no se le preguntan y el backend solo las exige con experiencia.
+  training_mindset: 'rushed' | 'calm' | 'motivated' | 'unmotivated' | null;
+  previous_coaching: 'online_coach' | 'in_person_coach' | 'self_trained' | null;
+  current_routine_style: 'improvised' | 'copied' | 'structured' | 'always_same' | 'very_varied' | null;
+  weekly_split_preference: 'upper_lower' | 'push_pull' | 'full_body' | 'no_preference' | null;
+  technique_level: number | null; // 1-10
+  realistic_goal: string | null; // desde 2026-09-29: cómo entrenaba antes
+  // Contexto ampliado (2026-09-29), todos opcionales en el backend.
+  practices_other_sport?: boolean;
+  other_sport_description?: string | null;
+  has_target_event?: boolean;
+  target_event_description?: string | null;
+  target_event_date?: string | null; // YYYY-MM-DD
+  work_schedule?: 'morning' | 'afternoon' | 'split' | 'rotating_shifts' | 'night' | 'flexible' | 'not_working';
+  training_time_of_day?: 'morning' | 'midday' | 'afternoon' | 'evening' | 'variable';
+  sleep_hours?: number; // 3-12
+  sleep_regularity?: 'regular' | 'irregular';
+  stress_level?: number; // 1-10
+  // Lugar + material en una sola respuesta (2026-09-29). basic_gym/home/
+  // outdoor/mixed: valores de la primera versión, solo en datos antiguos.
+  training_location?:
+    | 'full_gym'
+    | 'gym_basic'
+    | 'gym_no_equipment'
+    | 'home_full'
+    | 'home_basic'
+    | 'home_none'
+    | 'basic_gym'
+    | 'home'
+    | 'outdoor'
+    | 'mixed';
+  home_equipment?: string[] | null;
+  equipment_notes?: string | null;
+  // Referencias de fuerza: null = no lo hace / no lo sabe. Mancuernas: peso de cada una.
+  strength_squat_kg?: number | null;
+  strength_squat_reps?: number | null;
+  strength_deadlift_kg?: number | null;
+  strength_deadlift_reps?: number | null;
+  strength_db_bench_kg?: number | null;
+  strength_db_bench_reps?: number | null;
+  strength_db_row_kg?: number | null;
+  strength_db_row_reps?: number | null;
 }
 
 export interface NutritionQuestionnairePayload {
   allergies_intolerances: string;
   // Opcionales (2026-09-25): si no se envían, el backend conserva lo ya guardado.
-  medications?: string;
-  supplements?: string;
+  medications?: string | null; // null = marcó que no toma
+  supplements?: string | null;
   disliked_foods: string;
-  liked_foods: string;
+  liked_foods?: string; // ya no se pregunta (2026-09-29): cubierto por los favoritos
   current_meals_per_day: number;
   desired_meals_per_day: number;
   typical_day_meals: string;
@@ -86,6 +132,14 @@ export interface NutritionQuestionnairePayload {
   cooking_minutes_per_meal: number; // 0-180
   cooking_skill_level: 'beginner' | 'intermediate' | 'advanced';
   cooks_for_others: boolean;
+  // Nutrición práctica (2026-09-29), opcionales en el backend.
+  weekly_food_budget?: 'under_40' | '40_70' | '70_100' | '100_150' | 'over_150' | 'unknown';
+  meals_away_from_home?: 'home' | 'tupper' | 'restaurant' | 'mixed';
+  meal_schedule?: string | null;
+  intermittent_fasting?: boolean;
+  alcohol_frequency?: 'never' | 'occasional' | 'weekends' | 'several_per_week' | 'daily';
+  water_intake?: 'under_1l' | '1_1_5l' | '1_5_2l' | '2_3l' | 'over_3l';
+  previous_diets?: string | null;
 }
 
 // Endpoint nuevo (2026-09-16, Bckbs PR #19), no forma parte del onboarding --

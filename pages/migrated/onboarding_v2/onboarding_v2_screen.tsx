@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {  BackHandler, View, Text, Pressable, KeyboardAvoidingView, Platform, ScrollView, StyleSheet  } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeInLeft, FadeInRight, ZoomIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {  SafeAreaView  } from 'react-native-safe-area-context';
 import {  Input, InputField, InputSlot  } from '@components/ui/input';
@@ -13,12 +15,15 @@ import { setToken } from '@helper/secureToken';
 import logger from '@helper/logger';
 import { authApi } from '../../../api/auth';
 import { onboardingV2Api } from '../../../api/onboardingV2';
-import {  ONBOARDING_QUESTIONS  } from '../../../constants/onboardingV2Questions';
+import { deriveActivityLevel, ONBOARDING_QUESTIONS, PARQ_CONDITIONS } from '../../../constants/onboardingV2Questions';
 import {
-  ONBOARDING_STAGES,
+  ONBOARDING_SECTIONS,
   OnboardingAnswers,
   OnboardingQuestion,
+  PAYLOAD_STAGES,
+  resolveText,
   RulerQuestion,
+  StrengthReferencesAnswer,
 } from '../../../types/onboardingV2';
 import OnboardingHeader from '../../../components/onboarding_v2/OnboardingHeader';
 import OptionCards from '../../../components/onboarding_v2/OptionCards';
@@ -30,51 +35,91 @@ import {  useAppColorMode  } from '@helper/useAppColorMode';
 import { WORKOUT_MINIBAR_CLEARANCE } from '@components/WorkoutMinimizedBar';
 import GlassSegmentedBar from '@components/GlassSegmentedBar';
 
-// Motor genérico del nuevo onboarding (4 etapas, ver docs/ONBOARDING_V2.md):
-// UNA sola screen recorre `ONBOARDING_QUESTIONS` con un índice interno (no
-// hay una ruta de navegación por pregunta) -- así el "atrás" entre preguntas
-// es instantáneo y no ensucia el stack de React Navigation con 36 entradas.
-// Las respuestas se guardan en AsyncStorage en cada paso (permite reanudar
-// si la app se cierra a medias) y se envían a la API al terminar cada etapa.
-
-// Bug real corregido (reportado 2026-08-29, MUY grave: "he registrado una
-// cuenta nueva y el onboarding ya estaba relleno con los datos de la cuenta
-// anterior"): esta clave de checkpoint era un flag único GLOBAL, sin id de
-// usuario -- exactamente el mismo patrón de bug ya corregido en
-// store/AuthContext.tsx para ONBOARDING_COMPLETED. Cualquier respuesta
-// parcial guardada por la cuenta A (basta con cerrar la app a mitad del
-// onboarding, ni falta que lo termine) quedaba en AsyncStorage bajo esta
-// única clave; la cuenta B, al registrarse después en el mismo
-// dispositivo y llegar a esta misma pantalla, la leía como si fuera su
-// propio checkpoint de reanudación. Ahora incluye el id de usuario --
-// misma mecánica que onboardingCompletedKey en AuthContext.tsx.
+// Motor genérico del onboarding (ver docs/ONBOARDING_V2.md): UNA sola screen
+// recorre `ONBOARDING_QUESTIONS` con un índice interno (no hay una ruta de
+// navegación por pregunta) -- así el "atrás" entre preguntas es instantáneo
+// y no ensucia el stack de React Navigation.
 //
-// SIN cuenta todavía (registro eliminado como pantalla aparte, el
-// onboarding ES el registro ahora -- pedido explícito 2026-08-29) NO se
-// persiste ningún checkpoint -- ver el efecto de reanudación más abajo.
-// Se probó primero con una clave 'anonymous' compartida, pero es
-// exactamente el mismo bug que el corregido arriba con otro disfraz: si la
-// persona A cierra la app a medio onboarding SIN registrarse (edad, sexo,
-// peso, respuestas de salud del PAR-Q...) y la persona B abre después la
-// app en el MISMO dispositivo y pulsa "Regístrate", heredaría las
-// respuestas ya dadas por A. Dado lo sensible de esos datos, se prefiere
-// no ofrecer reanudación en la fase anónima antes que arriesgar esa fuga
-// -- perder el progreso si cierras la app antes de crear la cuenta es un
-// coste menor y aceptado.
+// Rediseño 2026-09-29 (ver docs/ONBOARDING_INVESTIGACION.md):
+// - Secciones visibles (barra de progreso) separadas de las etapas de envío
+//   (endpoints): cada pregunta tiene `section` y, si guarda algo, `stage`.
+// - Pantallas `intro` al inicio de cada sección (por qué preguntamos y cómo
+//   lo usa el entrenador).
+// - Preguntas de un toque (`autoAdvance`) avanzan solas tras elegir, con
+//   vibración ligera; transición animada entre pantallas.
+
+// Checkpoint de respuestas por usuario (bug real 2026-08-29: con una clave
+// global, una cuenta nueva heredaba las respuestas de la anterior en el mismo
+// dispositivo). SIN cuenta todavía no se persiste nada: si la persona A deja
+// el onboarding a medias sin registrarse, la persona B no debe heredar sus
+// respuestas de salud en el mismo dispositivo -- perder el progreso antes de
+// crear la cuenta es un coste menor y aceptado.
 function answersStorageKey(userId: number): string {
   return `@bestronger_onboarding_v2_answers_${userId}`;
 }
 
-// Puente entre el registro diferido (fijado en handleContinue, ver más
-// abajo) y el remount que provoca RootNavigator (App.tsx) en cuanto
-// hydrateSession despacha isAuthenticated=true -- ese remount destruye
-// esta instancia del componente (con `answers` todavía en memoria) y monta
-// una nueva desde cero; esta clave es cómo esa nueva instancia sabe que ya
-// terminó todo y debe saltar directa al resumen en vez de volver a
-// preguntar las 38 preguntas ya respondidas.
+// Puente entre el registro diferido (handleContinue) y el remount que provoca
+// RootNavigator (App.tsx) en cuanto hydrateSession despacha
+// isAuthenticated=true: la nueva instancia lee esta clave y salta directa al
+// resumen en vez de volver a preguntar todo.
 const PENDING_RESULT_KEY = '@bestronger_onboarding_v2_pending_result';
 
+// Pausa antes de avanzar solo, para que se vea la opción marcada.
+const AUTO_ADVANCE_DELAY_MS = 320;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function phoneDigits(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/[^0-9+]/g, '') : '';
+}
+
+function isValidPhone(value: unknown): boolean {
+  const digits = phoneDigits(value).replace('+', '');
+  return digits.length >= 9 && digits.length <= 15;
+}
+
+const QUESTION_BY_ID: Record<string, OnboardingQuestion> = Object.fromEntries(
+  ONBOARDING_QUESTIONS.map((q) => [q.id, q])
+);
+
+// Respuesta de una pregunta condicionada (showIf) solo si HOY sigue visible:
+// si el usuario abrió una puerta (p. ej. injury_has = Sí), rellenó los
+// detalles y luego volvió atrás y la cerró, los detalles siguen en `answers`
+// pero ya no aplican -- no se envían (el backend además los pone a NULL
+// cuando la puerta llega cerrada).
+function visibleAnswer(answers: OnboardingAnswers, id: string) {
+  const q = QUESTION_BY_ID[id];
+  if (q?.showIf && !q.showIf(answers)) return undefined;
+  return answers[id];
+}
+
+function yesNo(value: unknown): boolean | undefined {
+  if (value === 'yes') return true;
+  if (value === 'no') return false;
+  return undefined;
+}
+
+function optionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+// Referencias de fuerza: vacío o no numérico = null ("no lo hace / no lo sabe").
+// Acepta coma decimal (teclado español).
+function parseLoad(value: string | undefined, integer: boolean): number | null {
+  if (!value) return null;
+  const n = integer ? parseInt(value, 10) : parseFloat(value.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
+  if (question.type === 'intro') return true;
+  if (question.type === 'contact') {
+    const email = answers.email;
+    const phone = answers.phone_number;
+    const emailOk = typeof email === 'string' && EMAIL_RE.test(email.trim());
+    const phoneOk = !phoneDigits(phone) || isValidPhone(phone);
+    return emailOk && phoneOk;
+  }
   if (question.required === false) return true;
   const value = answers[question.id];
   if (question.type === 'name') {
@@ -84,11 +129,22 @@ function isAnswered(question: OnboardingQuestion, answers: OnboardingAnswers): b
   if (question.type === 'password') {
     return typeof value === 'string' && value.length >= 8;
   }
-  if (question.type === 'email') {
-    return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  if (question.type === 'multi_choice') {
+    return Array.isArray(value) && value.length > 0;
   }
   if (typeof value === 'string') return value.trim().length > 0;
   return value !== undefined && value !== null;
+}
+
+// Una pregunta opcional sin nada escrito: el botón dice "Omitir".
+function isEmptyOptional(question: OnboardingQuestion, answers: OnboardingAnswers): boolean {
+  if (question.required !== false) return false;
+  if (question.type === 'text_group') return question.fields.every((f) => !optionalText(answers[f.id]));
+  if (question.type === 'strength_references') {
+    const refs = (answers[question.id] as StrengthReferencesAnswer | undefined) ?? {};
+    return Object.values(refs).every((r) => !r?.kg && !r?.reps);
+  }
+  return !optionalText(answers[question.id]);
 }
 
 export default function OnboardingV2Screen({ navigation }: any) {
@@ -97,59 +153,40 @@ export default function OnboardingV2Screen({ navigation }: any) {
   const { state, updateUser, hydrateSession } = useAuth();
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [submitting, setSubmitting] = useState(false);
   const [restored, setRestored] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // Bug real corregido (reportado 2026-08-29): el ScaleSelector de la
-  // pregunta tipo 'scale' vive dentro del ScrollView de abajo -- en un
-  // arrastre rápido el gesto de scroll nativo del ScrollView competía con
-  // el PanResponder del selector y le robaba eventos de movimiento a mitad
-  // de gesto (ver comentario grande en components/onboarding_v2/
-  // ScaleSelector.tsx). Se desactiva el scroll mientras se arrastra.
+  // El ScaleSelector vive dentro del ScrollView: en un arrastre rápido el
+  // scroll nativo le robaba eventos (ver ScaleSelector.tsx). Se desactiva el
+  // scroll mientras se arrastra.
   const [scaleDragging, setScaleDragging] = useState(false);
+  // Id de la pregunta que debe avanzar sola cuando se aplique su respuesta
+  // (ver el efecto de auto-avance más abajo).
+  const [pendingAdvance, setPendingAdvance] = useState<string | null>(null);
 
-  // Pedido explícito 2026-08-29: se elimina la screen de registro aparte --
-  // "Regístrate" lleva directo aquí, SIN cuenta todavía (ver App.tsx,
-  // MigratedOnboardingV2 ahora también vive en el stack sin autenticar). La
-  // pregunta 'email'/'password' (etapa 'credentials', al final) solo tiene
-  // sentido para alguien que todavía no tiene cuenta -- si ya la tiene
-  // (reanudando un onboarding a medias tras un cierre/crash, el ÚNICO otro
-  // motivo por el que esta pantalla se monta ya autenticado) no vuelve a
-  // pedírsela.
-  // `showIf` (2026-09-16: preguntas de embarazo/RED-S, solo gender==='female')
-  // depende de `answers` completo -- la única pregunta que lo usa hoy se
-  // apoya en `gender`, respondida en la etapa 1, muy antes en el array, así
-  // que este recálculo nunca desplaza el índice de una pregunta ya mostrada
-  // hacia adelante (ver el comentario grande de showIf en
-  // types/onboardingV2.ts para el razonamiento completo).
+  // La sección 'account' (email/teléfono/contraseña) solo tiene sentido si
+  // todavía no hay cuenta: quien ya la tiene y reanuda un onboarding a medias
+  // no vuelve a pasar por ella.
   const questions = useMemo(
     () =>
-      (state.isAuthenticated ? ONBOARDING_QUESTIONS.filter((q) => q.stage !== 'credentials') : ONBOARDING_QUESTIONS).filter(
-        (q) => q.showIf === undefined || q.showIf(answers)
+      ONBOARDING_QUESTIONS.filter(
+        (q) => (!state.isAuthenticated || q.section !== 'account') && (q.showIf === undefined || q.showIf(answers))
       ),
     [state.isAuthenticated, answers]
   );
-  const visibleStages = useMemo(
-    () => (state.isAuthenticated ? ONBOARDING_STAGES.filter((s) => s.id !== 'credentials') : ONBOARDING_STAGES),
-    [state.isAuthenticated]
+  const visibleSections = useMemo(
+    () => ONBOARDING_SECTIONS.filter((s) => questions.some((q) => q.section === s.id)),
+    [questions]
   );
 
   const userId = state.user?.id;
   // Reanudación: si el usuario cerró la app a mitad del onboarding, recupera
-  // sus respuestas ya dadas (nunca el índice de pregunta -- más simple y
-  // seguro volver a la primera pregunta sin responder que arriesgarse a un
-  // índice fuera de rango si esta lista de preguntas cambia entre
-  // versiones). Solo aplica con cuenta ya creada (userId real) -- ver
-  // comentario junto a answersStorageKey arriba para el porqué de NO
-  // reanudar en la fase anónima.
-  //
-  // PENDING_RESULT_KEY se comprueba ANTES que nada: si está presente, esta
-  // instancia es el remount que provoca hydrateSession justo después de
-  // registrar (ver handleContinue) -- las respuestas ya se enviaron todas
-  // al backend, solo falta saltar a la pantalla de resumen en vez de volver
-  // a preguntar las 38 preguntas ya respondidas.
+  // sus respuestas (nunca el índice -- más seguro volver a la primera
+  // pregunta que arriesgarse a un índice fuera de rango si la lista cambia
+  // entre versiones). Solo con cuenta ya creada, ver answersStorageKey.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -182,30 +219,24 @@ export default function OnboardingV2Screen({ navigation }: any) {
     AsyncStorage.setItem(answersStorageKey(userId), JSON.stringify(answers)).catch((e) => logger.error(e));
   }, [answers, restored, userId]);
 
-  const question = questions[questionIndex];
-  const stageIndex = visibleStages.findIndex((s) => s.id === question.stage);
-  const stageQuestions = useMemo(
-    () => questions.filter((q) => q.stage === question.stage),
-    [questions, question.stage]
+  const question = questions[Math.min(questionIndex, questions.length - 1)];
+  const sectionIndex = visibleSections.findIndex((s) => s.id === question.section);
+  const sectionQuestions = useMemo(
+    () => questions.filter((q) => q.section === question.section),
+    [questions, question.section]
   );
-  const indexWithinStage = stageQuestions.findIndex((q) => q.id === question.id);
-  const stageProgress = indexWithinStage / stageQuestions.length;
+  const indexWithinSection = sectionQuestions.findIndex((q) => q.id === question.id);
+  const sectionProgress = indexWithinSection / sectionQuestions.length;
   const isLastQuestion = questionIndex === questions.length - 1;
-  const isLastOfStage = indexWithinStage === stageQuestions.length - 1;
 
   const setAnswer = useCallback((id: string, value: any) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
   }, []);
 
-  // Bug real reportado: ruler/number_wheel muestran su defaultValue en el
-  // picker desde el primer render (para no arrancar vacíos), pero hasta que
-  // el usuario mueve el dedo no se llama a setAnswer -- si el valor que
-  // quiere es justo el que ya se ve preseleccionado (ej. su edad real
-  // coincide con el default mostrado), "Continuar" se queda deshabilitado
-  // porque isAnswered() lee `answers[question.id]` (todavía undefined), no
-  // lo que hay pintado en pantalla. Sembrar aquí el default en cuanto se
-  // entra a una pregunta de este tipo hace que el valor mostrado y el
-  // guardado sean el mismo desde el principio, sin esperar a un gesto.
+  // ruler/number_wheel muestran su defaultValue desde el primer render, pero
+  // hasta que el usuario mueve el dedo no había respuesta y "Continuar"
+  // quedaba deshabilitado aunque el valor mostrado fuera justo el suyo. Se
+  // siembra el default al entrar en la pregunta.
   useEffect(() => {
     if (!restored) return;
     if ((question.type === 'ruler' || question.type === 'number_wheel') && answers[question.id] === undefined) {
@@ -214,20 +245,11 @@ export default function OnboardingV2Screen({ navigation }: any) {
   }, [question, restored, answers, setAnswer]);
 
   const submitStage = useCallback(
-    // overrideUser: solo lo pasa el registro diferido (ver handleContinue) --
-    // en ESE punto la cuenta se acaba de crear vía authApi.register() sin
-    // pasar por AuthContext todavía (a propósito, ver comentario grande
-    // junto a hydrateSession en store/AuthContext.tsx), así que state.user
-    // sigue siendo el anónimo de antes (null) y no sirve como fuente de
-    // username/email para el endpoint de personal_data.
-    // Fix 2026-09-18 (mismo incidente que el comentario del catch, más
-    // abajo): antes de este fix, un solo fallo de red en un intento tumbaba
-    // la etapa entera para siempre en el registro diferido (el bucle de
-    // handleContinue no reintentaba nada). Ahora cada etapa se reintenta
-    // hasta 3 veces con una pequeña espera entre intentos -- reduce mucho la
-    // probabilidad de perder par_q/nutrition por un fallo puntual, aunque no
-    // lo elimina del todo (por eso el backend también valida en `complete`,
-    // ver AuthContext.completeOnboarding).
+    // overrideUser: solo lo pasa el registro diferido -- en ese punto la
+    // cuenta se acaba de crear sin pasar por AuthContext (ver hydrateSession
+    // en store/AuthContext.tsx), así que state.user sigue siendo null.
+    // Cada etapa se reintenta hasta 3 veces (incidente 2026-09-18: un fallo
+    // de red puntual hacía perder la etapa entera en el registro diferido).
     async (stageId: string, overrideUser?: { username: string; email: string }): Promise<boolean> => {
       const MAX_ATTEMPTS = 3;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -249,13 +271,9 @@ export default function OnboardingV2Screen({ navigation }: any) {
             overrideUser?.username ?? state.user?.username ?? '',
             overrideUser?.email ?? state.user?.email ?? ''
           );
-          // El endpoint solo devuelve { message, status } (ApiMessageResponse),
-          // no el usuario actualizado -- si no se sincroniza aquí, el nombre
-          // que se acaba de enviar al backend nunca llega a state.user (ni al
-          // caché en AsyncStorage), y Home/Profile siguen mostrando el
-          // fallback "Usuario" para siempre aunque el registro ya tenga el
-          // nombre real guardado en servidor. Mismo patrón que
-          // edit_profile_screen.tsx tras su propio updateProfile.
+          // El endpoint no devuelve el usuario actualizado: sin esto, el
+          // nombre recién enviado nunca llega a state.user y Home sigue
+          // mostrando "Usuario".
           if (state.user) {
             updateUser({
               ...state.user,
@@ -265,56 +283,82 @@ export default function OnboardingV2Screen({ navigation }: any) {
             });
           }
         } else if (stageId === 'par_q') {
-          // Las 2 preguntas condicionadas a mujer ni se muestran ni quedan en
-          // `answers` para male/other (showIf las excluye de `questions`) --
-          // el spread solo las incluye cuando sí hay respuesta real, para no
-          // enviar `false` de más a un perfil donde el backend las trata como
-          // opcionales-sin-dato, no como "respondió que no".
+          // El checklist `parq_conditions` se traduce a un booleano por
+          // columna. Las 2 preguntas de mujer solo se envían si aplica: para
+          // male/other el backend las guarda como NULL ("no aplica"), no false.
           const isFemale = answers.gender === 'female';
+          const conditions = Array.isArray(answers.parq_conditions) ? (answers.parq_conditions as string[]) : [];
+          const flags: Record<string, boolean> = {};
+          for (const c of PARQ_CONDITIONS) {
+            if (c.femaleOnly && !isFemale) continue;
+            flags[c.id] = conditions.includes(c.id);
+          }
           await onboardingV2Api.submitParQ({
-            parq_heart_condition: answers.parq_heart_condition === 'yes',
-            parq_chest_pain_activity: answers.parq_chest_pain_activity === 'yes',
-            parq_chest_pain_rest_last_month: answers.parq_chest_pain_rest_last_month === 'yes',
-            parq_dizziness_balance: answers.parq_dizziness_balance === 'yes',
-            parq_bone_joint_problem: answers.parq_bone_joint_problem === 'yes',
-            parq_bp_or_heart_medication: answers.parq_bp_or_heart_medication === 'yes',
-            parq_reason_not_to_exercise: answers.parq_reason_not_to_exercise === 'yes',
-            ...(isFemale
-              ? {
-                  parq_pregnant_or_possible: answers.parq_pregnant_or_possible === 'yes',
-                  parq_menstrual_change_or_stress_fracture: answers.parq_menstrual_change_or_stress_fracture === 'yes',
-                }
-              : {}),
-            parq_eating_disorder_history: answers.parq_eating_disorder_history === 'yes',
+            ...(flags as any),
             parq_fitness_level: Number(answers.parq_fitness_level) || 0,
-            parq_medical_history: String(answers.parq_medical_history ?? ''),
+            parq_medical_history: optionalText(visibleAnswer(answers, 'parq_medical_history')) ?? '',
             parq_goals: String(answers.parq_goals ?? ''),
+            injury_has: yesNo(answers.injury_has),
+            injury_zone: visibleAnswer(answers, 'injury_zone') as any,
+            injury_painful_movement: optionalText(visibleAnswer(answers, 'injury_painful_movement')),
+            injury_phase: visibleAnswer(answers, 'injury_phase') as any,
+            injury_worsens_with_impact: visibleAnswer(answers, 'injury_worsens_with_impact') as any,
+            injury_professional_clearance: visibleAnswer(answers, 'injury_professional_clearance') as any,
+            injury_other_notes: optionalText(visibleAnswer(answers, 'injury_other_notes')),
           });
         } else if (stageId === 'training_questionnaire') {
+          const refs = (visibleAnswer(answers, 'strength_references') as StrengthReferencesAnswer | undefined) ?? {};
+          const technique = visibleAnswer(answers, 'technique_level');
+          const weeks = Number(visibleAnswer(answers, 'target_event_weeks'));
           await onboardingV2Api.submitTrainingQuestionnaire({
             goal_type: answers.goal_type as any,
-            activity_level: answers.activity_level as any,
+            // Ya no se pregunta: se deriva de estilo de vida + días de entreno.
+            activity_level: deriveActivityLevel(answers),
             lifestyle_type: answers.lifestyle_type as any,
-            // El usuario responde en años (training_experience_years, ver
-            // constants/onboardingV2Questions.ts) -- el backend sigue
-            // esperando meses, se convierte aquí antes de enviar.
+            // Se pregunta en años, el backend guarda meses.
             training_experience_months: (Number(answers.training_experience_years) || 0) * 12,
             training_days_per_week: Number(answers.training_days_per_week) || 0,
             session_duration_preference: answers.session_duration_preference as any,
-            training_mindset: answers.training_mindset as any,
-            previous_coaching: answers.previous_coaching as any,
-            current_routine_style: answers.current_routine_style as any,
-            weekly_split_preference: answers.weekly_split_preference as any,
-            technique_level: Number(answers.technique_level) || 0,
-            realistic_goal: String(answers.realistic_goal ?? ''),
+            // Solo si ya ha entrenado (showIf); si no, null -- el backend las
+            // exige solo con experiencia > 0.
+            training_mindset: (visibleAnswer(answers, 'training_mindset') as any) ?? null,
+            previous_coaching: (visibleAnswer(answers, 'previous_coaching') as any) ?? null,
+            current_routine_style: (visibleAnswer(answers, 'current_routine_style') as any) ?? null,
+            weekly_split_preference: (visibleAnswer(answers, 'weekly_split_preference') as any) ?? null,
+            technique_level: technique !== undefined ? Number(technique) : null,
+            realistic_goal: optionalText(visibleAnswer(answers, 'realistic_goal')),
+            practices_other_sport: yesNo(answers.practices_other_sport),
+            other_sport_description: optionalText(visibleAnswer(answers, 'other_sport_description')),
+            has_target_event: yesNo(answers.has_target_event),
+            target_event_description: optionalText(visibleAnswer(answers, 'target_event_description')),
+            // Se pregunta en semanas (no hay selector de fecha).
+            target_event_date:
+              weeks > 0 ? new Date(Date.now() + weeks * 7 * 86400000).toISOString().slice(0, 10) : null,
+            work_schedule: answers.work_schedule as any,
+            training_time_of_day: answers.training_time_of_day as any,
+            sleep_hours: answers.sleep_hours !== undefined ? Number(answers.sleep_hours) : undefined,
+            sleep_regularity: answers.sleep_regularity as any,
+            stress_level: answers.stress_level !== undefined ? Number(answers.stress_level) : undefined,
+            training_location: answers.training_location as any,
+            equipment_notes: optionalText(visibleAnswer(answers, 'equipment_notes')),
+            strength_squat_kg: parseLoad(refs.squat?.kg, false),
+            strength_squat_reps: parseLoad(refs.squat?.reps, true),
+            strength_deadlift_kg: parseLoad(refs.deadlift?.kg, false),
+            strength_deadlift_reps: parseLoad(refs.deadlift?.reps, true),
+            strength_db_bench_kg: parseLoad(refs.db_bench?.kg, false),
+            strength_db_bench_reps: parseLoad(refs.db_bench?.reps, true),
+            strength_db_row_kg: parseLoad(refs.db_row?.kg, false),
+            strength_db_row_reps: parseLoad(refs.db_row?.reps, true),
           });
         } else if (stageId === 'nutrition_questionnaire') {
           await onboardingV2Api.submitNutritionQuestionnaire({
-            allergies_intolerances: String(answers.allergies_intolerances ?? ''),
-            medications: answers.medications ? String(answers.medications) : undefined,
-            supplements: answers.supplements ? String(answers.supplements) : undefined,
+            // Puerta has_allergies: sin alergias se guarda "Ninguna"
+            // (obligatorio en el backend).
+            allergies_intolerances:
+              answers.has_allergies === 'yes' ? String(answers.allergies_intolerances ?? '') : 'Ninguna',
+            medications: optionalText(visibleAnswer(answers, 'medications')),
+            supplements: optionalText(visibleAnswer(answers, 'supplements')),
             disliked_foods: String(answers.disliked_foods ?? ''),
-            liked_foods: String(answers.liked_foods ?? ''),
             current_meals_per_day: Number(answers.current_meals_per_day) || 0,
             desired_meals_per_day: Number(answers.desired_meals_per_day) || 0,
             typical_day_meals: String(answers.typical_day_meals ?? ''),
@@ -325,31 +369,25 @@ export default function OnboardingV2Screen({ navigation }: any) {
             cooking_minutes_per_meal: Number(answers.cooking_minutes_per_meal) || 0,
             cooking_skill_level: answers.cooking_skill_level as 'beginner' | 'intermediate' | 'advanced',
             cooks_for_others: answers.cooks_for_others === 'yes',
+            weekly_food_budget: answers.weekly_food_budget as any,
+            meals_away_from_home: answers.meals_away_from_home as any,
+            intermittent_fasting: yesNo(answers.intermittent_fasting),
+            alcohol_frequency: answers.alcohol_frequency as any,
+            water_intake: answers.water_intake as any,
+            previous_diets: optionalText(visibleAnswer(answers, 'previous_diets')),
           });
         }
         return true;
       } catch (e) {
-        // Reportado 2026-09-18 (bug real, MUY grave: Osas Ehigiator y
-        // Alberto Martín quedaron con onboarding_completed_at puesto en el
-        // backend pero sin par_q_answers ni nutrition_questionnaire_answers
-        // -- este catch trataba CUALQUIER fallo como best-effort/ignorable
-        // ("ni siquiera la etapa 1 debe bloquear el alta por un fallo de red
-        // puntual"), y el bucle de registro en handleContinue no comprobaba
-        // el resultado, así que la etapa se perdía en silencio para
-        // siempre). Las respuestas siguen a salvo en AsyncStorage pase lo
-        // que pase, pero ya no se rinde al primer fallo -- reintenta antes.
+        // Incidente 2026-09-18: antes este catch daba cualquier fallo por
+        // bueno y la etapa se perdía en silencio. Ahora reintenta; si aun así
+        // falla devuelve false (handleContinue no borra el checkpoint local) y
+        // el backend no deja completar el onboarding con etapas pendientes.
         if (attempt < MAX_ATTEMPTS) {
           logger.error(`[onboarding_v2] fallo al enviar etapa ${stageId} (intento ${attempt}/${MAX_ATTEMPTS}), reintentando`, e);
           await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
           continue;
         }
-        // El valor de retorno (false) sí se usa -- ver handleContinue: si la
-        // ÚLTIMA etapa falla, no se borra el checkpoint de AsyncStorage, para
-        // no perder la única copia de unas respuestas que nunca llegaron a
-        // guardarse en el backend. Y aunque el registro deferido no comprueba
-        // este resultado, el backend ya no deja completar el onboarding si
-        // faltan etapas (ver OnboardingController::complete() en Bckbs) --
-        // el usuario volverá a este flujo la próxima vez que abra la app.
         logger.error(`[onboarding_v2] fallo al enviar etapa ${stageId} tras ${MAX_ATTEMPTS} intentos, se deja pendiente`, e);
         return false;
       }
@@ -360,13 +398,9 @@ export default function OnboardingV2Screen({ navigation }: any) {
   );
 
   // Registro diferido (pedido explícito 2026-08-29): crea la cuenta con lo
-  // acumulado en `answers` durante todo el onboarding (nombre, sexo, email,
-  // contraseña) + defaults fijos que antes ponía RegisterScreen.tsx
-  // (user_type/status). Llama a authApi.register() DIRECTAMENTE, no a
-  // register() de AuthContext -- ver comentario grande junto a
-  // hydrateSession en store/AuthContext.tsx para el porqué (evitar que
-  // isAuthenticated pase a true, y por tanto RootNavigator remonte todo el
-  // stack, ANTES de enviar las 4 etapas reales al backend).
+  // acumulado en `answers`. Llama a authApi.register() DIRECTAMENTE, no a
+  // register() de AuthContext, para que isAuthenticated no pase a true (y
+  // RootNavigator no remonte el stack) antes de enviar las etapas.
   const registerAnonymousUser = useCallback(async () => {
     const name = answers.name as { first_name: string; last_name: string } | undefined;
     const firstName = name?.first_name?.trim() ?? '';
@@ -374,6 +408,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
     const email = String(answers.email ?? '').trim();
     const password = String(answers.password ?? '');
     const username = `${firstName} ${lastName}`.trim() || email;
+    const phone = phoneDigits(answers.phone_number);
     try {
       const response = await authApi.register({
         username,
@@ -384,12 +419,14 @@ export default function OnboardingV2Screen({ navigation }: any) {
         user_type: 'user',
         status: 'active',
         gender: (answers.gender as string) ?? 'other',
+        ...(phone ? { phone_number: phone } : {}),
       });
       return response.data.data;
     } catch (e: any) {
       const message =
         e?.response?.data?.message ||
         e?.response?.data?.errors?.email?.[0] ||
+        e?.response?.data?.errors?.phone_number?.[0] ||
         e?.response?.data?.errors?.username?.[0] ||
         e?.message ||
         'No se pudo completar el registro';
@@ -398,19 +435,37 @@ export default function OnboardingV2Screen({ navigation }: any) {
     }
   }, [answers]);
 
+  // Resumen: activity_level ya no se pregunta, pero la pantalla de resultado
+  // lo usa para el gasto calórico -- se añade derivado.
+  const answersForResult = useCallback((): OnboardingAnswers => {
+    const result: OnboardingAnswers = { ...answers, activity_level: deriveActivityLevel(answers) };
+    // La contraseña no sobrevive más de lo estrictamente necesario.
+    delete result.password;
+    return result;
+  }, [answers]);
+
   const handleContinue = useCallback(async () => {
-    // Sin cuenta todavía (registro diferido al final del onboarding, ver
-    // registerAnonymousUser) las 4 etapas reales NO se envían por el camino
-    // de siempre (isLastOfStage) -- fallarían con 401, todavía no hay token.
-    // Se envían todas juntas más abajo, en el `if (!state.isAuthenticated)`,
-    // justo después de crear la cuenta. La etapa 'credentials' (email +
-    // contraseña) tampoco tiene submitStage propio -- ver su comentario en
-    // types/onboardingV2.ts.
-    let stageSubmitted = true;
-    if (isLastOfStage && question.stage !== 'credentials' && state.isAuthenticated) {
-      setSubmitting(true);
-      stageSubmitted = await submitStage(question.stage);
-      setSubmitting(false);
+    setPendingAdvance(null);
+    // Con cuenta ya creada (reanudando), cada endpoint se envía en cuanto se
+    // pasa su última pregunta visible -- las secciones mezclan endpoints, así
+    // que no basta con "fin de sección". Sin cuenta todavía se envía todo
+    // junto al final, tras registrar (antes daría 401).
+    let stagesSubmitted = true;
+    if (state.isAuthenticated) {
+      const due = PAYLOAD_STAGES.filter((stage) => {
+        let last = -1;
+        questions.forEach((q, i) => {
+          if (q.stage === stage) last = i;
+        });
+        return last === questionIndex;
+      });
+      if (due.length > 0) {
+        setSubmitting(true);
+        for (const stage of due) {
+          stagesSubmitted = (await submitStage(stage)) && stagesSubmitted;
+        }
+        setSubmitting(false);
+      }
     }
 
     if (isLastQuestion) {
@@ -421,68 +476,80 @@ export default function OnboardingV2Screen({ navigation }: any) {
           setSubmitting(false);
           return;
         }
-        // Activa el token YA (SecureStore, leído por el interceptor de
-        // api/client.ts en cada request) para que las 4 llamadas de abajo
-        // vayan autenticadas -- hydrateSession (que hace lo mismo de forma
-        // duradera, más AsyncStorage 'USER') se llama DESPUÉS a propósito,
-        // ver su comentario en AuthContext.tsx.
+        // Token activo YA para que los envíos de abajo vayan autenticados;
+        // hydrateSession va DESPUÉS a propósito (ver AuthContext.tsx).
         await setToken(userData.api_token);
-        const realStages = ONBOARDING_STAGES.filter((s) => s.id !== 'credentials');
-        for (const stage of realStages) {
-          await submitStage(stage.id, { username: userData.username, email: userData.email });
+        for (const stage of PAYLOAD_STAGES) {
+          await submitStage(stage, { username: userData.username, email: userData.email });
         }
-        // La contraseña no debe sobrevivir más de lo estrictamente
-        // necesario -- nunca se persiste ni se pasa a la pantalla de
-        // resumen.
-        const answersForResult: OnboardingAnswers = { ...answers };
-        delete answersForResult.password;
-        await AsyncStorage.setItem(PENDING_RESULT_KEY, JSON.stringify(answersForResult)).catch(() => {});
+        await AsyncStorage.setItem(PENDING_RESULT_KEY, JSON.stringify(answersForResult())).catch(() => {});
         setSubmitting(false);
-        // Dispara el remount de RootNavigator (App.tsx) -- esta instancia
-        // del componente se destruye justo después; PENDING_RESULT_KEY es
-        // lo que hace que la siguiente salte directa al resumen (ver el
-        // useEffect de arriba).
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        // Remonta RootNavigator: esta instancia se destruye y la siguiente
+        // salta al resumen gracias a PENDING_RESULT_KEY.
         await hydrateSession(userData, false);
         return;
       }
 
-      // Flujo de siempre: usuario YA autenticado (reanudando un onboarding
-      // a medias tras cerrar la app/un crash -- único otro motivo por el
-      // que esta pantalla se monta ya con cuenta).
-      const finalAnswers = answers;
-      if (stageSubmitted && userId) {
+      if (stagesSubmitted && userId) {
         await AsyncStorage.removeItem(answersStorageKey(userId)).catch(() => {});
       }
-      navigation.replace('MigratedAssessmentResult', { answers: finalAnswers });
+      navigation.replace('MigratedAssessmentResult', { answers: answersForResult() });
       return;
     }
+    setDirection('forward');
     setQuestionIndex((i) => i + 1);
   }, [
-    isLastOfStage,
     isLastQuestion,
-    question.stage,
+    questions,
+    questionIndex,
     submitStage,
     navigation,
-    answers,
     userId,
     state.isAuthenticated,
     registerAnonymousUser,
     hydrateSession,
+    answersForResult,
   ]);
 
+  // Auto-avance: se dispara en un efecto (no en el onPress) para que
+  // handleContinue ya vea la respuesta recién elegida -- y, si esa respuesta
+  // abre o cierra preguntas condicionadas, la lista `questions` ya
+  // recalculada.
+  const handleContinueRef = useRef(handleContinue);
+  useEffect(() => {
+    handleContinueRef.current = handleContinue;
+  }, [handleContinue]);
+  useEffect(() => {
+    if (!pendingAdvance || pendingAdvance !== question.id) return;
+    const timer = setTimeout(() => {
+      handleContinueRef.current();
+    }, AUTO_ADVANCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [pendingAdvance, question.id]);
+
+  const handleSelect = useCallback(
+    (id: string, value: any, autoAdvance?: boolean) => {
+      Haptics.selectionAsync().catch(() => {});
+      setAnswer(id, value);
+      if (autoAdvance) setPendingAdvance(id);
+    },
+    [setAnswer]
+  );
+
   const handleBack = useCallback(() => {
+    setPendingAdvance(null);
     if (questionIndex === 0) {
       if (navigation.canGoBack()) navigation.goBack();
       return;
     }
+    setDirection('back');
     setQuestionIndex((i) => i - 1);
   }, [questionIndex, navigation]);
 
-  // Botón físico "atrás" de Android = mismo comportamiento que la flecha de
-  // la cabecera (2026-09-24): antes salía del onboarding directamente desde
-  // cualquier pregunta, perdiendo el progreso. En iOS el gesto de volver
-  // está desactivado para esta pantalla (ver ONBOARDING_SCREEN_OPTIONS en
-  // App.tsx).
+  // Botón físico "atrás" de Android = flecha de la cabecera (antes salía del
+  // onboarding perdiendo el progreso). En iOS el gesto está desactivado para
+  // esta pantalla (ONBOARDING_SCREEN_OPTIONS en App.tsx).
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       handleBack();
@@ -501,17 +568,31 @@ export default function OnboardingV2Screen({ navigation }: any) {
     );
   }
 
+  const title = resolveText(question.title, answers);
+  const subtitle = resolveText(question.subtitle, answers);
+  const buttonLabel =
+    question.type === 'intro'
+      ? questionIndex === 0
+        ? 'Empezar'
+        : 'Vamos'
+      : isLastQuestion
+        ? state.isAuthenticated
+          ? 'Terminar'
+          : 'Crear mi cuenta'
+        : isEmptyOptional(question, answers)
+          ? 'Omitir'
+          : 'Continuar';
+  const entering = (direction === 'forward' ? FadeInRight : FadeInLeft).duration(260);
+
   return (
-    // 'top' se queda fuera a propósito: OnboardingHeader ya gestiona su
-    // propio safe-area top con useSafeAreaInsets (mismo patrón que
-    // ScreenHeader.tsx) -- añadirlo aquí también duplicaría el hueco
-    // superior, el mismo bug ya corregido esta sesión en otras pantallas.
+    // 'top' se queda fuera: OnboardingHeader gestiona su propio safe-area top.
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <OnboardingHeader
         onBack={handleBack}
-        stageCount={visibleStages.length}
-        currentStageIndex={stageIndex}
-        stageProgress={stageProgress}
+        stageCount={visibleSections.length}
+        currentStageIndex={sectionIndex}
+        stageProgress={sectionProgress}
+        label={visibleSections[sectionIndex]?.label}
       />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -520,27 +601,35 @@ export default function OnboardingV2Screen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
           scrollEnabled={!scaleDragging}
         >
-          <Text style={styles.title}>{question.title}</Text>
-          {question.subtitle ? <Text style={styles.subtitle}>{question.subtitle}</Text> : null}
-
-          <View style={styles.body}>
-            <QuestionInput
-              question={question}
-              answers={answers}
-              setAnswer={setAnswer}
-              heightUnit={heightUnit}
-              setHeightUnit={setHeightUnit}
-              weightUnit={weightUnit}
-              setWeightUnit={setWeightUnit}
-              defaultFirstName={state.user?.first_name}
-              defaultLastName={state.user?.last_name}
-              onScaleDraggingChange={setScaleDragging}
-              showPassword={showPassword}
-              onTogglePassword={() => setShowPassword((v) => !v)}
-              styles={styles}
-              C={C}
-            />
-          </View>
+          <Animated.View key={question.id} entering={entering}>
+            {question.type === 'intro' ? (
+              <IntroContent question={question} title={title ?? ''} styles={styles} />
+            ) : (
+              <>
+                <Text style={styles.title}>{title}</Text>
+                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+                <View style={styles.body}>
+                  <QuestionInput
+                    question={question}
+                    answers={answers}
+                    setAnswer={setAnswer}
+                    onSelect={handleSelect}
+                    heightUnit={heightUnit}
+                    setHeightUnit={setHeightUnit}
+                    weightUnit={weightUnit}
+                    setWeightUnit={setWeightUnit}
+                    defaultFirstName={state.user?.first_name}
+                    defaultLastName={state.user?.last_name}
+                    onScaleDraggingChange={setScaleDragging}
+                    showPassword={showPassword}
+                    onTogglePassword={() => setShowPassword((v) => !v)}
+                    styles={styles}
+                    C={C}
+                  />
+                </View>
+              </>
+            )}
+          </Animated.View>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -550,7 +639,7 @@ export default function OnboardingV2Screen({ navigation }: any) {
             onPress={handleContinue}
             disabled={!isAnswered(question, answers) || submitting}
           >
-            {submitting ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>Continuar</ButtonText>}
+            {submitting ? <Spinner size="small" color="#FFFFFF" /> : <ButtonText>{buttonLabel}</ButtonText>}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -558,10 +647,47 @@ export default function OnboardingV2Screen({ navigation }: any) {
   );
 }
 
+// Pantalla de introducción de sección: qué viene, por qué y cómo lo usa el
+// entrenador. Entra con una animación escalonada (emoji, título, tarjetas).
+function IntroContent({
+  question,
+  title,
+  styles,
+}: {
+  question: Extract<OnboardingQuestion, { type: 'intro' }>;
+  title: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.introBox}>
+      <Animated.Text entering={ZoomIn.springify().damping(12)} style={styles.introEmoji}>
+        {question.emoji}
+      </Animated.Text>
+      <Animated.Text entering={FadeInDown.delay(120).duration(300)} style={[styles.title, styles.introTitle]}>
+        {title}
+      </Animated.Text>
+      {question.minutes ? (
+        <Animated.View entering={FadeIn.delay(200)} style={styles.introChip}>
+          <Text style={styles.introChipText}>⏱ {question.minutes}</Text>
+        </Animated.View>
+      ) : null}
+      <Animated.View entering={FadeInDown.delay(260).duration(320)} style={styles.introCard}>
+        <Text style={styles.introCardLabel}>Por qué te lo preguntamos</Text>
+        <Text style={styles.introCardText}>{question.why}</Text>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(380).duration(320)} style={styles.introCard}>
+        <Text style={styles.introCardLabel}>Cómo lo usará tu entrenador</Text>
+        <Text style={styles.introCardText}>{question.coachUse}</Text>
+      </Animated.View>
+    </View>
+  );
+}
+
 function QuestionInput({
   question,
   answers,
   setAnswer,
+  onSelect,
   heightUnit,
   setHeightUnit,
   weightUnit,
@@ -577,6 +703,7 @@ function QuestionInput({
   question: OnboardingQuestion;
   answers: OnboardingAnswers;
   setAnswer: (id: string, value: any) => void;
+  onSelect: (id: string, value: any, autoAdvance?: boolean) => void;
   heightUnit: 'cm' | 'ft';
   setHeightUnit: (u: 'cm' | 'ft') => void;
   weightUnit: 'kg' | 'lbs';
@@ -594,11 +721,7 @@ function QuestionInput({
       first_name: defaultFirstName ?? '',
       last_name: defaultLastName ?? '',
     };
-    // Antes eran 2 pills sueltas flotando sobre el fondo gris, sin más
-    // jerarquía que el placeholder -- agrupadas en una sola tarjeta con
-    // etiqueta encima de cada campo y un divisor fino entre filas, mismo
-    // patrón que ya usa edit_profile_screen.tsx (pedido explícito: acercar
-    // esta pantalla al nivel visual de esa otra).
+    // Una tarjeta con etiqueta por campo, mismo patrón que edit_profile_screen.tsx.
     const initials = [value.first_name[0], value.last_name[0]].filter(Boolean).join('').toUpperCase() || '?';
     return (
       <View>
@@ -636,8 +759,81 @@ function QuestionInput({
       <OptionCards
         options={question.options}
         value={answers[question.id] as string | undefined}
-        onChange={(v) => setAnswer(question.id, v)}
+        onChange={(v) => onSelect(question.id, v, question.autoAdvance)}
       />
+    );
+  }
+
+  if (question.type === 'multi_choice') {
+    const options = question.options.filter((o) => !o.showIf || o.showIf(answers));
+    const current = (answers[question.id] as string[] | undefined) ?? [];
+    const toggle = (v: string) => {
+      const option = options.find((o) => o.value === v);
+      if (current.includes(v)) {
+        onSelect(question.id, current.filter((x) => x !== v));
+      } else if (option?.exclusive) {
+        onSelect(question.id, [v]);
+      } else {
+        const exclusive = new Set(options.filter((o) => o.exclusive).map((o) => o.value));
+        onSelect(question.id, [...current.filter((x) => !exclusive.has(x)), v]);
+      }
+    };
+    return <OptionCards options={options} value={current} onChange={toggle} />;
+  }
+
+  if (question.type === 'text_group') {
+    return (
+      <View style={styles.groupCard}>
+        {question.fields.map((field, i) => (
+          <View key={field.id} style={[styles.nameRow, i === question.fields.length - 1 && styles.nameRowLast]}>
+            <Text style={styles.nameLabel}>{field.label}</Text>
+            <Input style={styles.nameInput}>
+              <InputField
+                placeholder={field.placeholder}
+                value={(answers[field.id] as string | undefined) ?? ''}
+                onChangeText={(t) => setAnswer(field.id, t)}
+              />
+            </Input>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (question.type === 'strength_references') {
+    const refs = (answers[question.id] as StrengthReferencesAnswer | undefined) ?? {};
+    const update = (key: string, field: 'kg' | 'reps', text: string) => {
+      const clean = field === 'kg' ? text.replace(/[^0-9.,]/g, '') : text.replace(/[^0-9]/g, '');
+      setAnswer(question.id, { ...refs, [key]: { ...refs[key], [field]: clean } });
+    };
+    return (
+      <View style={styles.groupCard}>
+        {question.exercises.map((ex, i) => (
+          <View key={ex.key} style={[styles.strengthRow, i === question.exercises.length - 1 && styles.nameRowLast]}>
+            <Text style={styles.strengthLabel}>{ex.label}</Text>
+            {ex.hint ? <Text style={styles.strengthHint}>{ex.hint}</Text> : null}
+            <View style={styles.strengthInputs}>
+              <Input style={styles.strengthInput}>
+                <InputField
+                  placeholder="kg"
+                  keyboardType="decimal-pad"
+                  value={refs[ex.key]?.kg ?? ''}
+                  onChangeText={(t) => update(ex.key, 'kg', t)}
+                />
+              </Input>
+              <Text style={styles.strengthTimes}>×</Text>
+              <Input style={styles.strengthInput}>
+                <InputField
+                  placeholder="reps"
+                  keyboardType="number-pad"
+                  value={refs[ex.key]?.reps ?? ''}
+                  onChangeText={(t) => update(ex.key, 'reps', t)}
+                />
+              </Input>
+            </View>
+          </View>
+        ))}
+      </View>
     );
   }
 
@@ -673,17 +869,13 @@ function QuestionInput({
     const q = question as RulerQuestion;
     const isHeight = q.id === 'height';
     const unit = isHeight ? heightUnit : weightUnit;
-    // Cast explícito: TS infiere el parámetro de la unión de ambos setters
-    // como `never` (los literales 'cm'|'ft' y 'kg'|'lbs' son disjuntos), no
-    // por ningún motivo real -- `unit.value` siempre es el string correcto
-    // para el setter elegido según `isHeight`.
+    // Cast: TS infiere el parámetro de la unión de ambos setters como `never`.
     const setUnit = (isHeight ? setHeightUnit : setWeightUnit) as (u: string) => void;
     const baseValue = (answers[q.id] as number | undefined) ?? q.defaultValue;
     const activeUnitDef = q.units.find((u) => u.value === unit) ?? q.units[0];
     const displayValue = activeUnitDef.fromBase(baseValue);
-    // `q.decimals` describe la precisión de la unidad BASE (cm=0, kg=1); una
-    // unidad convertida (ft/lbs) casi nunca cae en un número entero, así que
-    // siempre se muestra con 1 decimal salvo que sea la propia unidad base.
+    // `q.decimals` es la precisión de la unidad BASE; una unidad convertida
+    // (ft/lbs) se muestra siempre con 1 decimal.
     const isBaseUnit = activeUnitDef.value === q.units[0].value;
     const displayDecimals = isBaseUnit ? q.decimals : 1;
 
@@ -730,18 +922,46 @@ function QuestionInput({
     );
   }
 
-  if (question.type === 'email') {
+  // Email + teléfono (2026-09-29). El teléfono es opcional: hacerlo
+  // obligatorio es de los campos que más abandono provocan (ver
+  // docs/ONBOARDING_INVESTIGACION.md).
+  if (question.type === 'contact') {
+    const phone = answers.phone_number as string | undefined;
+    const phoneInvalid = !!phoneDigits(phone) && !isValidPhone(phone);
     return (
-      <Input>
-        <InputField
-          placeholder={question.placeholder}
-          value={(answers[question.id] as string | undefined) ?? ''}
-          onChangeText={(t) => setAnswer(question.id, t)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </Input>
+      <View style={{ gap: 18 }}>
+        <View>
+          <Text style={styles.fieldLabel}>Email</Text>
+          <Input>
+            <InputField
+              placeholder="tu@email.com"
+              value={(answers.email as string | undefined) ?? ''}
+              onChangeText={(t) => setAnswer('email', t)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+            />
+          </Input>
+        </View>
+        <View>
+          <Text style={styles.fieldLabel}>Teléfono (opcional)</Text>
+          <Input>
+            <InputField
+              placeholder="+34 600 000 000"
+              value={phone ?? ''}
+              onChangeText={(t) => setAnswer('phone_number', t)}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+            />
+          </Input>
+          <Text style={[styles.fieldHint, phoneInvalid && { color: C.red }]}>
+            {phoneInvalid
+              ? 'Revisa el número: debe tener entre 9 y 15 dígitos'
+              : 'Para que tu entrenador pueda contactarte más rápido. No lo compartimos con nadie.'}
+          </Text>
+        </View>
+      </View>
     );
   }
 
@@ -763,11 +983,10 @@ function QuestionInput({
     );
   }
 
-  // textarea -- el componente compartido (components/ui/textarea) no fija
-  // ningún bg-* en modo claro (solo dark:bg-input/30), así que el bloque
-  // quedaba transparente, mezclándose con el fondo gris de la pantalla y
-  // distinguiéndose solo por el borde fino. Fondo blanco explícito (C.surface,
-  // ya se adapta solo a modo oscuro) para que se note como un bloque propio.
+  if (question.type !== 'textarea') return null;
+
+  // textarea -- fondo explícito (C.surface): el componente compartido no fija
+  // ningún bg en modo claro y se confundía con el fondo de la pantalla.
   return (
     <Textarea className="h-auto" style={{ minHeight: 120, backgroundColor: C.surface }}>
       <TextareaInput
@@ -808,9 +1027,7 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
     marginBottom: 20,
   },
   nameAvatarText: { fontFamily: FONT.extraBold, fontSize: 26, color: '#FFFFFF' },
-  // C.gray80 (alias deprecado de `accent`, casi idéntico a C.bg/border) dejaba
-  // esta tarjeta prácticamente invisible sobre el fondo -- mismo bug ya
-  // corregido antes en edit_profile_screen.tsx, que usa C.surface.
+  // C.surface, no C.gray80: sobre el fondo la tarjeta quedaba invisible.
   nameCard: { backgroundColor: C.surface, borderRadius: RADIUS.md },
   nameRow: {
     paddingHorizontal: 16,
@@ -821,5 +1038,34 @@ function createStyles(C: ReturnType<typeof useAppColorMode>['colors']) {
   nameRowLast: { borderBottomWidth: 0 },
   nameLabel: { fontFamily: FONT.medium, fontSize: 13, color: C.textSecondary, marginBottom: 4 },
   nameInput: { borderWidth: 0, height: 26, backgroundColor: 'transparent' },
+  groupCard: { backgroundColor: C.surface, borderRadius: RADIUS.md },
+  strengthRow: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  strengthLabel: { fontFamily: FONT.bold, fontSize: 15, color: C.textPrimary },
+  strengthHint: { fontFamily: FONT.regular, fontSize: 12.5, color: C.textSecondary, marginTop: 2 },
+  strengthInputs: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  strengthInput: { flex: 1 },
+  strengthTimes: { fontFamily: FONT.bold, fontSize: 16, color: C.textSecondary },
+  fieldLabel: { fontFamily: FONT.semiBold, fontSize: 13, color: C.textSecondary, marginBottom: 6 },
+  fieldHint: { fontFamily: FONT.regular, fontSize: 12.5, color: C.textSecondary, marginTop: 6 },
+  introBox: { alignItems: 'center', paddingTop: 12 },
+  introEmoji: { fontSize: 64, marginBottom: 16 },
+  introTitle: { textAlign: 'center' },
+  introChip: {
+    backgroundColor: `${C.orange}26`,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 20,
+  },
+  introChipText: { fontFamily: FONT.semiBold, fontSize: 12.5, color: C.textPrimary },
+  introCard: {
+    alignSelf: 'stretch',
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.md,
+    padding: 16,
+    marginBottom: 12,
+  },
+  introCardLabel: { fontFamily: FONT.bold, fontSize: 13, color: C.orange, marginBottom: 6 },
+  introCardText: { fontFamily: FONT.regular, fontSize: 15, lineHeight: 21, color: C.textPrimary },
   });
 }
