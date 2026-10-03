@@ -147,6 +147,22 @@ export default function ProgressScreen(props: any) {
         </Box>
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 + WORKOUT_MINIBAR_CLEARANCE }} showsVerticalScrollIndicator={false}>
+          {/* Fotos de progreso (antes/después) */}
+          <Pressable
+            className="flex-row items-center rounded-md bg-card"
+            style={{ marginTop: 20, padding: 14, gap: 12, ...SHADOW.card }}
+            onPress={() => props.navigation?.navigate('MigratedProgressPhotos')}
+          >
+            <Box className="items-center justify-center rounded-full" style={{ width: 42, height: 42, backgroundColor: C.gray5 }}>
+              <Icon name="images-outline" size={22} color={C.orange} />
+            </Box>
+            <Box style={{ flex: 1 }}>
+              <Text weight="bold" size="sm">Fotos de progreso</Text>
+              <Text size="xs" muted style={{ marginTop: 2 }}>Compara tu antes y después</Text>
+            </Box>
+            <Icon name="chevron-forward" size={18} color={C.gray40} />
+          </Pressable>
+
           {/* Composición corporal */}
           <Text size="sm" weight="bold" style={{ marginTop: 20, marginBottom: 10 }}>Composición corporal</Text>
           {/* 2 filas explicitas de flex:1, no flex-wrap -- con flexBasis 0
