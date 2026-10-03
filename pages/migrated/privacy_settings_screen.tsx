@@ -10,6 +10,7 @@ import { useAppColorMode } from '@helper/useAppColorMode';
 import { showToast } from '@helper/toast';
 import logger from '@helper/logger';
 import { profileApi } from '../../api/profile';
+import { analyticsAvailable, isAnalyticsEnabled, setAnalyticsEnabled } from '@helper/monitoring';
 import { FONT, RADIUS } from './theme';
 
 // Privacidad (2026-09-26): unico ajuste por ahora -- si otros usuarios pueden ver, en tu
@@ -21,6 +22,25 @@ export default function PrivacySettingsScreen(props: any) {
   const styles = useMemo(() => createStyles(C), [C]);
   const [showStats, setShowStats] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  // «Compartir datos de uso» (2026-10-03): opt-out local de la analítica de
+  // pantallas (PostHog, helper/monitoring.ts). Solo se muestra si el build
+  // trae clave de PostHog.
+  const [shareUsage, setShareUsage] = useState(true);
+
+  useEffect(() => {
+    if (analyticsAvailable) isAnalyticsEnabled().then(setShareUsage);
+  }, []);
+
+  const toggleShareUsage = async (next: boolean) => {
+    setShareUsage(next);
+    try {
+      await setAnalyticsEnabled(next);
+    } catch (e) {
+      logger.error('Analytics opt-out save error:', e);
+      setShareUsage(!next);
+      showToast('Error', { description: 'No se pudo guardar el cambio. Inténtalo de nuevo.', variant: 'error' });
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -82,6 +102,25 @@ export default function PrivacySettingsScreen(props: any) {
         <Text style={[styles.subtitle, { marginTop: 12, paddingHorizontal: 4 }]}>
           Está desactivado por defecto: nadie ve tus estadísticas hasta que tú lo actives.
         </Text>
+        {analyticsAvailable && (
+          <Box style={[styles.card, { marginTop: 20 }]}>
+            <HStack className="items-center justify-between">
+              <VStack style={{ flex: 1, marginRight: 12 }}>
+                <Text style={styles.title}>Compartir datos de uso</Text>
+                <Text style={styles.subtitle}>
+                  Nos ayuda a saber qué pantallas se usan más para mejorar la app. Solo se registra qué pantallas abres,
+                  nunca tus cargas, comidas, mensajes ni datos de salud.
+                </Text>
+              </VStack>
+              <Switch
+                value={shareUsage}
+                onValueChange={toggleShareUsage}
+                trackColor={{ false: C.gray70, true: C.primary }}
+                thumbColor={C.white}
+              />
+            </HStack>
+          </Box>
+        )}
       </Box>
     </SafeAreaView>
   );

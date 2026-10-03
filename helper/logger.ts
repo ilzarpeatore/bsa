@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reportError } from './monitoring';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -23,6 +24,8 @@ function log(level: LogLevel, ...args: unknown[]) {
   }
 
   bufferForDiagnostics(level, args);
+  // Cada logger.error llega también a Sentry (no-op sin DSN, ver monitoring.ts).
+  if (level === 'error') reportError(args);
 }
 
 export const logger = {
@@ -35,9 +38,10 @@ export const logger = {
 export default logger;
 
 // --- "Habilitar diagnósticos" / "Enviar registros al desarrollador" ---
-// (Ajustes, pedido explícito con captura de referencia). El proyecto no
-// tiene ningún SDK de crash-reporting/analytics instalado
-// (@sentry/react-native no está en package.json) -- en vez de simular un
+// (Ajustes, pedido explícito con captura de referencia). Cuando se escribió
+// esto el proyecto no tenía ningún SDK de crash-reporting (desde 2026-10-03
+// Sentry recibe los logger.error, ver helper/monitoring.ts; este buffer
+// sigue siendo el informe manual que manda el propio usuario) -- en vez de simular un
 // switch de "diagnósticos" que no controla nada real, este flag
 // activa/desactiva un buffer en memoria de los propios logs de la app
 // (los mismos que ya pasan por logger.debug/info/warn/error en todo el

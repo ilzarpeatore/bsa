@@ -150,6 +150,11 @@ jobs:
           # carpeta android/ es nueva en cada run, no hay bundle cacheado).
           # Vacío = herramientas fuera.
           EXPO_PUBLIC_DEV_TOOLS: ${{ inputs.dev_tools && '1' || '' }}
+          # helper/monitoring.ts (2026-10-03): Sentry (crashes/errores) y
+          # PostHog (pantallas más usadas). Claves de cliente guardadas como
+          # secrets del repo; sin ellas el servicio queda apagado en el build.
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          EXPO_PUBLIC_POSTHOG_KEY: ${{ secrets.POSTHOG_API_KEY }}
         run: |
           set -e
           cd android
