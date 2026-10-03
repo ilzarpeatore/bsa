@@ -1,4 +1,4 @@
-import { formatTechnique, resolveTechnique } from './workoutTechnique';
+import { dropWeight, formatTechnique, partsConfigFor, partsPayload, resolveTechnique, techniqueAppliesToRow, totalReps } from './workoutTechnique';
 
 const catalog = [
   {
@@ -49,5 +49,50 @@ describe('resolveTechnique', () => {
       logging: '',
       lastSetOnly: false,
     });
+  });
+});
+
+describe('registro por partes', () => {
+  const info = (key: string, lastSetOnly = false) => ({
+    key,
+    label: key,
+    description: '',
+    steps: [],
+    mistakes: [],
+    logging: '',
+    lastSetOnly,
+  });
+
+  it('aplica a todas las series o solo a la última', () => {
+    expect(techniqueAppliesToRow(info('rest_pause'), 0, 3)).toBe(true);
+    expect(techniqueAppliesToRow(info('rest_pause', true), 1, 3)).toBe(false);
+    expect(techniqueAppliesToRow(info('rest_pause', true), 2, 3)).toBe(true);
+    expect(techniqueAppliesToRow(null, 0, 3)).toBe(false);
+  });
+
+  it('solo las técnicas por tramos tienen botón, con pausa donde toca', () => {
+    expect(partsConfigFor(info('drop_sets'))?.pauseSeconds).toBeNull();
+    expect(partsConfigFor(info('rest_pause'))?.pauseSeconds).toBe(15);
+    expect(partsConfigFor(info('bisets'))).toBeNull();
+  });
+
+  it('la bajada propone ~20 % menos redondeado a 2,5 kg', () => {
+    expect(dropWeight(100)).toBe(80);
+    expect(dropWeight(22.5)).toBe(17.5);
+    expect(dropWeight(5)).toBe(2.5);
+    expect(dropWeight(null)).toBeNull();
+  });
+
+  it('envía solo tramos con repeticiones y suma el total', () => {
+    const parts = [
+      { carga: '80', reps: '3' },
+      { carga: '', reps: '2' },
+      { carga: '70', reps: '' },
+    ];
+    expect(partsPayload(parts)).toEqual([
+      { carga: 80, reps: 3 },
+      { carga: null, reps: 2 },
+    ]);
+    expect(totalReps('8', parts)).toBe(13);
   });
 });

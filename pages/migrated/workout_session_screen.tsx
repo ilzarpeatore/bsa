@@ -86,8 +86,17 @@ import {
   getTrainingTechniques,
   UnifiedExercise,
 } from './workoutViewShared';
-import { resolveTechnique, TechniqueInfo } from './workoutTechnique';
+import {
+  BFR_REST_SECONDS,
+  partsConfigFor,
+  partsPayload,
+  resolveTechnique,
+  techniqueAppliesToRow,
+  TechniqueInfo,
+  TechniquePart,
+} from './workoutTechnique';
 import TechniqueChip from '../../components/TechniqueChip';
+import TechniqueParts from '../../components/TechniqueParts';
 import type { TrainingTechniqueItem } from '../../api/workoutTemplate';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -175,6 +184,9 @@ interface SetRow {
   // finalizar aunque reps/carga vengan precargados. Opcional: sesiones
   // persistidas por versiones anteriores no lo traen.
   edited?: boolean;
+  // Tramos extra de una serie con técnica (bajadas, mini-series): se envían
+  // en `partes`; carga/reps de la fila son solo el primer tramo.
+  parts?: TechniquePart[];
 }
 
 interface SessionExercise extends UnifiedExercise {
@@ -389,6 +401,7 @@ interface WorkoutExercisePlayerProps {
   onToggleIntensityMode: () => void;
   suggestion?: LoadSuggestion;
   onChangeCell: (rowIndex: number, key: string, value: string) => void;
+  onChangeParts: (rowIndex: number, parts: TechniquePart[]) => void;
   onToggleRowComplete: (rowIndex: number) => void;
   onAddRow: () => void;
   onMarkAllRows: () => void;
@@ -501,6 +514,7 @@ function WorkoutExercisePlayer({
   onToggleIntensityMode,
   suggestion,
   onChangeCell,
+  onChangeParts,
   onToggleRowComplete,
   onAddRow,
   onMarkAllRows,
@@ -839,6 +853,15 @@ function WorkoutExercisePlayer({
                       {rowTechniqueLabel(technique ?? null, rowIdx, ex.rows.length) ? (
                         <TechniqueChip variant="row" info={technique ?? null} exerciseTitle={ex.title} />
                       ) : null}
+                      {partsConfigFor(technique ?? null) && techniqueAppliesToRow(technique ?? null, rowIdx, ex.rows.length) ? (
+                        <TechniqueParts
+                          config={partsConfigFor(technique ?? null)!}
+                          parts={row.parts ?? []}
+                          mainCarga={row.values.carga}
+                          mainReps={row.values.reps}
+                          onChange={(parts) => onChangeParts(rowIdx, parts)}
+                        />
+                      ) : null}
 
                       {ex.prescribed?.descanso && rowIdx < ex.rows.length - 1 ? (
                         <HStack className="items-center" style={{ marginBottom: 8 }} space="sm">
@@ -964,6 +987,7 @@ export default function WorkoutSessionScreen(props: Props) {
   // reintentan al marcar otra serie del mismo ejercicio y, en cualquier caso,
   // al finalizar (ver retryFailedSyncs).
   const failedSyncKeysRef = useRef<Set<string>>(new Set());
+  const partsSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [unmarkedFinishCount, setUnmarkedFinishCount] = useState(0);
   const [blocks, setBlocks] = useState<SessionBlock[]>([]);
   const [activeIndexByBlock, setActiveIndexByBlock] = useState<Record<number, number>>({});
@@ -1413,7 +1437,8 @@ export default function WorkoutSessionScreen(props: Props) {
         intensityOverride ?? (ex.enabledMetrics.includes('rir') ? 'rir' : ex.enabledMetrics.includes('rpe') ? 'rpe' : 'rir');
       const otherIntensity: IntensityMetric = activeIntensity === 'rir' ? 'rpe' : 'rir';
       const hasValue = (v: unknown) => v != null && v !== '';
-      const loggedSets = ex.rows.reduce<Record<string, any>[]>((acc, r) => {
+      const technique = resolveTechnique(ex.prescribed, techniques);
+      const loggedSets = ex.rows.reduce<Record<string, any>[]>((acc, r, rowIdx) => {
         if (!r.completed) return acc;
         const clean: Record<string, any> = {};
         const intensityKey = hasValue(r.values[activeIntensity])
@@ -1443,6 +1468,13 @@ export default function WorkoutSessionScreen(props: Props) {
           }
           clean[key] = r.values[key];
         });
+        // Técnica de intensidad (2026-10-03): la serie dice qué técnica lleva
+        // y, si se apunta por tramos, sus `partes`. Así el backend usa solo
+        // el primer tramo para 1RM y récords (ver bckbs LoggedSetMath).
+        if (technique && techniqueAppliesToRow(technique, rowIdx, ex.rows.length)) {
+          clean.tecnica = technique.key;
+          if (partsConfigFor(technique)) clean.partes = partsPayload(r.parts);
+        }
         acc.push(clean);
         return acc;
       }, []);
@@ -1495,7 +1527,7 @@ export default function WorkoutSessionScreen(props: Props) {
         });
     },
      
-    [programDayAssignmentId, identityKey, sessionStartedAt, intensityModeOverride]
+    [programDayAssignmentId, identityKey, sessionStartedAt, intensityModeOverride, techniques]
   );
 
   const updateExercise = (
@@ -1520,6 +1552,25 @@ export default function WorkoutSessionScreen(props: Props) {
       rows[rowIndex] = { ...rows[rowIndex], values: { ...rows[rowIndex].values, [key]: value }, edited: true };
       return { ...ex, rows };
     });
+  };
+
+  // Tramos de una serie con técnica. Si la serie ya estaba marcada, se
+  // reenvía (con un pequeño retardo para no mandar una petición por tecla).
+  const setRowParts = (blockIdx: number, exIdx: number, rowIndex: number, parts: TechniquePart[]) => {
+    const base = blocks[blockIdx]?.exercises[exIdx];
+    if (!base) return;
+    const rows = [...base.rows];
+    rows[rowIndex] = { ...rows[rowIndex], parts, edited: true };
+    const ex = { ...base, rows };
+    updateExercise(blockIdx, exIdx, (cur) => {
+      const curRows = [...cur.rows];
+      curRows[rowIndex] = { ...curRows[rowIndex], parts, edited: true };
+      return { ...cur, rows: curRows };
+    });
+    if (rows[rowIndex].completed) {
+      if (partsSyncTimerRef.current) clearTimeout(partsSyncTimerRef.current);
+      partsSyncTimerRef.current = setTimeout(() => syncExerciseLog(ex), 800);
+    }
   };
 
   const setNoteValue = (blockIdx: number, exIdx: number, note: string) => {
@@ -1744,9 +1795,19 @@ export default function WorkoutSessionScreen(props: Props) {
     }
     // Solo al MARCAR (no al desmarcar) y solo si esta serie concreta tiene
     // un valor de descanso real configurado -- sin dato, no se inventa.
+    let restStarted = false;
     if (!wasCompleted && ex.enabledMetrics.includes('descanso')) {
       const seconds = parseRestSeconds(rows[rowIndex].values.descanso);
-      if (seconds != null) startRestCountdown(seconds);
+      if (seconds != null) {
+        startRestCountdown(seconds);
+        restStarted = true;
+      }
+    }
+    // BFR: la ficha pide ~30 s con la banda puesta entre series. Si el coach
+    // no ha puesto descanso, se usa ese.
+    const technique = resolveTechnique(ex.prescribed, techniques);
+    if (!wasCompleted && !restStarted && technique?.key === 'bfr' && techniqueAppliesToRow(technique, rowIndex, rows.length)) {
+      startRestCountdown(BFR_REST_SECONDS);
     }
     // El IntensityCheckSheet ya se fuerza a abrir en el guard de arriba
     // cuando falta el dato (RIR/RPE obligatorio) -- si llegamos aquí es
@@ -2665,6 +2726,20 @@ export default function WorkoutSessionScreen(props: Props) {
                     {rowTechniqueLabel(resolveTechnique(ex.prescribed, techniques), rowIdx, ex.rows.length) ? (
                       <TechniqueChip variant="row" info={resolveTechnique(ex.prescribed, techniques)} exerciseTitle={ex.title} />
                     ) : null}
+                    {(() => {
+                      const info = resolveTechnique(ex.prescribed, techniques);
+                      const config = partsConfigFor(info);
+                      if (!config || !techniqueAppliesToRow(info, rowIdx, ex.rows.length)) return null;
+                      return (
+                        <TechniqueParts
+                          config={config}
+                          parts={row.parts ?? []}
+                          mainCarga={row.values.carga}
+                          mainReps={row.values.reps}
+                          onChange={(parts) => setRowParts(blockIdx, exIdx, rowIdx, parts)}
+                        />
+                      );
+                    })()}
                     </React.Fragment>
                   ))}
                 </Box>
@@ -2990,6 +3065,7 @@ export default function WorkoutSessionScreen(props: Props) {
             onChangeCell={(rowIndex, key, value) =>
               setCellValue(playerTarget.blockIdx, playerTarget.exIdx, rowIndex, key, value)
             }
+            onChangeParts={(rowIndex, parts) => setRowParts(playerTarget.blockIdx, playerTarget.exIdx, rowIndex, parts)}
             onToggleRowComplete={(rowIndex) => toggleRowComplete(playerTarget.blockIdx, playerTarget.exIdx, rowIndex)}
             onAddRow={() => addRow(playerTarget.blockIdx, playerTarget.exIdx)}
             onMarkAllRows={() => markAllRows(playerTarget.blockIdx, playerTarget.exIdx)}
