@@ -86,8 +86,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permite a Be Stronger acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.",
-          "cameraPermission": "Permite a Be Stronger usar la cámara para que puedas añadir una foto a tus publicaciones."
+          "photosPermission": "Permite a Be Stronger acceder a tus fotos para añadir imágenes a tus publicaciones y subir fotos de progreso.",
+          "cameraPermission": "Permite a Be Stronger usar la cámara para hacer tus fotos de progreso y añadir fotos a tus publicaciones."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite a Be Stronger usar la cámara para hacer tus fotos de progreso y añadir fotos a tus publicaciones.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ]
     ]

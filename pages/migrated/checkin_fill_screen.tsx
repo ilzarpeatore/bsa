@@ -22,6 +22,8 @@ import {
   CheckInAnswerInput,
   UNSUPPORTED_QUESTION_TYPES,
 } from '../../api/checkins';
+import CheckInPhotosField from '@components/progress_photos/CheckInPhotosField';
+import type { CapturedPose } from '@components/progress_photos/PoseCamera';
 
 type AnswerValue = string | string[];
 
@@ -70,10 +72,14 @@ function QuestionCard({
   question,
   value,
   onChange,
+  photos,
+  onPhotosChange,
 }: {
   question: CheckInQuestion;
   value: AnswerValue | undefined;
   onChange: (v: AnswerValue) => void;
+  photos: CapturedPose[];
+  onPhotosChange: (v: CapturedPose[]) => void;
 }) {
   const { colors: C } = useAppColorMode();
   const unsupported = UNSUPPORTED_QUESTION_TYPES.includes(question.type);
@@ -92,6 +98,8 @@ function QuestionCard({
             Este tipo de pregunta (foto/firma) aún no se puede responder desde la app. Pídele a tu coach que te ayude a completarlo por otro medio.
           </Text>
         </Box>
+      ) : question.type === 'progress_photos' ? (
+        <CheckInPhotosField value={photos} maxFiles={question.max_files ?? 3} onChange={onPhotosChange} />
       ) : question.type === 'text' ? (
         <Input>
           <InputField
@@ -210,6 +218,7 @@ export default function CheckInFillScreen(props: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
+  const [photoAnswers, setPhotoAnswers] = useState<Record<number, CapturedPose[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const { reportAction } = useTutorial();
 
@@ -236,8 +245,12 @@ export default function CheckInFillScreen(props: Props) {
     [questions]
   );
   const missingRequired = useMemo(
-    () => questions.filter((q) => q.is_required && !UNSUPPORTED_QUESTION_TYPES.includes(q.type) && !isAnswered(answers[q.id])),
-    [questions, answers]
+    () =>
+      questions.filter((q) =>
+        q.is_required && !UNSUPPORTED_QUESTION_TYPES.includes(q.type) &&
+        (q.type === 'progress_photos' ? !photoAnswers[q.id]?.length : !isAnswered(answers[q.id]))
+      ),
+    [questions, answers, photoAnswers]
   );
   const canSubmit = blockingQuestions.length === 0 && missingRequired.length === 0;
 
@@ -246,13 +259,13 @@ export default function CheckInFillScreen(props: Props) {
     setSubmitting(true);
     try {
       const payload: CheckInAnswerInput[] = questions.reduce<CheckInAnswerInput[]>((acc, q) => {
-        if (!UNSUPPORTED_QUESTION_TYPES.includes(q.type) && isAnswered(answers[q.id])) {
+        if (!UNSUPPORTED_QUESTION_TYPES.includes(q.type) && q.type !== 'progress_photos' && isAnswered(answers[q.id])) {
           acc.push({ form_question_id: q.id, answer_value: answers[q.id] as string | string[] });
         }
         return acc;
       }, []);
 
-      await checkinsApi.submit(formAssignmentId, payload);
+      await checkinsApi.submit(formAssignmentId, payload, photoAnswers);
       reportAction('checkin_submitted');
       showToast('Enviado', { description: 'Tu respuesta se ha guardado correctamente.', variant: 'success' });
       navigation?.goBack();
@@ -293,6 +306,8 @@ export default function CheckInFillScreen(props: Props) {
                   question={q}
                   value={answers[q.id]}
                   onChange={(v) => setAnswers((prev) => ({ ...prev, [q.id]: v }))}
+                  photos={photoAnswers[q.id] ?? []}
+                  onPhotosChange={(v) => setPhotoAnswers((prev) => ({ ...prev, [q.id]: v }))}
                 />
               ))
             )}

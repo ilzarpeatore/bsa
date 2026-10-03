@@ -73,11 +73,11 @@
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Permite a Be Stronger acceder a tus fotos para que puedas añadir una imagen a tus publicaciones.</string>
+    <string>Permite a Be Stronger acceder a tus fotos para añadir imágenes a tus publicaciones y subir fotos de progreso.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>Permite a Be Stronger guardar la imagen de tu resumen de entrenamiento en tu galería.</string>
     <key>NSCameraUsageDescription</key>
-    <string>Permite a Be Stronger usar la cámara para que puedas añadir una foto a tus publicaciones.</string>
+    <string>Permite a Be Stronger usar la cámara para hacer tus fotos de progreso y añadir fotos a tus publicaciones.</string>
     <key>NSSupportsLiveActivities</key>
     <true/>
     <key>LSApplicationQueriesSchemes</key>

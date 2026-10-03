@@ -1,5 +1,6 @@
 import apiClient from './client';
 import { ApiMessageResponse } from './types';
+import { toUploadFile, type PhotoFile, type ProgressPhotoPose } from './progressPhotos';
 
 export type CheckInQuestionType =
   | 'text'
@@ -15,10 +16,12 @@ export type CheckInQuestionType =
   | 'metric'
   | 'signature';
 
-// media/progress_photos/signature no tienen renderer en la app todavía (ver
+// media/signature no tienen renderer en la app todavía (ver
 // checkin_fill_screen.tsx) - ninguna pregunta real hoy los marca obligatorios,
 // se muestran como "completar desde otro medio" en vez de bloquear el envío.
-export const UNSUPPORTED_QUESTION_TYPES: CheckInQuestionType[] = ['media', 'progress_photos', 'signature'];
+// progress_photos sí se responde desde la app desde 2026-10-03
+// (CheckInPhotosField, misma cámara guiada que Fotos de progreso).
+export const UNSUPPORTED_QUESTION_TYPES: CheckInQuestionType[] = ['media', 'signature'];
 
 export interface CheckInQuestion {
   id: number;
@@ -112,6 +115,37 @@ export const checkinsApi = {
   getSubmissionDetail: (id: number) =>
     apiClient.get<{ data: CheckInSubmissionDetail }>('form-submission-detail', { params: { id } }),
 
-  submit: (formAssignmentId: number, answers: CheckInAnswerInput[]) =>
-    apiClient.post<ApiMessageResponse>('form-submit', { form_assignment_id: formAssignmentId, answers }),
+  // Con fotos (preguntas progress_photos) se envía multipart: el backend
+  // espera los ficheros en media_{question_id}[] y la pose de cada uno, en el
+  // mismo orden, en poses_{question_id}[] (FormController::submit).
+  submit: (
+    formAssignmentId: number,
+    answers: CheckInAnswerInput[],
+    photos: Record<number, { pose: ProgressPhotoPose; file: PhotoFile }[]> = {},
+  ) => {
+    const photoQuestionIds = Object.keys(photos).map(Number).filter((id) => photos[id]?.length);
+    if (photoQuestionIds.length === 0) {
+      return apiClient.post<ApiMessageResponse>('form-submit', { form_assignment_id: formAssignmentId, answers });
+    }
+    const form = new FormData();
+    form.append('form_assignment_id', String(formAssignmentId));
+    const all = [...answers, ...photoQuestionIds.map((id) => ({ form_question_id: id, answer_value: null }))];
+    all.forEach((a, i) => {
+      form.append(`answers[${i}][form_question_id]`, String(a.form_question_id));
+      if (Array.isArray(a.answer_value)) {
+        a.answer_value.forEach((v) => form.append(`answers[${i}][answer_value][]`, v));
+      } else if (a.answer_value !== null) {
+        form.append(`answers[${i}][answer_value]`, a.answer_value);
+      }
+    });
+    photoQuestionIds.forEach((id) => {
+      photos[id].forEach((shot) => {
+        form.append(`media_${id}[]`, toUploadFile(shot.file));
+        form.append(`poses_${id}[]`, shot.pose);
+      });
+    });
+    return apiClient.post<ApiMessageResponse>('form-submit', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };

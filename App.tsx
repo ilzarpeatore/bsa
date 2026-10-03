@@ -101,6 +101,7 @@ const PostDetailsScreen = React.lazy(() => import('@pages/migrated/post_details_
 const PrivacyPolicyScreen = React.lazy(() => import('@pages/migrated/privacy_policy_screen'));
 const ProfileScreenMigrated = React.lazy(() => import('@pages/migrated/profile_screen'));
 const ProgressScreen = React.lazy(() => import('@pages/migrated/progress_screen'));
+const ProgressPhotosScreen = React.lazy(() => import('@pages/migrated/progress_photos_screen'));
 const StatisticsScreen = React.lazy(() => import('@pages/migrated/statistics_screen'));
 const StatisticsMuscleDistributionScreen = React.lazy(
   () => import('@pages/migrated/statistics_muscle_distribution_screen'),
@@ -318,6 +319,7 @@ function MigratedNavigator({ route }: { route?: { params?: { initialScreen?: str
         options={{ presentation: 'modal' }}
       />
       <MStack.Screen name="MigratedProgress" component={ProgressScreen} />
+      <MStack.Screen name="MigratedProgressPhotos" component={ProgressPhotosScreen} />
       <MStack.Screen name="MigratedStatistics" component={StatisticsScreen} />
       <MStack.Screen
         name="MigratedStatisticsMuscles"
