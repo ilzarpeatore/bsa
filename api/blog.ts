@@ -52,7 +52,7 @@ export const blogApi = {
     per_page?: number;
     is_featured?: string;
   }) => {
-    let url = `post-list?page=${page}`;
+    let url = `post-list?page=${page}&channel=app`;
     if (params?.search) url += `&search=${encodeURIComponent(params.search)}`;
     if (params?.blog_category_id) url += `&blog_category_id=${params.blog_category_id}`;
     if (params?.order_by) url += `&order_by=${params.order_by}`;
