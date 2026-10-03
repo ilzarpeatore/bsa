@@ -32,6 +32,7 @@ import { NavigationTabOptionsInterface, IoniconName } from '@components/_types/N
 import { TabBarScrollProvider } from '@store/TabBarScrollContext';
 import { AppColorModeProvider, useAppColorMode } from '@helper/useAppColorMode';
 import { AppReloadProvider, useAppReload } from '@store/AppReloadContext';
+import { wrapRoot, registerNavigation, trackScreen, identifyUser } from '@helper/monitoring';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import '@/global.css';
@@ -437,12 +438,21 @@ function AppNavigationContainer({
   onReady: () => void;
 }) {
   const { reloadKey } = useAppReload();
+  // Monitorización (helper/monitoring.ts): Sentry engancha sus breadcrumbs de
+  // navegación al contenedor y PostHog recibe un evento de pantalla por cada
+  // cambio de ruta activa -- base de la analítica de pantallas más usadas.
+  const handleReady = () => {
+    registerNavigation(navigationRef);
+    trackScreen(navigationRef.getCurrentRoute?.()?.name);
+    onReady();
+  };
   return (
     <NavigationContainer
       key={reloadKey}
       ref={navigationRef}
       theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#EBEBF0' } }}
-      onReady={onReady}>
+      onReady={handleReady}
+      onStateChange={() => trackScreen(navigationRef.getCurrentRoute?.()?.name)}>
       <RootNavigator />
     </NavigationContainer>
   );
@@ -462,9 +472,21 @@ function GluestackModeBridge({ children }: { children: React.ReactNode }) {
   return <GluestackUIProvider mode={mode}>{children}</GluestackUIProvider>;
 }
 
+// Asocia los informes de Sentry y los eventos de PostHog al id del usuario
+// con sesión (nada más: ni email ni nombre); al cerrar sesión los desvincula.
+function MonitoringIdentity() {
+  const { state } = useAuth();
+  const userId = state.user?.id;
+  const accessTier = (state.user as { access_tier?: string } | null)?.access_tier;
+  useEffect(() => {
+    identifyUser(userId ? { id: userId, access_tier: accessTier } : null);
+  }, [userId, accessTier]);
+  return null;
+}
+
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
   // Si quedo una sesion de entrenamiento sin finalizar de un cierre en frio
@@ -632,6 +654,7 @@ export default function App() {
           <AppColorModeProvider>
             <GluestackModeBridge>
               <AuthProvider>
+                <MonitoringIdentity />
                 <TutorialProvider navigationRef={screenReviewNavigationRef}>
                   <AppNavigationContainer
                     navigationRef={screenReviewNavigationRef}
@@ -660,3 +683,5 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+export default wrapRoot(App);
